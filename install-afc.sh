@@ -5,7 +5,7 @@ set -e
 
 KLIPPER_PATH="${HOME}/klipper"
 SYSTEMDDIR="/etc/systemd/system"
-EXTENSION_LIST="AFC AFC_buffer AFC_stepper"
+EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led"
 SRCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/ && pwd )"
 
 # Step 1:  Verify Klipper has been installed
