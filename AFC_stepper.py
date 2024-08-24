@@ -32,6 +32,8 @@ class AFCExtruderStepper:
         self.status = ''
         self.gcode = self.printer.lookup_object('gcode')
         
+        self.printer[self.name].status=''
+        
         self.hub_dist = config.getfloat('hub_dist')
         
         # LEDS
