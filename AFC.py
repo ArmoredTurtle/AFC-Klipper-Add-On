@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+from ast import Str
 import math, logging
 import chelper
 import copy
@@ -445,9 +446,15 @@ class afc:
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
         
     def get_status(self, eventtime):
-        return {
-                'current_load': self.current
-        }
-
+        str={}
+        for NAME in self.LANES:
+            LANE=self.printer.lookup_object('AFC_stepper '+NAME)
+            str[NAME + "_load"] = bool(LANE.load_state)
+            str[NAME + "_prep"]=bool(LANE.prep_state)
+        str['current_load']= self.current
+        str['tool_loaded']=bool(self.tool.filament_present)
+        str['hub_loaded']=bool(self.hub.filament_present)
+        return str
+    
 def load_config(config):         
     return afc(config)
