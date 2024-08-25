@@ -8,7 +8,7 @@ To install this plugin, you should have the following pre-requisites installed:
 
   1) Klipper
   2) Moonraker
-  3) WebUI (Moonraker or Fluidd) 
+  3) WebUI (Mainsail or Fluidd) 
 
 To install this plugin, you can use the following commands:
 
