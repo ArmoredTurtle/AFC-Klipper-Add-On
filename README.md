@@ -13,7 +13,7 @@ To install this plugin, you should have the following pre-requisites installed:
 To install this plugin, you can use the following commands:
 
 ```bash
-wget -o - https://raw.githubusercontent.com/ArmoredTurtle/AFC-Klipper-Add-On/main/install-afc.sh | bash
+wget -O - https://raw.githubusercontent.com/ArmoredTurtle/AFC-Klipper-Add-On/main/install-afc.sh | bash
 ```
 
 ## Configuration
@@ -21,6 +21,13 @@ wget -o - https://raw.githubusercontent.com/ArmoredTurtle/AFC-Klipper-Add-On/mai
 ...
 
 ## Usage
+
+
+## Troubleshooting
+
+Debug information about the respooler system can be found by visiting the following URL in your browser:
+
+`{ip address}/printer/objects/query?AFC`
 
 
 ## Removing Plugin

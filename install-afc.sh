@@ -7,6 +7,19 @@ KLIPPER_PATH="${HOME}/klipper"
 SYSTEMDDIR="/etc/systemd/system"
 EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led"
 SRCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/ && pwd )"
+GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
+BASE_PATH="AFC-Klipper-Add-On"
+
+function clone_repo() {
+  # Check if the repo is already cloned
+  if [ -d "${BASE_PATH}/.git" ]; then
+    echo "Repo already cloned"
+  else
+    echo "Cloning repo..."
+    cd ~
+    git clone "${GITREPO}" "${BASE_PATH}"
+  fi
+}
 
 # Step 1:  Verify Klipper has been installed
 function check_klipper() {
@@ -92,8 +105,10 @@ while getopts "k:uh" arg; do
     esac
 done
 
+clone_repo
 check_klipper
 verify_ready
+
 if ! check_existing; then
     link_extensions
 else
@@ -101,6 +116,7 @@ else
         unlink_extensions
     fi
 fi
+
 restart_klipper
 show_moonraker_config
 exit 0
