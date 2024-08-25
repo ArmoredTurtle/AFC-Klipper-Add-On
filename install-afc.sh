@@ -55,15 +55,44 @@ function verify_ready() {
     fi
 }
 
+function show_help() {
+    echo "Usage: install-afc.sh [options]"
+    echo ""
+    echo "Options:"
+    echo "  -k <path>    Specify the path to the Klipper directory"
+    echo "  -u           Uninstall the extensions"
+    echo "  -h           Display this help message"
+    echo ""
+    echo "Example:"
+    echo "  install-afc.sh -k ~/klipper"
+}
+
+function show_moonraker_config() {
+    local REQUIRED_CONFIG="[update_manager afc-software]
+type: git_repo
+path: ~/AFC-Klipper-Add-On
+origin: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
+managed_services: klipper moonraker
+primary_branch: main
+install_script: install-afc.sh
+"
+    echo "Please ensure the following is in your moonraker.conf if you want automatic updates:"
+    echo ""
+    echo "${REQUIRED_CONFIG}"
+}
+
 do_uninstall=0
 
-while getopts "k:u" arg; do
+while getopts "k:uh" arg; do
     case ${arg} in
         k) KLIPPER_PATH=${OPTARG} ;;
         u) do_uninstall=1 ;;
+        h) show_help; exit 0 ;;
+        *) exit 1 ;;
     esac
 done
 
+check_klipper
 verify_ready
 if ! check_existing; then
     link_extensions
@@ -73,4 +102,5 @@ else
     fi
 fi
 restart_klipper
+show_moonraker_config
 exit 0
