@@ -443,6 +443,11 @@ class afc:
                 self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE='+self.hub_cut_servo_pass_angle)
                 time.sleep(2)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
+        
+    def get_status(self, eventtime):
+        return {
+                'current_load': self.current
+        }
 
 def load_config(config):         
     return afc(config)
