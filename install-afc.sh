@@ -67,10 +67,8 @@ function show_help() {
     echo "  install-afc.sh -k ~/klipper"
 }
 
-function check_moonraker_config() {
-    CONFIG_PATH="${HOME}/printer_data/config/moonraker.conf"
-    REQUIRED_CONFIG="
-[update_manager afc-software]
+function show_moonraker_config() {
+    local REQUIRED_CONFIG="[update_manager afc-software]
 type: git_repo
 path: ~/AFC-Klipper-Add-On
 origin: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
@@ -78,11 +76,9 @@ managed_services: klipper moonraker
 primary_branch: main
 install_script: install-afc.sh
 "
-
-    if ! grep -Fxq "$REQUIRED_CONFIG" "$CONFIG_PATH"; then
-        echo "Please ensure the following is installed in your ~/printer_data/config/moonraker.conf file:"
-        echo "$REQUIRED_CONFIG"
-    fi
+    echo "Please ensure the following is in your moonraker.conf if you want automatic updates:"
+    echo ""
+    echo "${REQUIRED_CONFIG}"
 }
 
 do_uninstall=0
@@ -106,5 +102,5 @@ else
     fi
 fi
 restart_klipper
-check_moonraker_config
+show_moonraker_config
 exit 0
