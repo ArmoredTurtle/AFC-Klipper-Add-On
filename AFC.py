@@ -396,7 +396,7 @@ class afc:
         
         if self.tool_cut_active == 1:
             for cut in range(2):
-                self.gcode.run_script_from_command('CUT')
+                self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park == 1:
                 self.gcode.run_script_from_command(self.park_cmd)
         while self.tool.filament_present == True:
