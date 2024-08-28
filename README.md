@@ -18,8 +18,17 @@ wget -O - https://raw.githubusercontent.com/ArmoredTurtle/AFC-Klipper-Add-On/mai
 
 ## Configuration
 
-...
+Sample configuration files for the most popular boards are located in the `Klipper_cfg_example/AFC` directory.
 
+The `AFC` directory should be placed in your `~/printer_data/config` directory and included in your `printer.cfg` file.
+
+```
+[include AFC/*.cfg]
+```
+
+Ensure you rename one of the sample configuration files and replace the extension with `.cfg` such as `afc_hardware_AFC.cfg` and so forth.
+
+You *MUST* double-check all pins in the configuration file for your specific hardware prior to using.
 ## Usage
 
 
