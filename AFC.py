@@ -395,8 +395,7 @@ class afc:
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
         if self.tool_cut_active == 1:
-            for cut in range(2):
-                self.gcode.run_script_from_command(self.tool_cut_cmd)
+            self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park == 1:
                 self.gcode.run_script_from_command(self.park_cmd)
         while self.tool.filament_present == True:
