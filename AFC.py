@@ -453,6 +453,8 @@ class afc:
         str['current_load']= self.current
         str['tool_loaded']=bool(self.tool.filament_present)
         str['hub_loaded']=bool(self.hub.filament_present)
+        str['num_lanes']=len(self.LANES)
+        
         return str
     
 def load_config(config):         
