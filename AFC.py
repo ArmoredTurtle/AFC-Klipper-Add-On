@@ -395,8 +395,7 @@ class afc:
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
         if self.tool_cut_active == 1:
-            for cut in range(2):
-                self.gcode.run_script_from_command('CUT')
+            self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park == 1:
                 self.gcode.run_script_from_command(self.park_cmd)
         while self.tool.filament_present == True:
@@ -454,6 +453,8 @@ class afc:
         str['current_load']= self.current
         str['tool_loaded']=bool(self.tool.filament_present)
         str['hub_loaded']=bool(self.hub.filament_present)
+        str['num_lanes']=len(self.LANES)
+        
         return str
     
 def load_config(config):         
