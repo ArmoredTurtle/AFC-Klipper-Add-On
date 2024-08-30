@@ -446,6 +446,8 @@ class afc:
         
     def get_status(self, eventtime):
         str={}
+        self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
+        self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
         for NAME in self.LANES:
             LANE=self.printer.lookup_object('AFC_stepper '+NAME)
             str[NAME + "_load"] = bool(LANE.load_state)
