@@ -44,7 +44,7 @@ function check_existing() {
 function link_extensions() {
     echo "Linking extensions to Klipper..."
     for extension in ${EXTENSION_LIST}; do
-        ln -sf "${SRCDIR}/${extension}.py" "${KLIPPER_PATH}/klippy/extras/${extension}.py"
+        ln -sf "${SRCDIR}/${BASE_PATH}/${extension}.py" "${KLIPPER_PATH}/klippy/extras/${extension}.py"
     done
 }
 
