@@ -57,10 +57,10 @@ class afc:
         self.spoolman = config.getboolean('spoolman', False)
         if self.spoolman:
             self.spoolman_filament={}
-            response = urlopen("http://192.168.1.50:7912/api/v1/filament")
-            data=json.loads(response.read())
-            for x in range(len(data)):
-                self.spoolman_filament[str(data[x]['id'])]={"name": data[x]['name'],"material": data[x]['material'],"color": data[x]['color_hex']}
+            #response = urlopen("http://192.168.1.50:7912/api/v1/filament")
+            #data=json.loads(response.read())
+            #for x in range(len(data)):
+            #    self.spoolman_filament[str(data[x]['id'])]={"name": data[x]['name'],"material": data[x]['material'],"color": data[x]['color_hex']}
                 
         #LED SETTINGS
         self.ind_lights=None
