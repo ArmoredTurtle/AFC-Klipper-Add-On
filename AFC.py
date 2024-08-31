@@ -292,7 +292,7 @@ class afc:
                         self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                     else:
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
-                            while LaneHub.last_state == False:
+                            while CUR_LANE.load_state == False:
                                 self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
