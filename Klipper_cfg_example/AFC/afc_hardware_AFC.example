@@ -96,7 +96,7 @@ pause_on_runout: False
 switch_pin: AFC:PB11                # Used when installing the 4-to-1 Rear Skirt
 pause_on_runout: False
 
-[AFC_led Indicator]
+[AFC_led AFC_Indicator]
 pin: AFC:PA2                        # BTT MMB RGB Port *** NOTE: This port has a different pinout that all others ***
 chain_count: 4
 #color_order: RGBW                  # Validate the order based on your LEDs.

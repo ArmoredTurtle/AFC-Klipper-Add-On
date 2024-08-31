@@ -153,7 +153,6 @@ class afc:
         
     def afc_led (self, status, idx=None):
         led = self.printer.lookup_object('AFC_led '+ idx.split(':')[0])
-        self.gcode.respond_info(idx.split(':')[0])
         colors=list(map(float,status.split(',')))
         transmit =1
         if idx is not None:
