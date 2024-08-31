@@ -82,17 +82,17 @@ class AFCExtruderStepper:
     def prep_callback(self, eventtime, state):
         self.prep_state = state
         if self.printer.state_message == 'Printer is ready':
-            led=self.led_index.split(':')
+            led=self.led_index
             if self.prep_state == True:
                 while self.load_state == False and self.prep_state == True and self.status == '' :
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=1')
                     self.AFC.afc_move(self.name,10,500,400)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=0')
                 if self.load_state == True and self.prep_state == True:
-                    self.AFC.afc_led(self.AFC.led_ready, led[1])
+                    self.AFC.afc_led(self.AFC.led_ready, led)
             else:
                 self.status = ''
-                self.AFC.afc_led(self.AFC.led_not_ready, led[1])
+                self.AFC.afc_led(self.AFC.led_not_ready, led)
 
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
