@@ -42,7 +42,7 @@ class AFCtrigger:
             if "buffer" in self.name:
                 if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
                     tool_loaded=self.printer.lookup_object('AFC').current
-                    if tool_loaded != 'lane0':
+                    if tool_loaded != '':
                         LANE=self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                         if LANE.status != 'unloading':
                             #self.AFC.afc_move(self.name,self.AFC.buffer_distance,self.AFC.short_moves_speed,self.AFC.short_moves_accel)

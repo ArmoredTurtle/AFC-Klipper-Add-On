@@ -54,10 +54,10 @@ class AFCExtruderStepper:
         self.respooler = config.get('respooler', None)
         if self.respooler is not None:
             pin=config.get('respooler')
+            self.respooler_pin=pin
             respoolconfig=config
             respoolconfig.fileconfig.set('AFC_stepper '+ self.name,'pin',str(pin))
             self.respooler=output_pin.PrinterOutputPin(respoolconfig)
-
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')   
        

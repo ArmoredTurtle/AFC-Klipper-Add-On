@@ -10,6 +10,7 @@ import chelper
 import copy
 import os 
 import time
+import json
 import toolhead
 import stepper
 from kinematics import extruder
@@ -47,8 +48,8 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
-        self.current ='lane0'
-        self.LANES=[]
+        self.current =''
+        self.lanes={}
 
         #LED SETTINGS
         self.ind_lights=None
@@ -94,7 +95,6 @@ class afc:
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         
-
         # MOVE SETTINGS
         self.long_moves_speed = config.getfloat("long_moves_speed", 100)
         self.long_moves_accel = config.getfloat("long_moves_accel", 400)
@@ -154,11 +154,11 @@ class afc:
     def afc_led (self, status, idx=None):
         if self.ind_lights is None:
             return
-        led = self.ind_lights
+        led = idx.split(':')[0]
         colors=list(map(float,status.split(',')))
         transmit =1
         if idx is not None:
-            index=int(idx)
+            index=int(idx.split(':')[1])
         else:
             index=None
 
@@ -196,40 +196,42 @@ class afc:
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
             time.sleep(1)
-        self.afc_led(self.led_fault, None)
         time.sleep(3)
+        if os.path.exists(self.VarFile) and os.stat(self.VarFile).st_size > 0:
+            try:
+                self.lanes=json.load(open(self.VarFile))
+            except IOError:
+                self.lanes={}
+            except ValueError:
+                self.lanes={}
+             
+        else:
+            self.lanes={}
+        temp=[]
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
-                name=PO.split(' ')[1]
-                self.LANES.append(name)
-            if 'AFC_led' in PO:
-                self.ind_lights=self.printer.lookup_object(PO)
-        newline=''
-        try:
-            content=open(self.VarFile).read()
-
-            for lanes in self.LANES:
-                if lanes not in content:
-                    content += lanes +':tool=0\n'
+                LANE=self.printer.lookup_object(PO)
+                self.lanes.update({LANE.name:{}})
+                temp.append(LANE.name)
+                if 'material' not in self.lanes[LANE.name]:
+                    self.lanes[LANE.name]['material']=''
+                if 'spool_id' not in self.lanes[LANE.name]:
+                    self.lanes[LANE.name]['spool_id']=''
+                if 'color' not in self.lanes[LANE.name]:
+                    self.lanes[LANE.name]['color']=''
+                if 'tool_loaded' not in self.lanes[LANE.name]:
+                    self.lanes[LANE.name]['tool_loaded']=False
+                if self.lanes[LANE.name]['tool_loaded'] == True:
+                    self.current == LANE.name
+        tmp=[]
+        for lanecheck in self.lanes.keys():
+            if lanecheck not in temp:
+                tmp.append(lanecheck)
+        for erase in tmp:
+            del self.lanes[erase]
             
-            file=open(self.VarFile, 'w')
-            file.write(content)
-            file.close
-            
-            for lanes in content.splitlines():
-                lane=lanes.split(':')[0]
-                tool=lanes.split(':')[1]
-                if '1' in tool:
-                    self.current=lane
-                    self.printer.lookup_object('AFC_stepper '+lane).status='tool'
-
-        except IOError:
-            newline=''
-            for line in self.LANES:
-                newline += line + ':tool=0\n'
-            file=open(self.VarFile, 'w')
-            file.write(newline)
-            file.close
+        with open(self.VarFile, 'w') as f:
+            json.dump(self.lanes, f)
         
         if self.Type == 'Box_Turtle':
             logo ='R  _____     ____\n'
@@ -239,84 +241,56 @@ class afc:
             logo+='Y |_|_| |_|_|\n'
 
             self.gcode.respond_info(self.Type + ' Prepping lanes')
-            for NAME in self.LANES:
-                LANE=self.printer.lookup_object('AFC_stepper '+NAME)
-                LANE.extruder_stepper.sync_to_extruder(None)
-                led_cont=LANE.led_index.split(':')
-                self.afc_move(NAME,-5,self.short_moves_speed,self.short_moves_accel)
-                self.afc_move(NAME,5,self.short_moves_speed,self.short_moves_accel)
-                if LANE.prep_state == False:
-                    self.afc_led(self.led_not_ready, led_cont[1])
+            for lane in self.lanes.keys():
+                CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
+                CUR_LANE.extruder_stepper.sync_to_extruder(None)
+                self.afc_move(lane,-5,self.short_moves_speed,self.short_moves_accel)
+                self.afc_move(lane,5,self.short_moves_speed,self.short_moves_accel)
+                if CUR_LANE.prep_state == False:
+                    self.afc_led(self.led_not_ready, CUR_LANE.led_index)
             self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
             self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
-            if self.current == 'lane0':
-                for NAME in self.LANES:
-                    LANE=self.printer.lookup_object('AFC_stepper '+NAME)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+NAME +'" ENABLE=1')
-                    led_cont=LANE.led_index.split(':')
-                    if self.hub.filament_present == True and LANE.load_state == True:
-                        while LANE.load_state == True:
+            
+            if self.current == '':
+                for lane in self.lanes.keys():
+                    CUR_LANE=self.printer.lookup_object('AFC_stepper '+ lane)
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=1')
+                    if self.hub.filament_present == True and CUR_LANE.load_state == True:
+                        while CUR_LANE.load_state == True:
                             self.rewind(LANE,1)
-                            self.afc_move(NAME,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
+                            self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
                         self.rewind(LANE,0)
-                        while LANE.load_state == False:
-                            self.afc_move(NAME,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                        while CUR_LANE.load_state == False:
+                            self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
                     else:
-                        if LANE.prep_state== True:
-                            while LANE.load_state == False:
-                                self.afc_move(NAME,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                        if CUR_LANE.prep_state== True:
+                            while CUR_LANE.load_state == False:
+                                self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
                             
-                            self.afc_led(self.led_ready, led_cont[1])
+                            self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
-                            self.afc_led(self.led_fault, led_cont[1])
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + NAME + '" ENABLE=0')
-                    self.gcode.respond_info(NAME.upper() + ' READY')
+                            self.afc_led(self.led_fault, CUR_LANE.led_index)
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+                    self.gcode.respond_info(lane.upper() + ' READY')
                 
             else:
-                for NAME in self.LANES:
-                    LANE=self.printer.lookup_object('AFC_stepper '+NAME)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+NAME +'" ENABLE=1')
-                    led_cont=LANE.led_index.split(':')
-                    if self.current == NAME:
-                        LANE=self.printer.lookup_object('AFC_stepper '+ self.current)
-                        led_cont=LANE.led_index.split(':')
-                        LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
+                for lane in self.lanes:
+                    CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=1')
+                    if self.current == name:
+                        CUR_LANE=self.printer.lookup_object('AFC_stepper '+ self.current)
+                        CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                         self.gcode.respond_info(self.current + " Tool Loaded")
-                        self.afc_led(self.led_tool_loaded, led_cont[1])
+                        self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                     else:
-                        if LANE.prep_state == True and LANE.load_state == False:
+                        if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
                             while LaneHub.last_state == False:
-                                self.afc_move(NAME,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
-                        if LANE.prep_state == True and LANE.load_state == True:
-                            self.afc_led(self.led_ready, led_cont[1])
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+NAME +'" ENABLE=0')
-                    self.gcode.respond_info('LANE '+NAME[-1] + ' READY')
-
-        elif self.Type == 'Raven':
-            logo ='R              __ \n'
-            logo+='E             /`{> \n'
-            logo+='A         ____) (____ \n'
-            logo+='D       // --;   ;-- \\\\ \n'
-            logo+='Y      ///////\_/\\\\\\\\\\\\\\ \n'
-            logo+='!             m m \n'
+                                self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                        if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
+                            self.afc_led(self.led_ready, CUR_LANE.led_index)
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
+                    self.gcode.respond_info('LANE '+lane[-1] + ' READY')
         self.gcode.respond_info(logo)
-    
-    def TOOL_VAR_CHANGE(self, lane, tool):
-        newline=''
-        try:
-            with open(self.VarFile, 'r') as file: 
-                data = file.readlines()
-                for line in data:
-                    if lane in line:
-                        newline += lane +':tool=' + tool + '\n'
-                    else:
-                        newline += line
-        except IOError:
-            self.gcode.respond_info("no file found " + self.VarFile)
-
-        file=open(self.VarFile, 'w')
-        file.write(newline)
-        file.close
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
@@ -363,11 +337,12 @@ class afc:
             self.toolhead.manual_move(pos, 5)
             self.toolhead.wait_moves()
             self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
-            self.TOOL_VAR_CHANGE(lane,'1')
+            self.lanes[lane]['tool_loaded'] = True
+            with open(self.VarFile, 'w') as f:
+                json.dump(self.lanes, f)
             self.current=lane
             LANE=self.printer.lookup_object('AFC_stepper '+lane)
-            led_cont=LANE.led_index.split(':')
-            self.afc_led(self.led_tool_loaded, led_cont[1])
+            self.afc_led(self.led_tool_loaded, LANE.led_index)
             if self.poop == 1:
                 if self.wipe == 1:
                     self.gcode.run_script_from_command(self.wipe_cmd)
@@ -391,7 +366,7 @@ class afc:
         LANE=self.printer.lookup_object('AFC_stepper '+lane)
         LANE.status = 'unloading'
         led_cont=LANE.led_index.split(':')
-        self.afc_led(self.led_loading, led_cont[1])
+        self.afc_led(self.led_loading, LANE.led_index)
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
         if self.tool_cut_active == 1:
@@ -417,22 +392,23 @@ class afc:
               
         self.rewind(LANE,0)
         self.afc_move(lane, self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel)
-        self.TOOL_VAR_CHANGE(lane,'0')
+        self.lanes[lane]['tool_loaded'] = False
+        with open(self.VarFile, 'w') as f:
+            json.dump(self.lanes, f)
         self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
-        led = self.led_ready.split(',')
-        self.afc_led(self.led_ready, led_cont[1])
+        self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
-        self.current= 'lane0'
+        self.current= ''
     
     cmd_CHANGE_TOOL_help = "Load lane into hub"
     def cmd_CHANGE_TOOL(self, gcmd):
         self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         if lane != self.current:
-            if self.current != 'lane0':
+            if self.current != '':
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
-            if self.hub_cut_active == 1 and self.current== 'lane0':
+            if self.hub_cut_active == 1 and self.current== '':
                 self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + self.hub_cut_servo_prep_angle)
                 while self.hub.filament_present == False:
                     self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -448,15 +424,17 @@ class afc:
         str={}
         self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
         self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
-        for NAME in self.LANES:
+        for NAME in self.lanes.keys():
             LANE=self.printer.lookup_object('AFC_stepper '+NAME)
             str[NAME + "_load"] = bool(LANE.load_state)
             str[NAME + "_prep"]=bool(LANE.prep_state)
+            str[NAME + "_material"]=self.lanes[NAME]['material']
+            str[NAME + "_spool_id"]=self.lanes[NAME]['spool_id']
+            str[NAME + "_color"]=self.lanes[NAME]['color']
         str['current_load']= self.current
         str['tool_loaded']=bool(self.tool.filament_present)
         str['hub_loaded']=bool(self.hub.filament_present)
-        str['num_lanes']=len(self.LANES)
-        
+        str['num_lanes']=len(self.lanes)
         return str
     
 def load_config(config):         
