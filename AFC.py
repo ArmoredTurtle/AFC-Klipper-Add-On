@@ -152,9 +152,8 @@ class afc:
             lambda print_time: lane.respooler._set_pin(print_time, value))
         
     def afc_led (self, status, idx=None):
-        if self.ind_lights is None:
-            return
-        led = idx.split(':')[0]
+        led = self.printer.lookup_object('AFC_led '+ idx.split(':')[0])
+        self.gcode.respond_info(idx.split(':')[0])
         colors=list(map(float,status.split(',')))
         transmit =1
         if idx is not None:
