@@ -15,6 +15,7 @@ import toolhead
 import stepper
 from kinematics import extruder
 from . import stepper_enable, output_pin
+from urllib.request import urlopen
 
 def calc_move_time(dist, speed, accel):
     axis_r = 1.
@@ -50,7 +51,17 @@ class afc:
         self.Type = config.get('Type')
         self.current =''
         self.lanes={}
-
+        
+        # SPOOLMAN
+        
+        self.spoolman = config.getboolean('spoolman', False)
+        if self.spoolman:
+            self.spoolman_filament={}
+            response = urlopen("http://192.168.1.50:7912/api/v1/filament")
+            data=json.loads(response.read())
+            for x in range(len(data)):
+                self.spoolman_filament[str(data[x]['id'])]={"name": data[x]['name'],"material": data[x]['material'],"color": data[x]['color_hex']}
+                
         #LED SETTINGS
         self.ind_lights=None
         self.led_name = config.get('led_name')
@@ -123,8 +134,9 @@ class afc:
 
     cmd_TEST_help = "Load lane into hub"
     def cmd_TEST(self, gcmd):
+        lane = gcmd.get('LANE', None)
         self.gcode.respond_info('TEST ROUTINE')
-        LANE=self.printer.lookup_object('AFC_stepper leg4')
+        LANE=self.printer.lookup_object('AFC_stepper '+lane)
         self.rewind(LANE,1)
         time.sleep(4)
         self.gcode.respond_info('half speed')
@@ -202,14 +214,12 @@ class afc:
                 self.lanes={}
             except ValueError:
                 self.lanes={}
-             
         else:
             self.lanes={}
         temp=[]
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
-                self.lanes.update({LANE.name:{}})
                 temp.append(LANE.name)
                 if 'material' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['material']=''
@@ -220,7 +230,7 @@ class afc:
                 if 'tool_loaded' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['tool_loaded']=False
                 if self.lanes[LANE.name]['tool_loaded'] == True:
-                    self.current == LANE.name
+                    self.current = LANE.name
         tmp=[]
         for lanecheck in self.lanes.keys():
             if lanecheck not in temp:
@@ -275,7 +285,7 @@ class afc:
                 for lane in self.lanes:
                     CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=1')
-                    if self.current == name:
+                    if self.current == lane:
                         CUR_LANE=self.printer.lookup_object('AFC_stepper '+ self.current)
                         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                         self.gcode.respond_info(self.current + " Tool Loaded")
@@ -434,6 +444,9 @@ class afc:
         str['hub_loaded']=bool(self.hub.filament_present)
         str['num_lanes']=len(self.lanes)
         return str
-    
+    cmd_SPOOL_ID_help = "LINK SPOOL into hub"
+    def cmd_SPOOL_ID(self, gcmd):
+        return
+        
 def load_config(config):         
     return afc(config)
