@@ -384,13 +384,14 @@ class afc:
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
-        while LANE.load_state == True:
-            self.rewind(LANE,1)
-            self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
-        self.afc_move(lane,self.hub_move_dis * -5,self.short_moves_speed,self.short_moves_accel)
-        self.rewind(LANE,0)
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
+        if lane != self.current:
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+            while LANE.load_state == True:
+                self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
+            self.afc_move(lane,self.hub_move_dis * -5,self.short_moves_speed,self.short_moves_accel)
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
+        else:
+            self.gcode.respond_info('LANE '+lane + ' IS TOOL LOADED')
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
@@ -399,6 +400,7 @@ class afc:
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
         if LANE.load_state == True and self.hub.filament_present == False:
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+            self.afc_move(lane, LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             while self.hub.filament_present == False:
                 self.afc_move(lane, self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
             self.afc_move(lane, self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
@@ -466,18 +468,17 @@ class afc:
                 self.gcode.respond_info('HUB NOT CLEARING')
                 self.rewind(LANE,0)
                 return
-              
         self.rewind(LANE,0)
-        self.afc_move(lane, self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel)
         self.lanes[lane]['tool_loaded'] = False
-
         self.save_vars()
-        
         self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
+        time.sleep(1)
+        while LANE.load_state == False and LANE.prep_state == True:
+            self.afc_move(lane, self.short_move_dis , self.short_moves_speed, self.short_moves_accel)
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
         self.current= ''
+        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
     
     cmd_CHANGE_TOOL_help = "Load lane into hub"
     def cmd_CHANGE_TOOL(self, gcmd):
