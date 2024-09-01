@@ -465,19 +465,19 @@ class afc:
                 self.gcode.respond_info('HUB NOT CLEARING')
                 self.rewind(LANE,0)
                 return
+            
         self.afc_move(lane, LANE.dist_hub * -1, self.short_moves_speed, self.short_moves_accel)
         self.rewind(LANE,0)
-        while LANE.load_state == False and LANE.prep_state == True:
-            self.afc_move(lane,self.short_move_dis , self.short_moves_speed, self.short_moves_accel)    
         self.lanes[lane]['tool_loaded'] = False
-
         self.save_vars()
-        
         self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
+        time.sleep(1)
+        while LANE.load_state == False and LANE.prep_state == True:
+            self.afc_move(lane, self.short_move_dis , self.short_moves_speed, self.short_moves_accel)
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
         self.current= ''
+        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
     
     cmd_CHANGE_TOOL_help = "Load lane into hub"
     def cmd_CHANGE_TOOL(self, gcmd):
