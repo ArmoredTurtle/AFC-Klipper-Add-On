@@ -13,6 +13,7 @@ import time
 import json
 import toolhead
 import stepper
+from configparser import Error as error
 from kinematics import extruder
 from . import stepper_enable, output_pin
 from urllib.request import urlopen
@@ -128,6 +129,41 @@ class afc:
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
 
         self.VarFile = config.get('VarFile')
+        
+        # Get debug and cast to boolean
+        self.debug = True == config.get('debug', 0)
+    
+    def respond_info(self, msg):
+        """
+        respond_info function is a help function to print non error information out to console
+        """
+        self.gcode.respond_info( msg )
+    
+    
+    def respond_error(self, msg, raise_error=False):
+        """
+        respond_error Helper function to print errors to console
+        
+        :param msg: message to print to console
+        :param raise_error: raises error and halt klipper
+        """
+        self.gcode._respond_error( msg )
+        if raise_error: raise error( msg )
+    
+    def respond_debug(self, msg):
+        """
+        respond_debug function is a help function to print debug information out to console if debug flag is set in configuration
+        """
+        if self.debug: self.respond_info(msg)
+    
+    # Helper function to write variables to file. Prints with indents to make it more readable for users
+    def save_vars(self):
+        """
+        save_vars function saves lane variables to var file and prints with indents to
+                  make it more readable for users
+        """
+        with open(self.VarFile, 'w') as f:
+            f.write(json.dumps(self.lanes, indent=4))
 
     def handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
@@ -164,7 +200,15 @@ class afc:
             lambda print_time: lane.respooler._set_pin(print_time, value))
         
     def afc_led (self, status, idx=None):
-        led = self.printer.lookup_object('AFC_led '+ idx.split(':')[0])
+        afc_object = 'AFC_led '+ idx.split(':')[0]
+        
+        # Try to find led object, if not found print error to console for user to see
+        try:
+            led = self.printer.lookup_object(afc_object)
+        except:
+            error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
+            self.respond_error( error_string, raise_error=True )
+
         colors=list(map(float,status.split(',')))
         transmit =1
         if idx is not None:
@@ -217,10 +261,12 @@ class afc:
         else:
             self.lanes={}
         temp=[]
+        
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
+
                 if 'material' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.name]:
@@ -232,14 +278,14 @@ class afc:
                 if self.lanes[LANE.name]['tool_loaded'] == True:
                     self.current = LANE.name
         tmp=[]
+
         for lanecheck in self.lanes.keys():
             if lanecheck not in temp:
                 tmp.append(lanecheck)
         for erase in tmp:
             del self.lanes[erase]
             
-        with open(self.VarFile, 'w') as f:
-            json.dump(self.lanes, f)
+        self.save_vars()
         
         if self.Type == 'Box_Turtle':
             logo ='R  _____     ____\n'
@@ -256,9 +302,18 @@ class afc:
                 self.afc_move(lane,5,self.short_moves_speed,self.short_moves_accel)
                 if CUR_LANE.prep_state == False:
                     self.afc_led(self.led_not_ready, CUR_LANE.led_index)
-            self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
             
+            error_string = "Error: Filament switch sensor {} not found in config file"
+            try:
+                self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
+            except:
+                self.respond_error(error_string.format("hub"), raise_error=True)
+
+            try:
+                self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
+            except:
+                self.respond_error(error_string.format("tool"), raise_error=True)
+
             if self.current == '':
                 for lane in self.lanes.keys():
                     CUR_LANE=self.printer.lookup_object('AFC_stepper '+ lane)
@@ -278,6 +333,9 @@ class afc:
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
                             self.afc_led(self.led_fault, CUR_LANE.led_index)
+                    
+                    # Setting lane to prepped so that loading will happen once user tries to load filament
+                    CUR_LANE.set_afc_prep_done()
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
                     self.gcode.respond_info(lane.upper() + ' READY')
                 
@@ -288,14 +346,24 @@ class afc:
                     if self.current == lane:
                         CUR_LANE=self.printer.lookup_object('AFC_stepper '+ self.current)
                         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                        self.gcode.respond_info(self.current + " Tool Loaded")
+                        self.respond_info(self.current + " Tool Loaded")
                         self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                     else:
+                        # Filament is loaded to the prep sensor but not the hub sensor. Load until filament is detected in hub.
+                        #   Times out after 20 tries so it does not sping forever, this probably means that the filament is not 
+                        #   far enough in for the gears to grab the filament
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
-                            while CUR_LANE.load_state == False:
+                            num_tries = 0
+                            while CUR_LANE.load_state == False and num_tries < 20:
                                 self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                                num_tries += 1
+                            if 20 == num_tries: self.gcode._respond_error("Could not load {} to load filament sensor, remove and reinsert to load correctly".format(CUR_LANE.name))
+                            
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
+                    
+                    # Setting lane to prepped so that loading will happen once user tries to load filament
+                    CUR_LANE.set_afc_prep_done()
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
                     self.gcode.respond_info('LANE '+lane[-1] + ' READY')
         self.gcode.respond_info(logo)
@@ -312,7 +380,7 @@ class afc:
             self.afc_move(lane,self.hub_move_dis * -1 ,self.short_moves_speed,self.short_moves_accel)
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=0')
 
-    cmd_LANE_UNLOAD_help = "Load lane into hub"
+    cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
@@ -346,8 +414,9 @@ class afc:
             self.toolhead.wait_moves()
             self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
             self.lanes[lane]['tool_loaded'] = True
-            with open(self.VarFile, 'w') as f:
-                json.dump(self.lanes, f)
+
+            self.save_vars()
+
             self.current=lane
             LANE=self.printer.lookup_object('AFC_stepper '+lane)
             self.afc_led(self.led_tool_loaded, LANE.led_index)
@@ -367,7 +436,7 @@ class afc:
             if LANE.load_state == False:
                 self.gcode.respond_info(lane + ' NOT READY')
 
-    cmd_TOOL_UNLOAD_help = "Load lane into hub"
+    cmd_TOOL_UNLOAD_help = "Unload lane to before hub"
     def cmd_TOOL_UNLOAD(self, gcmd):
         self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
@@ -401,8 +470,9 @@ class afc:
         self.rewind(LANE,0)
         self.afc_move(lane, self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel)
         self.lanes[lane]['tool_loaded'] = False
-        with open(self.VarFile, 'w') as f:
-            json.dump(self.lanes, f)
+
+        self.save_vars()
+        
         self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
         self.afc_led(self.led_ready, LANE.led_index)
@@ -430,8 +500,15 @@ class afc:
         
     def get_status(self, eventtime):
         str={}
-        self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-        self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
+        
+        # Try to get hub filament sensor, if lookup fails default to None
+        try: self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper 
+        except: self.hub  = None
+        
+        # Try to get tool filament sensor, if lookup fails default to None
+        try: self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
+        except: self.tool = None
+
         for NAME in self.lanes.keys():
             LANE=self.printer.lookup_object('AFC_stepper '+NAME)
             str[NAME + "_load"] = bool(LANE.load_state)
@@ -440,10 +517,14 @@ class afc:
             str[NAME + "_spool_id"]=self.lanes[NAME]['spool_id']
             str[NAME + "_color"]=self.lanes[NAME]['color']
         str['current_load']= self.current
-        str['tool_loaded']=bool(self.tool.filament_present)
-        str['hub_loaded']=bool(self.hub.filament_present)
+
+        # Set status of filament sensors if they exist, false if sensors are not found
+        str['tool_loaded'] = True == self.tool.filament_present if self.tool is not None else False
+        str['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
+
         str['num_lanes']=len(self.lanes)
         return str
+    
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
     def cmd_SPOOL_ID(self, gcmd):
         return
