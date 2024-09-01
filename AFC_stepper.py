@@ -60,6 +60,17 @@ class AFCExtruderStepper:
             self.respooler=output_pin.PrinterOutputPin(respoolconfig)
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')   
+
+        # Defaulting to false so that extruder motors to not move until PREP has been called
+        self._afc_prep_done = False
+    
+    def set_afc_prep_done(self):
+        """
+        set_afc_prep_done function should only be called once AFC PREP function is done. Once this
+            function is called it sets afc_prep_done to True. Once this is done the prep_callback function will
+            now load once filament is inserted. 
+        """
+        self._afc_prep_done = True
        
     def resend_current_val(self, eventtime):
         if self.respool_last_value == self.respool_shutdown_value:
@@ -81,7 +92,9 @@ class AFCExtruderStepper:
 
     def prep_callback(self, eventtime, state):
         self.prep_state = state
-        if self.printer.state_message == 'Printer is ready':
+
+        # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
+        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done:
             led=self.led_index
             if self.prep_state == True:
                 while self.load_state == False and self.prep_state == True and self.status == '' :
