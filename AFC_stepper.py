@@ -34,6 +34,8 @@ class AFCExtruderStepper:
         
         self.hub_dist = config.getfloat('hub_dist')
         
+        #
+        self.dist_hub = config.getfloat('dist_hub', 60)
         # LEDS
         self.led_index = config.get('led_index')
 
