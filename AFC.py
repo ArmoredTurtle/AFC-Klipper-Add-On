@@ -465,9 +465,10 @@ class afc:
                 self.gcode.respond_info('HUB NOT CLEARING')
                 self.rewind(LANE,0)
                 return
-        
         self.afc_move(lane, LANE.dist_hub * -1, self.short_moves_speed, self.short_moves_accel)
         self.rewind(LANE,0)
+        while LANE.load_state == False and LANE.prep_state == True:
+            self.afc_move(lane,self.short_move_dis , self.short_moves_speed, self.short_moves_accel)    
         self.lanes[lane]['tool_loaded'] = False
 
         self.save_vars()
