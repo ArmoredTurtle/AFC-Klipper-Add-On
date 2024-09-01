@@ -386,10 +386,8 @@ class afc:
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
         while LANE.load_state == True:
-            self.rewind(LANE,1)
             self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
         self.afc_move(lane,self.hub_move_dis * -5,self.short_moves_speed,self.short_moves_accel)
-        self.rewind(LANE,0)
         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
 
     cmd_TOOL_LOAD_help = "Load lane into tool"

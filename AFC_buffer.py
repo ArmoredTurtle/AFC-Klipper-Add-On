@@ -39,14 +39,12 @@ class AFCtrigger:
     def sensor_callback(self, eventtime, state):
         self.last_state = state
         if self.printer.state_message == 'Printer is ready':
-            if "buffer" in self.name:
-                if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
-                    tool_loaded=self.printer.lookup_object('AFC').current
-                    if tool_loaded != '':
-                        LANE=self.printer.lookup_object('AFC_stepper ' + tool_loaded)
-                        if LANE.status != 'unloading':
-                            #self.AFC.afc_move(self.name,self.AFC.buffer_distance,self.AFC.short_moves_speed,self.AFC.short_moves_accel)
-                            self.gcode.run_script_from_command('FORCE_MOVE STEPPER="AFC_stepper '+ tool_loaded + '" DISTANCE=' + str(self.buffer_distance) + ' VELOCITY=' + str(self.velocity) + ' ACCEL=' + str(self.accel))
+            if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
+                tool_loaded=self.printer.lookup_object('AFC').current
+                if tool_loaded != '':
+                    LANE=self.printer.lookup_object('AFC_stepper ' + tool_loaded)
+                    if LANE.status != 'unloading':
+                    self.AFC.afc_move(self.name,self.AFC.buffer_distance,self.AFC.short_moves_speed,self.AFC.short_moves_accel)
                     
 def load_config_prefix(config):
     return AFCtrigger(config)
