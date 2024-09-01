@@ -10,7 +10,7 @@ To install this plugin, you should have the following pre-requisites installed:
   2) Moonraker
   3) WebUI (Mainsail or Fluidd) 
 
-To install this plugin, you can use the following commands:
+To install this plugin, you can use the following commands from the users home directory:
 
 ```bash
 wget -O - https://raw.githubusercontent.com/ArmoredTurtle/AFC-Klipper-Add-On/main/install-afc.sh | bash
