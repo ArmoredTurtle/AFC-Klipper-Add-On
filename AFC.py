@@ -397,6 +397,7 @@ class afc:
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
         if LANE.load_state == True and self.hub.filament_present == False:
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+                self.afc_move(lane, LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             while self.hub.filament_present == False:
                 self.afc_move(lane, self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
             self.afc_move(lane, self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
@@ -464,9 +465,9 @@ class afc:
                 self.gcode.respond_info('HUB NOT CLEARING')
                 self.rewind(LANE,0)
                 return
-              
+        
+        self.afc_move(lane, LANE.dist_hub * -1, self.short_moves_speed, self.short_moves_accel)
         self.rewind(LANE,0)
-        self.afc_move(lane, self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel)
         self.lanes[lane]['tool_loaded'] = False
 
         self.save_vars()
