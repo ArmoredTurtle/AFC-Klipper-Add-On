@@ -384,11 +384,14 @@ class afc:
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
-        while LANE.load_state == True:
-            self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
-        self.afc_move(lane,self.hub_move_dis * -5,self.short_moves_speed,self.short_moves_accel)
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
+        if lane != self.current:
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+            while LANE.load_state == True:
+                self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
+            self.afc_move(lane,self.hub_move_dis * -5,self.short_moves_speed,self.short_moves_accel)
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
+        else:
+            self.gcode.respond_info('LANE '+lane + ' IS TOOL LOADED')
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
