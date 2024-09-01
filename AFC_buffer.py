@@ -44,7 +44,7 @@ class AFCtrigger:
                 if tool_loaded != '':
                     LANE=self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                     if LANE.status != 'unloading':
-                    self.AFC.afc_move(self.name,self.AFC.buffer_distance,self.AFC.short_moves_speed,self.AFC.short_moves_accel)
+                        self.AFC.afc_move(self.name,self.AFC.buffer_distance,self.AFC.short_moves_speed,self.AFC.short_moves_accel)
                     
 def load_config_prefix(config):
     return AFCtrigger(config)
