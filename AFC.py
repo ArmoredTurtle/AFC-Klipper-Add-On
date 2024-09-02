@@ -197,7 +197,8 @@ class afc:
         else:
             if lane.afc_motor_fwd is None:
                 assit_motor=lane.afc_motor_rwd
-                
+            else:
+                assit_motor=lane.afc_motor_fwd
         value /= assit_motor.scale
         if not assit_motor.is_pwm and value not in [0., 1.]:
             if value>0:
