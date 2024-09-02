@@ -21,7 +21,7 @@ microsteps: 16
 rotation_distance: 4.75
 hub_dist: 100
 led_index: AFC_Indicator:1
-#respooler: AFC:PB2                   # This is the Lane E-Spooler N20 Motor
+#afc_motor_rwd: AFC:PB2                   # This is the Lane E-Spooler N20 Motor
 prep: !AFC:PA3                        # This is the Lane Trigger Sensor
 load: AFC:PC15                        # This is the Lane Extruder Sensor
 
@@ -40,7 +40,7 @@ microsteps: 16
 rotation_distance: 4.75
 hub_dist: 100
 led_index: AFC_Indicator:2
-#respooler: AFC:PB2                 # This is the Lane E-Spooler N20 Motor
+#afc_motor_rwd: AFC:PB2                 # This is the Lane E-Spooler N20 Motor
 prep: !AFC:PA4                      # This is the Lane Trigger Sensor
 load: AFC:PC13                      # This is the Lane Extruder Sensor
 
@@ -59,7 +59,7 @@ microsteps: 16
 rotation_distance: 4.75
 hub_dist: 100
 led_index: AFC_Indicator:3
-respooler: AFC:PB2                  # This is the Lane E-Spooler N20 Motor
+afc_motor_rwd: AFC:PB2                  # This is the Lane E-Spooler N20 Motor
 prep: !AFC:PB9                      # This is the Lane Trigger Sensor
 load: AFC:PC14                      # This is the Lane Extruder Sensor
 
@@ -78,7 +78,7 @@ microsteps: 16
 rotation_distance: 4.75
 hub_dist: 100
 led_index: AFC_Indicator:4
-respooler: AFC:PA0                  # This is the Lane E-Spooler N20 Motor
+afc_motor_rwd: AFC:PA0                  # This is the Lane E-Spooler N20 Motor
 pwm: True
 prep: !AFC:PA8                      # This is the Lane Trigger Sensor
 load: AFC:PB12                      # This is the Lane Extruder Sensor
