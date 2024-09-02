@@ -267,7 +267,7 @@ class afc:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
-
+                self.lanes[LANE.name]={}
                 if 'material' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.name]:
