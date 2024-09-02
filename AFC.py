@@ -174,31 +174,46 @@ class afc:
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('TEST ROUTINE')
         LANE=self.printer.lookup_object('AFC_stepper '+lane)
-        self.rewind(LANE,1)
+        self.rewind(LANE,-1)
         time.sleep(4)
         self.gcode.respond_info('half speed')
-        self.rewind(LANE,.5)
+        self.rewind(LANE,-.5)
         time.sleep(4)
         self.gcode.respond_info('third speed')
-        self.rewind(LANE,.3)
+        self.rewind(LANE,-.3)
         time.sleep(4)
         self.gcode.respond_info('10 percent speed')
-        self.rewind(LANE,.1)
+        self.rewind(LANE,-.1)
         time.sleep(4)
         self.gcode.respond_info('Done')
         self.rewind(LANE,0)
         
     def rewind(self, lane, value, is_resend=False):
-        if lane.respooler is None:
+        if lane.afc_motor_rwd is None:
             return
-        value /= lane.respooler.scale
-        if not lane.respooler.is_pwm and value not in [0., 1.]:
+        if value <0:
+            value *= -1
+            assit_motor=lane.afc_motor_rwd
+        else:
+            if lane.afc_motor_fwd is None:
+                assit_motor=lane.afc_motor_rwd
+                
+        value /= assit_motor.scale
+        if not assit_motor.is_pwm and value not in [0., 1.]:
             if value>0:
                 value=1
         # Obtain print_time and apply requested settings
         toolhead = self.printer.lookup_object('toolhead')
+        if lane.afc_motor_enb is not None:
+            if value != 0:
+                enable=1
+            else:
+                enable=0
+            toolhead.register_lookahead_callback(
+            lambda print_time: lane.afc_motor_enb._set_pin(print_time, enable))
+            
         toolhead.register_lookahead_callback(
-            lambda print_time: lane.respooler._set_pin(print_time, value))
+            lambda print_time: assit_motor._set_pin(print_time, value))
         
     def afc_led (self, status, idx=None):
         afc_object = 'AFC_led '+ idx.split(':')[0]
@@ -267,18 +282,14 @@ class afc:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
-                
-                # Checking to see if lane name is in var file, create empty dictionary if name is not found
                 if LANE.name not in self.lanes:
                     self.lanes[LANE.name]={}
-
                 if 'material' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['spool_id']=''
                 if 'color' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['color']=''
-
                 if 'tool_loaded' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['tool_loaded']=False
                 if self.lanes[LANE.name]['tool_loaded'] == True:
@@ -327,7 +338,7 @@ class afc:
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
                         # TODO put a timeout here and print error to console as this could sit here forever
                         while CUR_LANE.load_state == True:
-                            self.rewind(CUR_LANE,1)
+                            self.rewind(CUR_LANE,-1)
                             self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
                         self.rewind(CUR_LANE,0)
 
@@ -475,7 +486,7 @@ class afc:
             self.toolhead.manual_move(pos, 5)
             self.toolhead.wait_moves()
         LANE.extruder_stepper.sync_to_extruder(None)
-        self.rewind(LANE,1)
+        self.rewind(LANE,-1)
         self.afc_move(lane, self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
         x=0
         while self.hub.filament_present == True:
