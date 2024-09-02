@@ -267,13 +267,18 @@ class afc:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
-                self.lanes[LANE.name]={}
+                
+                # Checking to see if lane name is in var file, create empty dictionary if name is not found
+                if LANE.name not in self.lanes:
+                    self.lanes[LANE.name]={}
+
                 if 'material' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['spool_id']=''
                 if 'color' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['color']=''
+
                 if 'tool_loaded' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['tool_loaded']=False
                 if self.lanes[LANE.name]['tool_loaded'] == True:
