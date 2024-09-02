@@ -103,6 +103,7 @@ class afc:
         self.poop = config.getfloat("poop", 0)
         self.poop_cmd = config.get('poop_cmd')
         self.form_tip = config.getfloat("form_tip", 0)
+        self.form_tip_cmd = config.get('form_tip_cmd')
 
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
@@ -319,14 +320,18 @@ class afc:
                     CUR_LANE=self.printer.lookup_object('AFC_stepper '+ lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=1')
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
+                        # TODO put a timeout here and print error to console as this could sit here forever
                         while CUR_LANE.load_state == True:
-                            self.rewind(LANE,1)
+                            self.rewind(CUR_LANE,1)
                             self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
-                        self.rewind(LANE,0)
+                        self.rewind(CUR_LANE,0)
+
+                        # TODO put a timeout here and print error to console as this could sit here forever
                         while CUR_LANE.load_state == False:
                             self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
                     else:
                         if CUR_LANE.prep_state== True:
+                            # TODO put a timeout here and print error to console as this could sit here forever
                             while CUR_LANE.load_state == False:
                                 self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
                             
@@ -452,6 +457,13 @@ class afc:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park == 1:
                 self.gcode.run_script_from_command(self.park_cmd)
+
+        if self.form_tip == 1:
+            if self.park == 1: self.gcode.run_script_from_command(self.park_cmd)
+            
+            self.gcode.run_script_from_command(self.form_tip_cmd)
+        
+        
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn *-1
