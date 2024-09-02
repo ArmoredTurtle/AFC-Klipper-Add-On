@@ -95,15 +95,15 @@ class afc:
 
         # CHOICES
         self.park = config.getfloat("park", 0)
-        self.park_cmd = config.get('park_cmd')
+        self.park_cmd = config.get('park_cmd', None)
         self.kick = config.getfloat("kick", 0)
-        self.kick_cmd = config.get('kick_cmd')
+        self.kick_cmd = config.get('kick_cmd', None)
         self.wipe = config.getfloat("wipe", 0)
-        self.wipe_cmd = config.get('wipe_cmd')
+        self.wipe_cmd = config.get('wipe_cmd', None)
         self.poop = config.getfloat("poop", 0)
-        self.poop_cmd = config.get('poop_cmd')
+        self.poop_cmd = config.get('poop_cmd', None)
         self.form_tip = config.getfloat("form_tip", 0)
-        self.form_tip_cmd = config.get('form_tip_cmd')
+        self.form_tip_cmd = config.get('form_tip_cmd', None)
 
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
