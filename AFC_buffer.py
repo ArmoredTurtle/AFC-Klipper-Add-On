@@ -27,6 +27,8 @@ class AFCtrigger:
       self.current =''
       self.AFC = self.printer.lookup_object('AFC')
 
+      self.debug = config.getboolean("debug", False)
+
       buttons = self.printer.load_object(config, "buttons")
       buttons.register_buttons([self.pin], self.sensor_callback)
 
@@ -44,7 +46,8 @@ class AFCtrigger:
                 if tool_loaded != '':
                     LANE=self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                     if LANE.status != 'unloading':
-                        self.AFC.afc_move(self.name,self.AFC.buffer_distance,self.AFC.short_moves_speed,self.AFC.short_moves_accel)
+                        if self.debug == True: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
+                        self.AFC.afc_move( tool_loaded, self.buffer_distance, self.velocity ,self.accel)
                     
 def load_config_prefix(config):
     return AFCtrigger(config)
