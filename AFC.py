@@ -526,17 +526,20 @@ class afc:
         while self.hub.filament_present == False:
             self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         self.afc_move(lane, self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
-        time.sleep(2)
+        self.sleepCmd(1.5)
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
-        time.sleep(2)
+        self.sleepCmd(1.5)
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
-        time.sleep(2)
+        self.afc_move(lane, -self.hub_cut_clear, self.short_moves_speed, self.short_moves_accel)
 
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
     def cmd_HUB_CUT_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
         self.hub_cut(lane)
+
+    def sleepCmd(self, timeSeconds):
+        self.gcode.run_script_from_command('G4 P' + str(timeSeconds * 1000))
         
     def get_status(self, eventtime):
         str={}
