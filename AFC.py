@@ -128,6 +128,7 @@ class afc:
         self.gcode.register_command('PREP', self.cmd_PREP, desc=self.cmd_PREP_help)
 
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
+        self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
 
         self.VarFile = config.get('VarFile')
         
@@ -372,7 +373,7 @@ class afc:
                         self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                     else:
                         # Filament is loaded to the prep sensor but not the hub sensor. Load until filament is detected in hub.
-                        #   Times out after 20 tries so it does not sping forever, this probably means that the filament is not 
+                        #   Times out after 20 tries so it does not spin forever, this probably means that the filament is not
                         #   far enough in for the gears to grab the filament
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
                             num_tries = 0
@@ -517,16 +518,40 @@ class afc:
             if self.current != '':
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             if self.hub_cut_active == 1 and self.current== '':
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + self.hub_cut_servo_prep_angle)
-                while self.hub.filament_present == False:
-                    self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                self.afc_move(lane, self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
-                time.sleep(2)
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE='+self.hub_cut_servo_clip_angle)
-                time.sleep(2)
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE='+self.hub_cut_servo_pass_angle)
-                time.sleep(2)
+                self.hub_cut(lane)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
+
+    def hub_cut(self, lane):
+        LANE=self.printer.lookup_object('AFC_stepper '+lane)
+        # Prep the servo for cutting.
+        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
+        # Load the lane until the hub is triggered.
+        while self.hub.filament_present == False:
+            self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+        # Go back, to allow the `hub_cut_dist` to be accurate.
+        self.afc_move(lane, -self.hub_move_dis*4, self.short_moves_speed, self.short_moves_accel)
+        # Feed the `hub_cut_dist` amount.
+        self.afc_move(lane, self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
+        # Have a snooze
+        self.sleepCmd(0.5)
+        # Choppy Chop
+        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
+        # Longer Snooze
+        self.sleepCmd(1)
+        # Align bowden tube (reset)
+        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
+        # Retract lane by `hub_cut_clear`.
+        self.afc_move(lane, -self.hub_cut_clear, self.short_moves_speed, self.short_moves_accel)
+
+    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
+    def cmd_HUB_CUT_TEST(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
+        self.hub_cut(lane)
+        self.gcode.respond_info('Done!')
+
+    def sleepCmd(self, timeSeconds):
+        self.gcode.run_script_from_command('G4 P' + str(timeSeconds * 1000))
         
     def get_status(self, eventtime):
         str={}
