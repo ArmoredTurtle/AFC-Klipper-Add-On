@@ -422,7 +422,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         LANE=self.printer.lookup_object('AFC_stepper '+ lane)
         if LANE.load_state == True and self.hub.filament_present == False:
-            if self.hub_cut_active == 1 and self.current== '':
+            if self.hub_cut_active == 1:
                 self.hub_cut(lane)
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
             self.afc_move(lane, LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
