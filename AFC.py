@@ -517,14 +517,14 @@ class afc:
             if self.current != '':
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             if self.hub_cut_active == 1 and self.current== '':
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + self.hub_cut_servo_prep_angle)
+                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
                 while self.hub.filament_present == False:
                     self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                 self.afc_move(lane, self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
                 time.sleep(2)
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE='+self.hub_cut_servo_clip_angle)
+                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
                 time.sleep(2)
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE='+self.hub_cut_servo_pass_angle)
+                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
                 time.sleep(2)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
         
