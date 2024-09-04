@@ -128,6 +128,7 @@ class afc:
         self.gcode.register_command('PREP', self.cmd_PREP, desc=self.cmd_PREP_help)
 
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
+        self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
 
         self.VarFile = config.get('VarFile')
         
@@ -517,16 +518,25 @@ class afc:
             if self.current != '':
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             if self.hub_cut_active == 1 and self.current== '':
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
-                while self.hub.filament_present == False:
-                    self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                self.afc_move(lane, self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
-                time.sleep(2)
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
-                time.sleep(2)
-                self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
-                time.sleep(2)
+                self.hub_cut(lane)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
+
+    def hub_cut(self, lane):
+        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
+        while self.hub.filament_present == False:
+            self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+        self.afc_move(lane, self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
+        time.sleep(2)
+        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
+        time.sleep(2)
+        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
+        time.sleep(2)
+
+    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
+    def cmd_HUB_CUT_TEST(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
+        self.hub_cut(lane)
         
     def get_status(self, eventtime):
         str={}
