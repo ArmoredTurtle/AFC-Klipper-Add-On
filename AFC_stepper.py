@@ -57,11 +57,11 @@ class AFCExtruderStepper:
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)
         self.afc_motor_enb = config.get('afc_motor_enb', None)
         if self.afc_motor_rwd is not None:
-            self.afc_motor_rwd=AFCassistMotor(config,'rwd')
+            self.afc_motor_rwd = AFCassistMotor(config,'rwd')
         if self.afc_motor_fwd is not None:
-            self.afc_motor_fwd=AFCassistMotor(config,'fwd')
+            self.afc_motor_fwd = AFCassistMotor(config,'fwd')
         if self.afc_motor_enb is not None:
-            self.afc_motor_enb=AFCassistMotor(config,'enb')
+            self.afc_motor_enb = AFCassistMotor(config,'enb')
             
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')   
@@ -100,7 +100,7 @@ class AFCExtruderStepper:
 
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done:
-            led=self.led_index
+            led = self.led_index
             if self.prep_state == True:
                 while self.load_state == False and self.prep_state == True and self.status == '' :
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=1')

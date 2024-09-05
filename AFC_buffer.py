@@ -20,11 +20,11 @@ class AFCtrigger:
       self.reactor = self.printer.get_reactor()
       self.name = config.get_name().split(' ')[-1]
       self.pin = config.get('pin')
-      self.buffer_distance=config.getfloat('distance', 0)
-      self.velocity=config.getfloat('velocity', 0)
-      self.accel=config.getfloat('accel', 0)
+      self.buffer_distance = config.getfloat('distance', 0)
+      self.velocity = config.getfloat('velocity', 0)
+      self.accel = config.getfloat('accel', 0)
       self.last_state = False
-      self.current =''
+      self.current = ''
       self.AFC = self.printer.lookup_object('AFC')
 
       self.debug = config.getboolean("debug", False)
@@ -44,7 +44,7 @@ class AFCtrigger:
             if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
                 tool_loaded=self.printer.lookup_object('AFC').current
                 if tool_loaded != '':
-                    LANE=self.printer.lookup_object('AFC_stepper ' + tool_loaded)
+                    LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                     if LANE.status != 'unloading':
                         if self.debug == True: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
                         self.AFC.afc_move( tool_loaded, self.buffer_distance, self.velocity ,self.accel)

@@ -18,7 +18,26 @@ from kinematics import extruder
 from . import stepper_enable, output_pin
 from urllib.request import urlopen
 
+
 def calc_move_time(dist, speed, accel):
+    """
+    Calculate the movement time and parameters for a given distance, speed, and acceleration.
+
+    This function computes the axis direction, acceleration time, cruise time, and cruise speed
+    required to move a specified distance with given speed and acceleration.
+
+    Parameters:
+    dist (float): The distance to move.
+    speed (float): The speed of the movement.
+    accel (float): The acceleration of the movement.
+
+    Returns:
+    tuple: A tuple containing:
+        - axis_r (float): The direction of the axis (1 for positive, -1 for negative).
+        - accel_t (float): The time spent accelerating.
+        - cruise_t (float): The time spent cruising at constant speed.
+        - speed (float): The cruise speed.
+    """
     axis_r = 1.
     if dist < 0.:
         axis_r = -1.
@@ -50,8 +69,8 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
-        self.current =''
-        self.lanes={}
+        self.current = ''
+        self.lanes = {}
         
         # SPOOLMAN
         
@@ -64,7 +83,7 @@ class afc:
             #    self.spoolman_filament[str(data[x]['id'])]={"name": data[x]['name'],"material": data[x]['material'],"color": data[x]['color_hex']}
                 
         #LED SETTINGS
-        self.ind_lights=None
+        self.ind_lights = None
         self.led_name = config.get('led_name')
         self.led_fault =config.get('led_fault')
         self.led_ready = config.get('led_ready')
@@ -76,7 +95,7 @@ class afc:
         self.hub_dis = config.getfloat("hub_dis", 45)
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
         self.hub_clear = config.getfloat("hub_clear", 50)
-        self.hub=''
+        self.hub = ''
 
         # HUB CUTTER
         self.hub_cut_active = config.getfloat("hub_cut_active", 0)
@@ -89,7 +108,7 @@ class afc:
         self.hub_cut_active = config.getfloat("hub_cut_active", 0)
 
         # TOOL Cutting Settings
-        self.tool=''
+        self.tool = ''
         self.tool_cut_active = config.getfloat("tool_cut_active", 0)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
 
@@ -113,8 +132,8 @@ class afc:
         self.long_moves_accel = config.getfloat("long_moves_accel", 400)
         self.short_moves_speed = config.getfloat("short_moves_speed", 25)
         self.short_moves_accel = config.getfloat("short_moves_accel", 400)
-        self.short_move =' VELOCITY=' + str(self.short_moves_speed) + ' ACCEL='+ str(self.short_moves_accel)
-        self.long_move =' VELOCITY=' + str(self.long_moves_speed) + ' ACCEL='+ str(self.long_moves_accel)
+        self.short_move = ' VELOCITY=' + str(self.short_moves_speed) + ' ACCEL='+ str(self.short_moves_accel)
+        self.long_move = ' VELOCITY=' + str(self.long_moves_speed) + ' ACCEL='+ str(self.long_moves_accel)
         self.short_move_dis = config.getfloat("short_move_dis", 10)
 
 
@@ -168,31 +187,38 @@ class afc:
             f.write(json.dumps(self.lanes, indent=4))
 
     def handle_connect(self):
+        """
+        Handle the connection event.
+
+        This function is called when the printer connects. It looks up the toolhead object
+        and assigns it to the instance variable `self.toolhead`.
+        """
         self.toolhead = self.printer.lookup_object('toolhead')
 
     cmd_TEST_help = "Load lane into hub"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('TEST ROUTINE')
-        LANE=self.printer.lookup_object('AFC_stepper '+lane)
+        LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        self.gcode.respond_info('Testing at full speed')
         self.rewind(LANE,-1)
         time.sleep(4)
-        self.gcode.respond_info('half speed')
+        self.gcode.respond_info('Testing at 50 percent speed')
         self.rewind(LANE,-.5)
         time.sleep(4)
-        self.gcode.respond_info('third speed')
+        self.gcode.respond_info('Testing at 30 percent speed')
         self.rewind(LANE,-.3)
         time.sleep(4)
-        self.gcode.respond_info('10 percent speed')
+        self.gcode.respond_info('Testing at 10 percent speed')
         self.rewind(LANE,-.1)
         time.sleep(4)
-        self.gcode.respond_info('Done')
+        self.gcode.respond_info('Test routine complete')
         self.rewind(LANE,0)
         
     def rewind(self, lane, value, is_resend=False):
         if lane.afc_motor_rwd is None:
             return
-        if value <0:
+        if value < 0:
             value *= -1
             assit_motor=lane.afc_motor_rwd
         else:
@@ -202,15 +228,15 @@ class afc:
                 assit_motor=lane.afc_motor_fwd
         value /= assit_motor.scale
         if not assit_motor.is_pwm and value not in [0., 1.]:
-            if value>0:
-                value=1
+            if value > 0:
+                value = 1
         # Obtain print_time and apply requested settings
         toolhead = self.printer.lookup_object('toolhead')
         if lane.afc_motor_enb is not None:
             if value != 0:
-                enable=1
+                enable = 1
             else:
-                enable=0
+                enable = 0
             toolhead.register_lookahead_callback(
             lambda print_time: lane.afc_motor_enb._set_pin(print_time, enable))
             
@@ -228,11 +254,11 @@ class afc:
             self.respond_error( error_string, raise_error=True )
 
         colors=list(map(float,status.split(',')))
-        transmit =1
+        transmit = 1
         if idx is not None:
-            index=int(idx.split(':')[1])
+            index = int(idx.split(':')[1])
         else:
-            index=None
+            index = None
 
         def lookahead_bgfunc(print_time):
             led.led_helper.set_color(index, colors)
@@ -243,7 +269,19 @@ class afc:
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 
     def afc_move(self, lane, distance, speed, accel):
-        name = 'AFC_stepper '+lane
+        """
+        Move the specified lane a given distance with specified speed and acceleration.
+
+        This function calculates the movement parameters and commands the stepper motor
+        to move the lane accordingly.
+
+        Parameters:
+        lane (str): The lane identifier.
+        distance (float): The distance to move.
+        speed (float): The speed of the movement.
+        accel (float): The acceleration of the movement.
+        """
+        name = 'AFC_stepper ' + lane
         LANE = self.printer.lookup_object(name).extruder_stepper
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
@@ -315,10 +353,10 @@ class afc:
 
             self.gcode.respond_info(self.Type + ' Prepping lanes')
             for lane in self.lanes.keys():
-                CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
+                CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
                 CUR_LANE.extruder_stepper.sync_to_extruder(None)
-                self.afc_move(lane,-5,self.short_moves_speed,self.short_moves_accel)
-                self.afc_move(lane,5,self.short_moves_speed,self.short_moves_accel)
+                self.afc_move(lane, -5, self.short_moves_speed, self.short_moves_accel)
+                self.afc_move(lane, 5, self.short_moves_speed, self.short_moves_accel)
                 if CUR_LANE.prep_state == False:
                     self.afc_led(self.led_not_ready, CUR_LANE.led_index)
             
@@ -335,23 +373,23 @@ class afc:
 
             if self.current == '':
                 for lane in self.lanes.keys():
-                    CUR_LANE=self.printer.lookup_object('AFC_stepper '+ lane)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=1')
+                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
                         # TODO put a timeout here and print error to console as this could sit here forever
                         while CUR_LANE.load_state == True:
-                            self.rewind(CUR_LANE,-1)
-                            self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
-                        self.rewind(CUR_LANE,0)
+                            self.rewind(CUR_LANE, -1)
+                            self.afc_move(lane, self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+                        self.rewind(CUR_LANE, 0)
 
                         # TODO put a timeout here and print error to console as this could sit here forever
                         while CUR_LANE.load_state == False:
-                            self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                            self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                     else:
                         if CUR_LANE.prep_state== True:
                             # TODO put a timeout here and print error to console as this could sit here forever
                             while CUR_LANE.load_state == False:
-                                self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                                self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                             
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
@@ -364,10 +402,10 @@ class afc:
                 
             else:
                 for lane in self.lanes:
-                    CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=1')
+                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.current == lane:
-                        CUR_LANE=self.printer.lookup_object('AFC_stepper '+ self.current)
+                        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                         self.respond_info(self.current + " Tool Loaded")
                         self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
@@ -378,7 +416,7 @@ class afc:
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
                             num_tries = 0
                             while CUR_LANE.load_state == False and num_tries < 20:
-                                self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
+                                self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                 num_tries += 1
                             if 20 == num_tries: self.gcode._respond_error("Could not load {} to load filament sensor, remove and reinsert to load correctly".format(CUR_LANE.name))
                             
@@ -387,44 +425,44 @@ class afc:
                     
                     # Setting lane to prepped so that loading will happen once user tries to load filament
                     CUR_LANE.set_afc_prep_done()
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
-                    self.gcode.respond_info('LANE '+lane[-1] + ' READY')
+                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+                    self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
         self.gcode.respond_info(logo)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
     def cmd_HUB_LOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
-        LANE=self.printer.lookup_object('AFC_stepper '+ lane)
+        LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         if LANE.load_state == False:
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             while LANE.load_state == False:
-                self.afc_move(lane,self.hub_move_dis,self.short_moves_speed,self.short_moves_accel)
-            self.afc_move(lane,self.hub_move_dis * -1 ,self.short_moves_speed,self.short_moves_accel)
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=0')
+                self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+            self.afc_move(lane, self.hub_move_dis * -1 , self.short_moves_speed, self.short_moves_accel)
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
-        LANE=self.printer.lookup_object('AFC_stepper '+ lane)
+        LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         if lane != self.current:
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             while LANE.load_state == True:
-                self.afc_move(lane,self.hub_move_dis * -1,self.short_moves_speed,self.short_moves_accel)
-            self.afc_move(lane,self.hub_move_dis * -5,self.short_moves_speed,self.short_moves_accel)
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+lane +'" ENABLE=0')
+                self.afc_move(lane, self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+            self.afc_move(lane, self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
         else:
-            self.gcode.respond_info('LANE '+lane + ' IS TOOL LOADED')
+            self.gcode.respond_info('LANE ' + lane + ' IS TOOL LOADED')
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
         self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
-        LANE=self.printer.lookup_object('AFC_stepper '+ lane)
+        LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         if LANE.load_state == True and self.hub.filament_present == False:
             if self.hub_cut_active == 1:
                 self.hub_cut(lane)
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+ lane +'" ENABLE=1')
+            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             self.afc_move(lane, LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             while self.hub.filament_present == False:
                 self.afc_move(lane, self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -439,13 +477,13 @@ class afc:
             pos[3] += self.tool_stn
             self.toolhead.manual_move(pos, 5)
             self.toolhead.wait_moves()
-            self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
+            self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
             self.lanes[lane]['tool_loaded'] = True
 
             self.save_vars()
 
-            self.current=lane
-            LANE=self.printer.lookup_object('AFC_stepper '+lane)
+            self.current = lane
+            LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             self.afc_led(self.led_tool_loaded, LANE.led_index)
             if self.poop == 1:
                 if self.wipe == 1:
@@ -467,9 +505,9 @@ class afc:
     def cmd_TOOL_UNLOAD(self, gcmd):
         self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
-        LANE=self.printer.lookup_object('AFC_stepper '+lane)
+        LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         LANE.status = 'unloading'
-        led_cont=LANE.led_index.split(':')
+        led_cont = LANE.led_index.split(':')
         self.afc_led(self.led_loading, LANE.led_index)
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
@@ -486,11 +524,11 @@ class afc:
         
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
-            pos[3] += self.tool_stn *-1
+            pos[3] += self.tool_stn * -1
             self.toolhead.manual_move(pos, 5)
             self.toolhead.wait_moves()
         LANE.extruder_stepper.sync_to_extruder(None)
-        self.rewind(LANE,-1)
+        self.rewind(LANE, -1)
         self.afc_move(lane, self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
         x=0
         while self.hub.filament_present == True:
@@ -498,19 +536,19 @@ class afc:
             x +=1
             if x> 20:
                 self.gcode.respond_info('HUB NOT CLEARING')
-                self.rewind(LANE,0)
+                self.rewind(LANE, 0)
                 return
-        self.rewind(LANE,0)
+        self.rewind(LANE, 0)
         self.lanes[lane]['tool_loaded'] = False
         self.save_vars()
-        self.printer.lookup_object('AFC_stepper '+ lane).status = 'tool'
+        self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
         time.sleep(1)
         while LANE.load_state == False and LANE.prep_state == True:
             self.afc_move(lane, self.short_move_dis , self.short_moves_speed, self.short_moves_accel)
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
-        self.current= ''
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane +'" ENABLE=0')
+        self.current = ''
+        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
     
     cmd_CHANGE_TOOL_help = "Load lane into hub"
     def cmd_CHANGE_TOOL(self, gcmd):
@@ -554,11 +592,11 @@ class afc:
         self.gcode.run_script_from_command('G4 P' + str(timeSeconds * 1000))
         
     def get_status(self, eventtime):
-        str={}
+        str = {}
         
         # Try to get hub filament sensor, if lookup fails default to None
-        try: self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper 
-        except: self.hub  = None
+        try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
+        except: self.hub = None
         
         # Try to get tool filament sensor, if lookup fails default to None
         try: self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
@@ -573,12 +611,11 @@ class afc:
             str[NAME]["spool_id"]=self.lanes[NAME]['spool_id']
             str[NAME]["color"]=self.lanes[NAME]['color']
         str['current_load']= self.current
-
         # Set status of filament sensors if they exist, false if sensors are not found
         str['tool_loaded'] = True == self.tool.filament_present if self.tool is not None else False
         str['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
 
-        str['num_lanes']=len(self.lanes)
+        str['num_lanes'] = len(self.lanes)
         return str
     
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
