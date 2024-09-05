@@ -566,11 +566,12 @@ class afc:
 
         for NAME in self.lanes.keys():
             LANE=self.printer.lookup_object('AFC_stepper '+NAME)
-            str[NAME + "_load"] = bool(LANE.load_state)
-            str[NAME + "_prep"]=bool(LANE.prep_state)
-            str[NAME + "_material"]=self.lanes[NAME]['material']
-            str[NAME + "_spool_id"]=self.lanes[NAME]['spool_id']
-            str[NAME + "_color"]=self.lanes[NAME]['color']
+            str[NAME]={}
+            str[NAME]["load"] = bool(LANE.load_state)
+            str[NAME]["prep"]=bool(LANE.prep_state)
+            str[NAME]["material"]=self.lanes[NAME]['material']
+            str[NAME]["spool_id"]=self.lanes[NAME]['spool_id']
+            str[NAME]["color"]=self.lanes[NAME]['color']
         str['current_load']= self.current
 
         # Set status of filament sensors if they exist, false if sensors are not found
