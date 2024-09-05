@@ -610,12 +610,13 @@ class afc:
             str[NAME]["material"]=self.lanes[NAME]['material']
             str[NAME]["spool_id"]=self.lanes[NAME]['spool_id']
             str[NAME]["color"]=self.lanes[NAME]['color']
-        str['current_load']= self.current
+        str["system"]={}   
+        str["system"]['current_load']= self.current
         # Set status of filament sensors if they exist, false if sensors are not found
-        str['tool_loaded'] = True == self.tool.filament_present if self.tool is not None else False
-        str['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
+        str["system"]['tool_loaded'] = True == self.tool.filament_present if self.tool is not None else False
+        str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
 
-        str['num_lanes'] = len(self.lanes)
+        str["system"]['num_lanes'] = len(self.lanes)
         return str
     
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
