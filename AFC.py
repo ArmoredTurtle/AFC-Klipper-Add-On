@@ -203,15 +203,18 @@ class afc:
         self.gcode.respond_info('Testing at full speed')
         self.rewind(LANE,-1)
         time.sleep(4)
-        self.gcode.respond_info('Testing at 50 percent speed')
-        self.rewind(LANE,-.5)
-        time.sleep(4)
-        self.gcode.respond_info('Testing at 30 percent speed')
-        self.rewind(LANE,-.3)
-        time.sleep(4)
-        self.gcode.respond_info('Testing at 10 percent speed')
-        self.rewind(LANE,-.1)
-        time.sleep(4)
+        assit_motor=LANE.afc_motor_rwd
+        if assit_motor.is_pwm:
+            self.gcode.respond_info('Testing at 50 percent speed')
+            self.rewind(LANE,-.5)
+            time.sleep(4)
+            self.gcode.respond_info('Testing at 30 percent speed')
+            self.rewind(LANE,-.3)
+            time.sleep(4)
+            self.gcode.respond_info('Testing at 10 percent speed')
+            self.rewind(LANE,-.1)
+            time.sleep(4)
+            
         self.gcode.respond_info('Test routine complete')
         self.rewind(LANE,0)
         
