@@ -89,6 +89,7 @@ class afc:
         self.led_ready = config.get('led_ready')
         self.led_not_ready = config.get('led_not_ready')
         self.led_loading = config.get('led_loading')
+        self.led_unloading = config.get('led_unloading')
         self.led_tool_loaded = config.get('led_tool_loaded')
 
         # HUB
@@ -459,6 +460,9 @@ class afc:
         self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        LANE.status = 'loading'
+        led_cont=LANE.led_index.split(':')
+        self.afc_led(self.led_loading, LANE.led_index)
         if LANE.load_state == True and self.hub.filament_present == False:
             if self.hub_cut_active == 1:
                 self.hub_cut(lane)
@@ -508,7 +512,7 @@ class afc:
         LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         LANE.status = 'unloading'
         led_cont = LANE.led_index.split(':')
-        self.afc_led(self.led_loading, LANE.led_index)
+        self.afc_led(self.led_unloading, LANE.led_index)
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
         if self.tool_cut_active == 1:
