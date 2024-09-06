@@ -89,6 +89,7 @@ class afc:
         self.led_ready = config.get('led_ready')
         self.led_not_ready = config.get('led_not_ready')
         self.led_loading = config.get('led_loading')
+        self.led_unloading = config.get('led_unloading')
         self.led_tool_loaded = config.get('led_tool_loaded')
 
         # HUB
@@ -462,6 +463,9 @@ class afc:
         self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        LANE.status = 'loading'
+        led_cont=LANE.led_index.split(':')
+        self.afc_led(self.led_loading, LANE.led_index)
         if LANE.load_state == True and self.hub.filament_present == False:
             if self.hub_cut_active == 1:
                 self.hub_cut(lane)
@@ -501,8 +505,10 @@ class afc:
         else:
             if self.hub.filament_present == True:
                 self.gcode.respond_info("HUB NOT CLEAR")
+                self.gcode.run_script_from_command('PAUSE')
             if LANE.load_state == False:
                 self.gcode.respond_info(lane + ' NOT READY')
+                self.gcode.run_script_from_command('PAUSE')
 
     cmd_TOOL_UNLOAD_help = "Unload lane to before hub"
     def cmd_TOOL_UNLOAD(self, gcmd):
@@ -511,7 +517,7 @@ class afc:
         LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         LANE.status = 'unloading'
         led_cont = LANE.led_index.split(':')
-        self.afc_led(self.led_loading, LANE.led_index)
+        self.afc_led(self.led_unloading, LANE.led_index)
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
         if self.tool_cut_active == 1:
@@ -538,7 +544,7 @@ class afc:
             self.afc_move(lane, self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x +=1
             if x> 20:
-                self.gcode.respond_info('HUB NOT CLEARING')
+                self.gcode.respond_info('HUB NOT CLEARING ' + lane)
                 self.rewind(LANE, 0)
                 return
         self.rewind(LANE, 0)
