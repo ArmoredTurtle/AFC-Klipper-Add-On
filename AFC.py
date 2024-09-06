@@ -502,8 +502,10 @@ class afc:
         else:
             if self.hub.filament_present == True:
                 self.gcode.respond_info("HUB NOT CLEAR")
+                self.gcode.run_script_from_command('PAUSE')
             if LANE.load_state == False:
                 self.gcode.respond_info(lane + ' NOT READY')
+                self.gcode.run_script_from_command('PAUSE')
 
     cmd_TOOL_UNLOAD_help = "Unload lane to before hub"
     def cmd_TOOL_UNLOAD(self, gcmd):
@@ -539,7 +541,7 @@ class afc:
             self.afc_move(lane, self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x +=1
             if x> 20:
-                self.gcode.respond_info('HUB NOT CLEARING')
+                self.gcode.respond_info('HUB NOT CLEARING ' + lane)
                 self.rewind(LANE, 0)
                 return
         self.rewind(LANE, 0)
