@@ -85,12 +85,12 @@ class afc:
         #LED SETTINGS
         self.ind_lights = None
         self.led_name = config.get('led_name')
-        self.led_fault =config.get('led_fault')
-        self.led_ready = config.get('led_ready')
-        self.led_not_ready = config.get('led_not_ready')
-        self.led_loading = config.get('led_loading')
-        self.led_unloading = config.get('led_unloading')
-        self.led_tool_loaded = config.get('led_tool_loaded')
+        self.led_fault =config.get('led_fault','1,0,0,0')
+        self.led_ready = config.get('led_ready','1,1,1,1')
+        self.led_not_ready = config.get('led_not_ready','1,0,0,0')
+        self.led_loading = config.get('led_loading','1,1,0,0')
+        self.led_unloading = config.get('led_unloading',,'1,1,.5,0')
+        self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
 
         # HUB
         self.hub_dis = config.getfloat("hub_dis", 45)
