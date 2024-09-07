@@ -398,7 +398,9 @@ class afc:
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
                             self.afc_led(self.led_fault, CUR_LANE.led_index)
-                    
+                        while CUR_LANE.load_state == False:
+                            self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                            
                     # Setting lane to prepped so that loading will happen once user tries to load filament
                     CUR_LANE.set_afc_prep_done()
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
@@ -409,10 +411,19 @@ class afc:
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.current == lane:
-                        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
-                        CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                        self.respond_info(self.current + " Tool Loaded")
-                        self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
+                        if self.tool.filament_present == False:
+                            while CUR_LANE.load_state == True:
+                                self.rewind(CUR_LANE, -1)
+                                self.afc_move(lane, self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+                            self.rewind(CUR_LANE, 0)
+                            CUR_LANE.status = ''
+                            self.current = ''
+                            
+                        else:
+                            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
+                            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+                            self.respond_info(self.current + " Tool Loaded")
+                            self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                     else:
                         # Filament is loaded to the prep sensor but not the hub sensor. Load until filament is detected in hub.
                         #   Times out after 20 tries so it does not spin forever, this probably means that the filament is not
