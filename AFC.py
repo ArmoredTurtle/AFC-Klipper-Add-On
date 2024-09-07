@@ -337,7 +337,7 @@ class afc:
                 if 'tool_loaded' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['tool_loaded']=False
                 if self.lanes[LANE.name]['tool_loaded'] == True:
-                    self.current = LANE.name
+                    self.current = 'LANE.name'
         tmp=[]
 
         for lanecheck in self.lanes.keys():
@@ -394,12 +394,9 @@ class afc:
                             # TODO put a timeout here and print error to console as this could sit here forever
                             while CUR_LANE.load_state == False:
                                 self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                            
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
                             self.afc_led(self.led_fault, CUR_LANE.led_index)
-                        while CUR_LANE.load_state == False:
-                            self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                             
                     # Setting lane to prepped so that loading will happen once user tries to load filament
                     CUR_LANE.set_afc_prep_done()
@@ -418,6 +415,8 @@ class afc:
                             self.rewind(CUR_LANE, 0)
                             CUR_LANE.status = ''
                             self.current = ''
+                            while CUR_LANE.load_state == False:
+                                self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                             
                         else:
                             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
