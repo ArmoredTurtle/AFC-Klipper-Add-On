@@ -338,7 +338,7 @@ class afc:
                 if 'tool_loaded' not in self.lanes[LANE.name]:
                     self.lanes[LANE.name]['tool_loaded']=False
                 if self.lanes[LANE.name]['tool_loaded'] == True:
-                    self.current = 'LANE.name'
+                    self.current = LANE.name
         tmp=[]
 
         for lanecheck in self.lanes.keys():
