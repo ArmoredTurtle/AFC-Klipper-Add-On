@@ -549,7 +549,7 @@ class afc:
             self.toolhead.wait_moves()
         if self.tool_sensor_after_extruder >0:
             pos = self.toolhead.get_position()
-            pos[3] += self.tool_sensor_after_extuder * -1
+            pos[3] += self.tool_sensor_after_extruder * -1
             self.toolhead.manual_move(pos, 5)
             self.toolhead.wait_moves()
             
