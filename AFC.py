@@ -129,6 +129,7 @@ class afc:
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         
         # MOVE SETTINGS
+        self.tool_sensor_after_extuder = config.getfloat("tool_sensor_after_extuder", 0)
         self.long_moves_speed = config.getfloat("long_moves_speed", 100)
         self.long_moves_accel = config.getfloat("long_moves_accel", 400)
         self.short_moves_speed = config.getfloat("short_moves_speed", 25)
@@ -546,6 +547,12 @@ class afc:
             pos[3] += self.tool_stn * -1
             self.toolhead.manual_move(pos, 5)
             self.toolhead.wait_moves()
+        if self.tool_sensor_after_extuder >0:
+            pos = self.toolhead.get_position()
+            pos[3] += self.tool_sensor_after_extuder * -1
+            self.toolhead.manual_move(pos, 5)
+            self.toolhead.wait_moves()
+            
         LANE.extruder_stepper.sync_to_extruder(None)
         self.rewind(LANE, -1)
         self.afc_move(lane, self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
