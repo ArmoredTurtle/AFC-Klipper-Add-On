@@ -137,6 +137,7 @@ class afc:
         self.short_move = ' VELOCITY=' + str(self.short_moves_speed) + ' ACCEL='+ str(self.short_moves_accel)
         self.long_move = ' VELOCITY=' + str(self.long_moves_speed) + ' ACCEL='+ str(self.long_moves_accel)
         self.short_move_dis = config.getfloat("short_move_dis", 10)
+        self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
 
 
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
@@ -540,17 +541,15 @@ class afc:
             if self.park == 1: self.gcode.run_script_from_command(self.park_cmd)
             
             self.gcode.run_script_from_command(self.form_tip_cmd)
-        
-        
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn * -1
-            self.toolhead.manual_move(pos, 5)
+            self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
         if self.tool_sensor_after_extruder >0:
             pos = self.toolhead.get_position()
             pos[3] += self.tool_sensor_after_extruder * -1
-            self.toolhead.manual_move(pos, 5)
+            self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
             
         LANE.extruder_stepper.sync_to_extruder(None)
