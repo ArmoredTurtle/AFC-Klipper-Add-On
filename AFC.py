@@ -475,6 +475,8 @@ class afc:
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
         self.toolhead = self.printer.lookup_object('toolhead')
+        extruder = self.toolhead.get_extruder() #Get extruder
+        self.heater = extruder.get_heater() #Get extruder heater
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         LANE.status = 'loading'
@@ -483,6 +485,9 @@ class afc:
         if LANE.load_state == True and self.hub.filament_present == False:
             if self.hub_cut_active == 1:
                 self.hub_cut(lane)
+            if not self.heater.can_extrude: #Heat extruder if not at min temp 
+                self.gcode.respond_info('Extruder below min_extrude_temp, heating to min_extrude_temp')
+                self.gcode.run_script_from_command('M109 S' + str(self.heater.min_extrude_temp))
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             self.afc_move(lane, LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             while self.hub.filament_present == False:
@@ -527,6 +532,8 @@ class afc:
     cmd_TOOL_UNLOAD_help = "Unload lane to before hub"
     def cmd_TOOL_UNLOAD(self, gcmd):
         self.toolhead = self.printer.lookup_object('toolhead')
+        extruder = self.toolhead.get_extruder() #Get extruder
+        self.heater = extruder.get_heater() #Get extruder heater
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         LANE.status = 'unloading'
@@ -538,6 +545,10 @@ class afc:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park == 1:
                 self.gcode.run_script_from_command(self.park_cmd)
+                
+        if not self.heater.can_extrude: #Heat extruder if not at min temp 
+                self.gcode.respond_info('Extruder below min_extrude_temp, heating to min_extrude_temp')
+                self.gcode.run_script_from_command('M109 S' + str(self.heater.min_extrude_temp))
 
         if self.form_tip == 1:
             if self.park == 1: self.gcode.run_script_from_command(self.park_cmd)
