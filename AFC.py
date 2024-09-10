@@ -17,6 +17,7 @@ from configparser import Error as error
 from kinematics import extruder
 from . import stepper_enable, output_pin
 from urllib.request import urlopen
+from extras.heaters import Heater
 
 
 def calc_move_time(dist, speed, accel):
