@@ -138,6 +138,7 @@ class afc:
         self.long_move = ' VELOCITY=' + str(self.long_moves_speed) + ' ACCEL='+ str(self.long_moves_accel)
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
+        self.tool_load_speed =config.getfloat("tool_load_speed", 10)
 
 
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
@@ -490,11 +491,11 @@ class afc:
             while self.tool.filament_present == False:
                 pos = self.toolhead.get_position()
                 pos[3] += self.short_move_dis
-                self.toolhead.manual_move(pos, 5)
+                self.toolhead.manual_move(pos, self.tool_load_speed)
                 self.toolhead.wait_moves()
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn
-            self.toolhead.manual_move(pos, 5)
+            self.toolhead.manual_move(pos, self.tool_load_speed)
             self.toolhead.wait_moves()
             self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
             self.lanes[lane]['tool_loaded'] = True
