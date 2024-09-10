@@ -545,7 +545,7 @@ class afc:
             self.gcode.run_script_from_command(self.form_tip_cmd)
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
-            pos[3] += tool_stn_unload * -1
+            pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
         if self.tool_sensor_after_extruder >0:
