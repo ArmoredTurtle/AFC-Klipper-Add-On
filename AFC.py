@@ -535,7 +535,8 @@ class afc:
         self.toolhead = self.printer.lookup_object('toolhead')
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
-        lane = gcmd.get('LANE', None)
+        lane = gcmd.get('LANE', self.current)
+
         LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         LANE.status = 'unloading'
         led_cont = LANE.led_index.split(':')
