@@ -615,13 +615,13 @@ class afc:
         self.sleepCmd(0.5)
         # Choppy Chop
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
-        # KitKat Break
-        self.sleepCmd(0.5)
         if self.hub_cut_confirm == 1:
+            # KitKat Break
+            self.sleepCmd(0.5)
             # ReChop, To be doubly choppy sure.
             self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
             self.sleepCmd(1.0)
-        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
+            self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
         # Longer Snooze
         self.sleepCmd(1)
         # Align bowden tube (reset)
