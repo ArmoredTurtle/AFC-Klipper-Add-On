@@ -488,8 +488,8 @@ class afc:
             if self.hub_cut_active == 1:
                 self.hub_cut(lane)
             if not self.heater.can_extrude: #Heat extruder if not at min temp 
-                self.gcode.respond_info('Extruder below min_extrude_temp, heating to min_extrude_temp')
-                self.gcode.run_script_from_command('M109 S' + str(self.heater.min_extrude_temp))
+                self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+                self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             self.afc_move(lane, LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             while self.hub.filament_present == False:
@@ -544,14 +544,14 @@ class afc:
         self.afc_led(self.led_unloading, LANE.led_index)
         LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
         
+        if not self.heater.can_extrude: #Heat extruder if not at min temp 
+            self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+            self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
+            
         if self.tool_cut_active == 1:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park == 1:
                 self.gcode.run_script_from_command(self.park_cmd)
-                
-        if not self.heater.can_extrude: #Heat extruder if not at min temp 
-                self.gcode.respond_info('Extruder below min_extrude_temp, heating to min_extrude_temp')
-                self.gcode.run_script_from_command('M109 S' + str(self.heater.min_extrude_temp))
 
         if self.form_tip == 1:
             if self.park == 1: self.gcode.run_script_from_command(self.park_cmd)
