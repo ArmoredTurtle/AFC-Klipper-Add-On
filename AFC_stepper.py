@@ -102,10 +102,17 @@ class AFCExtruderStepper:
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done:
             led = self.led_index
             if self.prep_state == True:
+                x = 0
                 while self.load_state == False and self.prep_state == True and self.status == '' :
+                    x += 1
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=1')
                     self.AFC.afc_move(self.name,10,500,400)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=0')
+                    if x> 10:
+                        msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                        self.AFC.respond_error(msg, raise_error=False)
+                        self.AFC.afc_led(self.AFC.led_fault, led)
+                        break
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             else:
