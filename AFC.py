@@ -394,6 +394,7 @@ class afc:
                             x += 1
                             self.rewind(CUR_LANE, 0)
                             self.sleepCmd(0.1)
+                            #callout if filament can't be retracted before extruder load switch
                             if x > 10:
                                 self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RESET EXTRUDER\n||=====||=x--||------||\nTRG   LOAD   HUB    TOOL')
                                 check_success = False
@@ -405,6 +406,7 @@ class afc:
                             self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                             x +=1
                             self.sleepCmd(0.1)
+                            #callout if filament is past trigger but can't be brought past extruder
                             if x> 10:
                                 self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                                 check_success = False
@@ -418,6 +420,7 @@ class afc:
                                 self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                 x +=1
                                 self.sleepCmd(0.1)
+                                #callout if filament is past trigger but can't be brought past extruder
                                 if x> 10:
                                     self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                                     check_success = False
