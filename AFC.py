@@ -483,7 +483,7 @@ class afc:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|------||\nTRG   LOAD   HUB    TOOL')
             self.respond_error(msg, raise_error=False)
 
-
+    handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, lane, message):
         CUR_LANE.set_afc_prep_done()
         # Disable the stepper for this lane
