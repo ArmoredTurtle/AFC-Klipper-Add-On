@@ -420,8 +420,8 @@ class afc:
                                     self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO LOAD, CHECK FILAMENT AT PREP SENSOR')
                                     check_success = False
                                     break
-                            if check_success == True:
-                                self.afc_led(self.led_ready, CUR_LANE.led_index)
+                        if check_success == True:
+                            self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
                             self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                             
