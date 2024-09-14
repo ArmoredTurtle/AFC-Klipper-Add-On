@@ -381,9 +381,9 @@ class afc:
             except:
                 self.respond_error(error_string.format("tool"), raise_error=True)
 
-            check_success = True
             if self.current == '':
                 for lane in self.lanes.keys():
+                    check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
@@ -433,6 +433,7 @@ class afc:
                 
             else:
                 for lane in self.lanes:
+                    check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.current == lane:
