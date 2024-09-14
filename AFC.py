@@ -559,8 +559,9 @@ class afc:
                 self.gcode.run_script_from_command(self.wipe_cmd)
         else:
             if self.hub.filament_present == True:
-                self.gcode.respond_info("HUB NOT CLEAR")
+                self.gcode.respond_info('HUB NOT CLEAR TRYING TO LOAD ' + lane)
                 self.gcode.run_script_from_command('PAUSE')
+                self.afc_led(self.led_ready, LANE.led_index)
             if LANE.load_state == False:
                 self.gcode.respond_info(lane + ' NOT READY')
                 self.gcode.run_script_from_command('PAUSE')
