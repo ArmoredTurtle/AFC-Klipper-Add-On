@@ -395,7 +395,7 @@ class afc:
                             self.rewind(CUR_LANE, 0)
                             self.sleepCmd(0.1)
                             if x > 10:
-                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RESET EXTRUDER')
+                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RESET EXTRUDER\n||=====||=x--||------||\nTRG   LOAD   HUB    TOOL')
                                 check_success = False
                                 break
                         self.rewind(CUR_LANE, 0)
@@ -406,7 +406,7 @@ class afc:
                             x +=1
                             self.sleepCmd(0.1)
                             if x> 10:
-                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RELOAD, CHECK FILAMENT AT PREP SENSOR')
+                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                                 check_success = False
                                 break
                         if check_success == True:
@@ -419,7 +419,7 @@ class afc:
                                 x +=1
                                 self.sleepCmd(0.1)
                                 if x> 10:
-                                    self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO LOAD, CHECK FILAMENT AT PREP SENSOR')
+                                    self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                                     check_success = False
                                     break
                             if check_success == True:
@@ -474,15 +474,17 @@ class afc:
                         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
                         self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
         self.gcode.respond_info(logo)
+
+        # Call out if all lanes are clear but hub is not
         if self.hub.filament_present == True and self.tool.filament_present == False:
-            self.gcode.respond_info("LANES READY, HUB NOT CLEAR")
+            msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|------||\nTRG   LOAD   HUB    TOOL')
+            self.respond_error(msg, raise_error=False)
 
 
     def handle_lane_failure(self, CUR_LANE, lane, message):
         CUR_LANE.set_afc_prep_done()
         # Disable the stepper for this lane
         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
-        # Log that the lane is not ready
         msg = (lane.upper() + ' NOT READY' + message)
         self.respond_error(msg, raise_error=False)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
@@ -562,12 +564,16 @@ class afc:
             if self.wipe == 1:
                 self.gcode.run_script_from_command(self.wipe_cmd)
         else:
+            #callout if hub is triggered when trying to load
             if self.hub.filament_present == True:
-                self.gcode.respond_info('HUB NOT CLEAR TRYING TO LOAD ' + lane)
+                msg = ('HUB NOT CLEAR TRYING TO LOAD' + lane.upper() + '\n||-----||----|x|------||\nTRG   LOAD   HUB    TOOL')
+                self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
                 self.afc_led(self.led_ready, LANE.led_index)
+            #callout if lane is not ready when trying to load
             if LANE.load_state == False:
-                self.gcode.respond_info(lane + ' NOT READY')
+                msg = (lane.upper() + ' NOT READY' + '\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
 
     cmd_TOOL_UNLOAD_help = "Unload lane to before hub"
@@ -614,8 +620,10 @@ class afc:
         while self.hub.filament_present == True:
             self.afc_move(lane, self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x +=1
+            # callout if while unloading, filament doesn't move past HUB
             if x> 20:
-                self.gcode.respond_info('HUB NOT CLEARING ' + lane)
+                msg = ('HUB NOT CLEARING' + lane.upper() + '\n||======||====|x|------||\nTRG   LOAD   HUB    TOOL')
+                self.respond_error(msg, raise_error=False)
                 self.rewind(LANE, 0)
                 return
         self.rewind(LANE, 0)
