@@ -383,34 +383,57 @@ class afc:
 
             if self.current == '':
                 for lane in self.lanes.keys():
+                    check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
-                        # TODO put a timeout here and print error to console as this could sit here forever
+                        x = 0
                         while CUR_LANE.load_state == True:
                             self.rewind(CUR_LANE, -1)
                             self.afc_move(lane, self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+                            x += 1
+                            self.rewind(CUR_LANE, 0)
+                            self.sleepCmd(0.1)
+                            if x > 10:
+                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RESET EXTRUDER')
+                                check_success = False
+                                break
                         self.rewind(CUR_LANE, 0)
 
-                        # TODO put a timeout here and print error to console as this could sit here forever
+                        x = 0
                         while CUR_LANE.load_state == False:
                             self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                            x +=1
+                            self.sleepCmd(0.1)
+                            if x> 10:
+                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RELOAD, CHECK FILAMENT AT PREP SENSOR')
+                                check_success = False
+                                break
                     else:
                         if CUR_LANE.prep_state== True:
-                            # TODO put a timeout here and print error to console as this could sit here forever
+                            x = 0
                             while CUR_LANE.load_state == False:
                                 self.afc_move(lane, self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                            self.afc_led(self.led_ready, CUR_LANE.led_index)
+                                x +=1
+                                self.sleepCmd(0.1)
+                                if x> 10:
+                                    self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO LOAD, CHECK FILAMENT AT PREP SENSOR')
+                                    check_success = False
+                                    break
+                            if check_success == True:
+                                self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
-                            self.afc_led(self.led_fault, CUR_LANE.led_index)
+                            self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                             
-                    # Setting lane to prepped so that loading will happen once user tries to load filament
-                    CUR_LANE.set_afc_prep_done()
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
-                    self.gcode.respond_info(lane.upper() + ' READY')
+                    if check_success == True:
+                        # Setting lane to prepped so that loading will happen once user tries to load filament
+                        CUR_LANE.set_afc_prep_done()
+                        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+                        self.gcode.respond_info(lane.upper() + ' READY')
                 
             else:
                 for lane in self.lanes:
+                    check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
                     if self.current == lane:
@@ -442,12 +465,24 @@ class afc:
                             
                         if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
-                    
-                    # Setting lane to prepped so that loading will happen once user tries to load filament
-                    CUR_LANE.set_afc_prep_done()
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
-                    self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
+
+                    if check_success == True:
+                        # Setting lane to prepped so that loading will happen once user tries to load filament
+                        CUR_LANE.set_afc_prep_done()
+                        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+                        self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
         self.gcode.respond_info(logo)
+        if self.hub.filament_present == True and self.tool.filament_present == False:
+            self.gcode.respond_info("LANES READY, HUB NOT CLEAR")
+
+
+    def handle_lane_failure(self, CUR_LANE, lane, message):
+        CUR_LANE.set_afc_prep_done()
+        # Disable the stepper for this lane
+        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+        # Log that the lane is not ready
+        self.gcode.respond_info(lane.upper() + ' NOT READY' + message)
+        self.afc_led(self.led_fault, CUR_LANE.led_index)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
@@ -525,8 +560,9 @@ class afc:
                 self.gcode.run_script_from_command(self.wipe_cmd)
         else:
             if self.hub.filament_present == True:
-                self.gcode.respond_info("HUB NOT CLEAR")
+                self.gcode.respond_info('HUB NOT CLEAR TRYING TO LOAD ' + lane)
                 self.gcode.run_script_from_command('PAUSE')
+                self.afc_led(self.led_ready, LANE.led_index)
             if LANE.load_state == False:
                 self.gcode.respond_info(lane + ' NOT READY')
                 self.gcode.run_script_from_command('PAUSE')
