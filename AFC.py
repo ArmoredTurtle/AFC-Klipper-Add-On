@@ -409,6 +409,8 @@ class afc:
                                 self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RELOAD, CHECK FILAMENT AT PREP SENSOR')
                                 check_success = False
                                 break
+                        if check_success == True:
+                            self.afc_led(self.led_ready, CUR_LANE.led_index)
                     else:
                         if CUR_LANE.prep_state== True:
                             x = 0
@@ -481,7 +483,8 @@ class afc:
         # Disable the stepper for this lane
         self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
         # Log that the lane is not ready
-        self.gcode.respond_info(lane.upper() + ' NOT READY' + message)
+        msg = (lane.upper() + ' NOT READY' + message)
+        self.respond_error(msg, raise_error=False)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
 
     # HUB COMMANDS
