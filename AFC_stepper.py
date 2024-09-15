@@ -191,7 +191,7 @@ class AFCExtruderStepper:
                 while self.load_state == False and self.prep_state == True and self.status == '' :
                     x += 1
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=1')
-                    self.AFC.afc_move(self.name,10,500,400)
+                    self.move(self.name,10,500,400)
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=0')
                     if x> 10:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
