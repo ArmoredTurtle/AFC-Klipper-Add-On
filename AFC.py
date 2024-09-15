@@ -282,17 +282,17 @@ class afc:
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
                         x = 0
                         while CUR_LANE.load_state == True:
-                            self.rewind(CUR_LANE, -1)
+                            CUR_LANE.assist(-1)
                             CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                             x += 1
-                            self.rewind(CUR_LANE, 0)
+                            CUR_LANE.assist(0)
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
                             if x > 10:
                                 self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RESET EXTRUDER\n||=====||=x--||------||\nTRG   LOAD   HUB    TOOL')
                                 check_success = False
                                 break
-                        self.rewind(CUR_LANE, 0)
+                        CUR_LANE.assist(0)
 
                         x = 0
                         while CUR_LANE.load_state == False:
@@ -337,9 +337,9 @@ class afc:
                     if self.current == lane:
                         if self.tool.filament_present == False:
                             while CUR_LANE.load_state == True:
-                                self.rewind(CUR_LANE, -1)
+                                CUR_LANE.assist(-1)
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-                            self.rewind(CUR_LANE, 0)
+                            CUR_LANE.assist(0)
                             CUR_LANE.status = ''
                             self.current = ''
                             while CUR_LANE.load_state == False:
@@ -510,7 +510,7 @@ class afc:
             self.toolhead.wait_moves()
             
         LANE.extruder_stepper.sync_to_extruder(None)
-        self.rewind(LANE, -1)
+        LANE.assist(-1)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
         x=0
         while self.hub.filament_present == True:
@@ -520,9 +520,9 @@ class afc:
             if x> 20:
                 msg = ('HUB NOT CLEARING' + lane.upper() + '\n||======||====|x|------||\nTRG   LOAD   HUB    TOOL')
                 self.respond_error(msg, raise_error=False)
-                self.rewind(LANE, 0)
+                LANE.assist(0)
                 return
-        self.rewind(LANE, 0)
+        LANE.assist( 0)
         self.lanes[lane]['tool_loaded'] = False
         self.save_vars()
         self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
