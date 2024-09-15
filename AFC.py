@@ -511,10 +511,10 @@ class afc:
             
         LANE.extruder_stepper.sync_to_extruder(None)
         LANE.assist(-1)
-        CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
+        LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
         x=0
         while self.hub.filament_present == True:
-            CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+            LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x +=1
             # callout if while unloading, filament doesn't move past HUB
             if x> 20:
@@ -528,7 +528,7 @@ class afc:
         self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
         time.sleep(1)
         while LANE.load_state == False and LANE.prep_state == True:
-            CUR_LANE.move( self.short_move_dis , self.short_moves_speed, self.short_moves_accel)
+            LANE.move( self.short_move_dis , self.short_moves_speed, self.short_moves_accel)
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
         self.current = ''
