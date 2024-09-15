@@ -18,7 +18,7 @@ function clone_repo() {
 
   if [ ! -d "${AFC_PATH}" ]; then
     echo "Cloning AFC Klipper Add-On repo..."
-    if git -c "$afc_dir_name" clone $GITREPO "$afc_base_name"; then
+    if git -C "$afc_dir_name" clone $GITREPO "$afc_base_name"; then
       chmod +x "${AFC_PATH}"/install-afc.sh
       echo "Repo cloned successfully"
     else
