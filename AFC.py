@@ -393,8 +393,8 @@ class afc:
         if LANE.load_state == False:
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             while LANE.load_state == False:
-                CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANE.move( self.hub_move_dis * -1 , self.short_moves_speed, self.short_moves_accel)
+                LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+            LANE.move( self.hub_move_dis * -1 , self.short_moves_speed, self.short_moves_accel)
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
@@ -404,8 +404,8 @@ class afc:
         if lane != self.current:
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             while LANE.load_state == True:
-                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
+               LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+            LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
         else:
             self.gcode.respond_info('LANE ' + lane + ' IS TOOL LOADED')
@@ -427,10 +427,10 @@ class afc:
                 self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
                 self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
-            CUR_LANE.move( LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
+            LANE.move( LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             while self.hub.filament_present == False:
-                CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
+                LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+            LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
             while self.tool.filament_present == False:
                 pos = self.toolhead.get_position()
