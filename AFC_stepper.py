@@ -9,12 +9,8 @@ import stepper, chelper
 import time
 from . import output_pin
 from kinematics import extruder
+from . import AFC_assist
 
-
-#respooler
-PIN_MIN_TIME = 0.100
-RESEND_HOST_TIME = 0.300 + PIN_MIN_TIME
-MAX_SCHEDULE_TIME = 5.0
 
 #LED
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
@@ -22,14 +18,59 @@ BIT_MAX_TIME=.000004
 RESET_MIN_TIME=.000050
 MAX_MCU_SIZE = 500  # Sanity check on LED chain length
 
+def calc_move_time(dist, speed, accel):
+    """
+    Calculate the movement time and parameters for a given distance, speed, and acceleration.
+
+    This function computes the axis direction, acceleration time, cruise time, and cruise speed
+    required to move a specified distance with given speed and acceleration.
+
+    Parameters:
+    dist (float): The distance to move.
+    speed (float): The speed of the movement.
+    accel (float): The acceleration of the movement.
+
+    Returns:
+    tuple: A tuple containing:
+        - axis_r (float): The direction of the axis (1 for positive, -1 for negative).
+        - accel_t (float): The time spent accelerating.
+        - cruise_t (float): The time spent cruising at constant speed.
+        - speed (float): The cruise speed.
+    """
+    axis_r = 1.
+    if dist < 0.:
+        axis_r = -1.
+        dist = -dist
+    if not accel or not dist:
+        return axis_r, 0., dist / speed, speed
+    max_cruise_v2 = dist * accel
+    if max_cruise_v2 < speed**2:
+        speed = math.sqrt(max_cruise_v2)
+    accel_t = speed / accel
+    accel_decel_d = accel_t * speed
+    cruise_t = (dist - accel_decel_d) / speed
+    return axis_r, accel_t, cruise_t, speed
+
+
 class AFCExtruderStepper:
     def __init__(self, config):
+        self.config = config
         self.printer = config.get_printer()
+        self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
         self.extruder_name = config.get('extruder')
         self.name = config.get_name().split()[-1]
         self.motion_queue = None
         self.status = ''
+
+        self.reactor = self.printer.get_reactor()
+        ffi_main, ffi_lib = chelper.get_ffi()
+        self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
+        self.trapq_append = ffi_lib.trapq_append
+        self.trapq_finalize_moves = ffi_lib.trapq_finalize_moves
+        self.stepper_kinematics = ffi_main.gc(
+            ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
+
         self.gcode = self.printer.lookup_object('gcode')
         
         self.hub_dist = config.getfloat('hub_dist')
@@ -57,18 +98,79 @@ class AFCExtruderStepper:
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)
         self.afc_motor_enb = config.get('afc_motor_enb', None)
         if self.afc_motor_rwd is not None:
-            self.afc_motor_rwd = AFCassistMotor(config,'rwd')
+            self.afc_motor_rwd = AFC_assist.AFCassistMotor(config,'rwd')
         if self.afc_motor_fwd is not None:
-            self.afc_motor_fwd = AFCassistMotor(config,'fwd')
+            self.afc_motor_fwd = AFC_assist.AFCassistMotor(config,'fwd')
         if self.afc_motor_enb is not None:
-            self.afc_motor_enb = AFCassistMotor(config,'enb')
+            self.afc_motor_enb = AFC_assist.AFCassistMotor(config,'enb')
             
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')   
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
-    
+
+    def assist(self, value, is_resend=False):
+        self.gcode.respond_info('Testing ' + self.name+ ' at '+ str(value))
+        if self.afc_motor_rwd is None:
+            return
+        if value < 0:
+            value *= -1
+            assit_motor=self.afc_motor_rwd
+        else:
+            if self.afc_motor_fwd is None:
+                assit_motor=self.afc_motor_rwd
+            else:
+                assit_motor=self.afc_motor_fwd
+        value /= assit_motor.scale
+        if not assit_motor.is_pwm and value not in [0., 1.]:
+            if value > 0:
+                value = 1
+        # Obtain print_time and apply requested settings
+        toolhead = self.printer.lookup_object('toolhead')
+        if self.afc_motor_enb is not None:
+            if value != 0:
+                enable = 1
+            else:
+                enable = 0
+            toolhead.register_lookahead_callback(
+            lambda print_time: self.afc_motor_enb._set_pin(print_time, enable))
+            
+        toolhead.register_lookahead_callback(
+            lambda print_time: assit_motor._set_pin(print_time, value))
+
+    def move(self, distance, speed, accel):
+        """
+        Move the specified lane a given distance with specified speed and acceleration.
+
+        This function calculates the movement parameters and commands the stepper motor
+        to move the lane accordingly.
+
+        Parameters:
+        distance (float): The distance to move.
+        speed (float): The speed of the movement.
+        accel (float): The acceleration of the movement.
+        """
+        
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.flush_step_generation()
+        prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
+        prev_trapq = self.extruder_stepper.stepper.set_trapq(self.trapq)
+        self.extruder_stepper.stepper.set_position((0., 0., 0.))
+        axis_r, accel_t, cruise_t, cruise_v = calc_move_time(distance, speed, accel)
+        print_time = toolhead.get_last_move_time()
+        self.trapq_append(self.trapq, print_time, accel_t, cruise_t, accel_t,
+                          0., 0., 0., axis_r, 0., 0., 0., cruise_v, accel)
+        print_time = print_time + accel_t + cruise_t + accel_t
+        self.extruder_stepper.stepper.generate_steps(print_time)
+        self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
+                                  print_time + 99999.9)
+        self.extruder_stepper.stepper.set_trapq(prev_trapq)
+        self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
+        toolhead.note_mcu_movequeue_activity(print_time)
+        toolhead.dwell(accel_t + cruise_t + accel_t)
+        toolhead.flush_step_generation()
+
     def set_afc_prep_done(self):
         """
         set_afc_prep_done function should only be called once AFC PREP function is done. Once this
@@ -76,22 +178,6 @@ class AFCExtruderStepper:
             now load once filament is inserted. 
         """
         self._afc_prep_done = True
-       
-    def resend_current_val(self, eventtime):
-        if self.respool_last_value == self.respool_shutdown_value:
-            self.reactor.unregister_timer(self.respool_resend_timer)
-            self.respool_resend_timer = None
-            return self.reactor.NEVER
-
-        systime = self.reactor.monotonic()
-        print_time = self.respool_mcu_pin.get_mcu().estimated_print_time(systime)
-        time_diff = (self.respool_last_print_time + self.respool_resend_interval) - print_time
-        if time_diff > 0.:
-            # Reschedule for resend time
-            return systime + time_diff
-        self.rewind(print_time + PIN_MIN_TIME, self.respool_last_value, True)
-        return systime + self.respool_resend_interval
-
     def load_callback(self, eventtime, state):
         self.load_state = state
 
@@ -119,63 +205,5 @@ class AFCExtruderStepper:
                 self.status = ''
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
 
-class AFCassistMotor:
-    def __init__(self, config,type):
-        self.printer = config.get_printer()
-        ppins = self.printer.lookup_object('pins')
-        # Determine pin type
-        self.is_pwm = config.getboolean('pwm', False)
-        if self.is_pwm:
-            self.mcu_pin = ppins.setup_pin('pwm', config.get('afc_motor_'+type))
-            cycle_time = config.getfloat('cycle_time', 0.100, above=0.,
-                                         maxval=MAX_SCHEDULE_TIME)
-            hardware_pwm = config.getboolean('hardware_pwm', False)
-            self.mcu_pin.setup_cycle_time(cycle_time, hardware_pwm)
-            self.scale = config.getfloat('scale', 1., above=0.)
-        else:
-            self.mcu_pin = ppins.setup_pin('digital_out', config.get('afc_motor_'+type))
-            self.scale = 1.
-        self.last_print_time = 0.
-        # Support mcu checking for maximum duration
-        self.reactor = self.printer.get_reactor()
-        self.resend_timer = None
-        self.resend_interval = 0.
-        max_mcu_duration = config.getfloat('maximum_mcu_duration', 0.,
-                                           minval=0.500,
-                                           maxval=MAX_SCHEDULE_TIME)
-        self.mcu_pin.setup_max_duration(max_mcu_duration)
-        if max_mcu_duration:
-            config.deprecate('maximum_mcu_duration')
-            self.resend_interval = max_mcu_duration - RESEND_HOST_TIME
-        # Determine start and shutdown values
-        static_value = config.getfloat('static_value', None,
-                                       minval=0., maxval=self.scale)
-        if static_value is not None:
-            config.deprecate('static_value')
-            self.last_value = self.shutdown_value = static_value / self.scale
-        else:
-            self.last_value = config.getfloat(
-                'value', 0., minval=0., maxval=self.scale) / self.scale
-            self.shutdown_value = config.getfloat(
-                'shutdown_value', 0., minval=0., maxval=self.scale) / self.scale
-        self.mcu_pin.setup_start_value(self.last_value, self.shutdown_value)
-        
-    def get_status(self, eventtime):
-        return {'value': self.last_value}
-    
-    def _set_pin(self, print_time, value, is_resend=False):
-        if value == self.last_value and not is_resend:
-            return
-        print_time = max(print_time, self.last_print_time + PIN_MIN_TIME)
-        if self.is_pwm:
-            self.mcu_pin.set_pwm(print_time, value)
-        else:
-            self.mcu_pin.set_digital(print_time, value)
-        self.last_value = value
-        self.last_print_time = print_time
-        if self.resend_interval and self.resend_timer is None:
-            self.resend_timer = self.reactor.register_timer(
-                self._resend_current_val, self.reactor.NOW) 
-            
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
