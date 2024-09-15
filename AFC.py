@@ -292,7 +292,6 @@ class afc:
                                 self.handle_lane_failure(CUR_LANE, lane, message)
                                 check_success = False
                                 break
-                        CUR_LANE.assist(0)
 
                         x = 0
                         while CUR_LANE.load_state == False:
@@ -491,6 +490,8 @@ class afc:
 
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
+        if self.current == '':
+            return
         #self.toolhead = self.printer.lookup_object('toolhead')
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
