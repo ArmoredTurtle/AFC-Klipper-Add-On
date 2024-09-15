@@ -63,7 +63,6 @@ class afc:
         self.hub_cut_servo_pass_angle = config.getfloat("hub_cut_servo_pass_angle", 0)
         self.hub_cut_servo_clip_angle = config.getfloat("hub_cut_servo_clip_angle", 160)
         self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
-        self.hub_cut_active = config.getfloat("hub_cut_active", 0)
         self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0);
 
         # TOOL Cutting Settings
@@ -158,7 +157,7 @@ class afc:
         """
         self.toolhead = self.printer.lookup_object('toolhead')
 
-    cmd_TEST_help = "Load lane into hub"
+    cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('TEST ROUTINE')
@@ -205,7 +204,7 @@ class afc:
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 
-    cmd_PREP_help = "Load lane into hub"
+    cmd_PREP_help = "Prep AFC"
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
             time.sleep(1)
@@ -278,7 +277,7 @@ class afc:
                 for lane in self.lanes.keys():
                     check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
+                    CUR_LANE.do_enable(True)
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
                         x = 0
                         while CUR_LANE.load_state == True:
@@ -329,14 +328,14 @@ class afc:
                     if check_success == True:
                         # Setting lane to prepped so that loading will happen once user tries to load filament
                         CUR_LANE.set_afc_prep_done()
-                        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+                        CUR_LANE.do_enable(False)
                         self.gcode.respond_info(lane.upper() + ' READY')
                 
             else:
                 for lane in self.lanes:
                     check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
+                    CUR_LANE.do_enable(True)
                     if self.current == lane:
                         if self.tool.filament_present == False:
                             while CUR_LANE.load_state == True:
@@ -370,7 +369,7 @@ class afc:
                     if check_success == True:
                         # Setting lane to prepped so that loading will happen once user tries to load filament
                         CUR_LANE.set_afc_prep_done()
-                        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+                        CUR_LANE.do_enable(False)
                         self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
         self.gcode.respond_info(logo)
 
@@ -383,7 +382,7 @@ class afc:
     def handle_lane_failure(self, CUR_LANE, lane, message):
         CUR_LANE.set_afc_prep_done()
         # Disable the stepper for this lane
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+        CUR_LANE.do_enable(False)
         msg = (lane.upper() + ' NOT READY' + message)
         self.respond_error(msg, raise_error=False)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
@@ -394,28 +393,28 @@ class afc:
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         if LANE.load_state == False:
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
+            LANE.do_enable(True)
             while LANE.load_state == False:
                 LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
             LANE.move( self.hub_move_dis * -1 , self.short_moves_speed, self.short_moves_accel)
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+            LANE.do_enable(False)
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         if lane != self.current:
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
+            LANE.do_enable(True)
             while LANE.load_state == True:
                LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+            LANE.do_enable(False)
         else:
             self.gcode.respond_info('LANE ' + lane + ' IS TOOL LOADED')
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
-        self.toolhead = self.printer.lookup_object('toolhead')
+        #self.toolhead = self.printer.lookup_object('toolhead')
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
         lane = gcmd.get('LANE', None)
@@ -429,7 +428,7 @@ class afc:
             if not self.heater.can_extrude: #Heat extruder if not at min temp 
                 self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
                 self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
-            self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
+            LANE.do_enable(True)
             LANE.move( LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
             hub_attempts = 0
             while self.hub.filament_present == False:
@@ -490,9 +489,9 @@ class afc:
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
 
-    cmd_TOOL_UNLOAD_help = "Unload lane to before hub"
+    cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
-        self.toolhead = self.printer.lookup_object('toolhead')
+        #self.toolhead = self.printer.lookup_object('toolhead')
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
         lane = gcmd.get('LANE', self.current)
@@ -558,11 +557,11 @@ class afc:
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
         self.current = ''
-        self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=0')
+        LANE.do_enable(False)
     
-    cmd_CHANGE_TOOL_help = "Load lane into hub"
+    cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
-        self.toolhead = self.printer.lookup_object('toolhead')
+        #self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         if lane != self.current:
             if self.current != '':

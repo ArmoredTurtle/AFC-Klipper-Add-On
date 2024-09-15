@@ -11,7 +11,6 @@ from . import output_pin
 from kinematics import extruder
 from . import AFC_assist
 
-
 #LED
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 BIT_MAX_TIME=.000004
@@ -62,6 +61,7 @@ class AFCExtruderStepper:
         self.name = config.get_name().split()[-1]
         self.motion_queue = None
         self.status = ''
+        self.next_cmd_time = 0.
 
         self.reactor = self.printer.get_reactor()
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -203,6 +203,25 @@ class AFCExtruderStepper:
             else:
                 self.status = ''
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
+    
+    def do_enable(self, enable):
+        self.sync_print_time()
+        stepper_enable = self.printer.lookup_object('stepper_enable')
+        if enable:
+            se = stepper_enable.lookup_enable('AFC_stepper ' + self.name)
+            se.motor_enable(self.next_cmd_time)
+        else:
+            se = stepper_enable.lookup_enable('AFC_stepper ' + self.name)
+            se.motor_disable(self.next_cmd_time)
+        self.sync_print_time()
+
+    def sync_print_time(self):
+        toolhead = self.printer.lookup_object('toolhead')
+        print_time = toolhead.get_last_move_time()
+        if self.next_cmd_time > print_time:
+            toolhead.dwell(self.next_cmd_time - print_time)
+        else:
+            self.next_cmd_time = print_time
 
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
