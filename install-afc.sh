@@ -5,7 +5,7 @@ set -e
 
 KLIPPER_PATH="${HOME}/klipper"
 SYSTEMDDIR="/etc/systemd/system"
-EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led"
+EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led AFC_assist"
 SRCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/ && pwd )"
 GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
 BASE_PATH="AFC-Klipper-Add-On"
