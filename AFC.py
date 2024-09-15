@@ -544,7 +544,7 @@ class afc:
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
 
     def hub_cut(self, lane):
-        LANE=self.printer.lookup_object('AFC_stepper '+lane)
+        CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
         # Prep the servo for cutting.
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
