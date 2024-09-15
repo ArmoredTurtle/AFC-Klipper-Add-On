@@ -3,21 +3,29 @@
 # Force script to exit if an error occurs
 set -e
 
+export LC_ALL=C
+
 KLIPPER_PATH="${HOME}/klipper"
-SYSTEMDDIR="/etc/systemd/system"
 EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led AFC_assist"
-SRCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/ && pwd )"
 GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
-BASE_PATH="AFC-Klipper-Add-On"
+AFC_PATH="${HOME}/AFC-Klipper-Add-On"
 
 function clone_repo() {
+  local afc_dir_name afc_base_name
   # Check if the repo is already cloned
-  if [ -d "${BASE_PATH}/.git" ]; then
-    echo "Repo already cloned"
+  afc_dir_name="$(dirname "${AFC_PATH}")"
+  afc_base_name="$(basename "${AFC_PATH}")"
+
+  if [ ! -d "${AFC_PATH}" ]; then
+    echo "Cloning AFC Klipper Add-On repo..."
+    if git -C $afc_dir_name clone $GITREPO $afc_base_name; then
+      echo "AFC Klipper Add-On repo cloned successfully"
+    else
+      echo "Failed to clone AFC Klipper Add-On repo"
+      exit 1
+    fi
   else
-    echo "Cloning repo..."
-    cd ~
-    git clone "${GITREPO}" "${BASE_PATH}"
+    echo "AFC Klipper Add-On repo already exists...continuing with updates"
   fi
 }
 
@@ -27,7 +35,7 @@ function check_klipper() {
         echo "Klipper service found!"
     else
         echo "Klipper service not found, please install Klipper first"
-        exit -1
+        exit 1
     fi
 }
 
@@ -44,7 +52,7 @@ function check_existing() {
 function link_extensions() {
     echo "Linking extensions to Klipper..."
     for extension in ${EXTENSION_LIST}; do
-        ln -sf "${SRCDIR}/${BASE_PATH}/${extension}.py" "${KLIPPER_PATH}/klippy/extras/${extension}.py"
+        ln -sf "${AFC_PATH}/${extension}.py" "${KLIPPER_PATH}/klippy/extras/${extension}.py"
     done
 }
 
@@ -64,7 +72,7 @@ function restart_klipper() {
 function verify_ready() {
     if [ "$(id -u)" -eq 0 ]; then
         echo "This script must not run as root"
-        exit -1
+        exit 1
     fi
 }
 
