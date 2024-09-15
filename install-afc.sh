@@ -11,13 +11,22 @@ GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
 AFC_PATH="${HOME}/AFC-Klipper-Add-On"
 
 function clone_repo() {
+  local afc_dir_name afc_base_name
   # Check if the repo is already cloned
-  if [ -d "${AFC_PATH}}/.git" ]; then
-    echo "Repo already cloned"
+  afc_dir_name="$(dirname "${AFC_PATH}")"
+  afc_base_name="$(basename "${AFC_PATH}")"
+
+  if [ ! -d "${AFC_PATH}" ]; then
+    echo "Cloning AFC Klipper Add-On repo..."
+    if git -c "$afc_dir_name" clone $GITREPO "$afc_base_name"; then
+      chmod +x "${AFC_PATH}"/install-afc.sh
+      echo "Repo cloned successfully"
+    else
+      echo "Failed to clone repo"
+      exit 1
+    fi
   else
-    echo "Cloning repo..."
-    cd ~
-    git clone "${GITREPO}" "${AFC_PATH}"
+    echo "AFC Klipper Add-On repo already exists...continuing with updates"
   fi
 }
 
