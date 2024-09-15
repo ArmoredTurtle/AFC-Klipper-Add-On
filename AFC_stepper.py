@@ -111,7 +111,6 @@ class AFCExtruderStepper:
         self._afc_prep_done = False
 
     def assist(self, value, is_resend=False):
-        self.gcode.respond_info('Testing ' + self.name+ ' at '+ str(value))
         if self.afc_motor_rwd is None:
             return
         if value < 0:
