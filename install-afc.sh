@@ -7,7 +7,7 @@ export LC_ALL=C
 
 KLIPPER_PATH="${HOME}/klipper"
 EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led AFC_assist"
-GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
+GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
 AFC_PATH="${HOME}/AFC-Klipper-Add-On"
 
 function clone_repo() {
