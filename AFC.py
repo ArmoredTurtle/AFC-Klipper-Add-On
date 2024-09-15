@@ -289,7 +289,8 @@ class afc:
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
                             if x > 10:
-                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RESET EXTRUDER\n||=====||=x--||------||\nTRG   LOAD   HUB    TOOL')
+                                message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
+                                self.handle_lane_failure(CUR_LANE, lane, message)
                                 check_success = False
                                 break
                         CUR_LANE.assist(0)
@@ -297,25 +298,27 @@ class afc:
                         x = 0
                         while CUR_LANE.load_state == False:
                             CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                            x +=1
+                            x += 1
                             self.sleepCmd(0.1)
                             #callout if filament is past trigger but can't be brought past extruder
-                            if x> 10:
-                                self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                            if x > 10:
+                                message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
+                                self.handle_lane_failure(CUR_LANE, lane, message)
                                 check_success = False
                                 break
                         if check_success == True:
                             self.afc_led(self.led_ready, CUR_LANE.led_index)
                     else:
-                        if CUR_LANE.prep_state== True:
+                        if CUR_LANE.prep_state == True:
                             x = 0
                             while CUR_LANE.load_state == False:
                                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                                x +=1
+                                x += 1
                                 self.sleepCmd(0.1)
                                 #callout if filament is past trigger but can't be brought past extruder
-                                if x> 10:
-                                    self.handle_lane_failure(CUR_LANE, lane, ' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                                if x > 10:
+                                    message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
+                                    self.handle_lane_failure(CUR_LANE, lane, message)
                                     check_success = False
                                     break
                             if check_success == True:
@@ -373,7 +376,7 @@ class afc:
 
         # Call out if all lanes are clear but hub is not
         if self.hub.filament_present == True and self.tool.filament_present == False:
-            msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|------||\nTRG   LOAD   HUB    TOOL')
+            msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG    LOAD   HUB    TOOL')
             self.respond_error(msg, raise_error=False)
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
@@ -428,15 +431,30 @@ class afc:
                 self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper ' + lane + '" ENABLE=1')
             LANE.move( LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
+            hub_attempts = 0
             while self.hub.filament_present == False:
                 LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+                hub_attempts += 1
+                #callout if filament doesn't go past hub during load
+                if hub_attempts > 10:
+                    message = (' FAILED TO LOAD PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG    LOAD   HUB    TOOL')
+                    self.handle_lane_failure(LANE, lane, message)
+                    break
             LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
+            tool_attempts = 0
             while self.tool.filament_present == False:
+                tool_attempts += 1
                 pos = self.toolhead.get_position()
                 pos[3] += self.short_move_dis
                 self.toolhead.manual_move(pos, self.tool_load_speed)
                 self.toolhead.wait_moves()
+                #callout if filament doesn't reach toolhead
+                if tool_attempts > 10:
+                    message = (' FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG    LOAD   HUB    TOOL')
+                    self.handle_lane_failure(LANE, lane, message)
+                    break
+
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn
             self.toolhead.manual_move(pos, self.tool_load_speed)
@@ -462,13 +480,13 @@ class afc:
         else:
             #callout if hub is triggered when trying to load
             if self.hub.filament_present == True:
-                msg = ('HUB NOT CLEAR TRYING TO LOAD' + lane.upper() + '\n||-----||----|x|------||\nTRG   LOAD   HUB    TOOL')
+                msg = ('HUB NOT CLEAR TRYING TO LOAD ' + lane.upper() + '\n||-----||----|x|-----||\nTRG    LOAD   HUB    TOOL')
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
                 self.afc_led(self.led_ready, LANE.led_index)
             #callout if lane is not ready when trying to load
             if LANE.load_state == False:
-                msg = (lane.upper() + ' NOT READY' + '\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                msg = (lane.upper() + ' NOT READY' + '\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
 
@@ -512,13 +530,13 @@ class afc:
         LANE.extruder_stepper.sync_to_extruder(None)
         LANE.assist(-1)
         LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
-        x=0
+        x = 0
         while self.hub.filament_present == True:
             LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-            x +=1
+            x += 1
             # callout if while unloading, filament doesn't move past HUB
-            if x> 20:
-                msg = ('HUB NOT CLEARING' + lane.upper() + '\n||======||====|x|------||\nTRG   LOAD   HUB    TOOL')
+            if x > 20:
+                msg = ('HUB NOT CLEARING ' + lane.upper() + '\n||=====||====|x|-----||\nTRG    LOAD   HUB    TOOL')
                 self.respond_error(msg, raise_error=False)
                 LANE.assist(0)
                 return
@@ -527,8 +545,16 @@ class afc:
         self.save_vars()
         self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
         time.sleep(1)
+        x = 0
         while LANE.load_state == False and LANE.prep_state == True:
-            LANE.move( self.short_move_dis , self.short_moves_speed, self.short_moves_accel)
+            LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+            x += 1
+            self.sleepCmd(0.1)
+            #callout if filament is past trigger but can't be brought past extruder
+            if x > 10:
+                message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
+                self.handle_lane_failure(CUR_LANE, lane, message)
+                break
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
         self.current = ''
