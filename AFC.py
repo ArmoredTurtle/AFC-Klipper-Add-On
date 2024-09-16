@@ -433,6 +433,7 @@ class afc:
             while self.hub.filament_present == False:
                 LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
+                self.sleepCmd(0.1)
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 10:
                     message = (' FAILED TO LOAD PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG    LOAD   HUB    TOOL')
@@ -447,6 +448,7 @@ class afc:
                 pos[3] += self.short_move_dis
                 self.toolhead.manual_move(pos, self.tool_load_speed)
                 self.toolhead.wait_moves()
+                self.sleepCmd(0.1)
                 #callout if filament doesn't reach toolhead
                 if tool_attempts > 10:
                     message = (' FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG    LOAD   HUB    TOOL')
@@ -521,6 +523,7 @@ class afc:
             pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
+            self.sleepCmd(0.1)
         if self.tool_sensor_after_extruder >0:
             pos = self.toolhead.get_position()
             pos[3] += self.tool_sensor_after_extruder * -1
@@ -534,6 +537,7 @@ class afc:
         while self.hub.filament_present == True:
             LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x += 1
+            self.sleepCmd(0.1)
             # callout if while unloading, filament doesn't move past HUB
             if x > 20:
                 msg = ('HUB NOT CLEARING ' + lane.upper() + '\n||=====||====|x|-----||\nTRG    LOAD   HUB    TOOL')
