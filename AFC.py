@@ -460,7 +460,7 @@ class afc:
                 if tool_attempts > 10:
                     message = (' FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG    LOAD   HUB    TOOL')
                     self.gcode.respond_info(message)
-                    self.gcode.respond_info('unlaoding')
+                    self.gcode.respond_info('unloading')
                     untool_attempts = 0
                     LANE.assist(-1)
                     while self.hub.filament_present == True:
