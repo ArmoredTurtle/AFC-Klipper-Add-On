@@ -293,7 +293,7 @@ class afc:
                                 CUR_LANE.assist(0)
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
-                            if x > 10:
+                            if x > 20:
                                 message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
                                 self.handle_lane_failure(CUR_LANE, lane, message)
                                 check_success = False
@@ -305,7 +305,7 @@ class afc:
                             x += 1
                             self.sleepCmd(0.1)
                             #callout if filament is past trigger but can't be brought past extruder
-                            if x > 10:
+                            if x > 20:
                                 message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
                                 self.handle_lane_failure(CUR_LANE, lane, message)
                                 check_success = False
@@ -320,7 +320,7 @@ class afc:
                                 x += 1
                                 self.sleepCmd(0.1)
                                 #callout if filament is past trigger but can't be brought past extruder
-                                if x > 10:
+                                if x > 20:
                                     message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
                                     self.handle_lane_failure(CUR_LANE, lane, message)
                                     check_success = False
@@ -493,7 +493,7 @@ class afc:
                                 LANE.assist(0)
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
-                            if x > 10:
+                            if x > 20:
                                 message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
                                 self.handle_lane_failure(LANE, lane, message)
                                 check_success = False
@@ -510,7 +510,7 @@ class afc:
                                 self.handle_lane_failure(LANE, lane, message)
                                 check_success = False
                                 break
-                        if check_success == True:
+                        if check_success:
                             self.afc_led(self.led_ready, LANE.led_index)
                     break
             if self.failure == False:
@@ -534,6 +534,9 @@ class afc:
                     self.gcode.run_script_from_command(self.kick_cmd)
                 if self.wipe == 1:
                     self.gcode.run_script_from_command(self.wipe_cmd)
+            if self.failure:
+                self.gcode.run_script_from_command('PAUSE')
+                self.afc_led(self.led_fault, LANE.led_index)
         else:
             #callout if hub is triggered when trying to load
             if self.hub.filament_present == True:
@@ -546,6 +549,7 @@ class afc:
                 msg = (lane.upper() + ' NOT READY' + '\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
+                self.afc_led(self.led_not_ready, LANE.led_index)
 
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
