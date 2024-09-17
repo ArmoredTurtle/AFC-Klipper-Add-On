@@ -419,6 +419,7 @@ class afc:
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
+        self.failure = False
         #self.toolhead = self.printer.lookup_object('toolhead')
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
@@ -478,6 +479,39 @@ class afc:
                     self.failure = True
                     LANE.assist(0)
                     LANE.extruder_stepper.sync_to_extruder(None)
+                    if LANE.load_state == True:
+                        x = 0
+                        while LANE.load_state == True:
+                            if self.hub.filament_present == True:
+                                LANE.assist(-1)
+                            else:
+                                LANE.assist(0)
+
+                            LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+                            x += 1
+                            if self.hub.filament_present == True:
+                                LANE.assist(0)
+                            self.sleepCmd(0.1)
+                            #callout if filament can't be retracted before extruder load switch
+                            if x > 10:
+                                message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
+                                self.handle_lane_failure(LANE, lane, message)
+                                check_success = False
+                                break
+
+                        x = 0
+                        while LANE.load_state == False:
+                            LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                            x += 1
+                            self.sleepCmd(0.1)
+                            #callout if filament is past trigger but can't be brought past extruder
+                            if x > 10:
+                                message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
+                                self.handle_lane_failure(LANE, lane, message)
+                                check_success = False
+                                break
+                        if check_success == True:
+                            self.afc_led(self.led_ready, LANE.led_index)
                     break
             if self.failure == False:
                 pos = self.toolhead.get_position()
