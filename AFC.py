@@ -557,7 +557,7 @@ class afc:
             #callout if filament is past trigger but can't be brought past extruder
             if x > 10:
                 message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
-                self.handle_lane_failure(CUR_LANE, lane, message)
+                self.handle_lane_failure(LANE, lane, message)
                 break
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = ''
