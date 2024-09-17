@@ -453,7 +453,20 @@ class afc:
                 #callout if filament doesn't reach toolhead
                 if tool_attempts > 10:
                     message = (' FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG    LOAD   HUB    TOOL')
-                    self.handle_lane_failure(LANE, lane, message)
+                    self.gcode.respond_info(message)
+                    self.gcode.respond_info('unlaoding')
+                    untool_attempts = 0
+                    while self.hub.filament_present == True:
+                        untool_attempts += 1
+                        pos = self.toolhead.get_position()
+                        pos[3] += self.short_move_dis * -1
+                        self.toolhead.manual_move(pos, self.tool_load_speed)
+                        self.toolhead.wait_moves()
+                        self.sleepCmd(0.1)
+                        if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
+                            message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
+                            self.gcode.respond_info(message)
+                            break
                     break
 
             pos = self.toolhead.get_position()
