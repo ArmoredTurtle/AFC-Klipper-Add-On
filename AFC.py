@@ -462,7 +462,7 @@ class afc:
                     self.gcode.respond_info(message)
                     self.gcode.respond_info('unlaoding')
                     untool_attempts = 0
-                    CUR_LANE.assist(-1)
+                    LANE.assist(-1)
                     while self.hub.filament_present == True:
                         untool_attempts += 1
                         pos = self.toolhead.get_position()
@@ -476,7 +476,7 @@ class afc:
                             self.failure = True
                             break
                     self.failure = True
-                    CUR_LANE.assist(0)
+                    LANE.assist(0)
                     LANE.extruder_stepper.sync_to_extruder(None)
                     break
             if self.failure == False:
