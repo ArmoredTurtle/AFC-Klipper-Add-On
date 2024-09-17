@@ -527,8 +527,6 @@ class afc:
                 LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                 self.afc_led(self.led_tool_loaded, LANE.led_index)
                 if self.poop == 1:
-                    if self.wipe == 1:
-                        self.gcode.run_script_from_command(self.wipe_cmd)
                     self.gcode.run_script_from_command(self.poop_cmd)
                     if self.wipe == 1:
                         self.gcode.run_script_from_command(self.wipe_cmd)
