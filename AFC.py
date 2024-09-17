@@ -475,6 +475,7 @@ class afc:
                             self.failure = True
                             break
                     self.failure = True
+                    LANE.extruder_stepper.sync_to_extruder(None)
                     break
             if self.failure == False:
                 pos = self.toolhead.get_position()
