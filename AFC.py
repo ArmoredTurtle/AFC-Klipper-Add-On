@@ -437,7 +437,8 @@ class afc:
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 10:
                     message = (' FAILED TO LOAD PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG    LOAD   HUB    TOOL')
-                    self.handle_lane_failure(LANE, lane, message)
+                    self.gcode.respond_info(message)
+                    #self.handle_lane_failure(LANE, lane, message)
                     break
             LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
