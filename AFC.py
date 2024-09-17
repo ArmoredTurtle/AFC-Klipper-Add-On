@@ -31,6 +31,7 @@ class afc:
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
         self.current = ''
+        self.failure = False
         self.lanes = {}
         
         # SPOOLMAN
@@ -281,10 +282,15 @@ class afc:
                     if self.hub.filament_present == True and CUR_LANE.load_state == True:
                         x = 0
                         while CUR_LANE.load_state == True:
-                            CUR_LANE.assist(-1)
+                            if self.hub.filament_present == True:
+                                CUR_LANE.assist(-1)
+                            else:
+                                CUR_LANE.assist(0)
+
                             CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                             x += 1
-                            CUR_LANE.assist(0)
+                            if self.hub.filament_present == True:
+                                CUR_LANE.assist(0)
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
                             if x > 10:
@@ -466,31 +472,33 @@ class afc:
                         if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                             message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
                             self.gcode.respond_info(message)
+                            self.failure = True
                             break
+                    self.failure = True
                     break
+            if self.failure == False:
+                pos = self.toolhead.get_position()
+                pos[3] += self.tool_stn
+                self.toolhead.manual_move(pos, self.tool_load_speed)
+                self.toolhead.wait_moves()
+                self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
+                self.lanes[lane]['tool_loaded'] = True
 
-            pos = self.toolhead.get_position()
-            pos[3] += self.tool_stn
-            self.toolhead.manual_move(pos, self.tool_load_speed)
-            self.toolhead.wait_moves()
-            self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
-            self.lanes[lane]['tool_loaded'] = True
+                self.save_vars()
 
-            self.save_vars()
-
-            self.current = lane
-            LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-            self.afc_led(self.led_tool_loaded, LANE.led_index)
-            if self.poop == 1:
+                self.current = lane
+                LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+                self.afc_led(self.led_tool_loaded, LANE.led_index)
+                if self.poop == 1:
+                    if self.wipe == 1:
+                        self.gcode.run_script_from_command(self.wipe_cmd)
+                    self.gcode.run_script_from_command(self.poop_cmd)
+                    if self.wipe == 1:
+                        self.gcode.run_script_from_command(self.wipe_cmd)
+                if self.kick == 1:
+                    self.gcode.run_script_from_command(self.kick_cmd)
                 if self.wipe == 1:
                     self.gcode.run_script_from_command(self.wipe_cmd)
-                self.gcode.run_script_from_command(self.poop_cmd)
-                if self.wipe == 1:
-                    self.gcode.run_script_from_command(self.wipe_cmd)
-            if self.kick == 1:
-                self.gcode.run_script_from_command(self.kick_cmd)
-            if self.wipe == 1:
-                self.gcode.run_script_from_command(self.wipe_cmd)
         else:
             #callout if hub is triggered when trying to load
             if self.hub.filament_present == True:
