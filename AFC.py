@@ -496,7 +496,6 @@ class afc:
                             if x > 20:
                                 message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
                                 self.handle_lane_failure(LANE, lane, message)
-                                check_success = False
                                 break
 
                         x = 0
@@ -508,10 +507,7 @@ class afc:
                             if x > 10:
                                 message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG    LOAD   HUB    TOOL')
                                 self.handle_lane_failure(LANE, lane, message)
-                                check_success = False
                                 break
-                        if check_success:
-                            self.afc_led(self.led_ready, LANE.led_index)
                     break
             if self.failure == False:
                 pos = self.toolhead.get_position()
