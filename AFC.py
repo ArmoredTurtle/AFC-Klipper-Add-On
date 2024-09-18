@@ -68,7 +68,7 @@ class afc:
 
         # TOOL Cutting Settings
         self.tool = ''
-        self.tool_cut_active = config.getfloat("tool_cut_active", 0)
+        self.tool_cut_active = config.getboolean("tool_cut_active", False)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
 
         # CHOICES
@@ -302,7 +302,7 @@ class afc:
                                 #callout if filament can't be retracted before extruder load switch
                                 if x > 20:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
-                                    self.handle_lane_failure(CUR_LANE, lane, message)
+                                    self.handle_lane_failure(CUR_LANE, message)
                                     check_success = False
                                     break
 
