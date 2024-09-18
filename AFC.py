@@ -458,7 +458,7 @@ class afc:
                 self.toolhead.wait_moves()
                 self.sleepCmd(0.1)
                 #callout if filament doesn't reach toolhead
-                if tool_attempts > 10:
+                if tool_attempts > 20:
                     message = (' FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG    LOAD   HUB    TOOL')
                     self.gcode.respond_info(message)
                     self.gcode.respond_info('unloading')
