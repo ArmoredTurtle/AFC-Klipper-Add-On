@@ -57,7 +57,7 @@ class afc:
         self.hub = ''
 
         # HUB CUTTER
-        self.hub_cut_active = config.getbool("hub_cut_active", False)
+        self.hub_cut_active = config.getboolean("hub_cut_active", False)
         self.hub_cut_dist = config.getfloat("hub_cut_dist", 200)
         self.hub_cut_clear = config.getfloat("hub_cut_clear", 120)
         self.hub_cut_min_length = config.getfloat("hub_cut_min_length", 200)
@@ -72,15 +72,15 @@ class afc:
         self.tool_cut_cmd = config.get('tool_cut_cmd')
 
         # CHOICES
-        self.park = config.getbool("park", False)
+        self.park = config.getboolean("park", False)
         self.park_cmd = config.get('park_cmd', None)
-        self.kick = config.getbool("kick", False)
+        self.kick = config.getboolean("kick", False)
         self.kick_cmd = config.get('kick_cmd', None)
-        self.wipe = config.getbool("wipe", False)
+        self.wipe = config.getboolean("wipe", False)
         self.wipe_cmd = config.get('wipe_cmd', None)
-        self.poop = config.getboolt("poop", False)
+        self.poop = config.getboolean("poop", False)
         self.poop_cmd = config.get('poop_cmd', None)
-        self.form_tip = config.getbool("form_tip", False)
+        self.form_tip = config.getboolean("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
 
         self.tool_stn = config.getfloat("tool_stn", 120)
