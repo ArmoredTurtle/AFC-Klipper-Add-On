@@ -523,7 +523,7 @@ class afc:
                 self.toolhead.manual_move(pos, self.tool_load_speed)
                 self.toolhead.wait_moves()
                 self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
-                self.lanes[lane]['tool_loaded'] = True
+                self.lanes[LANE.unit][LANE.name]['tool_loaded'] = True
 
                 self.save_vars()
 
@@ -610,7 +610,7 @@ class afc:
                 LANE.assist(0)
                 return
         LANE.assist( 0)
-        self.lanes[lane]['tool_loaded'] = False
+        self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
         self.save_vars()
         self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
         time.sleep(1)
@@ -687,7 +687,7 @@ class afc:
         # Try to get tool filament sensor, if lookup fails default to None
         try: self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
         except: self.tool = None
-
+        numoflanes = 0
         for UNIT in self.lanes.keys():
             str[UNIT]={}
             for NAME in self.lanes[UNIT].keys():
@@ -699,14 +699,14 @@ class afc:
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
-
+                numoflanes +=1 
         str["system"]={}   
         str["system"]['current_load']= self.current
         # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['tool_loaded'] = True == self.tool.filament_present if self.tool is not None else False
         str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
-
-        str["system"]['num_lanes'] = len(self.lanes)
+        str["system"]['num_units'] = len(self.lanes)
+        str["system"]['num_lanes'] = numoflanes
         return str
     
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
