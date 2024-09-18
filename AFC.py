@@ -57,7 +57,7 @@ class afc:
         self.hub = ''
 
         # HUB CUTTER
-        self.hub_cut_active = config.getfloat("hub_cut_active", 0)
+        self.hub_cut_active = config.getbool("hub_cut_active", False)
         self.hub_cut_dist = config.getfloat("hub_cut_dist", 200)
         self.hub_cut_clear = config.getfloat("hub_cut_clear", 120)
         self.hub_cut_min_length = config.getfloat("hub_cut_min_length", 200)
@@ -72,15 +72,15 @@ class afc:
         self.tool_cut_cmd = config.get('tool_cut_cmd')
 
         # CHOICES
-        self.park = config.getfloat("park", 0)
+        self.park = config.getbool("park", False)
         self.park_cmd = config.get('park_cmd', None)
-        self.kick = config.getfloat("kick", 0)
+        self.kick = config.getbool("kick", False)
         self.kick_cmd = config.get('kick_cmd', None)
-        self.wipe = config.getfloat("wipe", 0)
+        self.wipe = config.getbool("wipe", False)
         self.wipe_cmd = config.get('wipe_cmd', None)
-        self.poop = config.getfloat("poop", 0)
+        self.poop = config.getboolt("poop", False)
         self.poop_cmd = config.get('poop_cmd', None)
-        self.form_tip = config.getfloat("form_tip", 0)
+        self.form_tip = config.getbool("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
 
         self.tool_stn = config.getfloat("tool_stn", 120)
@@ -429,7 +429,7 @@ class afc:
         led_cont=LANE.led_index.split(':')
         self.afc_led(self.led_loading, LANE.led_index)
         if LANE.load_state == True and self.hub.filament_present == False:
-            if self.hub_cut_active == 1:
+            if self.hub_cut_active:
                 self.hub_cut(lane)
             if not self.heater.can_extrude: #Heat extruder if not at min temp 
                 self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
@@ -522,13 +522,13 @@ class afc:
                 self.current = lane
                 LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                 self.afc_led(self.led_tool_loaded, LANE.led_index)
-                if self.poop == 1:
+                if self.poop:
                     self.gcode.run_script_from_command(self.poop_cmd)
-                    if self.wipe == 1:
+                    if self.wipe:
                         self.gcode.run_script_from_command(self.wipe_cmd)
-                if self.kick == 1:
+                if self.kick:
                     self.gcode.run_script_from_command(self.kick_cmd)
-                if self.wipe == 1:
+                if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             if self.failure:
                 self.gcode.run_script_from_command('PAUSE')
@@ -566,15 +566,15 @@ class afc:
             self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
             self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             
-        if self.tool_cut_active == 1:
+        if self.tool_cut_active:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
-            if self.park == 1:
+            if self.park:
                 self.gcode.run_script_from_command(self.park_cmd)
 
-        if self.form_tip == 1:
-            if self.park == 1: self.gcode.run_script_from_command(self.park_cmd)
-            
+        if self.form_tip:
+            if self.park: self.gcode.run_script_from_command(self.park_cmd)
             self.gcode.run_script_from_command(self.form_tip_cmd)
+
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn_unload * -1
