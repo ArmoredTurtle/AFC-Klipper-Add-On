@@ -62,7 +62,6 @@ class AFCExtruderStepper:
         self.motion_queue = None
         self.status = None
         self.next_cmd_time = 0.
-
         self.reactor = self.printer.get_reactor()
         ffi_main, ffi_lib = chelper.get_ffi()
         self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
@@ -72,7 +71,16 @@ class AFCExtruderStepper:
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
 
         self.gcode = self.printer.lookup_object('gcode')
-        
+
+        # Units
+        unit = config.get('unit', None)
+        if unit != None:
+            self.unit = unit.split(':')[0]
+            self.index = int(unit.split(':')[1])
+        else:
+            self.unit = 'Unknown'
+            self.index = 0
+
         self.hub_dist = config.getfloat('hub_dist')
         
         #
