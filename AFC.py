@@ -30,7 +30,7 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
-        self.current = ''
+        self.current = None
         self.failure = False
         self.lanes = {}
         
@@ -274,7 +274,7 @@ class afc:
             except:
                 self.respond_error(error_string.format("tool"), raise_error=True)
 
-            if self.current == '':
+            if self.current == None:
                 for lane in self.lanes.keys():
                     check_success = True
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
@@ -347,8 +347,8 @@ class afc:
                                 CUR_LANE.assist(-1)
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                             CUR_LANE.assist(0)
-                            CUR_LANE.status = ''
-                            self.current = ''
+                            CUR_LANE.status = None
+                            self.current = None
                             while CUR_LANE.load_state == False:
                                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                             
@@ -549,7 +549,7 @@ class afc:
 
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
-        if self.current == '':
+        if self.current == None:
             return
         #self.toolhead = self.printer.lookup_object('toolhead')
         extruder = self.toolhead.get_extruder() #Get extruder
@@ -617,8 +617,8 @@ class afc:
                 self.handle_lane_failure(LANE, lane, message)
                 break
         self.afc_led(self.led_ready, LANE.led_index)
-        LANE.status = ''
-        self.current = ''
+        LANE.status = None
+        self.current = None
         LANE.do_enable(False)
     
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
@@ -626,7 +626,7 @@ class afc:
         #self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         if lane != self.current:
-            if self.current != '':
+            if self.current != None:
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
 

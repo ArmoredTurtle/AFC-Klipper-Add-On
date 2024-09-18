@@ -60,7 +60,7 @@ class AFCExtruderStepper:
         self.extruder_name = config.get('extruder')
         self.name = config.get_name().split()[-1]
         self.motion_queue = None
-        self.status = ''
+        self.status = None
         self.next_cmd_time = 0.
 
         self.reactor = self.printer.get_reactor()
@@ -188,7 +188,7 @@ class AFCExtruderStepper:
             led = self.led_index
             if self.prep_state == True:
                 x = 0
-                while self.load_state == False and self.prep_state == True and self.status == '' :
+                while self.load_state == False and self.prep_state == True and self.status == None :
                     x += 1
                     self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=1')
                     self.move(10,500,400)
@@ -202,7 +202,7 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             else:
-                self.status = ''
+                self.status = None'
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
     
     def do_enable(self, enable):
