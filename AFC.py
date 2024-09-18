@@ -458,7 +458,7 @@ class afc:
                 self.toolhead.wait_moves()
                 self.sleepCmd(0.1)
                 #callout if filament doesn't reach toolhead
-                if tool_attempts > 10:
+                if tool_attempts > 20:
                     message = (' FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG    LOAD   HUB    TOOL')
                     self.gcode.respond_info(message)
                     self.gcode.respond_info('unloading')
@@ -493,7 +493,7 @@ class afc:
                                 LANE.assist(0)
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
-                            if x > 20:
+                            if x > 30:
                                 message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG    LOAD   HUB    TOOL')
                                 self.handle_lane_failure(LANE, lane, message)
                                 break

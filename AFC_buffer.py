@@ -34,6 +34,15 @@ class AFCtrigger:
 
       self.gcode = self.printer.lookup_object('gcode')
       self.printer.register_event_handler("klippy:ready", self._handle_ready)
+      self.gcode.register_mux_command("QUERY_BUFFER","BUFFER", self.name,self.cmd_QUERY_BUFFER,desc=self.cmd_QUERY_BUFFER_help)
+
+    cmd_QUERY_BUFFER_help = "Report Buffer sensor state"
+    def cmd_QUERY_BUFFER(self, gcmd):
+        if self.last_state:
+            state_info = "compressed"
+        else:
+            state_info = "expanded"
+        self.gcode.respond_info("{} : {}".format(self.name, state_info))    
     
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
