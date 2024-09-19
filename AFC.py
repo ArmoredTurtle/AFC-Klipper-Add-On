@@ -73,7 +73,6 @@ class afc:
 
         # Tip Forming
         self.ramming_volume = config.getfloat("ramming_volume", 0)
-        self.ramming_volume_standalone = config.getfloat("ramming_volume_standalone", 0)
         self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
         self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
         self.unloading_speed  = config.getfloat("unloading_speed", 18)
@@ -745,9 +744,9 @@ class afc:
 
     def afc_tip_form(self):
         step = 1
-        if self.ramming > 0:
+        if self.ramming_volume > 0:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Ramming')
-            ratio = self.ramming / 23
+            ratio = ramming_volume / 23
             self.afc_extrude(0.5784 * ratio, 299)
             self.afc_extrude(0.5834 * ratio, 302)
             self.afc_extrude(0.5918 * ratio, 306)
@@ -765,11 +764,12 @@ class afc:
             step +=1
 
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Retraction & Nozzle Separation')
+        total_retraction_distance = self.cooling_tube_position - self.toolhead_ooze_reduction - self.toolchange_retract + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
         if self.total_retraction_dis > 0:
-            self.afc_extrude(.7 * self.total_retraction_dis, 1.0 * self.unloading_speed)
-            self.afc_extrude(.2 * self.total_retraction_dis, 0.5 * self.unloading_speed)
-            self.afc_extrude(.7 * self.total_retraction_dis, 0.3 * self.unloading_speed)
+            self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
+            self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
+            self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
         
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
@@ -790,19 +790,13 @@ class afc:
 
         if self.use_skinnydip:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Skinny Dipping')
-            self.afc_extrude(self.skinnydip_dist, self.dip_insert_speed * 60)
+            self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
             time.sleep(self.melt_zone_pause)
-            self.afc_extrude(self.skinnydip_dist * -1, self.dip_insert_speed * 60)
+            self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
             time.sleep(self.cool_zone_pause)
             step += 1
 
         #M104 S{next_temp}
-
-        
-
-
-
-
 
 
 def load_config(config):         
