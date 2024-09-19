@@ -71,6 +71,27 @@ class afc:
         self.tool_cut_active = config.getboolean("tool_cut_active", False)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
 
+        # Tip Forming
+        self.ramming_volume = config.getfloat("ramming_volume", 0)
+        self.ramming_volume_standalone = config.getfloat("ramming_volume_standalone", 0)
+        self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
+        self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
+        self.unloading_speed  = config.getfloat("unloading_speed", 18)
+        self.cooling_tube_position  = config.getfloat("cooling_tube_position ", 35)
+        self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
+        self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
+        self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
+        self.cooling_moves  = config.getfloat("cooling_moves", 4)
+        self.use_skinnydip  = config.getboolean("use_skinnydip", False)
+        self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
+        self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
+        self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
+        self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
+        self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
+        self.use_fast_skinnydip  = config.getboolean("use_fast_skinnydip", False)
+        self.toolhead_ooze_reduction  = config.getfloat("toolhead_ooze_reduction", 0)
+        self.toolchange_retract  = config.getfloat("cooling_moves", 2)
+
         # CHOICES
         self.park = config.getboolean("park", False)
         self.park_cmd = config.get('park_cmd', None)
@@ -581,7 +602,10 @@ class afc:
 
         if self.form_tip:
             if self.park: self.gcode.run_script_from_command(self.park_cmd)
-            self.gcode.run_script_from_command(self.form_tip_cmd)
+            if self.form_tip_cmd == "AFC":
+                self.afc_tip_form()
+            else:
+                self.gcode.run_script_from_command(self.form_tip_cmd)
 
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
@@ -712,6 +736,74 @@ class afc:
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
     def cmd_SPOOL_ID(self, gcmd):
         return
+    def afc_extrude(self, distance, speed):
+        pos = self.toolhead.get_position()
+        pos[3] += distance
+        self.toolhead.manual_move(pos, speed)
+        self.toolhead.wait_moves()
+        self.sleepCmd(0.1)
+
+    def afc_tip_form(self):
+        step = 1
+        if self.ramming > 0:
+            self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Ramming')
+            ratio = self.ramming / 23
+            self.afc_extrude(0.5784 * ratio, 299)
+            self.afc_extrude(0.5834 * ratio, 302)
+            self.afc_extrude(0.5918 * ratio, 306)
+            self.afc_extrude(0.6169 * ratio, 319)
+            self.afc_extrude(0.3393 * ratio, 350)
+            self.afc_extrude(0.3363 * ratio, 350)
+            self.afc_extrude(0.7577 * ratio, 392)
+            self.afc_extrude(0.8382 * ratio, 434)
+            self.afc_extrude(0.7776 * ratio, 469)
+            self.afc_extrude(0.1293 * ratio, 469)
+            self.afc_extrude(0.9673 * ratio, 501)
+            self.afc_extrude(1.0176 * ratio, 527)
+            self.afc_extrude(0.5956 * ratio, 544)
+            self.afc_extrude(1.0662 * ratio, 552)
+            step +=1
+
+        self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Retraction & Nozzle Separation')
+        self.afc_extrude(-15, self.unloading_speed_start * 60)
+        if self.total_retraction_dis > 0:
+            self.afc_extrude(.7 * self.total_retraction_dis, 1.0 * self.unloading_speed)
+            self.afc_extrude(.2 * self.total_retraction_dis, 0.5 * self.unloading_speed)
+            self.afc_extrude(.7 * self.total_retraction_dis, 0.3 * self.unloading_speed)
         
+        if self.toolchange_temp > 0:
+            if self.use_skinnydip:
+                wait = False
+            else:
+                wait =  True
+            extruder = self.toolhead.get_extruder()
+            pheaters = self.printer.lookup_object('heaters')
+            pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
+
+        self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Cooling Moves')
+        speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
+        for move in range(self.cooling_moves):
+            speed = self.initial_cooling_speed + speed_in * move * 2
+            self.afc_extrude(self.cooling_tube_length, speed * 60)
+            self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60}
+        step += 1
+
+        if self.use_skinnydip:
+            self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Skinny Dipping')
+            self.afc_extrude(self.skinnydip_dist, self.dip_insert_speed * 60)
+            time.sleep(self.melt_zone_pause)
+            self.afc_extrude(self.skinnydip_dist * -1, self.dip_insert_speed * 60)
+            time.sleep(self.cool_zone_pause)
+            step += 1
+
+        #M104 S{next_temp}
+
+        
+
+
+
+
+
+
 def load_config(config):         
     return afc(config)
