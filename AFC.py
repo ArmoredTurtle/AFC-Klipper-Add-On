@@ -75,7 +75,7 @@ class afc:
         self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
         self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
         self.unloading_speed  = config.getfloat("unloading_speed", 18)
-        self.cooling_tube_position  = config.getfloat("cooling_tube_position ", 35)
+        self.cooling_tube_position  = config.getfloat("cooling_tube_position", 35)
         self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
         self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
         self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
@@ -357,7 +357,7 @@ class afc:
                             # Setting lane to prepped so that loading will happen once user tries to load filament
                             CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
-                            self.gcode.respond_info(CUR_LANE.upper() + ' READY')
+                            self.gcode.respond_info(CUR_LANE.name.upper() + ' READY')
                 
             else:
                 for UNIT in self.lanes.keys():
@@ -788,7 +788,7 @@ class afc:
         for move in range(self.cooling_moves):
             speed = self.initial_cooling_speed + speed_in * move * 2
             self.afc_extrude(self.cooling_tube_length, speed * 60)
-            self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60}
+            self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60)
         step += 1
 
         if self.use_skinnydip:
