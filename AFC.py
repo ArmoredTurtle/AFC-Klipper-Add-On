@@ -53,7 +53,6 @@ class afc:
         # HUB
         self.hub_dis = config.getfloat("hub_dis", 45)
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
-        self.hub_clear = config.getfloat("hub_clear", 50)
         self.hub = ''
 
         # HUB CUTTER
@@ -87,9 +86,6 @@ class afc:
         self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
         self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
         self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
-        self.use_fast_skinnydip  = config.getboolean("use_fast_skinnydip", False)
-        self.toolhead_ooze_reduction  = config.getfloat("toolhead_ooze_reduction", 0)
-        self.toolchange_retract  = config.getfloat("cooling_moves", 2)
 
         # CHOICES
         self.park = config.getboolean("park", False)
@@ -764,7 +760,7 @@ class afc:
             step +=1
 
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Retraction & Nozzle Separation')
-        total_retraction_distance = self.cooling_tube_position - self.toolhead_ooze_reduction - self.toolchange_retract + self.cooling_tube_length - 15
+        total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
         if self.total_retraction_dis > 0:
             self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
