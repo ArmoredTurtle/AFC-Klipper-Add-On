@@ -371,9 +371,16 @@ class afc:
                         CUR_LANE.do_enable(True)
                         if self.current == lane:
                             if self.tool.filament_present == False:
+                                untool_attempts = 0
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.assist(-1)
                                     CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+                                    self.sleepCmd(0.1) #take a break to give trigger time to disengage and not retract filament too far
+                                    untool_attempts += 1
+                                    if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
+                                        message = (' FAILED TO CLEAR LINE, ' + CUR_LANE.upper() +' CHECK FILAMENT PATH\n')
+                                        self.gcode.respond_info(message)
+                                        break
                                 CUR_LANE.assist(0)
                                 CUR_LANE.status = None
                                 self.current = None
@@ -500,7 +507,7 @@ class afc:
                         self.toolhead.wait_moves()
                         self.sleepCmd(0.1)
                         if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
-                            message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
+                            message = (' FAILED TO CLEAR LINE, ' + lane.upper() + ' CHECK FILAMENT PATH\n')
                             self.gcode.respond_info(message)
                             self.failure = True
                             break
