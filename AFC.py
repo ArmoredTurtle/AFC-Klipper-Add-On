@@ -328,7 +328,7 @@ class afc:
                                     self.sleepCmd(0.1)
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if x > 20:
-                                        message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                                        message = (' FAILED TO LOAD ' + CUR_LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, lane, message)
                                         check_success = False
                                         break
@@ -364,8 +364,13 @@ class afc:
                                 CUR_LANE.assist(0)
                                 CUR_LANE.status = None
                                 self.current = None
+                                reload_attempts = 0
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                                    if x > 20:
+                                        message = (' FAILED TO LOAD ' + CUR_LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                                        self.gcode.respond_info(message)
+                                        break
                             
                             else:
                                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
