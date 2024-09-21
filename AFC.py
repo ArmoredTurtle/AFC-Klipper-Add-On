@@ -114,6 +114,7 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
+        self.z_hop =config.getfloat("z_hop", 0)
 
 
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
@@ -338,7 +339,7 @@ class afc:
                                 #callout if filament is past trigger but can't be brought past extruder
                                 if x > 20:
                                     message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                    self.handle_lane_failure(CUR_LANE, lane, message)
+                                    self.handle_lane_failure(CUR_LANE, LANE, message)
                                     check_success = False
                                     break
                             if check_success == True:
@@ -353,7 +354,7 @@ class afc:
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if x > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                        self.handle_lane_failure(CUR_LANE, lane, message)
+                                        self.handle_lane_failure(CUR_LANE, LANE, message)
                                         check_success = False
                                         break
                                 if check_success == True:
