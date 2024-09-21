@@ -60,9 +60,8 @@ class AFCExtruderStepper:
         self.extruder_name = config.get('extruder')
         self.name = config.get_name().split()[-1]
         self.motion_queue = None
-        self.status = ''
+        self.status = None
         self.next_cmd_time = 0.
-
         self.reactor = self.printer.get_reactor()
         ffi_main, ffi_lib = chelper.get_ffi()
         self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
@@ -73,6 +72,16 @@ class AFCExtruderStepper:
 
         self.gcode = self.printer.lookup_object('gcode')
         
+
+        # Units
+        unit = config.get('unit', None)
+        if unit != None:
+            self.unit = unit.split(':')[0]
+            self.index = int(unit.split(':')[1])
+        else:
+            self.unit = 'Unknown'
+            self.index = 0
+
         self.hub_dist = config.getfloat('hub_dist')
         
         #
@@ -109,7 +118,7 @@ class AFCExtruderStepper:
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
-
+    
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -188,21 +197,23 @@ class AFCExtruderStepper:
             led = self.led_index
             if self.prep_state == True:
                 x = 0
-                while self.load_state == False and self.prep_state == True and self.status == '' :
+                while self.load_state == False and self.prep_state == True and self.status == None :
                     x += 1
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=1')
+                    self.do_enable(True)
                     self.move(10,500,400)
-                    self.gcode.run_script_from_command('SET_STEPPER_ENABLE STEPPER="AFC_stepper '+self.name +'" ENABLE=0')
-                    #self.sleepCmd(0.1)
+                    time.sleep(.1)
+                    
+                    time.sleep(0.1)
                     if x> 20:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.respond_error(msg, raise_error=False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
                         break
+                self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             else:
-                self.status = ''
+                self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
     
     def do_enable(self, enable):
