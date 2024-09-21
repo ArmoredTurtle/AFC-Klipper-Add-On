@@ -71,6 +71,7 @@ class AFCExtruderStepper:
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
 
         self.gcode = self.printer.lookup_object('gcode')
+        
 
         # Units
         unit = config.get('unit', None)
@@ -117,7 +118,7 @@ class AFCExtruderStepper:
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
-
+    
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return

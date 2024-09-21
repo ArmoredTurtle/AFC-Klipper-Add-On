@@ -124,6 +124,7 @@ class afc:
         self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('PREP', self.cmd_PREP, desc=self.cmd_PREP_help)
+        self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
 
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
@@ -132,7 +133,14 @@ class afc:
         
         # Get debug and cast to boolean
         self.debug = True == config.get('debug', 0)
-    
+
+    cmd_LANE_MOVE_help = "Lane Manual Movements"
+    def cmd_LANE_MOVE(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        distance = gcmd.get('DISTANCE', 0)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.move(int(distance), self.short_moves_speed, self.short_moves_accel)
+
     def respond_info(self, msg):
         """
         respond_info function is a help function to print non error information out to console
