@@ -53,7 +53,6 @@ class afc:
         # HUB
         self.hub_dis = config.getfloat("hub_dis", 45)
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
-        self.hub_clear = config.getfloat("hub_clear", 50)
         self.hub = ''
 
         # HUB CUTTER
@@ -70,6 +69,23 @@ class afc:
         self.tool = ''
         self.tool_cut_active = config.getboolean("tool_cut_active", False)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
+
+        # Tip Forming
+        self.ramming_volume = config.getfloat("ramming_volume", 0)
+        self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
+        self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
+        self.unloading_speed  = config.getfloat("unloading_speed", 18)
+        self.cooling_tube_position  = config.getfloat("cooling_tube_position", 35)
+        self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
+        self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
+        self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
+        self.cooling_moves  = config.getfloat("cooling_moves", 4)
+        self.use_skinnydip  = config.getboolean("use_skinnydip", False)
+        self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
+        self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
+        self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
+        self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
+        self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
 
         # CHOICES
         self.park = config.getboolean("park", False)
@@ -98,6 +114,7 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
+        self.z_hop =config.getfloat("z_hop", 0)
 
 
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
@@ -108,6 +125,7 @@ class afc:
         self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('PREP', self.cmd_PREP, desc=self.cmd_PREP_help)
+        self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
 
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
@@ -116,7 +134,14 @@ class afc:
         
         # Get debug and cast to boolean
         self.debug = True == config.get('debug', 0)
-    
+
+    cmd_LANE_MOVE_help = "Lane Manual Movements"
+    def cmd_LANE_MOVE(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        distance = gcmd.get('DISTANCE', 0)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.move(int(distance), self.short_moves_speed, self.short_moves_accel)
+
     def respond_info(self, msg):
         """
         respond_info function is a help function to print non error information out to console
@@ -314,7 +339,7 @@ class afc:
                                 #callout if filament is past trigger but can't be brought past extruder
                                 if x > 20:
                                     message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                    self.handle_lane_failure(CUR_LANE, lane, message)
+                                    self.handle_lane_failure(CUR_LANE, LANE, message)
                                     check_success = False
                                     break
                             if check_success == True:
@@ -328,8 +353,9 @@ class afc:
                                     self.sleepCmd(0.1)
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if x > 20:
-                                        message = (' FAILED TO LOAD ' + CUR_LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                                        message = (' FAILED TO LOAD ' + LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, lane, message)
+
                                         check_success = False
                                         break
                                 if check_success == True:
@@ -341,7 +367,7 @@ class afc:
                             # Setting lane to prepped so that loading will happen once user tries to load filament
                             CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
-                            self.gcode.respond_info(CUR_LANE.upper() + ' READY')
+                            self.gcode.respond_info(CUR_LANE.name.upper() + ' READY')
                 
             else:
                 for UNIT in self.lanes.keys():
@@ -593,7 +619,10 @@ class afc:
 
         if self.form_tip:
             if self.park: self.gcode.run_script_from_command(self.park_cmd)
-            self.gcode.run_script_from_command(self.form_tip_cmd)
+            if self.form_tip_cmd == "AFC":
+                self.afc_tip_form()
+            else:
+                self.gcode.run_script_from_command(self.form_tip_cmd)
 
         while self.tool.filament_present == True:
             pos = self.toolhead.get_position()
@@ -724,6 +753,69 @@ class afc:
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
     def cmd_SPOOL_ID(self, gcmd):
         return
+    def afc_extrude(self, distance, speed):
+        pos = self.toolhead.get_position()
+        pos[3] += distance
+        self.toolhead.manual_move(pos, speed)
+        self.toolhead.wait_moves()
+        self.sleepCmd(0.1)
+
+    def afc_tip_form(self):
+        step = 1
+        if self.ramming_volume > 0:
+            self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Ramming')
+            ratio = ramming_volume / 23
+            self.afc_extrude(0.5784 * ratio, 299)
+            self.afc_extrude(0.5834 * ratio, 302)
+            self.afc_extrude(0.5918 * ratio, 306)
+            self.afc_extrude(0.6169 * ratio, 319)
+            self.afc_extrude(0.3393 * ratio, 350)
+            self.afc_extrude(0.3363 * ratio, 350)
+            self.afc_extrude(0.7577 * ratio, 392)
+            self.afc_extrude(0.8382 * ratio, 434)
+            self.afc_extrude(0.7776 * ratio, 469)
+            self.afc_extrude(0.1293 * ratio, 469)
+            self.afc_extrude(0.9673 * ratio, 501)
+            self.afc_extrude(1.0176 * ratio, 527)
+            self.afc_extrude(0.5956 * ratio, 544)
+            self.afc_extrude(1.0662 * ratio, 552)
+            step +=1
+
+        self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Retraction & Nozzle Separation')
+        total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
+        self.afc_extrude(-15, self.unloading_speed_start * 60)
+        if self.total_retraction_dis > 0:
+            self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
+            self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
+            self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
         
+        if self.toolchange_temp > 0:
+            if self.use_skinnydip:
+                wait = False
+            else:
+                wait =  True
+            extruder = self.toolhead.get_extruder()
+            pheaters = self.printer.lookup_object('heaters')
+            pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
+
+        self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Cooling Moves')
+        speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
+        for move in range(self.cooling_moves):
+            speed = self.initial_cooling_speed + speed_in * move * 2
+            self.afc_extrude(self.cooling_tube_length, speed * 60)
+            self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60)
+        step += 1
+
+        if self.use_skinnydip:
+            self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Skinny Dipping')
+            self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
+            time.sleep(self.melt_zone_pause)
+            self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
+            time.sleep(self.cool_zone_pause)
+            step += 1
+
+        #M104 S{next_temp}
+
+
 def load_config(config):         
     return afc(config)

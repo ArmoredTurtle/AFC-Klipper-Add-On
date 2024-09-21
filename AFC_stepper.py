@@ -71,6 +71,7 @@ class AFCExtruderStepper:
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
 
         self.gcode = self.printer.lookup_object('gcode')
+        
 
         # Units
         unit = config.get('unit', None)
@@ -117,7 +118,7 @@ class AFCExtruderStepper:
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
-
+    
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -200,13 +201,15 @@ class AFCExtruderStepper:
                     x += 1
                     self.do_enable(True)
                     self.move(10,500,400)
-                    self.do_enable(False)
+                    time.sleep(.1)
+                    
                     time.sleep(0.1)
                     if x> 20:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.respond_error(msg, raise_error=False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
                         break
+                self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             else:
