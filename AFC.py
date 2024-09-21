@@ -354,7 +354,7 @@ class afc:
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if x > 20:
                                         message = (' FAILED TO LOAD ' + LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                        self.handle_lane_failure(CUR_LANE, lane, message)
+                                        self.handle_lane_failure(CUR_LANE, LANE, message)
 
                                         check_success = False
                                         break
