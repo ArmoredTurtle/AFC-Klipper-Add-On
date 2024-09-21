@@ -598,6 +598,12 @@ class afc:
         if self.current == None:
             return
         #self.toolhead = self.printer.lookup_object('toolhead')
+        pos = self.toolhead.get_position()
+        pos[2] += self.z_hop
+        self.toolhead.manual_move(pos, self.tool_unload_speed)
+        self.toolhead.wait_moves()
+        self.sleepCmd(0.1)
+
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
         lane = gcmd.get('LANE', self.current)
