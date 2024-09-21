@@ -140,7 +140,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         distance = gcmd.get('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.move(int(distance), self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move(float(distance), self.short_moves_speed, self.short_moves_accel)
 
     def respond_info(self, msg):
         """
