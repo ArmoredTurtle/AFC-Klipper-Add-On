@@ -302,7 +302,7 @@ class afc:
                                 #callout if filament can't be retracted before extruder load switch
                                 if x > 20:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
-                                    self.handle_lane_failure(CUR_LANE, message)
+                                    self.handle_lane_failure(CUR_LANE, lane, message)
                                     check_success = False
                                     break
 
