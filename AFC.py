@@ -805,7 +805,7 @@ class afc:
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Cooling Moves')
         speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
         for move in range(int(self.cooling_moves)):
-            speed = self.initial_cooling_speed + speed_in * move * 2
+            speed = self.initial_cooling_speed + speed_inc * move * 2
             self.afc_extrude(self.cooling_tube_length, speed * 60)
             self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60)
         step += 1
