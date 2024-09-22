@@ -186,6 +186,8 @@ class afc:
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
+        if lane == None:
+            return
         self.gcode.respond_info('TEST ROUTINE')
         LANE = self.printer.lookup_object('AFC_stepper '+lane)
         self.gcode.respond_info('Testing at full speed')
@@ -773,7 +775,7 @@ class afc:
         step = 1
         if self.ramming_volume > 0:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Ramming')
-            ratio = ramming_volume / 23
+            ratio = self.ramming_volume / 23
             self.afc_extrude(0.5784 * ratio, 299)
             self.afc_extrude(0.5834 * ratio, 302)
             self.afc_extrude(0.5918 * ratio, 306)
