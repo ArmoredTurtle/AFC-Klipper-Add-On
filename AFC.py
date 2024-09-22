@@ -788,7 +788,7 @@ class afc:
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Retraction & Nozzle Separation')
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
-        if total_retraction_dis > 0:
+        if total_retraction_distance > 0:
             self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
             self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
             self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
