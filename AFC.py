@@ -678,11 +678,16 @@ class afc:
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
+        store_pos = self.toolhead.get_position()
         if lane != self.current:
             if self.current != None:
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
-
+        pos=self.toolhead.get_position()
+        pos[2] = store_pos[2]
+        self.toolhead.manual_move(pos, self.tool_unload_speed)
+        self.toolhead.wait_moves()
+           
     def hub_cut(self, lane):
         CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
         # Prep the servo for cutting.
