@@ -796,9 +796,9 @@ class afc:
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
         if total_retraction_distance > 0:
-            self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
-            self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
+            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed)
+            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed)
+            self.afc_extrude(-.7 * total_retraction_distance, 0.3 * self.unloading_speed)
         
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
@@ -822,7 +822,7 @@ class afc:
             self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
             time.sleep(self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
-            time.sleep(self.cool_zone_pause)
+            time.sleep(self.cooling_zone_pause)
             step += 1
 
         #M104 S{next_temp}
