@@ -96,7 +96,7 @@ class AFCExtruderStepper:
         if self.prep is not None:
             self.prep_state = False
             buttons.register_buttons([self.prep], self.prep_callback)
-
+         
         self.load = config.get('load', None)
         if self.load is not None:
             self.load_state = False
