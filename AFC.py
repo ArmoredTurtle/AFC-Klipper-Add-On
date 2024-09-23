@@ -116,7 +116,6 @@ class afc:
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
         self.z_hop =config.getfloat("z_hop", 0)
 
-
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
         if self.Type == 'Box_Turtle':
             self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
@@ -158,7 +157,7 @@ class afc:
         """
         self.gcode._respond_error( msg )
         if raise_error: raise error( msg )
-    
+            
     def respond_debug(self, msg):
         """
         respond_debug function is a help function to print debug information out to console if debug flag is set in configuration
@@ -301,9 +300,11 @@ class afc:
                 self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
             except:
                 self.respond_error(error_string.format("hub"), raise_error=True)
+                return
 
             try:
                 self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
+                return
             except:
                 self.respond_error(error_string.format("tool"), raise_error=True)
 
@@ -826,7 +827,6 @@ class afc:
             step += 1
 
         #M104 S{next_temp}
-
 
 def load_config(config):         
     return afc(config)
