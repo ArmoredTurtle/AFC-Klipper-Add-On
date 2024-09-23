@@ -300,11 +300,10 @@ class afc:
                 self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
             except:
                 self.respond_error(error_string.format("hub"), raise_error=True)
-                return
 
             try:
                 self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
-                return
+                
             except:
                 self.respond_error(error_string.format("tool"), raise_error=True)
 
