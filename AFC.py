@@ -284,6 +284,12 @@ class afc:
             logo+='D |_________/     \n'
             logo+='Y |_|_| |_|_|\n'
 
+            logo_error ='E  _____     ____\n'
+            logo_error+='R /      \  |  o | \n'
+            logo_error+='R |       |/ ___/ \n'
+            logo_error+='O |_________/     \n'
+            logo_error+='R |_|_| |_|_|\n'
+
             for UNIT in self.lanes.keys():
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
                 for LANE in self.lanes[UNIT].keys():
@@ -364,10 +370,26 @@ class afc:
                                 self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                             
                         if check_success == True:
+                            msg = ''
+                            if CUR_LANE.prep_state == True:
+                                msg +="LOCKED"
+                                if CUR_LANE.load_state == True:
+                                    msg +=" AND LOADED"
+                                else:
+                                    msg +=" NOT LOADED"
+                            else:
+                                if CUR_LANE.load_state == True:
+                                    msg +=" NOT READY"
+                                    CUR_LANE.set_afc_prep_done()
+                                    CUR_LANE.do_enable(False)
+                                    self.gcode.respond_info(CUR_LANE.name.upper() + 'CEHCK FILAMENT Prep: False - Load: True')
+                                else:
+                                    msg += 'EMPTY READY FOR SPOOL'
+                                    
                             # Setting lane to prepped so that loading will happen once user tries to load filament
                             CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
-                            self.gcode.respond_info(CUR_LANE.name.upper() + ' READY')
+                            self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
                 
             else:
                 for UNIT in self.lanes.keys():
@@ -376,7 +398,7 @@ class afc:
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                         CUR_LANE.do_enable(True)
                         if self.current == lane:
-                            if self.tool.filament_present == False:
+                            if self.tool.filament_present == False and self.hub.filament_present == True:
                                 untool_attempts = 0
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.assist(-1)
@@ -387,10 +409,10 @@ class afc:
                                         message = (' FAILED TO CLEAR LINE, ' + CUR_LANE.upper() +' CHECK FILAMENT PATH\n')
                                         self.gcode.respond_info(message)
                                         break
-                                CUR_LANE.assist(0)
                                 CUR_LANE.status = None
                                 self.current = None
                                 reload_attempts = 0
+                                x = 0
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     if x > 20:
@@ -422,7 +444,10 @@ class afc:
                             CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
-        self.gcode.respond_info(logo)
+        if check_success == True:                            
+            self.gcode.respond_info(logo)
+        else:
+            self.gcode.respond_info(logo_error)
 
         # Call out if all lanes are clear but hub is not
         if self.hub.filament_present == True and self.tool.filament_present == False:
@@ -756,6 +781,7 @@ class afc:
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
     def cmd_SPOOL_ID(self, gcmd):
         return
+
     def afc_extrude(self, distance, speed):
         pos = self.toolhead.get_position()
         pos[3] += distance
@@ -790,7 +816,7 @@ class afc:
         if self.total_retraction_dis > 0:
             self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
             self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
+            self.afc_extrude(.1 * total_retraction_distance, 0.3 * self.unloading_speed)
         
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
