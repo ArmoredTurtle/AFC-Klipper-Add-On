@@ -534,15 +534,9 @@ class afc:
                     if LANE.load_state == True:
                         x = 0
                         while LANE.load_state == True:
-                            if self.hub.filament_present == True:
-                                LANE.assist(-1)
-                            else:
-                                LANE.assist(0)
 
                             LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                             x += 1
-                            if self.hub.filament_present == True:
-                                LANE.assist(0)
                             self.sleepCmd(0.1)
                             #callout if filament can't be retracted before extruder load switch
                             if x > 30:
