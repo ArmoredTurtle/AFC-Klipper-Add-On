@@ -51,8 +51,8 @@ class AFCtrigger:
         self.last_state = state
         if self.printer.state_message == 'Printer is ready':
             if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
-                tool_loaded=self.printer.lookup_object('AFC').current
-                if tool_loaded != '':
+                if self.printer.lookup_object('AFC').current != None:
+                    tool_loaded=self.printer.lookup_object('AFC').current
                     LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                     if LANE.status != 'unloading':
                         if self.debug == True: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))

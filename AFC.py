@@ -367,7 +367,7 @@ class afc:
                                     msg +=" NOT READY"
                                     CUR_LANE.set_afc_prep_done()
                                     CUR_LANE.do_enable(False)
-                                    msg = ' CHECK FILAMENT Prep: False - Load: True'
+                                    msg = 'CHECK FILAMENT Prep: False - Load: True'
                                 else:
                                     msg += 'EMPTY READY FOR SPOOL'
                                     
@@ -403,6 +403,8 @@ class afc:
                                         message = (' FAILED TO LOAD ' + CUR_LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.gcode.respond_info(message)
                                         break
+                                CUR_LANE.status = None
+                                self.current = None
                             
                             else:
                                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
@@ -680,9 +682,13 @@ class afc:
         #self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         if lane != self.current:
+            store_pos = self.toolhead.get_position()
             if self.current != None:
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
+            newpos = self.toolhead.get_position()
+            newpos[2] = store_pos[2]
+            self.toolhead.manual_move(newpos, self.tool_unload_speed)
 
     def hub_cut(self, lane):
         CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
