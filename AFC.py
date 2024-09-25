@@ -364,7 +364,8 @@ class afc:
                                     self.afc_led(self.led_ready, CUR_LANE.led_index)
                             else:
                                 if CUR_LANE.load_state == True:
-                                     message = (' LOAD Trigger ' + LANE.upper() + ' IS TRIGGERED PREP IS NOT')
+                                     check_success = False
+                                     message = (' LOAD IS TRIGGERED PREP IS NOT')
                                      self.handle_lane_failure(CUR_LANE, LANE, message)
                                 self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                             
