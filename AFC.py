@@ -320,18 +320,11 @@ class afc:
                         if self.hub.filament_present == True and CUR_LANE.load_state == True:
                             x = 0
                             while CUR_LANE.load_state == True:
-                                if self.hub.filament_present == True:
-                                    CUR_LANE.assist(-1)
-                                else:
-                                    CUR_LANE.assist(0)
-
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                 x += 1
-                                if self.hub.filament_present == True:
-                                    CUR_LANE.assist(0)
-                                time.sleep(1)
+                                #time.sleep(1)
                                 #callout if filament can't be retracted before extruder load switch
-                                if x > 20:
+                                if x > (self.afc_bowden_length/self.short_move_dis)+3:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
                                     self.handle_lane_failure(CUR_LANE, LANE, message)
                                     check_success = False
@@ -341,7 +334,7 @@ class afc:
                             while CUR_LANE.load_state == False:
                                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                 x += 1
-                                time.sleep(1)
+                                #time.sleep(1)
                                 #callout if filament is past trigger but can't be brought past extruder
                                 if x > 20:
                                     message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -382,7 +375,7 @@ class afc:
                                     msg +=" NOT READY"
                                     CUR_LANE.set_afc_prep_done()
                                     CUR_LANE.do_enable(False)
-                                    self.gcode.respond_info(CUR_LANE.name.upper() + 'CEHCK FILAMENT Prep: False - Load: True')
+                                    self.gcode.respond_info(CUR_LANE.name.upper() + 'CHECK FILAMENT Prep: False - Load: True')
                                 else:
                                     msg += 'EMPTY READY FOR SPOOL'
                                     
