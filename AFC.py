@@ -190,17 +190,13 @@ class afc:
         LANE = self.printer.lookup_object('AFC_stepper '+lane)
         self.gcode.respond_info('Testing at full speed')
         LANE.assist(-1)
-        time.sleep(4)
         if LANE.afc_motor_rwd.is_pwm:
             self.gcode.respond_info('Testing at 50 percent speed')
             LANE.assist(-.5)
-            time.sleep(4)
             self.gcode.respond_info('Testing at 30 percent speed')
             LANE.assist(-.3)
-            time.sleep(4)
             self.gcode.respond_info('Testing at 10 percent speed')
             LANE.assist(-.1)
-            time.sleep(4)
             
         self.gcode.respond_info('Test routine complete')
         LANE.assist(0)
@@ -234,7 +230,6 @@ class afc:
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
             time.sleep(1)
-        time.sleep(3)
         if os.path.exists(self.VarFile) and os.stat(self.VarFile).st_size > 0:
             try:
                 self.lanes=json.load(open(self.VarFile))
@@ -322,7 +317,6 @@ class afc:
                             while CUR_LANE.load_state == True:
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                 x += 1
-                                #time.sleep(1)
                                 #callout if filament can't be retracted before extruder load switch
                                 if x > (self.afc_bowden_length/self.short_move_dis)+3:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
@@ -334,7 +328,6 @@ class afc:
                             while CUR_LANE.load_state == False:
                                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                 x += 1
-                                #time.sleep(1)
                                 #callout if filament is past trigger but can't be brought past extruder
                                 if x > 20:
                                     message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -349,7 +342,6 @@ class afc:
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     x += 1
-                                    time.sleep(1)
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if x > 20:
                                         message = (' FAILED TO LOAD ' + LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -396,7 +388,6 @@ class afc:
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.assist(-1)
                                     CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-                                    time.sleep(1) #take a break to give trigger time to disengage and not retract filament too far
                                     untool_attempts += 1
                                     if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                                         message = (' FAILED TO CLEAR LINE, ' + CUR_LANE.upper() +' CHECK FILAMENT PATH\n')
@@ -504,7 +495,6 @@ class afc:
             while self.hub.filament_present == False:
                 LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
-                time.sleep(0.1)
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 10:
                     message = (' FAILED TO LOAD ' + lane.upper() + ' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
@@ -520,7 +510,6 @@ class afc:
                 pos[3] += self.short_move_dis
                 self.toolhead.manual_move(pos, self.tool_load_speed)
                 self.toolhead.wait_moves()
-                time.sleep(0.1)
                 #callout if filament doesn't reach toolhead
                 if tool_attempts > 20:
                     message = (' FAILED TO LOAD ' + lane.upper() + ' TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
@@ -534,7 +523,6 @@ class afc:
                         pos[3] += self.short_move_dis * -1
                         self.toolhead.manual_move(pos, self.tool_load_speed)
                         self.toolhead.wait_moves()
-                        time.sleep(0.1)
                         if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                             message = (' FAILED TO CLEAR LINE, ' + lane.upper() + ' CHECK FILAMENT PATH\n')
                             self.gcode.respond_info(message)
@@ -555,7 +543,6 @@ class afc:
                             x += 1
                             if self.hub.filament_present == True:
                                 LANE.assist(0)
-                            time.sleep(0.1)
                             #callout if filament can't be retracted before extruder load switch
                             if x > 30:
                                 message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
@@ -566,7 +553,6 @@ class afc:
                         while LANE.load_state == False:
                             LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                             x += 1
-                            time.sleep(0.1)
                             #callout if filament is past trigger but can't be brought past extruder
                             if x > 10:
                                 message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -620,7 +606,6 @@ class afc:
         pos[2] += self.z_hop
         self.toolhead.manual_move(pos, self.tool_unload_speed)
         self.toolhead.wait_moves()
-        time.sleep(0.1)
 
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
@@ -653,7 +638,6 @@ class afc:
             pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
-            time.sleep(0.1)
         if self.tool_sensor_after_extruder >0:
             pos = self.toolhead.get_position()
             pos[3] += self.tool_sensor_after_extruder * -1
@@ -667,7 +651,6 @@ class afc:
         while self.hub.filament_present == True:
             LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x += 1
-            time.sleep(0.1)
             # callout if while unloading, filament doesn't move past HUB
             if x > 20:
                 msg = ('HUB NOT CLEARING ' + lane.upper() + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
@@ -678,12 +661,10 @@ class afc:
         self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
         self.save_vars()
         self.printer.lookup_object('AFC_stepper ' + lane).status = 'tool'
-        time.sleep(1)
         x = 0
         while LANE.load_state == False and LANE.prep_state == True:
             LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
             x += 1
-            time.sleep(0.1)
             #callout if filament is past trigger but can't be brought past extruder
             if x > 10:
                 message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -715,18 +696,13 @@ class afc:
         # Feed the `hub_cut_dist` amount.
         CUR_LANE.move( self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
         # Have a snooze
-        time.sleep(0.5)
         # Choppy Chop
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
         if self.hub_cut_confirm == 1:
-            # KitKat Break
-            time.sleep(0.5)
             # ReChop, To be doubly choppy sure.
             self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
-            time.sleep(1.0)
             self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
         # Longer Snooze
-        time.sleep(1)
         # Align bowden tube (reset)
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
         # Retract lane by `hub_cut_clear`.
@@ -780,7 +756,6 @@ class afc:
         pos[3] += distance
         self.toolhead.manual_move(pos, speed)
         self.toolhead.wait_moves()
-        time.sleep(0.1)
 
     def afc_tip_form(self):
         step = 1
