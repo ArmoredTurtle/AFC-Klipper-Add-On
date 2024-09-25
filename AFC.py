@@ -409,7 +409,7 @@ class afc:
                             else:
                                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                                self.respond_info(self.current + " Tool Loaded")
+                                #self.respond_info(self.current + " Tool Loaded")
                                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                         else:
                             # Filament is loaded to the prep sensor but not the hub sensor. Load until filament is detected in hub.
@@ -426,10 +426,30 @@ class afc:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
 
                         if check_success == True:
+                            msg = ''
+                            if CUR_LANE.prep_state == True:
+                                msg +="LOCKED"
+                                if CUR_LANE.load_state == True:
+                                    msg +=" AND LOADED"
+                                else:
+                                    msg +=" NOT LOADED"
+                            else:
+                                if CUR_LANE.load_state == True:
+                                    msg +=" NOT READY"
+                                    CUR_LANE.set_afc_prep_done()
+                                    CUR_LANE.do_enable(False)
+                                    msg = 'CHECK FILAMENT Prep: False - Load: True'
+                                else:
+                                    msg += 'EMPTY READY FOR SPOOL'
+                                
+                            if self.current == lane:
+                                msg += ' IN TOOL'
+
                             # Setting lane to prepped so that loading will happen once user tries to load filament
                             CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
-                            self.gcode.respond_info('LANE ' + lane[-1] + ' READY')
+                            self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
+
         if check_success == True:                            
             self.gcode.respond_info(logo)
         else:
