@@ -382,7 +382,7 @@ class afc:
                                     msg +=" NOT READY"
                                     CUR_LANE.set_afc_prep_done()
                                     CUR_LANE.do_enable(False)
-                                    self.gcode.respond_info(CUR_LANE.name.upper() + 'CEHCK FILAMENT Prep: False - Load: True')
+                                    self.gcode.respond_info(CUR_LANE.name.upper() + 'CHECK FILAMENT Prep: False - Load: True')
                                 else:
                                     msg += 'EMPTY READY FOR SPOOL'
                                     
