@@ -133,7 +133,7 @@ class afc:
         self.VarFile = config.get('VarFile')
         
         # Get debug and cast to boolean
-        self.debug = True == config.get('debug', 0)
+        self.debug = True == config.getboolean('debug', False)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
@@ -479,6 +479,7 @@ class afc:
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper '+ lane)
+        respond_debug('Attempting to unload {}'.format(LANE.name))
         if lane != self.current:
             LANE.do_enable(True)
             while LANE.load_state == True:
@@ -497,6 +498,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         LANE.status = 'loading'
+        respond_debug('Loading {}'.format(LANE.name))
         led_cont=LANE.led_index.split(':')
         self.afc_led(self.led_loading, LANE.led_index)
         if LANE.load_state == True and self.hub.filament_present == False:
