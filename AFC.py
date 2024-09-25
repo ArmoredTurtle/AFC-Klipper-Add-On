@@ -350,7 +350,7 @@ class afc:
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     x += 1
-                                    time.sleepCmd(1)
+                                    time.sleep(1)
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if x > 20:
                                         message = (' FAILED TO LOAD ' + LANE.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -516,7 +516,7 @@ class afc:
                         pos[3] += self.short_move_dis * -1
                         self.toolhead.manual_move(pos, self.tool_load_speed)
                         self.toolhead.wait_moves()
-                        self.sleepCmd(0.1)
+                        time.sleep(0.1)
                         if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                             message = (' FAILED TO CLEAR LINE, ' + lane.upper() + ' CHECK FILAMENT PATH\n')
                             self.gcode.respond_info(message)
@@ -665,7 +665,7 @@ class afc:
         while LANE.load_state == False and LANE.prep_state == True:
             LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
             x += 1
-            self.sleepCmd(0.1)
+            time.sleep(0.1)
             #callout if filament is past trigger but can't be brought past extruder
             if x > 10:
                 message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
