@@ -70,7 +70,7 @@ class afc:
         self.tool_cut_active = config.getboolean("tool_cut_active", False)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
 
-        # Tip Forming
+         # Tip Forming
         self.ramming_volume = config.getfloat("ramming_volume", 0)
         self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
         self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
@@ -363,6 +363,9 @@ class afc:
                                 if check_success == True:
                                     self.afc_led(self.led_ready, CUR_LANE.led_index)
                             else:
+                                if CUR_LANE.load_state == True:
+                                     message = (' LOAD Trigger ' + LANE.upper() + ' IS TRIGGERED PREP IS NOT')
+                                     self.handle_lane_failure(CUR_LANE, LANE, message)
                                 self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                             
                         if check_success == True:
@@ -769,7 +772,7 @@ class afc:
         pos[3] += distance
         self.toolhead.manual_move(pos, speed)
         self.toolhead.wait_moves()
-        self.sleepCmd(0.1)
+        time.sleep(.5)
 
     def afc_tip_form(self):
         step = 1
@@ -796,19 +799,11 @@ class afc:
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
         if total_retraction_distance > 0:
-            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed)
-            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(-.7 * total_retraction_distance, 0.3 * self.unloading_speed)
-        
-        if self.toolchange_temp > 0:
-            if self.use_skinnydip:
-                wait = False
-            else:
-                wait =  True
-            extruder = self.toolhead.get_extruder()
-            pheaters = self.printer.lookup_object('heaters')
-            pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
-
+            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed * 60)
+            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed * 60)
+            self.afc_extrude(-.1 * total_retraction_distance, 0.3 * self.unloading_speed * 60)
+            step += 1
+       
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Cooling Moves')
         speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
         for move in range(int(self.cooling_moves)):
