@@ -141,6 +141,7 @@ class afc:
         distance = gcmd.get('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(int(distance), self.short_moves_speed, self.short_moves_accel)
+        self.respond_debug(f"Moving {lane.upper()}, {distance}mm")
 
     def respond_info(self, msg):
         """
@@ -546,10 +547,10 @@ class afc:
             LANE.extruder_stepper.sync_to_extruder(LANE.extruder_name)
             tool_attempts = 0
             attempts_fault = 20
-            self.respond_debug(f"{LANE.name.upper()} Short moves until filament triggers tool head sensor. Failure to load after {attempts_fault}")
+            self.respond_debug(f"{LANE.name.upper()} Short moves until filament triggers tool head sensor. Failure to load after {attempts_fault} short moves")
             while self.tool.filament_present == False:
                 tool_attempts += 1
-                self.respond_debug('Short moves attempt: {}'.format(tool_attempts))
+                self.respond_debug('Short move attempt: {}'.format(tool_attempts))
                 pos = self.toolhead.get_position()
                 pos[3] += self.short_move_dis
                 self.toolhead.manual_move(pos, self.tool_load_speed)
@@ -622,7 +623,7 @@ class afc:
                 self.save_vars()
 
                 self.current = lane
-                self.respond_debug('{} Successfully loaded'.format(LANE.name.upper()))
+                self.respond_debug('{} Successfully loaded '.format(LANE.name.upper()))
                 LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                 self.afc_led(self.led_tool_loaded, LANE.led_index)
                 if self.poop:
@@ -658,6 +659,7 @@ class afc:
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
         if self.current == None:
+            self.respond_debug('Nothing loaded to the toolhead')
             return
         #self.toolhead = self.printer.lookup_object('toolhead')
         pos = self.toolhead.get_position()
@@ -767,6 +769,7 @@ class afc:
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
 
     def hub_cut(self, lane):
+        self.respond_debug('Starting hub cut')
         CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
         # Prep the servo for cutting.
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
