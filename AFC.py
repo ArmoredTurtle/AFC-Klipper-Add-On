@@ -623,7 +623,7 @@ class afc:
                 self.save_vars()
 
                 self.current = lane
-                self.respond_debug('{} Successfully loaded '.format(LANE.name.upper()))
+                self.respond_debug('{} Successfully loaded'.format(LANE.name.upper()))
                 LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                 self.afc_led(self.led_tool_loaded, LANE.led_index)
                 if self.poop:
