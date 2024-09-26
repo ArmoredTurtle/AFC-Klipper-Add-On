@@ -521,9 +521,9 @@ class afc:
         led_cont=LANE.led_index.split(':')
         self.afc_led(self.led_loading, LANE.led_index)
         if LANE.load_state == True and self.hub.filament_present == False:
-            if self.hub_cut_active:
-                self.respond_debug('Hub cut is active')
-                self.hub_cut(lane)
+            # if self.hub_cut_active:
+            #     self.respond_debug('Hub cut is active')
+            #     self.hub_cut(lane)
             if not self.heater.can_extrude: #Heat extruder if not at min temp 
                 self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
                 self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
@@ -745,6 +745,10 @@ class afc:
                 message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.handle_lane_failure(LANE, lane, message)
                 break
+        if self.hub_cut_active:
+            self.respond_debug('Hub cut is active')
+            self.respond_debug('{} Hub cutting'.format(LANE.name.upper()))
+            self.hub_cut(lane)
         self.respond_debug('{} Successfully unloaded'.format(LANE.name.upper()))
         self.afc_led(self.led_ready, LANE.led_index)
         LANE.status = None
