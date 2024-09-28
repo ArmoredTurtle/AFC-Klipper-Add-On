@@ -786,7 +786,7 @@ class afc:
     def afc_tip_form(self):
         step = 1
         if self.ramming_volume > 0:
-            self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Ramming')
+            self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Ramming')
             ratio = ramming_volume / 23
             self.afc_extrude(0.5784 * ratio, 299)
             self.afc_extrude(0.5834 * ratio, 302)
@@ -804,7 +804,7 @@ class afc:
             self.afc_extrude(1.0662 * ratio, 552)
             step +=1
 
-        self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Retraction & Nozzle Separation')
+        self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Retraction & Nozzle Separation')
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
         if self.total_retraction_dis > 0:
@@ -821,7 +821,7 @@ class afc:
             pheaters = self.printer.lookup_object('heaters')
             pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
 
-        self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Cooling Moves')
+        self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Cooling Moves')
         speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
         for move in range(self.cooling_moves):
             speed = self.initial_cooling_speed + speed_in * move * 2
@@ -830,7 +830,7 @@ class afc:
         step += 1
 
         if self.use_skinnydip:
-            self.gcode.respond_info('AFC-TIP-FORM: Step ' + step + ': Skinny Dipping')
+            self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Skinny Dipping')
             self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
             time.sleep(self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
