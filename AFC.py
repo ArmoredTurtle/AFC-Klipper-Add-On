@@ -810,7 +810,7 @@ class afc:
         if self.total_retraction_dis > 0:
             self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
             self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
+            self.afc_extrude(.1 * total_retraction_distance, 0.3 * self.unloading_speed)
         
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
