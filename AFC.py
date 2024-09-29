@@ -212,10 +212,8 @@ class afc:
         
     def afc_led (self, status, idx=None):
         afc_object = 'AFC_led '+ idx.split(':')[0]
-        
         # Try to find led object, if not found print error to console for user to see
-        try:
-            led = self.printer.lookup_object(afc_object)
+        try: led = self.printer.lookup_object(afc_object)
         except:
             error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
             self.respond_error( error_string, raise_error=True )
@@ -240,12 +238,9 @@ class afc:
         while self.printer.state_message != 'Printer is ready':
             time.sleep(1)
         if os.path.exists(self.VarFile) and os.stat(self.VarFile).st_size > 0:
-            try:
-                self.lanes=json.load(open(self.VarFile))
-            except IOError:
-                self.lanes={}
-            except ValueError:
-                self.lanes={}
+            try: self.lanes=json.load(open(self.VarFile))
+            except IOError: self.lanes={}
+            except ValueError: self.lanes={}
         else:
             self.lanes={}
         temp=[]
@@ -254,28 +249,19 @@ class afc:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
-                if LANE.unit not in self.lanes:
-                    self.lanes[LANE.unit]={}
-                if LANE.name not in self.lanes[LANE.unit]:
-                    self.lanes[LANE.unit][LANE.name]={}
-                if 'index' not in self.lanes[LANE.unit][LANE.name]:
-                    self.lanes[LANE.unit][LANE.name]['index'] = LANE.index
-                if 'material' not in self.lanes[LANE.unit][LANE.name]:
-                    self.lanes[LANE.unit][LANE.name]['material']=''
-                if 'spool_id' not in self.lanes[LANE.unit][LANE.name]:
-                    self.lanes[LANE.unit][LANE.name]['spool_id']=''
-                if 'color' not in self.lanes[LANE.unit][LANE.name]:
-                    self.lanes[LANE.unit][LANE.name]['color']=''
-                if 'tool_loaded' not in self.lanes[LANE.unit][LANE.name]:
-                    self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                if self.lanes[LANE.unit][LANE.name]['tool_loaded'] == True:
-                    self.current = LANE.name
+                if LANE.unit not in self.lanes: self.lanes[LANE.unit]={}
+                if LANE.name not in self.lanes[LANE.unit]: self.lanes[LANE.unit][LANE.name]={}
+                if 'index' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['index'] = LANE.index
+                if 'material' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['material']=''
+                if 'spool_id' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['spool_id']=''
+                if 'color' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['color']=''
+                if 'tool_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
+                if self.lanes[LANE.unit][LANE.name]['tool_loaded'] == True: self.current = LANE.name
         tmp=[]
 
         for UNIT in self.lanes.keys():
             for lanecheck in self.lanes[UNIT].keys():
-                if lanecheck not in temp:
-                    tmp.append(lanecheck)
+                if lanecheck not in temp: tmp.append(lanecheck)
             for erase in tmp:
                 del self.lanes[UNIT][erase]
             
@@ -417,7 +403,6 @@ class afc:
                             else:
                                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                                #self.respond_info(self.current + " Tool Loaded")
                                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                         else:
                             # Filament is loaded to the prep sensor but not the hub sensor. Load until filament is detected in hub.
@@ -660,7 +645,7 @@ class afc:
             CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             x += 1
             # callout if while unloading, filament doesn't move past HUB
-            if x > 20:
+            if x > (self.afc_bowden_length/self.short_move_dis):
                 msg = ('HUB NOT CLEARING ' + CUR_LANE.name.upper() + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
                 return

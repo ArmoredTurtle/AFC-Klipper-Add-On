@@ -83,10 +83,7 @@ class AFCExtruderStepper:
             self.index = 0
 
         self.hub_dist = config.getfloat('hub_dist')
-        
-        #
         self.dist_hub = config.getfloat('dist_hub', 60)
-        # LEDS
         self.led_index = config.get('led_index')
 
         # lane triggers
@@ -166,7 +163,8 @@ class AFCExtruderStepper:
             value = speed
         value /= 1400
         if value < 1: value = 1
-        self.assist(value)
+        if self.status != 'fil_load':
+            self.assist(value)
 
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
@@ -186,8 +184,8 @@ class AFCExtruderStepper:
         toolhead.note_mcu_movequeue_activity(print_time)
         toolhead.dwell(accel_t + cruise_t + accel_t)
         toolhead.flush_step_generation()
-
-        self.assist(0)
+        if self.status != 'fil_load':
+            self.assist(0)
 
     def set_afc_prep_done(self):
         """
@@ -210,15 +208,16 @@ class AFCExtruderStepper:
                 while self.load_state == False and self.prep_state == True and self.status == None :
                     x += 1
                     self.do_enable(True)
+                    self.status='fil_load'
                     self.move(10,500,400)
-                    time.sleep(.1)
-                    
                     time.sleep(0.1)
                     if x> 20:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.respond_error(msg, raise_error=False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
+                        self.status=''
                         break
+                self.status=''
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
