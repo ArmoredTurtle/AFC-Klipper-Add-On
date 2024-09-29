@@ -771,7 +771,7 @@ class afc:
         step = 1
         if self.ramming_volume > 0:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Ramming')
-            ratio = ramming_volume / 23
+            ratio = self.ramming_volume / 23
             self.afc_extrude(0.5784 * ratio, 299)
             self.afc_extrude(0.5834 * ratio, 302)
             self.afc_extrude(0.5918 * ratio, 306)
@@ -794,7 +794,7 @@ class afc:
         if self.total_retraction_dis > 0:
             self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
             self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(.7 * total_retraction_distance, 0.3 * self.unloading_speed)
+            self.afc_extrude(.1 * total_retraction_distance, 0.3 * self.unloading_speed)
         
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
@@ -804,11 +804,11 @@ class afc:
             extruder = self.toolhead.get_extruder()
             pheaters = self.printer.lookup_object('heaters')
             pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
-
+        step +=1
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Cooling Moves')
         speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
         for move in range(self.cooling_moves):
-            speed = self.initial_cooling_speed + speed_in * move * 2
+            speed = self.initial_cooling_speed + speed_inc * move * 2
             self.afc_extrude(self.cooling_tube_length, speed * 60)
             self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60)
         step += 1
