@@ -159,7 +159,15 @@ class AFCExtruderStepper:
         speed (float): The speed of the movement.
         accel (float): The acceleration of the movement.
         """
-        
+
+        if distance <0:
+           value = speed * -1
+        else:
+            value = speed
+        value /= 1400
+        if value < 1: value = 1
+        self.assist(value)
+
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
         prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
@@ -178,6 +186,8 @@ class AFCExtruderStepper:
         toolhead.note_mcu_movequeue_activity(print_time)
         toolhead.dwell(accel_t + cruise_t + accel_t)
         toolhead.flush_step_generation()
+
+        self.assist(0)
 
     def set_afc_prep_done(self):
         """

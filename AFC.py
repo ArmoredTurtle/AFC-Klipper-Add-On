@@ -196,19 +196,19 @@ class afc:
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('TEST ROUTINE')
-        LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
         self.gcode.respond_info('Testing at full speed')
-        LANE.assist(-1)
-        if LANE.afc_motor_rwd.is_pwm:
+        CUR_LANE.assist(-1)
+        if CUR_LANE.afc_motor_rwd.is_pwm:
             self.gcode.respond_info('Testing at 50 percent speed')
-            LANE.assist(-.5)
+            CUR_LANE.assist(-.5)
             self.gcode.respond_info('Testing at 30 percent speed')
-            LANE.assist(-.3)
+            CUR_LANE.assist(-.3)
             self.gcode.respond_info('Testing at 10 percent speed')
-            LANE.assist(-.1)
+            CUR_LANE.assist(-.1)
             
         self.gcode.respond_info('Test routine complete')
-        LANE.assist(0)
+        CUR_LANE.assist(0)
         
     def afc_led (self, status, idx=None):
         afc_object = 'AFC_led '+ idx.split(':')[0]
@@ -395,7 +395,6 @@ class afc:
                             if self.tool.filament_present == False and self.hub.filament_present == True:
                                 untool_attempts = 0
                                 while CUR_LANE.load_state == True:
-                                    CUR_LANE.assist(-1)
                                     CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                     untool_attempts += 1
                                     if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
@@ -537,7 +536,6 @@ class afc:
                     self.gcode.respond_info(message)
                     self.gcode.respond_info('unloading ' + CUR_LANE.name.upper())
                     untool_attempts = 0
-                    CUR_LANE.assist(-1)
                     while self.hub.filament_present == True:
                         untool_attempts += 1
                         pos = self.toolhead.get_position()
@@ -550,20 +548,12 @@ class afc:
                             self.failure = True
                             break
                     self.failure = True
-                    CUR_LANE.assist(0)
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     if CUR_LANE.load_state == True:
                         x = 0
                         while CUR_LANE.load_state == True:
-                            if self.hub.filament_present == True:
-                                CUR_LANE.assist(-1)
-                            else:
-                                CUR_LANE.assist(0)
-
                             CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                             x += 1
-                            if self.hub.filament_present == True:
-                                CUR_LANE.assist(0)
                             #callout if filament can't be retracted before extruder load switch
                             if x > 30:
                                 message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
@@ -664,7 +654,6 @@ class afc:
             self.toolhead.wait_moves()
             
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
-        CUR_LANE.assist(-1)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
         x = 0
         while self.hub.filament_present == True:
@@ -674,9 +663,7 @@ class afc:
             if x > 20:
                 msg = ('HUB NOT CLEARING ' + CUR_LANE.name.upper() + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
-                CUR_LANE.assist(0)
                 return
-        CUR_LANE.assist( 0)
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.save_vars()
         self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
