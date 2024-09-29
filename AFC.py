@@ -593,7 +593,7 @@ class afc:
 
                 self.current = lane
                 LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-                self.afc_led(self.led_tool_loaded, LANE.led_index)
+                self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
                     self.gcode.run_script_from_command(self.poop_cmd)
                     if self.wipe:
@@ -604,20 +604,20 @@ class afc:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             if self.failure:
                 self.gcode.run_script_from_command('PAUSE')
-                self.afc_led(self.led_fault, LANE.led_index)
+                self.afc_led(self.led_fault, CUR_LANE.led_index)
         else:
             #callout if hub is triggered when trying to load
             if self.hub.filament_present == True:
                 msg = ('HUB NOT CLEAR TRYING TO LOAD ' + lane.upper() + '\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
-                self.afc_led(self.led_ready, LANE.led_index)
+                self.afc_led(self.led_ready, CUR_LANE.led_index)
             #callout if lane is not ready when trying to load
-            if LANE.load_state == False:
-                msg = (lane.upper() + ' NOT READY' + '\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+            if CUR_LANE.load_state == False:
+                msg = (CUR_LANE.name.upper() + ' NOT READY' + '\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
-                self.afc_led(self.led_not_ready, LANE.led_index)
+                self.afc_led(self.led_not_ready, CUR_LANE.led_index)
 
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
