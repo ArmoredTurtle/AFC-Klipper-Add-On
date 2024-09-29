@@ -71,7 +71,6 @@ class AFCExtruderStepper:
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
 
         self.gcode = self.printer.lookup_object('gcode')
-        
 
         # Units
         unit = config.get('unit', None)
@@ -81,7 +80,6 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
-
         self.hub_dist = config.getfloat('hub_dist')
         self.dist_hub = config.getfloat('dist_hub', 60)
         self.led_index = config.get('led_index')
@@ -163,8 +161,7 @@ class AFCExtruderStepper:
             value = speed
         value /= 1400
         if value < 1: value = 1
-        if self.status != 'fil_load':
-            self.assist(value)
+        if self.status != 'fil_load': self.assist(value)
 
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
@@ -184,8 +181,7 @@ class AFCExtruderStepper:
         toolhead.note_mcu_movequeue_activity(print_time)
         toolhead.dwell(accel_t + cruise_t + accel_t)
         toolhead.flush_step_generation()
-        if self.status != 'fil_load':
-            self.assist(0)
+        if self.status != 'fil_load': self.assist(0)
 
     def set_afc_prep_done(self):
         """

@@ -167,7 +167,6 @@ class afc:
     
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message):
-        CUR_LANE.set_afc_prep_done()
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
@@ -353,7 +352,6 @@ class afc:
                             else:
                                 if CUR_LANE.load_state == True:
                                     msg +=" NOT READY"
-                                    CUR_LANE.set_afc_prep_done()
                                     CUR_LANE.do_enable(False)
                                     msg = 'CHECK FILAMENT Prep: False - Load: True'
                                 else:
@@ -421,7 +419,6 @@ class afc:
                             else:
                                 if CUR_LANE.load_state == True:
                                     msg +=" NOT READY"
-                                    CUR_LANE.set_afc_prep_done()
                                     CUR_LANE.do_enable(False)
                                     msg = 'CHECK FILAMENT Prep: False - Load: True'
                                 else:
@@ -670,6 +667,7 @@ class afc:
             newpos = self.toolhead.get_position()
             newpos[2] = store_pos[2]
             self.toolhead.manual_move(newpos, self.tool_unload_speed)
+            self.toolhead.wait_moves()
 
     def hub_cut(self, lane):
         CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
@@ -796,10 +794,6 @@ class afc:
             time.sleep(self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
             time.sleep(self.cool_zone_pause)
-            step += 1
-
-        #M104 S{next_temp}
-
 
 def load_config(config):         
     return afc(config)
