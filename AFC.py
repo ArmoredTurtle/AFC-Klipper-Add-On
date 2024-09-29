@@ -274,11 +274,12 @@ class afc:
             logo+='D |_________/     \n'
             logo+='Y |_|_| |_|_|\n'
 
-            logo_error ='E  _____     ____\n'
-            logo_error+='R /      \  |  X | \n'
-            logo_error+='R |       |/ ___/ \n'
-            logo_error+='O |_________/     \n'
-            logo_error+='R |_|_| |_|_|\n'
+            logo_error ='E  _ _   _ _\n'
+            logo_error+='R |_|_|_|_|_|\n'
+            logo_error+='R |         \____\n'
+            logo_error+='O |              \\n'
+            logo_error+='R |          |\ X |\n'
+            logo_error+='! \_________/ |___|\n'
 
             for UNIT in self.lanes.keys():
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
@@ -287,20 +288,13 @@ class afc:
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel)
-                    if CUR_LANE.prep_state == False:
-                        self.afc_led(self.led_not_ready, CUR_LANE.led_index)
+                    if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
             
             error_string = "Error: Filament switch sensor {} not found in config file"
-            try:
-                self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            except:
-                self.respond_error(error_string.format("hub"), raise_error=True)
-
-            try:
-                self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
-            except:
-                self.respond_error(error_string.format("tool"), raise_error=True)
-
+            try: self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
+            except: self.respond_error(error_string.format("hub"), raise_error=True)
+            try: self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
+            except: self.respond_error(error_string.format("tool"), raise_error=True)
             if self.current == None:
                 for UNIT in self.lanes.keys():
                     for LANE in self.lanes[UNIT].keys():
@@ -313,12 +307,11 @@ class afc:
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                 x += 1
                                 #callout if filament can't be retracted before extruder load switch
-                                if x > (self.afc_bowden_length/self.short_move_dis)+3:
+                                if x > (self.afc_bowden_length/self.short_move_dis) + 3:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
                                     self.handle_lane_failure(CUR_LANE, message)
                                     check_success = False
                                     break
-
                             x = 0
                             while CUR_LANE.load_state == False:
                                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -370,7 +363,6 @@ class afc:
                             CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
-                
             else:
                 for UNIT in self.lanes.keys():
                     for lane in self.lanes[UNIT].keys():
