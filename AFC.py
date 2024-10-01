@@ -468,7 +468,7 @@ class afc:
             while CUR_LANE.load_state == True:
                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANEE.do_enable(False)
+            CUR_LANE.do_enable(False)
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
