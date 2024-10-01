@@ -61,6 +61,7 @@ class AFCExtruderStepper:
         self.name = config.get_name().split()[-1]
         self.motion_queue = None
         self.status = None
+        self.hub_load = False
         self.next_cmd_time = 0.
         self.reactor = self.printer.get_reactor()
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -69,9 +70,9 @@ class AFCExtruderStepper:
         self.trapq_finalize_moves = ffi_lib.trapq_finalize_moves
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
+        self.assist_activate=False
 
         self.gcode = self.printer.lookup_object('gcode')
-        
 
         # Units
         unit = config.get('unit', None)
@@ -81,12 +82,8 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
-
         self.hub_dist = config.getfloat('hub_dist')
-        
-        #
         self.dist_hub = config.getfloat('dist_hub', 60)
-        # LEDS
         self.led_index = config.get('led_index')
 
         # lane triggers
@@ -125,11 +122,17 @@ class AFCExtruderStepper:
         if value < 0:
             value *= -1
             assit_motor=self.afc_motor_rwd
-        else:
+        elif value > 0:
             if self.afc_motor_fwd is None:
-                assit_motor=self.afc_motor_rwd
+                    return
             else:
                 assit_motor=self.afc_motor_fwd
+        elif value == 0:
+            toolhead = self.printer.lookup_object('toolhead')
+            toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, value))
+            if self.afc_motor_fwd is not None:
+                toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, value))
+            return
         value /= assit_motor.scale
         if not assit_motor.is_pwm and value not in [0., 1.]:
             if value > 0:
@@ -147,7 +150,7 @@ class AFCExtruderStepper:
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
 
-    def move(self, distance, speed, accel):
+    def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
 
@@ -159,7 +162,15 @@ class AFCExtruderStepper:
         speed (float): The speed of the movement.
         accel (float): The acceleration of the movement.
         """
-        
+
+        if distance < 0:
+           value = speed * -1
+        else:
+            value = speed
+        value /= 1400
+        if value > 1: value = 1
+        if assist_active: self.assist(value)
+
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
         prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
@@ -178,6 +189,7 @@ class AFCExtruderStepper:
         toolhead.note_mcu_movequeue_activity(print_time)
         toolhead.dwell(accel_t + cruise_t + accel_t)
         toolhead.flush_step_generation()
+        if assist_active: self.assist(0)
 
     def set_afc_prep_done(self):
         """
@@ -197,18 +209,18 @@ class AFCExtruderStepper:
             led = self.led_index
             if self.prep_state == True:
                 x = 0
-                while self.load_state == False and self.prep_state == True and self.status == None :
+                while self.load_state == False and self.prep_state == True:
                     x += 1
                     self.do_enable(True)
                     self.move(10,500,400)
-                    time.sleep(.1)
-                    
                     time.sleep(0.1)
                     if x> 20:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.respond_error(msg, raise_error=False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
+                        self.status=''
                         break
+                self.status=''
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
