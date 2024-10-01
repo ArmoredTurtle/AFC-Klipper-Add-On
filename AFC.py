@@ -510,12 +510,12 @@ class afc:
             CUR_LANE.do_enable(True)
             
             # Do a fast unload first with assist if needed
-            LANE.retreat_from_hub()
+            CUR_LANE.retreat_from_hub()
 
             while CUR_LANE.load_state == True:
                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANEE.do_enable(False)
+            CUR_LANE.do_enable(False)
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
@@ -680,6 +680,7 @@ class afc:
             self.toolhead.wait_moves()
             
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
+        CUR_LANE.assist(-1)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
         x = 0
         while self.hub.filament_present == True:
@@ -687,9 +688,11 @@ class afc:
             x += 1
             # callout if while unloading, filament doesn't move past HUB
             if x > (self.afc_bowden_length/self.short_move_dis):
+                CUR_LANE.assist(-1)
                 msg = ('HUB NOT CLEARING ' + CUR_LANE.name.upper() + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
                 return
+        CUR_LANE.assist(-1)
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.save_vars()
         self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
