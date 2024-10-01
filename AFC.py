@@ -225,10 +225,15 @@ class afc:
             index = None
 
         def lookahead_bgfunc(print_time):
-            led.led_helper._set_color(index, colors)
+            if hasattr(led.led_helper, "_set_color"):
+                set_color_fn = led.led_helper._set_color
+                check_transmit_fn = led.led_helper._check_transmit
+            else:
+                set_color_fn = led.led_helper.set_color
+                check_transmit_fn = led.led_helper.check_transmit
+            set_color_fn(index, colors)
             if transmit:
-                led.led_helper._check_transmit(print_time) 
-        
+                check_transmit_fn(print_time) 
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 
