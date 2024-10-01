@@ -225,9 +225,9 @@ class afc:
             index = None
 
         def lookahead_bgfunc(print_time):
-            led.led_helper.set_color(index, colors)
+            led.led_helper._set_color(index, colors)
             if transmit:
-                led.led_helper.check_transmit(print_time) 
+                led.led_helper._check_transmit(print_time) 
         
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
@@ -285,8 +285,8 @@ class afc:
                 for LANE in self.lanes[UNIT].keys():
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
-                    CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel)
-                    CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel)
+                    CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
+                    CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
             
             error_string = "Error: Filament switch sensor {} not found in config file"
@@ -628,10 +628,10 @@ class afc:
             self.toolhead.wait_moves()
             
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
-        CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel)
+        CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
         x = 0
         while self.hub.filament_present == True:
-            CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+            CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             x += 1
             # callout if while unloading, filament doesn't move past HUB
             if x > (self.afc_bowden_length/self.short_move_dis):

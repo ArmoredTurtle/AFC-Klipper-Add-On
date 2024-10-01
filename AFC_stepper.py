@@ -69,6 +69,7 @@ class AFCExtruderStepper:
         self.trapq_finalize_moves = ffi_lib.trapq_finalize_moves
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
+        self.assist_activate=False
 
         self.gcode = self.printer.lookup_object('gcode')
 
@@ -120,11 +121,17 @@ class AFCExtruderStepper:
         if value < 0:
             value *= -1
             assit_motor=self.afc_motor_rwd
-        else:
+        elif value > 0:
             if self.afc_motor_fwd is None:
-                assit_motor=self.afc_motor_rwd
+                    return
             else:
                 assit_motor=self.afc_motor_fwd
+        elif value == 0:
+            toolhead = self.printer.lookup_object('toolhead')
+            toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, value))
+            if self.afc_motor_fwd is not None:
+                toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, value))
+            return
         value /= assit_motor.scale
         if not assit_motor.is_pwm and value not in [0., 1.]:
             if value > 0:
@@ -142,7 +149,7 @@ class AFCExtruderStepper:
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
 
-    def move(self, distance, speed, accel):
+    def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
 
@@ -155,13 +162,13 @@ class AFCExtruderStepper:
         accel (float): The acceleration of the movement.
         """
 
-        if distance <0:
+        if distance < 0:
            value = speed * -1
         else:
             value = speed
         value /= 1400
-        if value < 1: value = 1
-        if self.status != 'fil_load': self.assist(value)
+        if value > 1: value = 1
+        if assist_active: self.assist(value)
 
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
@@ -201,10 +208,9 @@ class AFCExtruderStepper:
             led = self.led_index
             if self.prep_state == True:
                 x = 0
-                while self.load_state == False and self.prep_state == True and self.status == None :
+                while self.load_state == False and self.prep_state == True:
                     x += 1
                     self.do_enable(True)
-                    self.status='fil_load'
                     self.move(10,500,400)
                     time.sleep(0.1)
                     if x> 20:
