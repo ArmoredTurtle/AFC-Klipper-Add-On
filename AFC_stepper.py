@@ -61,6 +61,7 @@ class AFCExtruderStepper:
         self.name = config.get_name().split()[-1]
         self.motion_queue = None
         self.status = None
+        self.hub_load = False
         self.next_cmd_time = 0.
         self.reactor = self.printer.get_reactor()
         ffi_main, ffi_lib = chelper.get_ffi()
