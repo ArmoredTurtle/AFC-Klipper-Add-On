@@ -8,12 +8,12 @@ from . import led
 
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 
-BIT_MAX_TIME = .000004
-RESET_MIN_TIME = .000050
+BIT_MAX_TIME=.000004
+RESET_MIN_TIME=.000050
 
 MAX_MCU_SIZE = 500  # Sanity check on LED chain length
 
-class AFCled:
+class PrinterNeoPixel:
     def __init__(self, config):
         self.printer = printer = config.get_printer()
         self.mutex = printer.get_reactor().mutex()
@@ -108,4 +108,4 @@ class AFCled:
         return self.led_helper.get_status(eventtime)
 
 def load_config_prefix(config):
-    return AFCled(config)
+    return PrinterNeoPixel(config)
