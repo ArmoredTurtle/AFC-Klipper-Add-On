@@ -82,10 +82,15 @@ class AFCExtruderStepper:
             self.unit = 'Unknown'
             self.index = 0
 
+        # Distance to move to hub when loading/ejecting filament from box turtle
         self.hub_dist = config.getfloat('hub_dist')
-        
-        #
+
+        # Distance to move to hub when loading filament into the toolhead
         self.dist_hub = config.getfloat('dist_hub', 60)
+
+        # Set for each stepper if user is using passthrough skirts and hub has been moved closer to toolhead
+        self.using_passthrough = config.getboolean("using_passthrough", False)
+        
         # LEDS
         self.led_index = config.get('led_index')
 
@@ -191,6 +196,7 @@ class AFCExtruderStepper:
 
     def prep_callback(self, eventtime, state):
         self.prep_state = state
+        lane_just_loaded = False
 
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done:
@@ -200,22 +206,53 @@ class AFCExtruderStepper:
                 while self.load_state == False and self.prep_state == True and self.status == None :
                     x += 1
                     self.do_enable(True)
-                    self.move(10,500,400)
+                    self.move( self.AFC.short_move_dis, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
                     time.sleep(.1)
                     
                     time.sleep(0.1)
-                    if x> 20:
+                    lane_just_loaded = True
+
+                    # Doubling number of cycles so that it takes longer to time out when first loading filament
+                    if x > self.AFC.TRIES_BEFORE_TIMING_OUT*2:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.respond_error(msg, raise_error=False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
+                        lane_just_loaded = False
                         break
+                
+                # Check to see if the lane was just loaded to protect against trigger retriggering
+                #   and sending filament further into the hub and risk jamming with another lane that may be loaded
+                if lane_just_loaded: self.prep_move_to_hub()
+
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
+
+    def prep_move_to_hub(self):
+        """
+            prep_move_to_hub function Loads into bowden tube between the extruder and hub only if using_passthrough parameter
+                             is set to True, which would mean that the hub is not in their box turtle but closer to the toolhead.
+        """
+        # Move to the hub by hub_dist minus AFC.hub_move_dis just to make sure filament does not make it into the hub
+        #       since other filament could be loaded
+        if self.using_passthrough and self.load_state == True:
+            # self.assist(1) # Comment out for now as 1 can be too much for full rolls.
+            self.move( self.hub_dist - self.AFC.hub_move_dis, self.AFC.long_moves_speed, self.AFC.long_moves_accel)
+            # self.assist(0)
     
+    def retreat_from_hub(self):
+        """
+            retreat_from_hub function fast unloads filament from the bowden tube between the hub and extruder 
+                             if the hub is not located in the box turtle.
+        """
+        if self.using_passthrough and self.load_state == True:
+            self.assist(-1)
+            self.move( self.hub_dist * -1, self.AFC.long_moves_speed, self.AFC.long_moves_accel)
+            self.assist(0)
+
     def do_enable(self, enable):
         self.sync_print_time()
         stepper_enable = self.printer.lookup_object('stepper_enable')
