@@ -458,22 +458,27 @@ class afc:
         if self.hub.filament_present == True and self.tool.filament_present == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
             self.respond_error(msg, raise_error=False)
-    
+
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
     def cmd_HUB_LOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if CUR_LANE.prep_state == False: return
+        
         if CUR_LANE.load_state == False:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-        CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
         while self.hub.filament_present == False:
             CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         while self.hub.filament_present == True:
             CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         CUR_LANE.do_enable(False)
+        CUR_LANE.hub_load = True
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
+        self.save_vars()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
@@ -481,13 +486,15 @@ class afc:
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         if CUR_LANE.name != self.current:
             CUR_LANE.do_enable(True)
-            if CUR_LANE.dist_hub:
-                CUR_LANE.move(CUR_LANE.dist_hub * -1, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANE.dist_hub = False
+            if CUR_LANE.hub_load:
+                CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
+            CUR_LANE.hub_load = False
             while CUR_LANE.load_state == True:
                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
+            self.save_vars()
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
@@ -509,7 +516,8 @@ class afc:
                 self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
-                CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
+            CUR_LANE.hub_load = True
             hub_attempts = 0
             while self.hub.filament_present == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -575,6 +583,7 @@ class afc:
                 self.toolhead.wait_moves()
                 self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
 
                 self.save_vars()
 
@@ -664,6 +673,7 @@ class afc:
                 return
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
         self.save_vars()
         x = 0
         while CUR_LANE.load_state == False and CUR_LANE.prep_state == True:
