@@ -79,7 +79,7 @@ class afc:
         self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
         self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
         self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
-        self.cooling_moves  = config.getfloat("cooling_moves", 4)
+        self.cooling_moves  = config.getint("cooling_moves", 4)
         self.use_skinnydip  = config.getboolean("use_skinnydip", False)
         self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
         self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
@@ -784,7 +784,7 @@ class afc:
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Retraction & Nozzle Separation')
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
-        if self.total_retraction_dis > 0:
+        if total_retraction_distance > 0:
             self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
             self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
             self.afc_extrude(.1 * total_retraction_distance, 0.3 * self.unloading_speed)
@@ -811,7 +811,7 @@ class afc:
             self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
             time.sleep(self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
-            time.sleep(self.cool_zone_pause)
+            time.sleep(self.cooling_zone_pause)
 
 def load_config(config):         
     return afc(config)
