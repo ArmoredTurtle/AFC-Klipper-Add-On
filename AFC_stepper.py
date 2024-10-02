@@ -171,7 +171,7 @@ class AFCExtruderStepper:
            value = speed * -1
         else:
             value = speed
-        value /= 500
+        value /= 100
         if value > 1: value = 1
         if assist_active: self.assist(value)
 
