@@ -299,6 +299,7 @@ class afc:
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
+                    CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
             
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
@@ -470,7 +471,8 @@ class afc:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-        CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
+        if CUR_LANE.hub_load == False:
+            CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
         while self.hub.filament_present == False:
             CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         while self.hub.filament_present == True:
