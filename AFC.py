@@ -266,7 +266,6 @@ class afc:
                 if 'tool_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
                 if 'hub_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
                 if self.lanes[LANE.unit][LANE.name]['tool_loaded'] == True: self.current = LANE.name
-
         tmp=[]
 
         for UNIT in self.lanes.keys():
@@ -803,9 +802,9 @@ class afc:
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
         if total_retraction_distance > 0:
-            self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
-            self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(.1 * total_retraction_distance, 0.3 * self.unloading_speed)
+            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed * 60)
+            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed * 60)
+            self.afc_extrude(-.1 * total_retraction_distance, 0.3 * self.unloading_speed * 60)
         
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
