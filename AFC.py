@@ -368,10 +368,12 @@ class afc:
                                 else:
                                     msg += 'EMPTY READY FOR SPOOL'
                                     
-                            # Setting lane to prepped so that loading will happen once user tries to load filament
-                            CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
+                        
+                        # Setting lane to prepped so that loading will happen once user tries to load filament
+                        # Always want to call this even if there was a problem
+                        CUR_LANE.set_afc_prep_done()
             else:
                 for UNIT in self.lanes.keys():
                     for lane in self.lanes[UNIT].keys():
@@ -385,8 +387,8 @@ class afc:
                                     CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                     untool_attempts += 1
                                     if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
-                                        message = (' FAILED TO CLEAR LINE, ' + CUR_LANE.name.upper() +' CHECK FILAMENT PATH\n')
-                                        self.gcode.respond_info(message)
+                                        message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
+                                        self.handle_lane_failure(CUR_LANE, message)
                                         break
                                 CUR_LANE.status = None
                                 self.current = None
@@ -395,8 +397,8 @@ class afc:
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     if x > 20:
-                                        message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                        self.gcode.respond_info(message)
+                                        message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                                        self.handle_lane_failure(CUR_LANE, message)
                                         break
                                 CUR_LANE.status = None
                                 self.current = None
@@ -406,7 +408,7 @@ class afc:
                                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                         else:
-                            # Filament is loaded to the prep sensor but not the hub sensor. Load until filament is detected in hub.
+                            # Filament is loaded to the prep sensor but not the load sensor. Load until filament is detected at load.
                             #   Times out after 20 tries so it does not spin forever, this probably means that the filament is not
                             #   far enough in for the gears to grab the filament
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
@@ -414,8 +416,10 @@ class afc:
                                 while CUR_LANE.load_state == False and num_tries < 20:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     num_tries += 1
-                                if 20 == num_tries: self.gcode._respond_error("Could not load {} to load filament sensor, remove and reinsert to load correctly".format(CUR_LANE.name))
-                            
+                                if num_tries > 20:
+                                    message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                                    self.handle_lane_failure(CUR_LANE, message)
+
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
 
@@ -438,10 +442,12 @@ class afc:
                             if self.current == lane:
                                 msg += ' IN TOOL'
 
-                            # Setting lane to prepped so that loading will happen once user tries to load filament
-                            CUR_LANE.set_afc_prep_done()
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
+                        
+                        # Setting lane to prepped so that loading will happen once user tries to load filament
+                        # Always want to call this even if there was a problem
+                        CUR_LANE.set_afc_prep_done()
 
         if check_success == True:                            
             self.gcode.respond_info(logo)
@@ -452,7 +458,7 @@ class afc:
         if self.hub.filament_present == True and self.tool.filament_present == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
             self.respond_error(msg, raise_error=False)
-
+    
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
     def cmd_HUB_LOAD(self, gcmd):
