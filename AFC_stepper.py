@@ -114,8 +114,8 @@ class AFCExtruderStepper:
         self.gcode = self.printer.lookup_object('gcode')  
 
         # Set hub loading speed depending on distance between extruder and hub
-        self.dist_hub_move_speed = self.AFC.long_moves_speed if self.dist_hub <= 200 else self.AFC.short_moves_speed
-        self.dist_hub_move_accel = self.AFC.long_moves_accel if self.dist_hub <= 200 else self.AFC.short_moves_accel 
+        self.dist_hub_move_speed = self.AFC.long_moves_speed if self.dist_hub >= 200 else self.AFC.short_moves_speed
+        self.dist_hub_move_accel = self.AFC.long_moves_accel if self.dist_hub >= 200 else self.AFC.short_moves_accel 
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
