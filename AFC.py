@@ -194,8 +194,16 @@ class afc:
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.respond_error('Must select LANE')
+            return
+        
         self.gcode.respond_info('TEST ROUTINE')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        try:
+            CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        except error as e:
+            self.respond_error(str(e))
+            return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
         time.sleep(1)
