@@ -194,8 +194,16 @@ class afc:
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.respond_error('Must select LANE')
+            return
+        
         self.gcode.respond_info('TEST ROUTINE')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        try:
+            CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        except error as e:
+            self.respond_error(str(e))
+            return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
         time.sleep(1)
@@ -244,7 +252,7 @@ class afc:
     cmd_PREP_help = "Prep AFC"
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
         if os.path.exists(self.VarFile) and os.stat(self.VarFile).st_size > 0:
             try: self.lanes=json.load(open(self.VarFile))
             except IOError: self.lanes={}
@@ -826,9 +834,9 @@ class afc:
         if self.use_skinnydip:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Skinny Dipping')
             self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
-            time.sleep(self.melt_zone_pause)
+            self.reactor.pause(self.reactor.monotonic() + self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
-            time.sleep(self.cooling_zone_pause)
+            self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
 
 def load_config(config):         
     return afc(config)
