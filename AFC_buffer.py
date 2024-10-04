@@ -5,13 +5,6 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
  
-import logging
-import math
-import stepper, chelper
-import copy
-import os 
-import toolhead
-from . import AFC
 
 class AFCtrigger:
 
