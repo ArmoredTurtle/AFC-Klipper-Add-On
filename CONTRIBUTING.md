@@ -27,6 +27,17 @@ pip install -r requirements.txt
 > Klipper aims to be dependency free. We are ONLY using dependencies here for the development environment.
 > We should not use any of these dependencies in any of the code that we intend to run in klipper.
 
+### Klipper sources
+
+This is not strictly required, but it can be helpful for your IDE (specifically tested with VSCode) to include the klipper
+sources in your `PYTHONPATH`. To do this, at this time you'll need to manually clone klipper into this project like this:
+
+```shell
+git clone --depth=1 https://github.com/Klipper3d/klipper
+```
+
+Then you'll need to ensure the `klipper/klippy` is added in the `PYTHONPATH` environment variable. The project `.vscode/settings.json`
+should configure that for VSCode, but you may need to refer to your own IDE for help ensuring the extra path is added.
 
 ## Linting
 
