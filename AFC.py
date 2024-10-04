@@ -4,19 +4,9 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-from ast import Str
-import math, logging
-import chelper
-import copy
 import os 
 import json
-import toolhead
-import stepper
 from configparser import Error as error
-from kinematics import extruder
-from . import stepper_enable, output_pin
-from urllib.request import urlopen
-from extras.heaters import Heater
 
 class afc:
     def __init__(self, config):
@@ -242,7 +232,7 @@ class afc:
     cmd_PREP_help = "Prep AFC"
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
         if os.path.exists(self.VarFile) and os.stat(self.VarFile).st_size > 0:
             try: self.lanes=json.load(open(self.VarFile))
             except IOError: self.lanes={}
