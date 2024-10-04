@@ -521,8 +521,12 @@ class afc:
             if self.hub_cut_active:
                 self.hub_cut(CUR_LANE.name)
             if not self.heater.can_extrude: #Heat extruder if not at min temp 
-                self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-                self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
+                if self.heater.target_temp >= self.heater.min_extrude_temp:
+                    self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
+                    self.gcode.run_script_from_command('M109 S' + str((self.heater.target_temp)))
+                else:
+                    self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+                    self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
