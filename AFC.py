@@ -114,6 +114,7 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
+        self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
 
 
@@ -662,7 +663,15 @@ class afc:
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
 
+        x = 0
         while self.tool.filament_present == True:
+            x += 1
+            if x > self.tool_max_unload_attempts:
+                self.pause_print()
+                msg = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.\n||=====||====||====|x|\nTRG   LOAD   HUB   TOOL')
+                self.respond_error(msg, raise_error=False)
+                self.afc_led(self.led_fault, CUR_LANE.led_index)
+                return
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
@@ -841,6 +850,13 @@ class afc:
             self.reactor.pause(self.reactor.monotonic() + self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
             self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
+
+    def pause_print(self):
+        eventtime = self.reactor.monotonic()
+        idle_timeout = self.printer.lookup_object("idle_timeout")
+        is_printing = idle_timeout.get_status(eventtime)["state"] == "Printing"
+        if is_printing:
+            self.gcode.run_script_from_command('PAUSE')
 
 def load_config(config):         
     return afc(config)
