@@ -207,17 +207,17 @@ class afc:
             return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
-        time.sleep(1)
+        self.reactor.pause(self.reactor.monotonic() + 1)
         if CUR_LANE.afc_motor_rwd.is_pwm:
             self.gcode.respond_info('Testing at 50 percent speed')
             CUR_LANE.assist(-.5)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             self.gcode.respond_info('Testing at 30 percent speed')
             CUR_LANE.assist(-.3)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             self.gcode.respond_info('Testing at 10 percent speed')
             CUR_LANE.assist(-.1)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             
         self.gcode.respond_info('Test routine complete')
         CUR_LANE.assist(0)

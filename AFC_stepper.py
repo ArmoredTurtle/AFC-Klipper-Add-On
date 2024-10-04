@@ -217,7 +217,7 @@ class AFCExtruderStepper:
                     x += 1
                     self.do_enable(True)
                     self.move(10,500,400)
-                    time.sleep(0.1)
+                    self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if x> 40:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.respond_error(msg, raise_error=False)
