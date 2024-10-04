@@ -356,11 +356,13 @@ class afc:
                             if CUR_LANE.prep_state == True:
                                 msg +="LOCKED"
                                 if CUR_LANE.load_state == True:
+                                    CUR_LANE.status = 'Loaded'
                                     msg +=" AND LOADED"
                                 else:
                                     msg +=" NOT LOADED"
                             else:
                                 if CUR_LANE.load_state == True:
+                                    CUR_LANE.status = None
                                     msg +=" NOT READY"
                                     CUR_LANE.do_enable(False)
                                     msg = 'CHECK FILAMENT Prep: False - Load: True'
@@ -397,10 +399,12 @@ class afc:
                                         message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.gcode.respond_info(message)
                                         break
-                                CUR_LANE.status = None
+                                if CUR_LANE.load_state:
+                                    CUR_LANE.status = 'Loaded'
                                 self.current = None
                             
                             else:
+                                CUR_LANE.status = 'Tooled'
                                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
@@ -466,6 +470,7 @@ class afc:
             CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         while self.hub.filament_present == True:
             CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.status = 'Hubed'
         CUR_LANE.do_enable(False)
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
@@ -481,6 +486,7 @@ class afc:
                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
+            CUR_LANE.status = None
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
@@ -562,6 +568,7 @@ class afc:
                                 break
                     break
             if self.failure == False:
+                CUR_LANE.status = 'Tooled'
                 pos = self.toolhead.get_position()
                 pos[3] += self.tool_stn
                 self.toolhead.manual_move(pos, self.tool_load_speed)

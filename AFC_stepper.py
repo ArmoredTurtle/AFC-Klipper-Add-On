@@ -220,9 +220,9 @@ class AFCExtruderStepper:
                         self.AFC.afc_led(self.AFC.led_fault, led)
                         self.status=''
                         break
-                self.status=''
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
+                    self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, led)
             else:
                 self.status = None
