@@ -405,6 +405,7 @@ class afc:
                                 x = 0
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                                    x += 1
                                     if x > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, message)
@@ -422,12 +423,13 @@ class afc:
                             #   far enough in for the gears to grab the filament
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
                                 num_tries = 0
-                                while CUR_LANE.load_state == False and num_tries < 20:
+                                while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     num_tries += 1
                                     if num_tries > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, message)
+                                        break
 
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
