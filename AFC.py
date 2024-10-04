@@ -9,7 +9,6 @@ import math, logging
 import chelper
 import copy
 import os 
-import time
 import json
 import toolhead
 import stepper
@@ -198,17 +197,17 @@ class afc:
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
-        time.sleep(1)
+        self.reactor.pause(self.reactor.monotonic() + 1)
         if CUR_LANE.afc_motor_rwd.is_pwm:
             self.gcode.respond_info('Testing at 50 percent speed')
             CUR_LANE.assist(-.5)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             self.gcode.respond_info('Testing at 30 percent speed')
             CUR_LANE.assist(-.3)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             self.gcode.respond_info('Testing at 10 percent speed')
             CUR_LANE.assist(-.1)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
         self.gcode.respond_info('Test routine complete')
         CUR_LANE.assist(0)
         
@@ -815,9 +814,16 @@ class afc:
         if self.use_skinnydip:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Skinny Dipping')
             self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
-            time.sleep(self.melt_zone_pause)
+            self.reactor.pause(self.reactor.monotonic() + self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
-            time.sleep(self.cool_zone_pause)
+            self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
+
+    def pause_print(self):
+        eventtime = self.reactor.monotonic()
+        idle_timeout = self.printer.lookup_object("idle_timeout")
+        is_printing = idle_timeout.get_status(eventtime)["state"] == "Printing"
+        if is_printing:
+            self.gcode.run_script_from_command('PAUSE')
 
 def load_config(config):         
     return afc(config)
