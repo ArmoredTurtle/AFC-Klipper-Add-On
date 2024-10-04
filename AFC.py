@@ -103,6 +103,7 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
+        self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
 
 
@@ -638,7 +639,15 @@ class afc:
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
 
+        num_tries = 0
         while self.tool.filament_present == True:
+            num_tries += 1
+            if num_tries > self.tool_max_unload_attempts:
+                self.pause_print()
+                msg = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.\n||=====||====||====|x|\nTRG   LOAD   HUB   TOOL')
+                self.respond_error(msg, raise_error=False)
+                self.afc_led(self.led_fault, CUR_LANE.led_index)
+                return
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
