@@ -114,6 +114,7 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
+        self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
 
 
@@ -138,9 +139,9 @@ class afc:
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
         lane = gcmd.get('LANE', None)
-        distance = gcmd.get('DISTANCE', 0)
+        distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.move(int(distance), self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
 
     def respond_info(self, msg):
         """
@@ -206,17 +207,17 @@ class afc:
             return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
-        time.sleep(1)
+        self.reactor.pause(self.reactor.monotonic() + 1)
         if CUR_LANE.afc_motor_rwd.is_pwm:
             self.gcode.respond_info('Testing at 50 percent speed')
             CUR_LANE.assist(-.5)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             self.gcode.respond_info('Testing at 30 percent speed')
             CUR_LANE.assist(-.3)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             self.gcode.respond_info('Testing at 10 percent speed')
             CUR_LANE.assist(-.1)
-            time.sleep(1)
+            self.reactor.pause(self.reactor.monotonic() + 1)
             
         self.gcode.respond_info('Test routine complete')
         CUR_LANE.assist(0)
@@ -404,6 +405,7 @@ class afc:
                                 x = 0
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                                    x += 1
                                     if x > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, message)
@@ -421,12 +423,13 @@ class afc:
                             #   far enough in for the gears to grab the filament
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == False:
                                 num_tries = 0
-                                while CUR_LANE.load_state == False and num_tries < 20:
+                                while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     num_tries += 1
                                     if num_tries > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, message)
+                                        break
 
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
@@ -521,8 +524,12 @@ class afc:
             if self.hub_cut_active:
                 self.hub_cut(CUR_LANE.name)
             if not self.heater.can_extrude: #Heat extruder if not at min temp 
-                self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-                self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
+                if self.heater.target_temp >= self.heater.min_extrude_temp:
+                    self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
+                    self.gcode.run_script_from_command('M109 S' + str((self.heater.target_temp)))
+                else:
+                    self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+                    self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
@@ -612,7 +619,7 @@ class afc:
         else:
             #callout if hub is triggered when trying to load
             if self.hub.filament_present == True:
-                msg = ('HUB NOT CLEAR TRYING TO LOAD ' + CUR_LANE,name.upper() + '\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
+                msg = ('HUB NOT CLEAR TRYING TO LOAD ' + CUR_LANE.name.upper() + '\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
                 self.afc_led(self.led_ready, CUR_LANE.led_index)
@@ -658,7 +665,15 @@ class afc:
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
 
+        x = 0
         while self.tool.filament_present == True:
+            x += 1
+            if x > self.tool_max_unload_attempts:
+                self.pause_print()
+                msg = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.\n||=====||====||====|x|\nTRG   LOAD   HUB   TOOL')
+                self.respond_error(msg, raise_error=False)
+                self.afc_led(self.led_fault, CUR_LANE.led_index)
+                return
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
@@ -837,6 +852,13 @@ class afc:
             self.reactor.pause(self.reactor.monotonic() + self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
             self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
+
+    def pause_print(self):
+        eventtime = self.reactor.monotonic()
+        idle_timeout = self.printer.lookup_object("idle_timeout")
+        is_printing = idle_timeout.get_status(eventtime)["state"] == "Printing"
+        if is_printing:
+            self.gcode.run_script_from_command('PAUSE')
 
 def load_config(config):         
     return afc(config)
