@@ -4,7 +4,7 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
- 
+
 
 class AFCtrigger:
 
@@ -35,11 +35,11 @@ class AFCtrigger:
             state_info = "compressed"
         else:
             state_info = "expanded"
-        self.gcode.respond_info("{} : {}".format(self.name, state_info))    
-    
+        self.gcode.respond_info("{} : {}".format(self.name, state_info))
+
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
-    
+
     def sensor_callback(self, eventtime, state):
         self.last_state = state
         if self.printer.state_message == 'Printer is ready':
@@ -50,7 +50,7 @@ class AFCtrigger:
                     if LANE.status != 'unloading':
                         if self.debug == True: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
                         LANE.move(self.buffer_distance, self.velocity ,self.accel)
-                    
+
 def load_config_prefix(config):
     return AFCtrigger(config)
 

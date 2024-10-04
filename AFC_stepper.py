@@ -97,7 +97,7 @@ class AFCExtruderStepper:
         if self.load is not None:
             self.load_state = False
             buttons.register_buttons([self.load], self.load_callback)
-            
+
         # Respoolers
         self.afc_motor_rwd = config.get('afc_motor_rwd', None)
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)
@@ -108,13 +108,13 @@ class AFCExtruderStepper:
             self.afc_motor_fwd = AFC_assist.AFCassistMotor(config,'fwd')
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config,'enb')
-            
+
         self.AFC = self.printer.lookup_object('AFC')
-        self.gcode = self.printer.lookup_object('gcode')   
+        self.gcode = self.printer.lookup_object('gcode')
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
-    
+
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -145,7 +145,7 @@ class AFCExtruderStepper:
                 enable = 0
             toolhead.register_lookahead_callback(
             lambda print_time: self.afc_motor_enb._set_pin(print_time, enable))
-            
+
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
 
@@ -194,7 +194,7 @@ class AFCExtruderStepper:
         """
         set_afc_prep_done function should only be called once AFC PREP function is done. Once this
             function is called it sets afc_prep_done to True. Once this is done the prep_callback function will
-            now load once filament is inserted. 
+            now load once filament is inserted.
         """
         self._afc_prep_done = True
     def load_callback(self, eventtime, state):
@@ -226,7 +226,7 @@ class AFCExtruderStepper:
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
-    
+
     def do_enable(self, enable):
         self.sync_print_time()
         stepper_enable = self.printer.lookup_object('stepper_enable')

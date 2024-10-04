@@ -41,7 +41,7 @@ target-version = "py38"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F"]
+select = ["E4", "E7", "E9", "F", "W291", "W293"]
 # TODO: remove some of these...
 #  initially added these to ignore to reduce amount of changes while setting up lint
 ignore = ["E701", "E711", "E712", "E722"]
