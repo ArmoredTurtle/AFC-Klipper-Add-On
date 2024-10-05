@@ -81,7 +81,7 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
-        self.hub_dist = config.getfloat('hub_dist')
+        self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
         self.led_index = config.get('led_index')
 

@@ -300,22 +300,22 @@ class afc:
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                         CUR_LANE.do_enable(True)
                         if self.hub.filament_present == True and CUR_LANE.load_state == True:
-                            x = 0
+                            num_tries = 0
                             while CUR_LANE.load_state == True:
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-                                x += 1
+                                num_tries += 1
                                 #callout if filament can't be retracted before extruder load switch
-                                if x > (self.afc_bowden_length/self.short_move_dis) + 3:
+                                if num_tries > (self.afc_bowden_length/self.short_move_dis) + 3:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
                                     self.handle_lane_failure(CUR_LANE, message)
                                     check_success = False
                                     break
-                            x = 0
+                            num_tries = 0
                             while CUR_LANE.load_state == False:
                                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                                x += 1
+                                num_tries += 1
                                 #callout if filament is past trigger but can't be brought past extruder
-                                if x > 20:
+                                if num_tries > 20:
                                     message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                     self.handle_lane_failure(CUR_LANE, message)
                                     check_success = False
@@ -324,12 +324,12 @@ class afc:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
                         else:
                             if CUR_LANE.prep_state == True:
-                                x = 0
+                                num_tries = 0
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                                    x += 1
+                                    num_tries += 1
                                     #callout if filament is past trigger but can't be brought past extruder
-                                    if x > 20:
+                                    if num_tries > 20:
                                         message = (' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.handle_lane_failure(CUR_LANE, message)
 
@@ -380,10 +380,10 @@ class afc:
                                         break
                                 CUR_LANE.status = None
                                 self.current = None
-                                x = 0
+                                num_tries = 0
                                 while CUR_LANE.load_state == False:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                                    if x > 20:
+                                    if num_tries > 20:
                                         message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                         self.gcode.respond_info(message)
                                         break
@@ -639,24 +639,24 @@ class afc:
 
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
-        x = 0
+        num_tries = 0
         while self.hub.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
-            x += 1
+            num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
-            if x > (self.afc_bowden_length/self.short_move_dis):
+            if num_tries > (self.afc_bowden_length/self.short_move_dis):
                 msg = ('HUB NOT CLEARING ' + CUR_LANE.name.upper() + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.respond_error(msg, raise_error=False)
                 return
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.save_vars()
-        x = 0
+        num_tries = 0
         while CUR_LANE.load_state == False and CUR_LANE.prep_state == True:
             CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-            x += 1
+            num_tries += 1
             #callout if filament is past trigger but can't be brought past extruder
-            if x > 10:
+            if num_tries > 10:
                 message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.handle_lane_failure(CUR_LANE, message)
                 break
