@@ -188,6 +188,7 @@ class AFCExtruderStepper:
         toolhead.note_mcu_movequeue_activity(print_time)
         toolhead.dwell(accel_t + cruise_t + accel_t)
         toolhead.flush_step_generation()
+        toolhead.wait_moves()
         if assist_active: self.assist(0)
 
     def set_afc_prep_done(self):
