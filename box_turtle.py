@@ -1,3 +1,4 @@
+# ruff: noqa: F841
 # BOX Turtle Plug and Play
 #
 # Copyright (C) 2024 Armored Turtle

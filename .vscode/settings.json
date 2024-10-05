@@ -1,0 +1,17 @@
+{
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/klipper/klippy"
+    },
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/klipper/klippy"
+    },
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/klipper/klippy"
+    },
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}/klipper/klippy"
+    ],
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/klipper/klippy"
+    ]
+}
