@@ -68,7 +68,7 @@ class afc:
         self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
         self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
         self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
-        self.cooling_moves  = config.getfloat("cooling_moves", 4)
+        self.cooling_moves  = config.getint("cooling_moves", 4)
         self.use_skinnydip  = config.getboolean("use_skinnydip", False)
         self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
         self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
@@ -103,6 +103,7 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
         self.tool_load_speed =config.getfloat("tool_load_speed", 10)
+        self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
 
 
@@ -127,9 +128,9 @@ class afc:
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
         lane = gcmd.get('LANE', None)
-        distance = gcmd.get('DISTANCE', 0)
+        distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.move(int(distance), self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
 
     def respond_info(self, msg):
         """
@@ -183,8 +184,16 @@ class afc:
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.respond_error('Must select LANE')
+            return
+
         self.gcode.respond_info('TEST ROUTINE')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        try:
+            CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
+        except error as e:
+            self.respond_error(str(e))
+            return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
         self.reactor.pause(self.reactor.monotonic() + 1)
@@ -491,8 +500,12 @@ class afc:
             if self.hub_cut_active:
                 self.hub_cut(CUR_LANE.name)
             if not self.heater.can_extrude: #Heat extruder if not at min temp
-                self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-                self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
+                if self.heater.target_temp >= self.heater.min_extrude_temp:
+                    self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
+                    self.gcode.run_script_from_command('M109 S' + str((self.heater.target_temp)))
+                else:
+                    self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+                    self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
@@ -626,7 +639,15 @@ class afc:
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
 
+        num_tries = 0
         while self.tool.filament_present == True:
+            num_tries += 1
+            if num_tries > self.tool_max_unload_attempts:
+                self.pause_print()
+                msg = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.\n||=====||====||====|x|\nTRG   LOAD   HUB   TOOL')
+                self.respond_error(msg, raise_error=False)
+                self.afc_led(self.led_fault, CUR_LANE.led_index)
+                return
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
@@ -776,10 +797,10 @@ class afc:
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Retraction & Nozzle Separation')
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
         self.afc_extrude(-15, self.unloading_speed_start * 60)
-        if self.total_retraction_dis > 0:
-            self.afc_extrude(.7 * total_retraction_distance, 1.0 * self.unloading_speed)
-            self.afc_extrude(.2 * total_retraction_distance, 0.5 * self.unloading_speed)
-            self.afc_extrude(.1 * total_retraction_distance, 0.3 * self.unloading_speed)
+        if total_retraction_distance > 0:
+            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed * 60)
+            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed * 60)
+            self.afc_extrude(-.1 * total_retraction_distance, 0.3 * self.unloading_speed * 60)
 
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
