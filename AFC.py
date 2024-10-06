@@ -461,7 +461,8 @@ class afc:
                 if hub_attempts > 10:
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
-                    break
+                    self.pause_print()
+                    return
             CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             tool_attempts = 0
