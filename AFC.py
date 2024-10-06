@@ -19,6 +19,9 @@ class afc:
         self.current = None
         self.failure = False
         self.lanes = {}
+        # tool position when tool change was requested
+        self.change_tool_pos = None
+
         # SPOOLMAN
         self.spoolman = config.getboolean('spoolman', False)
         if self.spoolman:
@@ -98,6 +101,7 @@ class afc:
         self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
         self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+        self.gcode.register_command('RESTORE_CHANGE_TOOL_POS', self.cmd_RESTORE_CHANGE_TOOL_POS, desc=self.cmd_RESTORE_CHANGE_TOOL_POS_help)
         self.gcode.register_command('PREP', self.cmd_PREP, desc=self.cmd_PREP_help)
         self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
@@ -459,9 +463,9 @@ class afc:
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 10:
+                    self.pause_print()
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
-                    self.pause_print()
                     return
             CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
@@ -531,7 +535,7 @@ class afc:
                 if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             if self.failure:
-                self.gcode.run_script_from_command('PAUSE')
+                self.pause_print()
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
         else:
             #callout if hub is triggered when trying to load
@@ -581,8 +585,7 @@ class afc:
             if num_tries > self.tool_max_unload_attempts:
                 self.pause_print()
                 msg = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.\n||=====||====||====|x|\nTRG   LOAD   HUB   TOOL')
-                self.respond_error(msg, raise_error=False)
-                self.afc_led(self.led_fault, CUR_LANE.led_index)
+                self.handle_lane_failure(CUR_LANE, msg)
                 return
             pos = self.toolhead.get_position()
             pos[3] += self.tool_stn_unload * -1
@@ -601,8 +604,9 @@ class afc:
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
             if num_tries > (self.afc_bowden_length/self.short_move_dis):
-                msg = ('HUB NOT CLEARING ' + CUR_LANE.name.upper() + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
-                self.respond_error(msg, raise_error=False)
+                self.pause_print()
+                msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
+                self.handle_lane_failure(CUR_LANE, msg)
                 return
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
@@ -613,9 +617,10 @@ class afc:
             num_tries += 1
             #callout if filament is past trigger but can't be brought past extruder
             if num_tries > 10:
+                self.pause_print()
                 message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.handle_lane_failure(CUR_LANE, message)
-                break
+                return
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.current = None
@@ -626,6 +631,8 @@ class afc:
         lane = gcmd.get('LANE', None)
         if lane != self.current:
             store_pos = self.toolhead.get_position()
+            if self.is_printing() and not self.is_paused():
+                self.change_tool_pos = store_pos
             if self.current != None:
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
@@ -633,6 +640,16 @@ class afc:
             newpos[2] = store_pos[2]
             self.toolhead.manual_move(newpos, self.tool_unload_speed)
             self.toolhead.wait_moves()
+            if self.is_printing() and not self.is_paused():
+                self.change_tool_pos = None
+
+    cmd_RESTORE_CHANGE_TOOL_POS_help = "change filaments in tool head"
+    def cmd_RESTORE_CHANGE_TOOL_POS(self, gcmd):
+        if self.change_tool_pos:
+            restore_pos = self.change_tool_pos[:3]
+            self.toolhead.manual_move(restore_pos, self.tool_unload_speed)
+            self.toolhead.wait_moves()
+
     def hub_cut(self, lane):
         CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
         # Prep the servo for cutting.
@@ -749,10 +766,18 @@ class afc:
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
             self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
     def pause_print(self):
+        if self.is_printing() and not self.is_paused():
+            self.gcode.run_script_from_command('PAUSE')
+
+    def is_printing(self):
         eventtime = self.reactor.monotonic()
         idle_timeout = self.printer.lookup_object("idle_timeout")
-        is_printing = idle_timeout.get_status(eventtime)["state"] == "Printing"
-        if is_printing:
-            self.gcode.run_script_from_command('PAUSE')
+        return idle_timeout.get_status(eventtime)["state"] == "Printing"
+
+    def is_paused(self):
+        eventtime = self.reactor.monotonic()
+        pause_resume = self.printer.lookup_object("pause_resume")
+        return bool(pause_resume.get_status(eventtime)["is_paused"])
+
 def load_config(config):
     return afc(config)
