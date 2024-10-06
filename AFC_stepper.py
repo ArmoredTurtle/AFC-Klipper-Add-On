@@ -3,30 +3,24 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
 import math
 import chelper
 from kinematics import extruder
 from . import AFC_assist
-
 #LED
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 BIT_MAX_TIME=.000004
 RESET_MIN_TIME=.000050
 MAX_MCU_SIZE = 500  # Sanity check on LED chain length
-
 def calc_move_time(dist, speed, accel):
     """
     Calculate the movement time and parameters for a given distance, speed, and acceleration.
-
     This function computes the axis direction, acceleration time, cruise time, and cruise speed
     required to move a specified distance with given speed and acceleration.
-
     Parameters:
     dist (float): The distance to move.
     speed (float): The speed of the movement.
     accel (float): The acceleration of the movement.
-
     Returns:
     tuple: A tuple containing:
         - axis_r (float): The direction of the axis (1 for positive, -1 for negative).
@@ -47,8 +41,6 @@ def calc_move_time(dist, speed, accel):
     accel_decel_d = accel_t * speed
     cruise_t = (dist - accel_decel_d) / speed
     return axis_r, accel_t, cruise_t, speed
-
-
 class AFCExtruderStepper:
     def __init__(self, config):
         self.config = config
@@ -69,9 +61,7 @@ class AFCExtruderStepper:
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
         self.assist_activate=False
-
         self.gcode = self.printer.lookup_object('gcode')
-
         # Units
         unit = config.get('unit', None)
         if unit != None:
@@ -83,20 +73,16 @@ class AFCExtruderStepper:
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
         self.led_index = config.get('led_index')
-
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
-
         self.prep = config.get('prep', None)
         if self.prep is not None:
             self.prep_state = False
             buttons.register_buttons([self.prep], self.prep_callback)
-
         self.load = config.get('load', None)
         if self.load is not None:
             self.load_state = False
             buttons.register_buttons([self.load], self.load_callback)
-
         # Respoolers
         self.afc_motor_rwd = config.get('afc_motor_rwd', None)
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)
@@ -107,13 +93,10 @@ class AFCExtruderStepper:
             self.afc_motor_fwd = AFC_assist.AFCassistMotor(config,'fwd')
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config,'enb')
-
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
-
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
-
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -144,23 +127,18 @@ class AFCExtruderStepper:
                 enable = 0
             toolhead.register_lookahead_callback(
             lambda print_time: self.afc_motor_enb._set_pin(print_time, enable))
-
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
-
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
-
         This function calculates the movement parameters and commands the stepper motor
         to move the lane accordingly.
-
         Parameters:
         distance (float): The distance to move.
         speed (float): The speed of the movement.
         accel (float): The acceleration of the movement.
         """
-
         if distance < 0:
            value = speed * -1
         else:
@@ -168,7 +146,6 @@ class AFCExtruderStepper:
         value /= 500
         if value > 1: value = 1
         if assist_active: self.assist(value)
-
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
         prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
@@ -189,7 +166,6 @@ class AFCExtruderStepper:
         toolhead.flush_step_generation()
         toolhead.wait_moves()
         if assist_active: self.assist(0)
-
     def set_afc_prep_done(self):
         """
         set_afc_prep_done function should only be called once AFC PREP function is done. Once this
@@ -199,10 +175,8 @@ class AFCExtruderStepper:
         self._afc_prep_done = True
     def load_callback(self, eventtime, state):
         self.load_state = state
-
     def prep_callback(self, eventtime, state):
         self.prep_state = state
-
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done:
             led = self.led_index
@@ -226,7 +200,6 @@ class AFCExtruderStepper:
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
-
     def do_enable(self, enable):
         self.sync_print_time()
         stepper_enable = self.printer.lookup_object('stepper_enable')
@@ -237,7 +210,6 @@ class AFCExtruderStepper:
             se = stepper_enable.lookup_enable('AFC_stepper ' + self.name)
             se.motor_disable(self.next_cmd_time)
         self.sync_print_time()
-
     def sync_print_time(self):
         toolhead = self.printer.lookup_object('toolhead')
         print_time = toolhead.get_last_move_time()
@@ -245,6 +217,5 @@ class AFCExtruderStepper:
             toolhead.dwell(self.next_cmd_time - print_time)
         else:
             self.next_cmd_time = print_time
-
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
