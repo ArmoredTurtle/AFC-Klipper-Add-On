@@ -72,6 +72,8 @@ class AFCExtruderStepper:
             self.index = 0
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
+        # distance to retract filament from the hub
+        self.park_dist = config.getfloat('park_dist', 10)
         self.led_index = config.get('led_index')
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
@@ -143,6 +145,10 @@ class AFCExtruderStepper:
            value = speed * -1
         else:
             value = speed
+        # TODO: 500 here is too slow for me. 100 works but may be faster than it needs to be.
+        #       The trouble is the "just right" speed would also vary based on how full the
+        #       spool is and perhaps variance in N20 motors and the voltage they are receiving.
+        #       Perhaps the speed ratio should be configurable?
         value /= 500
         if value > 1: value = 1
         if assist_active: self.assist(value)

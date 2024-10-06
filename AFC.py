@@ -608,6 +608,14 @@ class afc:
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.handle_lane_failure(CUR_LANE, msg)
                 return
+
+        # retract a little more...helps to clear strings from the hub
+        # ...until either we've moved park_dist OR we passed the load switch
+        move_dist = 0
+        while CUR_LANE.load_state == True and move_dist < CUR_LANE.park_dist:
+            move_dist += min(self.short_move_dis, CUR_LANE.park_dist - move_dist)
+            CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.save_vars()
