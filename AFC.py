@@ -275,7 +275,7 @@ class afc:
             logo_error ='E  _ _   _ _\n'
             logo_error+='R |_|_|_|_|_|\n'
             logo_error+='R |         \____\n'
-            logo_error+='O |              \\n'
+            logo_error+='O |              \ \n'
             logo_error+='R |          |\ X |\n'
             logo_error+='! \_________/ |___|\n'
 
