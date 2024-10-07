@@ -109,17 +109,20 @@ class afc:
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         self.debug = True == config.get('debug', 0)
+
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+
     def respond_info(self, msg):
         """
         respond_info function is a help function to print non error information out to console
         """
         self.gcode.respond_info( msg )
+
     def respond_error(self, msg, raise_error=False):
         """
         respond_error Helper function to print errors to console
@@ -128,11 +131,13 @@ class afc:
         """
         self.gcode._respond_error( msg )
         if raise_error: raise error( msg )
+
     def respond_debug(self, msg):
         """
         respond_debug function is a help function to print debug information out to console if debug flag is set in configuration
         """
         if self.debug: self.respond_info(msg)
+
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message):
         # Disable the stepper for this lane
@@ -140,6 +145,7 @@ class afc:
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
         self.respond_error(msg, raise_error=False)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
+
     # Helper function to write variables to file. Prints with indents to make it more readable for users
     def save_vars(self):
         """
@@ -148,6 +154,7 @@ class afc:
         """
         with open(self.VarFile, 'w') as f:
             f.write(json.dumps(self.lanes, indent=4))
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -155,6 +162,26 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
+
+    cmd_TOOL_LOAD_help = "Load lane into tool"
+    def cmd_TOOL_LOAD(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        self.TOOL_LOAD(CUR_LANE)
+
+    cmd_TOOL_UNLOAD_help = "Unload from tool head"
+    def cmd_TOOL_UNLOAD(self, gcmd):
+        lane = gcmd.get('LANE', self.current)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
+        self.TOOL_UNLOAD(CUR_LANE)
+
+    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
+    def cmd_HUB_CUT_TEST(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
+        self.hub_cut(lane)
+        self.gcode.respond_info('Done!')
+
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
@@ -182,31 +209,11 @@ class afc:
             self.reactor.pause(self.reactor.monotonic() + 1)
         self.gcode.respond_info('Test routine complete')
         CUR_LANE.assist(0)
-    def afc_led (self, status, idx=None):
-        afc_object = 'AFC_led '+ idx.split(':')[0]
-        # Try to find led object, if not found print error to console for user to see
-        try: led = self.printer.lookup_object(afc_object)
-        except:
-            error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
-            self.respond_error( error_string, raise_error=True )
-        colors=list(map(float,status.split(',')))
-        transmit = 1
-        if idx is not None:
-            index = int(idx.split(':')[1])
-        else:
-            index = None
-        def lookahead_bgfunc(print_time):
-            if hasattr(led.led_helper, "_set_color"):
-                set_color_fn = led.led_helper._set_color
-                check_transmit_fn = led.led_helper._check_transmit
-            else:
-                set_color_fn = led.led_helper.set_color
-                check_transmit_fn = led.led_helper.check_transmit
-            set_color_fn(index, colors)
-            if transmit:
-                check_transmit_fn(print_time)
-        toolhead = self.printer.lookup_object('toolhead')
-        toolhead.register_lookahead_callback(lookahead_bgfunc)
+
+    cmd_SPOOL_ID_help = "LINK SPOOL into hub"
+    def cmd_SPOOL_ID(self, gcmd):
+        return
+
     cmd_PREP_help = "Prep AFC"
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
@@ -257,6 +264,7 @@ class afc:
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
+                    self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
@@ -403,6 +411,7 @@ class afc:
         if self.hub.filament_present == True and self.tool.filament_present == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
             self.respond_error(msg, raise_error=False)
+
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
     def cmd_HUB_LOAD(self, gcmd):
@@ -435,13 +444,13 @@ class afc:
             CUR_LANE.status = None
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
-    cmd_TOOL_LOAD_help = "Load lane into tool"
-    def cmd_TOOL_LOAD(self, gcmd):
+
+    def TOOL_LOAD(self, CUR_LANE):
+        if CUR_LANE == None:
+            return
         self.failure = False
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
-        lane = gcmd.get('LANE', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.status = 'loading'
         self.afc_led(self.led_loading, CUR_LANE.led_index)
         if CUR_LANE.load_state == True and self.hub.filament_present == False:
@@ -550,9 +559,9 @@ class afc:
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
                 self.afc_led(self.led_not_ready, CUR_LANE.led_index)
-    cmd_TOOL_UNLOAD_help = "Unload from tool head"
-    def cmd_TOOL_UNLOAD(self, gcmd):
-        if self.current == None:
+    
+    def TOOL_UNLOAD(self, CUR_LANE):
+        if CUR_LANE == None:
             return
         #self.toolhead = self.printer.lookup_object('toolhead')
         pos = self.toolhead.get_position()
@@ -564,8 +573,6 @@ class afc:
         self.toolhead.wait_moves()
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
-        lane = gcmd.get('LANE', self.current)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         CUR_LANE.status = 'unloading'
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
@@ -636,6 +643,7 @@ class afc:
         CUR_LANE.status = None
         self.current = None
         CUR_LANE.do_enable(False)
+
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
         #self.toolhead = self.printer.lookup_object('toolhead')
@@ -645,8 +653,10 @@ class afc:
             if self.is_printing() and not self.is_paused():
                 self.change_tool_pos = store_pos
             if self.current != None:
-                self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
-            self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
+                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
+                self.TOOL_UNLOAD(CUR_LANE)
+            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            self.TOOL_LOAD(CUR_LANE)
             newpos = self.toolhead.get_position()
             newpos[2] = store_pos[2]
             self.toolhead.manual_move(newpos, self.tool_unload_speed)
@@ -684,12 +694,7 @@ class afc:
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
         # Retract lane by `hub_cut_clear`.
         CUR_LANE.move( -self.hub_cut_clear, self.short_moves_speed, self.short_moves_accel)
-    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
-    def cmd_HUB_CUT_TEST(self, gcmd):
-        lane = gcmd.get('LANE', None)
-        self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
-        self.hub_cut(lane)
-        self.gcode.respond_info('Done!')
+    
     def get_status(self, eventtime):
         str = {}
         # Try to get hub filament sensor, if lookup fails default to None
@@ -719,14 +724,13 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
-    cmd_SPOOL_ID_help = "LINK SPOOL into hub"
-    def cmd_SPOOL_ID(self, gcmd):
-        return
+    
     def afc_extrude(self, distance, speed):
         pos = self.toolhead.get_position()
         pos[3] += distance
         self.toolhead.manual_move(pos, speed)
         self.toolhead.wait_moves()
+
     def afc_tip_form(self):
         step = 1
         if self.ramming_volume > 0:
@@ -789,6 +793,32 @@ class afc:
         eventtime = self.reactor.monotonic()
         pause_resume = self.printer.lookup_object("pause_resume")
         return bool(pause_resume.get_status(eventtime)["is_paused"])
+
+    def afc_led (self, status, idx=None):
+        afc_object = 'AFC_led '+ idx.split(':')[0]
+        # Try to find led object, if not found print error to console for user to see
+        try: led = self.printer.lookup_object(afc_object)
+        except:
+            error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
+            self.respond_error( error_string, raise_error=True )
+        colors=list(map(float,status.split(',')))
+        transmit = 1
+        if idx is not None:
+            index = int(idx.split(':')[1])
+        else:
+            index = None
+        def lookahead_bgfunc(print_time):
+            if hasattr(led.led_helper, "_set_color"):
+                set_color_fn = led.led_helper._set_color
+                check_transmit_fn = led.led_helper._check_transmit
+            else:
+                set_color_fn = led.led_helper.set_color
+                check_transmit_fn = led.led_helper.check_transmit
+            set_color_fn(index, colors)
+            if transmit:
+                check_transmit_fn(print_time)
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.register_lookahead_callback(lookahead_bgfunc)
 
 def load_config(config):
     return afc(config)
