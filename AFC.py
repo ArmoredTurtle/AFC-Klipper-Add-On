@@ -641,6 +641,9 @@ class afc:
             store_pos = self.toolhead.get_position()
             if self.is_printing() and not self.is_paused():
                 self.change_tool_pos = store_pos
+                # Create save state
+                self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_AFC_CHANGE_TOOL")
+
             if self.current != None:
                 self.gcode.run_script_from_command('TOOL_UNLOAD LANE=' + self.current)
             self.gcode.run_script_from_command('TOOL_LOAD LANE=' + lane)
@@ -650,6 +653,8 @@ class afc:
             self.toolhead.wait_moves()
             if self.is_printing() and not self.is_paused():
                 self.change_tool_pos = None
+                # Restore state
+                self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_AFC_CHANGE_TOOL MOVE=1 MOVE_SPEED={}".format(self.tool_unload_speed))
 
     cmd_RESTORE_CHANGE_TOOL_POS_help = "change filaments in tool head"
     def cmd_RESTORE_CHANGE_TOOL_POS(self, gcmd):
@@ -657,6 +662,8 @@ class afc:
             restore_pos = self.change_tool_pos[:3]
             self.toolhead.manual_move(restore_pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
+            # Restore previous state
+            self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_AFC_CHANGE_TOOL MOVE=1 MOVE_SPEED={}".format(self.tool_unload_speed))
 
     def hub_cut(self, lane):
         CUR_LANE=self.printer.lookup_object('AFC_stepper '+lane)
