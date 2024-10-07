@@ -659,9 +659,6 @@ class afc:
     cmd_RESTORE_CHANGE_TOOL_POS_help = "change filaments in tool head"
     def cmd_RESTORE_CHANGE_TOOL_POS(self, gcmd):
         if self.change_tool_pos:
-            restore_pos = self.change_tool_pos[:3]
-            self.toolhead.manual_move(restore_pos, self.tool_unload_speed)
-            self.toolhead.wait_moves()
             # Restore previous state
             self.change_tool_pos = None
             self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_AFC_CHANGE_TOOL MOVE=1 MOVE_SPEED={}".format(self.tool_unload_speed))
