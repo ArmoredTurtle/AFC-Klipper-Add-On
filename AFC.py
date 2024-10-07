@@ -663,6 +663,7 @@ class afc:
             self.toolhead.manual_move(restore_pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
             # Restore previous state
+            self.change_tool_pos = None
             self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_AFC_CHANGE_TOOL MOVE=1 MOVE_SPEED={}".format(self.tool_unload_speed))
 
     def hub_cut(self, lane):
