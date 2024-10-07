@@ -6,9 +6,23 @@ set -e
 export LC_ALL=C
 
 KLIPPER_PATH="${HOME}/klipper"
+KLIPPER_SERVICE=klipper
 EXTENSION_LIST="AFC AFC_buffer AFC_stepper AFC_led AFC_assist"
-GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
+GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
 AFC_PATH="${HOME}/AFC-Klipper-Add-On"
+MOONRAKER_CONFIG="${HOME}/printer_data/config"
+AFC_BRANCH=main
+AFC_INSTALL_VARS="${AFC_PATH}/.afc_install_vars"
+
+MOONRAKER_UPDATE_CONFIG='''
+[update_manager afc-software]
+type: git_repo
+path: ~/AFC-Klipper-Add-On
+origin: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
+managed_services: klipper moonraker
+primary_branch: ${AFC_BRANCH}
+install_script: install-afc.sh
+'''
 
 function clone_repo() {
   local afc_dir_name afc_base_name
@@ -20,12 +34,33 @@ function clone_repo() {
     echo "Cloning AFC Klipper Add-On repo..."
     if git -C $afc_dir_name clone $GITREPO $afc_base_name; then
       echo "AFC Klipper Add-On repo cloned successfully"
+      cd "${AFC_PATH}"
+      git checkout "$AFC_BRANCH"
+      cd -
     else
       echo "Failed to clone AFC Klipper Add-On repo"
       exit 1
     fi
   else
     echo "AFC Klipper Add-On repo already exists...continuing with updates"
+  fi
+}
+
+function update_branch_in_file() {
+  local current_branch
+
+  # Check if the file exists
+  if [ -f "${AFC_INSTALL_VARS}" ]; then
+    # Read the current branch value from the file
+    current_branch=$(grep -E '^branch=' "${AFC_INSTALL_VARS}" | cut -d'=' -f2)
+  fi
+
+  # If the current branch is not set or does not match the AFC_BRANCH, update the file
+  if [ -z "${current_branch}" ] || [ "${current_branch}" != "${AFC_BRANCH}" ]; then
+    echo "Updating branch in ${AFC_INSTALL_VARS} to ${AFC_BRANCH}"
+    echo "branch=${AFC_BRANCH}" > "${AFC_INSTALL_VARS}"
+  else
+    echo "Branch in ${AFC_INSTALL_VARS} is already set to ${AFC_BRANCH}"
   fi
 }
 
@@ -66,7 +101,24 @@ function unlink_extensions() {
 # Step 4: Restart Klipper
 function restart_klipper() {
     echo "Restarting Klipper..."
-    sudo systemctl restart klipper
+    sudo systemctl restart ${KLIPPER_SERVICE}
+}
+
+function restart_moonraker() {
+    echo -e -n "\nRestarting Moonraker...\n"
+    sudo systemctl restart moonraker
+}
+
+function update_moonraker_config() {
+    echo -e -n "Updating Moonraker config with AFC-Klipper-Add-On\n"
+    moonraker_config=$(grep -c '\[update_manager afc-software\]' ${MOONRAKER_CONFIG}/moonraker.conf || true)
+    if [ $moonraker_config -eq 0 ]; then
+        echo -e -n "\n${MOONRAKER_UPDATE_CONFIG}" >> ${MOONRAKER_CONFIG}/moonraker.conf
+        echo -e -n "Moonraker config updated\n"
+        restart_moonraker
+    else
+        echo -e -n "Moonraker config already configured for AFC-Klipper-Add-On"
+    fi
 }
 
 function verify_ready() {
@@ -80,33 +132,24 @@ function show_help() {
     echo "Usage: install-afc.sh [options]"
     echo ""
     echo "Options:"
-    echo "  -k <path>    Specify the path to the Klipper directory"
-    echo "  -u           Uninstall the extensions"
-    echo "  -h           Display this help message"
+    echo "  -k <klipper path>           Specify the path to the Klipper directory (default: ~/klipper)"
+    echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
+    echo "  -c <moonraker config path>  Specify the path to the Moonraker config directory (default: ~/printer_data/config)"
+    echo "  -b <branch>                 Specify the branch to install from (default: main)"
+    echo "  -u                          Uninstall the extensions"
+    echo "  -h                          Display this help message"
     echo ""
     echo "Example:"
-    echo "  install-afc.sh -k ~/klipper"
-}
-
-function show_moonraker_config() {
-    local REQUIRED_CONFIG="[update_manager afc-software]
-type: git_repo
-path: ~/AFC-Klipper-Add-On
-origin: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
-managed_services: klipper moonraker
-primary_branch: main
-install_script: install-afc.sh
-"
-    echo "Please ensure the following is in your moonraker.conf if you want automatic updates:"
-    echo ""
-    echo "${REQUIRED_CONFIG}"
+    echo "  $0 [-k <klipper_path>] [-s <klipper_service_name>] [-c <moonraker_config_path>] [-b <branch>] [-u] [-h] "
 }
 
 do_uninstall=0
 
-while getopts "k:uh" arg; do
+while getopts "k:s:c:uh" arg; do
     case ${arg} in
         k) KLIPPER_PATH=${OPTARG} ;;
+        c) MOONRAKER_CONFIG=${OPTARG} ;;
+        s) KLIPPER_SERVICE=${OPTARG} ;;
         u) do_uninstall=1 ;;
         h) show_help; exit 0 ;;
         *) exit 1 ;;
@@ -126,5 +169,5 @@ else
 fi
 
 restart_klipper
-show_moonraker_config
+update_moonraker_config
 exit 0
