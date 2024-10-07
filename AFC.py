@@ -556,6 +556,9 @@ class afc:
             return
         #self.toolhead = self.printer.lookup_object('toolhead')
         pos = self.toolhead.get_position()
+        pos[3] -= 2
+        self.toolhead.manual_move(pos, self.tool_unload_speed)
+        self.toolhead.wait_moves()
         pos[2] += self.z_hop
         self.toolhead.manual_move(pos, self.tool_unload_speed)
         self.toolhead.wait_moves()
