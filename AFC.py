@@ -472,7 +472,7 @@ class afc:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
-                if hub_attempts > 10:
+                if hub_attempts > 20:
                     self.pause_print()
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
@@ -560,7 +560,7 @@ class afc:
                 self.respond_error(msg, raise_error=False)
                 self.gcode.run_script_from_command('PAUSE')
                 self.afc_led(self.led_not_ready, CUR_LANE.led_index)
-    
+
     def TOOL_UNLOAD(self, CUR_LANE):
         if CUR_LANE == None:
             return
@@ -695,7 +695,7 @@ class afc:
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
         # Retract lane by `hub_cut_clear`.
         CUR_LANE.move( -self.hub_cut_clear, self.short_moves_speed, self.short_moves_accel)
-    
+
     def get_status(self, eventtime):
         str = {}
         # Try to get hub filament sensor, if lookup fails default to None
@@ -725,7 +725,7 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
-    
+
     def afc_extrude(self, distance, speed):
         pos = self.toolhead.get_position()
         pos[3] += distance
