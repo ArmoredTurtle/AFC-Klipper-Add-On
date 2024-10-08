@@ -1,4 +1,4 @@
-# 8 Track Automated Filament Changer
+.# 8 Track Automated Filament Changer
 #
 # Copyright (C) 2024 Armored Turtle
 #
@@ -467,6 +467,9 @@ class afc:
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
+            if self.hub.filament_present == False:
+                CUR_LANE.move(self.hub_dis + self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+                self.toolhead.wait_moves()
             hub_attempts = 0
             while self.hub.filament_present == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -609,6 +612,9 @@ class afc:
             self.toolhead.wait_moves()
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+        if self.hub.filament_present == True:
+            CUR_LANE.move( self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            self.toolhead.wait_moves()
         num_tries = 0
         while self.hub.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
