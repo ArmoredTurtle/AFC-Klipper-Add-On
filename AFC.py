@@ -480,7 +480,7 @@ class afc:
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
                     return
-            CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
+            CUR_LANE.move(self.afc_bowden_length - (hub_attempts * self.short_move_dis), self.long_moves_speed, self.long_moves_accel)
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             tool_attempts = 0
             while self.tool.filament_present == False:
