@@ -534,12 +534,15 @@ class afc:
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
             CUR_LANE.hub_load = True
+            if self.hub.filament_present == False:
+                CUR_LANE.move(self.hub_dis + self.shot_move_dis, self.short_moves_speed, self.short_moves_accel)
+                self.toolhead.wait_moves()
             hub_attempts = 0
             while self.hub.filament_present == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
-                if hub_attempts > 10:
+                if hub_attempts > 15:
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
                     break
@@ -686,6 +689,9 @@ class afc:
             
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+        if self.hub.filament_present == True:
+            CUR_LANE.move( self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            self.toolhead.wait_moves()
         x = 0
         while self.hub.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
