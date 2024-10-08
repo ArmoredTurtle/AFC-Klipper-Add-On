@@ -428,6 +428,7 @@ class afc:
             CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         CUR_LANE.status = 'Hubed'
         CUR_LANE.do_enable(False)
+
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
