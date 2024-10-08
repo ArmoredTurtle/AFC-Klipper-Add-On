@@ -1,4 +1,4 @@
-.# 8 Track Automated Filament Changer
+# 8 Track Automated Filament Changer
 #
 # Copyright (C) 2024 Armored Turtle
 #
