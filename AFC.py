@@ -251,8 +251,10 @@ class afc:
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
+                    # create T codes for macro use
                     self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
+
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub=self.printer.lookup_object('filament_switch_sensor hub').runout_helper
             except: self.respond_error(error_string.format("hub"), raise_error=True)
