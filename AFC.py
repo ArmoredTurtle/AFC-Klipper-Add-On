@@ -96,7 +96,7 @@ class afc:
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         self.debug = True == config.get('debug', 0)
-
+        
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
         lane = gcmd.get('LANE', None)
@@ -457,6 +457,9 @@ class afc:
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
+            if self.hub.filament_present == False:
+                CUR_LANE.move(self.hub_dis + self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+                self.toolhead.wait_moves()
             hub_attempts = 0
             while self.hub.filament_present == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -467,7 +470,7 @@ class afc:
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
                     return
-            CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
+            CUR_LANE.move(self.afc_bowden_length - (hub_attempts * self.short_move_dis), self.long_moves_speed, self.long_moves_accel)
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             tool_attempts = 0
             while self.tool.filament_present == False:
@@ -599,6 +602,9 @@ class afc:
             self.toolhead.wait_moves()
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+        if self.hub.filament_present == True:
+            CUR_LANE.move( self.hub_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            self.toolhead.wait_moves()
         num_tries = 0
         while self.hub.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
