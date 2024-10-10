@@ -1,30 +1,8 @@
 
-
+from . import AFC
 class afc_tip_form:
     def __init__(self, config):
-        self.config = config
-        self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
-        
-        self.ramming_volume = config.getfloat("ramming_volume", 0)
-        self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
-        self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
-        self.unloading_speed  = config.getfloat("unloading_speed", 18)
-        self.cooling_tube_position  = config.getfloat("cooling_tube_position", 35)
-        self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
-        self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
-        self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
-        self.cooling_moves  = config.getint("cooling_moves", 4)
-        self.use_skinnydip  = config.getboolean("use_skinnydip", False)
-        self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
-        self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
-        self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
-        self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
-        self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
-
-        self.AFC = self.printer.lookup_object('AFC')
-        self.afc_extrude =self.AFC.afc_extrude
+        self.AFC = AFC.afc
 
     def afc_extrude(self, distance, speed):
         pos = self.AFC.toolhead.get_position()
@@ -84,19 +62,7 @@ class afc_tip_form:
 
 class afc_hub_cut:
     def __init__(self, config):
-        self.config = config
-        self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
-
-        self.hub_cut_active = config.getboolean("hub_cut_active", False)
-        self.hub_cut_dist = config.getfloat("hub_cut_dist", 200)
-        self.hub_cut_clear = config.getfloat("hub_cut_clear", 120)
-        self.hub_cut_min_length = config.getfloat("hub_cut_min_length", 200)
-        self.hub_cut_servo_pass_angle = config.getfloat("hub_cut_servo_pass_angle", 0)
-        self.hub_cut_servo_clip_angle = config.getfloat("hub_cut_servo_clip_angle", 160)
-        self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
-        self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
+        self.AFC = AFC.afc
 
     def hub_cut(self, CUR_LANE):
         # Prep the servo for cutting.
