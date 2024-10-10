@@ -41,6 +41,7 @@ def calc_move_time(dist, speed, accel):
     accel_decel_d = accel_t * speed
     cruise_t = (dist - accel_decel_d) / speed
     return axis_r, accel_t, cruise_t, speed
+
 class AFCExtruderStepper:
     def __init__(self, config):
         self.config = config
@@ -99,6 +100,7 @@ class AFCExtruderStepper:
         self.gcode = self.printer.lookup_object('gcode')
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
+
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -131,6 +133,7 @@ class AFCExtruderStepper:
             lambda print_time: self.afc_motor_enb._set_pin(print_time, enable))
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
+
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -172,6 +175,7 @@ class AFCExtruderStepper:
         toolhead.flush_step_generation()
         toolhead.wait_moves()
         if assist_active: self.assist(0)
+
     def set_afc_prep_done(self):
         """
         set_afc_prep_done function should only be called once AFC PREP function is done. Once this
@@ -181,6 +185,7 @@ class AFCExtruderStepper:
         self._afc_prep_done = True
     def load_callback(self, eventtime, state):
         self.load_state = state
+
     def prep_callback(self, eventtime, state):
         self.prep_state = state
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
@@ -206,6 +211,7 @@ class AFCExtruderStepper:
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
+
     def do_enable(self, enable):
         self.sync_print_time()
         stepper_enable = self.printer.lookup_object('stepper_enable')
@@ -216,6 +222,7 @@ class AFCExtruderStepper:
             se = stepper_enable.lookup_enable('AFC_stepper ' + self.name)
             se.motor_disable(self.next_cmd_time)
         self.sync_print_time()
+
     def sync_print_time(self):
         toolhead = self.printer.lookup_object('toolhead')
         print_time = toolhead.get_last_move_time()
@@ -223,5 +230,6 @@ class AFCExtruderStepper:
             toolhead.dwell(self.next_cmd_time - print_time)
         else:
             self.next_cmd_time = print_time
+
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
