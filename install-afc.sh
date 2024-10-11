@@ -44,7 +44,7 @@ function clone_repo() {
 
 # Step 1:  Verify Klipper has been installed
 function check_klipper() {
-  if [ "$(sudo systemctl list-units --full -all -t service --no-legend | grep -F "klipper.service")" ]; then
+  if [ "$(sudo systemctl list-units --full -all -t service --no-legend | grep -F "${KLIPPER_SERVICE}.service")" ]; then
     echo "Klipper service found!"
   else
     echo "Klipper service not found, please install Klipper first"
