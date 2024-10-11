@@ -6,8 +6,6 @@
 import os
 import json
 
-#from networkx import cut_size
-from . import AFC_functions
 from configparser import Error as error
 class afc:
     def __init__(self, config):
@@ -57,41 +55,14 @@ class afc:
         self.wipe_cmd = config.get('wipe_cmd', None)
         self.poop = config.getboolean("poop", False)
         self.poop_cmd = config.get('poop_cmd', None)
-
-        # TIP FORMING
-        self.ramming_volume = config.getfloat("ramming_volume", 0)
-        self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
-        self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
-        self.unloading_speed  = config.getfloat("unloading_speed", 18)
-        self.cooling_tube_position  = config.getfloat("cooling_tube_position", 35)
-        self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
-        self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
-        self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
-        self.cooling_moves  = config.getint("cooling_moves", 4)
-        self.use_skinnydip  = config.getboolean("use_skinnydip", False)
-        self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
-        self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
-        self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
-        self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
-        self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
-
-        #HUB cut_sizeself.hub_cut_active = config.getboolean("hub_cut_active", False)
-        self.hub_cut_dist = config.getfloat("hub_cut_dist", 200)
-        self.hub_cut_clear = config.getfloat("hub_cut_clear", 120)
-        self.hub_cut_min_length = config.getfloat("hub_cut_min_length", 200)
-        self.hub_cut_servo_pass_angle = config.getfloat("hub_cut_servo_pass_angle", 0)
-        self.hub_cut_servo_clip_angle = config.getfloat("hub_cut_servo_clip_angle", 160)
-        self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
-        self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
+        self.hub_cut = config.getboolean("hub_cut", False)
+        self.hub_cut_cmd = config.get('hub_cut_cmd', None)
 
         self.form_tip = config.getboolean("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
-        if self.form_tip_cmd == 'AFC':
-            self.afc_tip = AFC_functions.afc_tip_form(config)
 
         self.hub_cut_active = config.getboolean("hub_cut_active", False)
-        if self.hub_cut_active == True:
-            self.afc_cut.hub = AFC_functions.afc_hub_cut(config)
+        self.hub_cut_cmd = config.get('hub_cut_cmd', None)
 
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.tool_stn_unload = config.getfloat("tool_stn_unload", self.tool_stn)
