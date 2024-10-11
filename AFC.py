@@ -237,6 +237,7 @@ class afc:
             logo+='A |       |/ ___/ \n'
             logo+='D |_________/     \n'
             logo+='Y |_|_| |_|_|\n'
+
             logo_error ='E  _ _   _ _\n'
             logo_error+='R |_|_|_|_|_|\n'
             logo_error+='R |         \____\n'
@@ -251,7 +252,8 @@ class afc:
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
-                    self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+                    #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+                    #$self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
 
             error_string = "Error: Filament switch sensor {} not found in config file"
@@ -481,12 +483,14 @@ class afc:
                     self.gcode.respond_info(message)
                     self.gcode.respond_info('unloading ' + CUR_LANE.name.upper())
                     untool_attempts = 0
+                    pos = self.toolhead.get_position()
+                    pos[3] += (self.short_move_dis * tool_attempts) *-1
+                    self.toolhead.manual_move(pos, self.tool_load_speed)
+                    self.toolhead.wait_moves()
+                    CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     while self.hub.filament_present == True:
                         untool_attempts += 1
-                        pos = self.toolhead.get_position()
-                        pos[3] += self.short_move_dis * -1
-                        self.toolhead.manual_move(pos, self.tool_load_speed)
-                        self.toolhead.wait_moves()
+                        CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
                         if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                             message = (' FAILED TO CLEAR LINE, ' + CUR_LANE.name.upper() + ' CHECK FILAMENT PATH\n')
                             self.gcode.respond_info(message)
@@ -636,7 +640,6 @@ class afc:
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
-        #self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         if lane != self.current:
             store_pos = self.toolhead.get_position()
