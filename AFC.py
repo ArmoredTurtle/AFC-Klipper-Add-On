@@ -497,7 +497,6 @@ class afc:
                             self.failure = True
                             break
                     self.failure = True
-                    CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     if CUR_LANE.load_state == True:
                         x = 0
                         while CUR_LANE.load_state == True:
