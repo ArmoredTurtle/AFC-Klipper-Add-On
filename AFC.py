@@ -446,15 +446,20 @@ class afc:
         CUR_LANE.status = 'loading'
         self.afc_led(self.led_loading, CUR_LANE.led_index)
         if CUR_LANE.load_state == True and self.hub.filament_present == False:
+            # correct for external function
             if self.hub_cut_active:
                 self.hub_cut(CUR_LANE.name)
+            # correct for external function
             if not self.heater.can_extrude: #Heat extruder if not at min temp
+                extruder = self.printer.lookup_object('toolhead').get_extruder()
+                pheaters = self.printer.lookup_object('heaters')
+                wait = True
                 if self.heater.target_temp >= self.heater.min_extrude_temp:
                     self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
-                    self.gcode.run_script_from_command('M109 S' + str((self.heater.target_temp)))
+                    pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp, wait)
                 else:
                     self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-                    self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
+                    pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp + 5, wait)
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
@@ -497,26 +502,8 @@ class afc:
                             self.failure = True
                             break
                     self.failure = True
-                    if CUR_LANE.load_state == True:
-                        x = 0
-                        while CUR_LANE.load_state == True:
-                            CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-                            x += 1
-                            #callout if filament can't be retracted before extruder load switch
-                            if x > 30:
-                                message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
-                                self.handle_lane_failure(CUR_LANE, message)
-                                break
-                        x = 0
-                        while CUR_LANE.load_state == False:
-                            CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-                            x += 1
-                            #callout if filament is past trigger but can't be brought past extruder
-                            if x > 10:
-                                message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                self.handle_lane_failure(CUR_LANE, message)
-                                break
-                    break
+                    CUR_LANE.hub_load = True
+                    
             if self.failure == False:
                 CUR_LANE.status = 'Tooled'
                 pos = self.toolhead.get_position()
