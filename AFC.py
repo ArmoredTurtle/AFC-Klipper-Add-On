@@ -557,9 +557,16 @@ class afc:
         CUR_LANE.status = 'unloading'
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-        if not self.heater.can_extrude: #Heat extruder if not at min temp
+        extruder = self.printer.lookup_object('toolhead').get_extruder()
+        pheaters = self.printer.lookup_object('heaters')
+        wait = True
+        if self.heater.target_temp >= self.heater.min_extrude_temp:
+            self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
+            pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp, wait)
+        else:
             self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-            self.gcode.run_script_from_command('M109 S' + str((self.heater.min_extrude_temp) + 5))
+            pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp + 5, wait)
+        CUR_LANE.do_enable(True)
         if self.tool_cut_active:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
             if self.park:
