@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os
 import json
+from . import AFC_hub_cut
 
 from configparser import Error as error
 class afc:
@@ -60,9 +61,6 @@ class afc:
 
         self.form_tip = config.getboolean("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
-
-        self.hub_cut_active = config.getboolean("hub_cut_active", False)
-        self.hub_cut_cmd = config.get('hub_cut_cmd', None)
 
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.tool_stn_unload = config.getfloat("tool_stn_unload", self.tool_stn)
@@ -447,8 +445,11 @@ class afc:
         self.afc_led(self.led_loading, CUR_LANE.led_index)
         if CUR_LANE.load_state == True and self.hub.filament_present == False:
             # correct for external function
-            if self.hub_cut_active:
-                self.hub_cut(CUR_LANE.name)
+            if self.hub_cut:
+                if self.hub_cut_cmd == 'AFC':
+                    AFC_hub_cut.hub_cut(CUR_LANE.name)
+                else:
+                    self.gcode.run_script_from_command(self.hub_cut_cmd)
             # correct for external function
             if not self.heater.can_extrude: #Heat extruder if not at min temp
                 extruder = self.printer.lookup_object('toolhead').get_extruder()
