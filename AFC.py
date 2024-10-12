@@ -6,8 +6,6 @@
 import os
 import json
 
-#from networkx import cut_size
-from . import AFC_functions
 from configparser import Error as error
 class afc:
     def __init__(self, config):
@@ -57,41 +55,14 @@ class afc:
         self.wipe_cmd = config.get('wipe_cmd', None)
         self.poop = config.getboolean("poop", False)
         self.poop_cmd = config.get('poop_cmd', None)
-
-        # TIP FORMING
-        self.ramming_volume = config.getfloat("ramming_volume", 0)
-        self.toolchange_temp  = config.getfloat("toolchange_temp", 0)
-        self.unloading_speed_start  = config.getfloat("unloading_speed_start", 80)
-        self.unloading_speed  = config.getfloat("unloading_speed", 18)
-        self.cooling_tube_position  = config.getfloat("cooling_tube_position", 35)
-        self.cooling_tube_length  = config.getfloat("cooling_tube_length", 10)
-        self.initial_cooling_speed  = config.getfloat("initial_cooling_speed", 10)
-        self.final_cooling_speed  = config.getfloat("final_cooling_speed", 50)
-        self.cooling_moves  = config.getint("cooling_moves", 4)
-        self.use_skinnydip  = config.getboolean("use_skinnydip", False)
-        self.skinnydip_distance  = config.getfloat("skinnydip_distance", 4)
-        self.dip_insertion_speed  = config.getfloat("dip_insertion_speed", 4)
-        self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
-        self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
-        self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
-
-        #HUB cut_sizeself.hub_cut_active = config.getboolean("hub_cut_active", False)
-        self.hub_cut_dist = config.getfloat("hub_cut_dist", 200)
-        self.hub_cut_clear = config.getfloat("hub_cut_clear", 120)
-        self.hub_cut_min_length = config.getfloat("hub_cut_min_length", 200)
-        self.hub_cut_servo_pass_angle = config.getfloat("hub_cut_servo_pass_angle", 0)
-        self.hub_cut_servo_clip_angle = config.getfloat("hub_cut_servo_clip_angle", 160)
-        self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
-        self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
+        self.hub_cut = config.getboolean("hub_cut", False)
+        self.hub_cut_cmd = config.get('hub_cut_cmd', None)
 
         self.form_tip = config.getboolean("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
-        if self.form_tip_cmd == 'AFC':
-            self.afc_tip = AFC_functions.afc_tip_form(config)
 
         self.hub_cut_active = config.getboolean("hub_cut_active", False)
-        if self.hub_cut_active == True:
-            self.afc_cut.hub = AFC_functions.afc_hub_cut(config)
+        self.hub_cut_cmd = config.get('hub_cut_cmd', None)
 
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.tool_stn_unload = config.getfloat("tool_stn_unload", self.tool_stn)
@@ -266,6 +237,7 @@ class afc:
             logo+='A |       |/ ___/ \n'
             logo+='D |_________/     \n'
             logo+='Y |_|_| |_|_|\n'
+
             logo_error ='E  _ _   _ _\n'
             logo_error+='R |_|_|_|_|_|\n'
             logo_error+='R |         \____\n'
@@ -280,7 +252,8 @@ class afc:
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
-                    self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+                    #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+                    #$self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
 
             error_string = "Error: Filament switch sensor {} not found in config file"
@@ -510,12 +483,14 @@ class afc:
                     self.gcode.respond_info(message)
                     self.gcode.respond_info('unloading ' + CUR_LANE.name.upper())
                     untool_attempts = 0
+                    pos = self.toolhead.get_position()
+                    pos[3] += (self.short_move_dis * tool_attempts) *-1
+                    self.toolhead.manual_move(pos, self.tool_load_speed)
+                    self.toolhead.wait_moves()
+                    CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     while self.hub.filament_present == True:
                         untool_attempts += 1
-                        pos = self.toolhead.get_position()
-                        pos[3] += self.short_move_dis * -1
-                        self.toolhead.manual_move(pos, self.tool_load_speed)
-                        self.toolhead.wait_moves()
+                        CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
                         if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                             message = (' FAILED TO CLEAR LINE, ' + CUR_LANE.name.upper() + ' CHECK FILAMENT PATH\n')
                             self.gcode.respond_info(message)
@@ -665,7 +640,6 @@ class afc:
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
-        #self.toolhead = self.printer.lookup_object('toolhead')
         lane = gcmd.get('LANE', None)
         if lane != self.current:
             store_pos = self.toolhead.get_position()
