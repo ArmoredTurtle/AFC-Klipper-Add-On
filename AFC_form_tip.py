@@ -27,7 +27,7 @@ class afc_tip_form:
         self.AFC.toolhead.manual_move(pos, speed)
         self.AFC.toolhead.wait_moves()
 
-       
+
 
     def tip_form(self):
         step = 1

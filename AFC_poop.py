@@ -1,5 +1,4 @@
 
-from . import AFC
 class afc_poop:
     def __init__(self, config):
         self.config = config
@@ -18,7 +17,7 @@ class afc_poop:
         self.full_fan = config.getboolean('full_fan', False)
         self.purge_length = config.getfloat('purge_length', 70.111)
         self.purge_length_min = config.getfloat('purge_length_min', 60.999)
-    
+
     def poop(self,CUR_LANE):
         toolhead = self.printer.lookup_object('toolhead')
         step = 0
@@ -39,7 +38,7 @@ class afc_poop:
             # save fan current speed
             # apply full speed
             step += 1
-        
+
         iteration=1
         while iteration < int(self.purge_length / self.max_iteration_length ):
             if self.verbose:
