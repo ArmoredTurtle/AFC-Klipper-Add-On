@@ -444,13 +444,6 @@ class afc:
         CUR_LANE.status = 'loading'
         self.afc_led(self.led_loading, CUR_LANE.led_index)
         if CUR_LANE.load_state == True and self.hub.filament_present == False:
-            # correct for external function
-            if self.hub_cut:
-                if self.hub_cut_cmd == 'AFC':
-                    AFC_hub_cut.hub_cut(CUR_LANE.name)
-                else:
-                    self.gcode.run_script_from_command(self.hub_cut_cmd)
-            # correct for external function
             if not self.heater.can_extrude: #Heat extruder if not at min temp
                 extruder = self.printer.lookup_object('toolhead').get_extruder()
                 pheaters = self.printer.lookup_object('heaters')
@@ -609,27 +602,23 @@ class afc:
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.handle_lane_failure(CUR_LANE, msg)
                 return
-
-        # retract a little more...helps to clear strings from the hub
-        # ...until either we've moved park_dist OR we passed the load switch
-        move_dist = 0
-        while CUR_LANE.load_state == True and move_dist < CUR_LANE.park_dist:
-            move_dist += min(self.short_move_dis, CUR_LANE.park_dist - move_dist)
+        if self.hub_cut:
+            if self.hub_cut_cmd == 'AFC':
+                AFC_hub_cut.hub_cut(CUR_LANE.name)
+            else:
+                self.gcode.run_script_from_command(self.hub_cut_cmd)
+        while self.hub.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
-
+            num_tries += 1
+            # callout if while unloading, filament doesn't move past HUB
+            if num_tries > (self.afc_bowden_length/self.short_move_dis):
+                self.pause_print()
+                msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
+                self.handle_lane_failure(CUR_LANE, msg)
+                return
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.save_vars()
-        num_tries = 0
-        while CUR_LANE.load_state == False and CUR_LANE.prep_state == True:
-            CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-            num_tries += 1
-            #callout if filament is past trigger but can't be brought past extruder
-            if num_tries > 10:
-                self.pause_print()
-                message = (' FAILED TO RELOAD CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                self.handle_lane_failure(CUR_LANE, message)
-                return
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.current = None
