@@ -1,3 +1,5 @@
+from . import AFC
+
 
 class afc_poop:
     def __init__(self, config):
@@ -18,7 +20,7 @@ class afc_poop:
         self.purge_length = config.getfloat('purge_length', 70.111)
         self.purge_length_min = config.getfloat('purge_length_min', 60.999)
 
-    def poop(self,CUR_LANE):
+    def poop(self, CUR_LANE):
         toolhead = self.printer.lookup_object('toolhead')
         step = 0
         if self.verbose:
@@ -31,7 +33,7 @@ class afc_poop:
         pooppos[2] = self.purge_start
         self.toolhead.manual_move(pooppos, 100)
         self.toolhead.wait_moves()
-        step +=1
+        step += 1
         if self.full_fan:
             if self.verbose:
                 self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Set Cooling Fan to Full Speed')
@@ -39,10 +41,10 @@ class afc_poop:
             # apply full speed
             step += 1
 
-        iteration=1
-        while iteration < int(self.purge_length / self.max_iteration_length ):
+        iteration = 1
+        while iteration < int(self.purge_length / self.max_iteration_length):
             if self.verbose:
-                self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Purge Iteration '+ str(iteration))
+                self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Purge Iteration ' + str(iteration))
             purge_amount_left = self.purge_length - (self.max_iteration_length * iteration)
             extrude_amount = purge_amount_left / self.max_iteration_length
             extrude_ratio = extrude_amount / self.max_iteration_length
@@ -57,7 +59,7 @@ class afc_poop:
             self.toolhead.manual_move(pooppos, speed)
             self.toolhead.wait_moves()
 
-        step +=1
+        step += 1
         if self.verbose:
             self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Fast Z Lift to keep poop from sticking')
         pooppos = self.toolhead.get_position()
@@ -71,21 +73,6 @@ class afc_poop:
                 self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Restore fan speed and feedrate')
             # restore fan current speed
 
+
 def load_config(config):
     return afc_poop(config)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
