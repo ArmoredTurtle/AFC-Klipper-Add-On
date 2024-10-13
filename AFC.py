@@ -90,16 +90,39 @@ class afc:
         self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
+        self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         self.debug = True == config.get('debug', 0)
+
+    cmd_SET_BOWDEN_LENGTH_help = "Set length of bowden, hub to toolhead"
+    def cmd_SET_BOWDEN_LENGTH(self, gcmd):
+        config_bowden = self.afc_bowden_length
+        length_param = gcmd.get('LENGTH', None)
+        if length_param is None or length_param.strip() == '':
+            bowden_length = self.config_bowden_length
+        else:
+            if length_param[0] in ('+', '-'):
+                bowden_value = float(length_param)
+                bowden_length = config_bowden + bowden_value
+            else:
+                bowden_length = float(length_param)
+        self.afc_bowden_length = bowden_length
+        msg = (f"Config Bowden Length: {self.config_bowden_length}\n"
+               f"Previous Bowden Length: {config_bowden}\n"
+               f"New Bowden Length: {bowden_length}")
+        self.respond_info(msg)
         
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+        if distance < 0:
+            CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
+        else:
+            CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+
 
     def respond_info(self, msg):
         """
@@ -406,15 +429,18 @@ class afc:
     def cmd_HUB_LOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if self.hub.filament_present == True: 
+            self.respond_error(f"HUB TRIGGERED, CAN'T HUB LOAD {CUR_LANE.name.upper()}")
+            return
         if CUR_LANE.load_state == False:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
-                CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
         while self.hub.filament_present == False:
             CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         while self.hub.filament_present == True:
-            CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+            CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
         CUR_LANE.status = 'Hubed'
         CUR_LANE.do_enable(False)
 
@@ -425,11 +451,11 @@ class afc:
         if CUR_LANE.name != self.current:
             CUR_LANE.do_enable(True)
             if CUR_LANE.dist_hub:
-                CUR_LANE.move(CUR_LANE.dist_hub * -1, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move(CUR_LANE.dist_hub * -1, self.short_moves_speed, self.short_moves_accel, True)
             CUR_LANE.dist_hub = False
             while CUR_LANE.load_state == True:
-               CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
+               CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            CUR_LANE.move(self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel, True)
             CUR_LANE.do_enable(False)
             CUR_LANE.status = None
         else:
