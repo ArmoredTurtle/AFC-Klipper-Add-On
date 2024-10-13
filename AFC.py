@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os
 import json
-from . import AFC_hub_cut, AFC_poop
+from . import AFC_hub_cut
 
 from configparser import Error as error
 class afc:
@@ -510,10 +510,7 @@ class afc:
                 self.current = CUR_LANE.name
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
-                    if self.poop_cmd == 'AFC':
-                        AFC_poop.poop(CUR_LANE)
-                    else:
-                        self.gcode.run_script_from_command(self.poop_cmd)
+                    self.gcode.run_script_from_command(self.poop_cmd)
                     if self.wipe:
                         self.gcode.run_script_from_command(self.wipe_cmd)
                 if self.kick:
@@ -570,7 +567,8 @@ class afc:
         if self.form_tip:
             if self.park: self.gcode.run_script_from_command(self.park_cmd)
             if self.form_tip_cmd == "AFC":
-                self.afc_tip_form()
+                self.AFC_tip = self.printer.lookup_object('AFC_form_tip')
+                self.AFC_tip.afc_tip_form()
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
         num_tries = 0
