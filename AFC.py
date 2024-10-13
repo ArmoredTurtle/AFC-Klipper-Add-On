@@ -91,7 +91,8 @@ class afc:
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
-        self.debug = True == config.get('debug', 0)
+        #self.debug = True == config.get('debug', 0)
+        self.debug = False
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
@@ -99,12 +100,6 @@ class afc:
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
-
-    def respond_info(self, msg):
-        """
-        respond_info function is a help function to print non error information out to console
-        """
-        self.gcode.respond_info( msg )
 
     def respond_error(self, msg, raise_error=False):
         """
@@ -119,14 +114,14 @@ class afc:
         """
         respond_debug function is a help function to print debug information out to console if debug flag is set in configuration
         """
-        if self.debug: self.respond_info(msg)
+        if self.debug: self.gcode.respond_info(msg)
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message):
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
-        self.respond_error(msg, raise_error=False)
+        self.gcode.respond_info(msg)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
 
     # Helper function to write variables to file. Prints with indents to make it more readable for users
@@ -635,6 +630,8 @@ class afc:
             if self.current != None:
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                 self.TOOL_UNLOAD(CUR_LANE)
+                if self.current != None:
+                    self.gcode.run_script_from_command('PAUSE')
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             self.TOOL_LOAD(CUR_LANE)
             newpos = self.toolhead.get_position()

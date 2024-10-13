@@ -152,7 +152,7 @@ class AFCExtruderStepper:
         #       The trouble is the "just right" speed would also vary based on how full the
         #       spool is and perhaps variance in N20 motors and the voltage they are receiving.
         #       Perhaps the speed ratio should be configurable?
-        value /= 500
+        value /= 100
         if value > 1: value = 1
         if assist_active: self.assist(value)
         toolhead = self.printer.lookup_object('toolhead')
