@@ -41,7 +41,6 @@ class afc_poop:
             # save fan current speed
             self.gcode.run_script_from_command('M106 S255')
             step += 1
-        
         iteration=0
         while iteration < int(self.purge_length / self.max_iteration_length ):
             if self.verbose:
@@ -60,8 +59,7 @@ class afc_poop:
             self.toolhead.manual_move(pooppos, speed)
             self.toolhead.wait_moves()
             iteration += 1
-
-        step +=1
+        step += 1
         if self.verbose:
             self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Fast Z Lift to keep poop from sticking')
         pooppos = self.toolhead.get_position()
@@ -69,7 +67,6 @@ class afc_poop:
         self.toolhead.manual_move(pooppos, self.fast_z)
         self.toolhead.wait_moves()
         step += 1
-
         if self.full_fan:
             if self.verbose:
                 self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Restore fan speed and feedrate')

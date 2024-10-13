@@ -1,8 +1,10 @@
-from . import AFC
 
 class afc_tip_form:
     def __init__(self, config):
-        self.AFC = AFC.afc
+        self.printer = config.get_printer()
+        self.reactor = self.printer.get_reactor()
+        self.AFC = self.printer.lookup_object('AFC')
+        self.gcode = self.printer.lookup_object('gcode')
 
          # TIP FORMING
         self.ramming_volume = config.getfloat("ramming_volume", 0)
@@ -20,6 +22,7 @@ class afc_tip_form:
         self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
         self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
         self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
+        
 
     def afc_extrude(self, distance, speed):
         pos = self.AFC.toolhead.get_position()
