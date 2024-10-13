@@ -65,6 +65,7 @@ class afc:
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.tool_stn_unload = config.getfloat("tool_stn_unload", self.tool_stn)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
+        self.config_bowden_length = self.afc_bowden_length
 
         # MOVE SETTINGS
         self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)
