@@ -1,6 +1,3 @@
-
-from . import AFC
-
 class afc_poop:
     def __init__(self, config):
         self.config = config
