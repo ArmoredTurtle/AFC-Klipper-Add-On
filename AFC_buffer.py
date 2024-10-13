@@ -37,7 +37,7 @@ class AFCtrigger:
     def sensor_callback(self, eventtime, state):
         self.last_state = state
         if self.printer.state_message == 'Printer is ready':
-            if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
+            if self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper.filament_present == True:
                 if self.printer.lookup_object('AFC').current != None:
                     tool_loaded=self.printer.lookup_object('AFC').current
                     LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
