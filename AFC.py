@@ -602,6 +602,7 @@ class afc:
                 return
         if self.hub_cut:
             if self.hub_cut_cmd == 'AFC':
+                self.AFC_hub_cut = self.printer.lookup_object('AFC_hub_cut')
                 AFC_hub_cut.hub_cut(CUR_LANE.name)
             else:
                 self.gcode.run_script_from_command(self.hub_cut_cmd)
