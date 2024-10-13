@@ -464,26 +464,14 @@ class afc:
                     self.handle_lane_failure(CUR_LANE, message)
                     return
             CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
-            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             tool_attempts = 0
             if self.tool_start != None:
                 while self.tool_start.filament_present == False:
                     tool_attempts += 1
-                    pos = self.toolhead.get_position()
-                    pos[3] += self.short_move_dis
-                    self.toolhead.manual_move(pos, self.tool_load_speed)
-                    self.toolhead.wait_moves()
+                    CUR_LANE.move( self.short_move_dis, self.tool_load_speed, self.long_moves_accel)
                     #callout if filament doesn't reach toolhead
                     if tool_attempts > 20:
                         message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
-                        self.gcode.respond_info(message)
-                        self.gcode.respond_info('unloading ' + CUR_LANE.name.upper())
-                        untool_attempts = 0
-                        pos = self.toolhead.get_position()
-                        pos[3] += (self.short_move_dis * tool_attempts) * -1
-                        self.toolhead.manual_move(pos, self.tool_load_speed)
-                        self.toolhead.wait_moves()
-                        CUR_LANE.extruder_stepper.sync_to_extruder(None)
                         while self.hub.filament_present == True:
                             untool_attempts += 1
                             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
@@ -496,6 +484,7 @@ class afc:
                         CUR_LANE.hub_load = True
                     
             if self.failure == False:
+                CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                 CUR_LANE.status = 'Tooled'
                 pos = self.toolhead.get_position()
                 pos[3] += self.tool_stn
