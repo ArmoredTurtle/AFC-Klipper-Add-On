@@ -580,6 +580,7 @@ class afc:
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 return
+        CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         if self.hub_cut:
             if self.hub_cut_cmd == 'AFC':
                 self.AFC_hub_cut = self.printer.lookup_object('AFC_hub_cut')
