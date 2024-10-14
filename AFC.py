@@ -661,7 +661,7 @@ class afc:
         str["system"]={}
         str["system"]['current_load']= self.current
         # Set status of filament sensors if they exist, false if sensors are not found
-        str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool is not None else False
+        str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
         str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
