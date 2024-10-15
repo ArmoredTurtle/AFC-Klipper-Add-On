@@ -41,12 +41,12 @@ class afc:
         self.hub_dis = config.getfloat("hub_dis", 45)
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
         self.hub = ''
-        
+
         # TOOL Cutting Settings
         self.tool = ''
         self.tool_cut = config.getboolean("tool_cut", False)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
-        
+
         # CHOICES
         self.park = config.getboolean("park", False)
         self.park_cmd = config.get('park_cmd', None)
