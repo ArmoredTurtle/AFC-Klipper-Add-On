@@ -41,12 +41,12 @@ class afc:
         self.hub_dis = config.getfloat("hub_dis", 45)
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
         self.hub = ''
-        
+
         # TOOL Cutting Settings
         self.tool = ''
         self.tool_cut = config.getboolean("tool_cut", False)
         self.tool_cut_cmd = config.get('tool_cut_cmd')
-        
+
         # CHOICES
         self.park = config.getboolean("park", False)
         self.park_cmd = config.get('park_cmd', None)
@@ -113,9 +113,8 @@ class afc:
 
     def AFC_error(self, msg):
         # Handle AFC errors
-        self.gcode.respond_infor( msg )
+        self.gcode.respond_info( msg )
         self.pause_print()
-        #while self.printer.state_message != 'Printing':
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message):
@@ -151,6 +150,8 @@ class afc:
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
         lane = gcmd.get('LANE', self.current)
+        if lane == None:
+            return
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         self.TOOL_UNLOAD(CUR_LANE)
 
