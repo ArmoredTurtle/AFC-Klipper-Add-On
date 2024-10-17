@@ -213,64 +213,84 @@ print_section_delimiter() {
 }
 
 install_type() {
-  echo -ne "
-  ${PROMPT}Please select your installation type:
-  ${CYAN}1) Box Turtle
-  ${PROMPT}Please select an option: ${RESET}"
-  read -r input
-  case $input in
-    1) INSTALLATION_TYPE="Box_Turtle" ;;
-    *) echo "Invalid selection" ;;
-  esac
+  while true; do
+    echo -ne "
+    ${PROMPT}Please select your installation type:
+    ${CYAN}1) Box Turtle
+    ${CYAN}2) Exit
+    ${PROMPT}Please select an option: ${RESET}"
+    read -r input
+    case $input in
+      1)
+        INSTALLATION_TYPE="Box_Turtle"
+        break
+        ;;
+      2)
+        echo "Exiting..."
+        exit 0
+        ;;
+      *)
+        echo "Invalid selection. Please try again."
+        ;;
+    esac
+  done
 }
 
 choose_board_type() {
-  echo -ne "
-  ${PROMPT}Please select your board type:
-  ${CYAN}1) AFC-Lite
-  ${CYAN}2) MMB v1.0
-  ${CYAN}3) MMB v1.1
-  ${PROMPT}Please select an option: ${RESET}"
-  read -r input
-  case $input in
-    1) BOARD_TYPE="AFC_Lite" ;;
-    2) BOARD_TYPE="MMB_1.0" ;;
-    3) BOARD_TYPE="MMB_1.1" ;;
-    *) echo "Invalid selection" ;;
-  esac
+  while true; do
+    echo -ne "
+    ${PROMPT}Please select your board type:
+    ${CYAN}1) AFC-Lite
+    ${CYAN}2) MMB v1.0
+    ${CYAN}3) MMB v1.1
+    ${CYAN}4) Exit
+    ${PROMPT}Please select an option: ${RESET}"
+    read -r input
+    case $input in
+      1) BOARD_TYPE="AFC_Lite" ;;
+      2) BOARD_TYPE="MMB_1.0" ;;
+      3) BOARD_TYPE="MMB_1.1" ;;
+      4) echo "Exiting..." && exit 0 ;;
+      *) echo "Invalid selection" ;;
+    esac
+  done
 }
 
 toolhead_pin() {
-  echo -ne "
-  ${PROMPT}Please enter your toolhead sensor pin (if known).
-  ${PROMPT}This should be in the format of 'MCU:Pin' (e.g 'EBBCan:PB2').
-  ${ERROR}This is required to be set.
-  ${PROMPT}Press enter if unknown.
-  ${PROMPT}Pin: ${RESET}"
-  read -r input
-  if [ -z "$input" ]; then
-    TOOLHEAD_PIN="UNKNOWN"
-  else
-    TOOLHEAD_PIN=$input
-  fi
+  while true; do
+    echo -ne "
+    ${PROMPT}Please enter your toolhead sensor pin (if known).
+    ${PROMPT}This should be in the format of 'MCU:Pin' (e.g 'EBBCan:PB2').
+    ${ERROR}This is required to be set.
+    ${PROMPT}Press enter if unknown.
+    ${PROMPT}Pin: ${RESET}"
+    read -r input
+    if [ -z "$input" ]; then
+      TOOLHEAD_PIN="UNKNOWN"
+    else
+      TOOLHEAD_PIN=$input
+    fi
+  done
 }
 
 buffer_system() {
-  echo -ne "
-  ${PROMPT}Please select your buffer system:
-  ${CYAN}1) TurtleNeck Buffer
-  ${CYAN}2) TurtleNeck v2 Buffer
-  ${CYAN}3) Annex Belay
-  ${CYAN}4) Other
-  ${PROMPT}Please select an option: ${RESET}"
-  read -r input
-  case $input in
-    1) BUFFER_SYSTEM="TurtleNeck" ;;
-    2) BUFFER_SYSTEM="TurtleNeckV2" ;;
-    3) BUFFER_SYSTEM="AnnexBelay" ;;
-    4) BUFFER_SYSTEM="Other" ;;
-    *) echo "Invalid selection" ;;
-  esac
+  while true; do
+    echo -ne "
+    ${PROMPT}Please select your buffer system:
+    ${CYAN}1) TurtleNeck Buffer
+    ${CYAN}2) TurtleNeck v2 Buffer
+    ${CYAN}3) Annex Belay
+    ${CYAN}4) Other
+    ${PROMPT}Please select an option: ${RESET}"
+    read -r input
+    case $input in
+      1) BUFFER_SYSTEM="TurtleNeck" ;;
+      2) BUFFER_SYSTEM="TurtleNeckV2" ;;
+      3) BUFFER_SYSTEM="AnnexBelay" ;;
+      4) BUFFER_SYSTEM="Other" ;;
+      *) echo "Invalid selection" ;;
+    esac
+  done
 }
 
 macro_helpers() {
