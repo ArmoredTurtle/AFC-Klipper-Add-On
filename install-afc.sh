@@ -320,7 +320,7 @@ macro_helpers() {
   local question
   local var
   local default
-  print_msg PROMPT "  The following questions will enable / disable various helper macros."
+  print_msg PROMPT "  The following questions will enable / disable various functions."
   print_msg WARNING "  Further configuration for your system is required to be setup in the 'AFC_Macro_Vars.cfg' file."
 
   declare -A questions=(
@@ -331,6 +331,7 @@ macro_helpers() {
     ["Do you want to enable the poop macro?"]="ENABLE_POOP_MACRO True"
     ["Do you want to enable the kick macro?"]="ENABLE_KICK_MACRO True"
     ["Do you want to enable the wipe macro?"]="ENABLE_WIPE_MACRO True"
+    ["Do you want to modify your printer.cfg file automatically?"]="INCLUDE_AFC_CFG True"
   )
 
   for question in "${!questions[@]}"; do
@@ -376,6 +377,19 @@ function update_moonraker_config() {
     restart_service moonraker
   else
     print_msg INFO "  Moonraker config already updated"
+  fi
+}
+
+# Check if the include AFC/*.cfg is in the printer.cfg file.
+check_and_add_include() {
+  local file_path="$1"
+  local include_statement="[include AFC/*.cfg]"
+
+  if ! grep -qF "$include_statement" "$file_path"; then
+    echo "$include_statement" >> "$file_path"
+    echo "Added '$include_statement' to $file_path"
+  else
+    echo "'$include_statement' is already present in $file_path"
   fi
 }
 
@@ -438,6 +452,19 @@ uncomment_board_type() {
   mv "$temp_file" "$file_path"
 }
 
+update_distance() {
+  local file_path="$1"
+  local new_distance="$2"
+  local section="[AFC_buffer neck]"
+  local key="distance"
+
+  awk -v section="$section" -v key="$key" -v new_distance="$new_distance" '
+    $0 == section { in_section = 1 }
+    in_section && $1 == key { $3 = new_distance; in_section = 0 }
+    { print }
+  ' "$file_path" > tmp && mv tmp "$file_path"
+}
+
 update_switch_pin() {
   local file_path="$1"
   local new_value="$2"
@@ -486,7 +513,7 @@ function show_help() {
 while getopts "k:s:m:uh" arg; do
   case ${arg} in
   k) KLIPPER_PATH=${OPTARG} ;;
-  m) MOONRAKER_CONFIG=${OPTARG} ;;
+  m) MOONRAKER_PATH=${OPTARG} ;;
   s) KLIPPER_SERVICE=${OPTARG} ;;
   u) UNINSTALL=True ;;
   h)
@@ -537,15 +564,18 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   choose_board_type
   toolhead_pin
   buffer_system
-  print_section_delimiter
 
-  print_msg INFO "  Installation Type: ${INSTALLATION_TYPE}"
-  print_msg INFO "  Board Type: ${BOARD_TYPE}"
-  print_msg INFO "  Toolhead Pin: ${TOOLHEAD_PIN}"
   print_section_delimiter
 
   macro_helpers
   print_msg INFO "  Updating configuration files with selected values..."
+
+  # Make sure to copy the right AFC_Hardware.cfg file based on the board type.
+  if [ "$BOARD_TYPE" == "AFC_Lite" ]; then
+    cp "${AFC_PATH}/templates/AFC_Hardware-AFC.cfg" "${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
+  else
+    cp "${AFC_PATH}/templates/AFC_Hardware-MMB.cfg" "${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
+  fi
 
   ## This section will choose the correct board type.
   uncomment_board_type "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "${BOARD_TYPE}"
@@ -563,6 +593,20 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
 
   # The section will update the toolhead pin in the AFC_Hardware.cfg file.
   update_switch_pin "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "${TOOLHEAD_PIN}"
+
+  # Update printer.cfg if selected
+  if [ "$INCLUDE_AFC_CFG" = "True" ]; then
+    check_and_add_include "${PRINTER_CONFIG_PATH}/printer.cfg"
+  fi
+
+  # Update distance on buffer config
+  if [ "$BUFFER_SYSTEM" == "TurtleNeck" ] || [ "$BUFFER_SYSTEM" == "TurtleNeckV2" ]; then
+    update_distance "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "25"
+  elif [ "$BUFFER_SYSTEM" == "AnnexBelay" ]; then
+    update_distance "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "6"
+  else
+    print_msg WARNING "Buffer system not recognized. Please update the distance in the AFC_Hardware.cfg file."
+  fi
 
   # Update moonraker config
   update_moonraker_config
