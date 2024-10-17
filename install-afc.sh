@@ -366,6 +366,19 @@ function clone_repo() {
   fi
 }
 
+function update_moonraker_config() {
+  local moonraker_config
+  print_msg INFO "Updating Moonraker config with AFC-Klipper-Add-On"
+  moonraker_config=$(grep -c '\[update_manager afc-software\]' "${MOONRAKER_CONFIG}/moonraker.conf" || true)
+  if [ "$moonraker_config" -eq 0 ]; then
+    echo -e -n "\n${MOONRAKER_UPDATE_CONFIG}" >>"${MOONRAKER_CONFIG}/moonraker.conf"
+    print_msg INFO "Moonraker config updated"
+    restart_service moonraker
+  else
+    print_msg INFO "Moonraker config already updated"
+  fi
+}
+
 # Updates a configuration value in a file. Looks for the value of the key and replaces it with the new value.
 update_config_value() {
   local file_path="$1"
@@ -534,10 +547,11 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   macro_helpers
   print_msg INFO "  Updating configuration files with selected values..."
 
+  ## This section will choose the correct board type.
   uncomment_board_type "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "${BOARD_TYPE}"
+
   # The below section will update configuration values in the AFC configuration files. This takes the format of
   # update_config_value <file_path> <key> <new_value>. Any trailing comments will be preserved.
-
   update_config_value "${AFC_CONFIG_PATH}/AFC.cfg" "Type" "${INSTALLATION_TYPE}"
   update_config_value "${AFC_CONFIG_PATH}/AFC.cfg" "tool_cut" "${ENABLE_TOOL_CUT}"
   update_config_value "${AFC_CONFIG_PATH}/AFC.cfg" "park" "${ENABLE_PARK_MACRO}"
@@ -547,8 +561,11 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   update_config_value "${AFC_CONFIG_PATH}/AFC.cfg" "wipe" "${ENABLE_WIPE_MACRO}"
   update_config_value "${AFC_CONFIG_PATH}/AFC.cfg" "form_tip" "${ENABLE_FORM_TIP}"
 
+  # The section will update the toolhead pin in the AFC_Hardware.cfg file.
   update_switch_pin "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "${TOOLHEAD_PIN}"
 
+  # Update moonraker config
+  update_moonraker_config
 
   print_msg INFO "  Prior to starting Klipper, please review all files in the AFC directory to ensure they are correct."
 
