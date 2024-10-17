@@ -7,8 +7,8 @@ export LC_ALL=C
 KLIPPER_PATH="${HOME}/klipper"
 MOONRAKER_PATH="${HOME}/printer_data/config"
 AFC_PATH="${HOME}/AFC-Klipper-Add-On"
-PRINTER_CONFIG_PATH="${HOME}/printer_data/config/"
-AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC/"
+PRINTER_CONFIG_PATH="${HOME}/printer_data/config"
+AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Variables
 KLIPPER_SERVICE=klipper
@@ -514,4 +514,3 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
     print_msg WARNING "  Instructions are at the the top of the file regarding which sections to uncomment / change."
   fi
 fi
-
