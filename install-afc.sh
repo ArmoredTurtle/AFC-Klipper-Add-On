@@ -27,7 +27,7 @@ type: git_repo
 path: ~/AFC-Klipper-Add-On
 origin: $GITREPO
 managed_services: klipper moonraker
-primary_branch: ${AFC_BRANCH}
+primary_branch: main
 install_script: install-afc.sh
 """
 
