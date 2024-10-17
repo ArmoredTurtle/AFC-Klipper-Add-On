@@ -134,7 +134,7 @@ link_extensions() {
   if [ -d "${KLIPPER_PATH}/klippy/extras" ]; then
     for extension in "${AFC_PATH}"/extras/*.py; do
       extension=$(basename "${extension}")
-      ln -sf "${AFC_PATH}/${extension}" "${KLIPPER_PATH}/klippy/extras/${extension}"
+      ln -sf "${AFC_PATH}/extras/${extension}" "${KLIPPER_PATH}/klippy/extras/${extension}"
     done
   else
     print_msg ERROR "AFC Klipper extensions not installed; Klipper extras directory not found."
@@ -163,10 +163,8 @@ check_existing_install() {
     extension=$(basename "${extension}")
     if [ -L "${KLIPPER_PATH}/klippy/extras/${extension}" ]; then
       print_msg INFO "Existing installation found..."
-      PRIOR_INSTALLATION=True
+      PRIOR_INSTALLATION=True``
       break
-    else
-      print_msg INFO "No prior installation found..."
     fi
   done
 }
@@ -174,9 +172,9 @@ check_existing_install() {
 backup_afc_config() {
   if [ -d "${AFC_CONFIG_PATH}" ]; then
     print_msg INFO "Backing up existing AFC config..."
-    popd "${PRINTER_CONFIG_PATH}"
-    mv "${AFC_CONFIG_PATH}" "${AFC_CONFIG_PATH}.$(date +%y%m%d)"
-    pushd
+    pushd "${PRINTER_CONFIG_PATH}"
+    mv AFC AFC.$(date +%y%m%d:%H%M%S)
+    popd
   fi
 }
 
@@ -296,15 +294,29 @@ function clone_repo() {
 
   if [ ! -d "${AFC_PATH}" ]; then
     echo "Cloning AFC Klipper Add-On repo..."
-    if git -C $afc_dir_name clone $GITREPO $afc_base_name; then
-      echo "AFC Klipper Add-On repo cloned successfully"
+    if git -C $afc_dir_name clone --quiet $GITREPO $afc_base_name; then
+      print_msg INFO "AFC Klipper Add-On repo cloned successfully"
+      # TODO fix below
+      git checkout --quiet updated-install-script
     else
-      echo "Failed to clone AFC Klipper Add-On repo"
+      print_msg ERROR "Failed to clone AFC Klipper Add-On repo"
       exit 1
     fi
   else
-    echo "AFC Klipper Add-On repo already exists...continuing with updates"
+    pushd "${AFC_PATH}"
+    git pull --quiet
+    # TODO Fix below
+    git checkout --quiet updated-install-script
+    popd
   fi
+}
+
+function copy_config() {
+  if [ -d "${AFC_CONFIG_PATH}" ]; then
+    mkdir -p "${AFC_CONFIG_PATH}"
+  fi
+  print_msg INFO "Copying AFC config files..."
+  cp -R "${AFC_PATH}/config" "${AFC_CONFIG_PATH}"
 }
 
 clear
@@ -326,6 +338,8 @@ if [ "$PRIOR_INSTALLATION" = "True" ]; then
 fi
 
 if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
+  link_extensions
+  copy_config
   install_type
   choose_board_type
   toolhead_pin
@@ -338,5 +352,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   print_section_delimiter
 
   macro_helpers
+  print_msg INFO "  Updating configuration files with selected values..."
+  print_msg INFO "  Prior to starting Klipper, please review all files in the AFC directory to ensure they are correct."
 fi
 
