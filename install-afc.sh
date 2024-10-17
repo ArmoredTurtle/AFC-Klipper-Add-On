@@ -324,6 +324,7 @@ macro_helpers() {
   print_msg WARNING "  Further configuration for your system is required to be setup in the 'AFC_Macro_Vars.cfg' file."
 
   declare -A questions=(
+    ["Do you want to modify your printer.cfg file automatically?"]="INCLUDE_AFC_CFG True"
     ["Do you want to enable tip forming?"]="ENABLE_FORM_TIP False"
     ["Do you want to enable a toolhead cutter?"]="ENABLE_TOOL_CUT True"
     ["Do you want to enable the hub cutter?"]="ENABLE_HUB_CUT False"
@@ -331,7 +332,6 @@ macro_helpers() {
     ["Do you want to enable the poop macro?"]="ENABLE_POOP_MACRO True"
     ["Do you want to enable the kick macro?"]="ENABLE_KICK_MACRO True"
     ["Do you want to enable the wipe macro?"]="ENABLE_WIPE_MACRO True"
-    ["Do you want to modify your printer.cfg file automatically?"]="INCLUDE_AFC_CFG True"
   )
 
   for question in "${!questions[@]}"; do
@@ -387,9 +387,9 @@ check_and_add_include() {
 
   if ! grep -qF "$include_statement" "$file_path"; then
     echo "$include_statement" >> "$file_path"
-    echo "Added '$include_statement' to $file_path"
+    print_msg INFO "Added '$include_statement' to $file_path"
   else
-    echo "'$include_statement' is already present in $file_path"
+    print_msg WARNING "'$include_statement' is already present in $file_path, not adding."
   fi
 }
 
@@ -457,12 +457,22 @@ update_distance() {
   local new_distance="$2"
   local section="[AFC_buffer neck]"
   local key="distance"
+  local in_section=false
+  local temp_file=$(mktemp)
 
-  awk -v section="$section" -v key="$key" -v new_distance="$new_distance" '
-    $0 == section { in_section = 1 }
-    in_section && $1 == key { $3 = new_distance; in_section = 0 }
-    { print }
-  ' "$file_path" > tmp && mv tmp "$file_path"
+  while IFS= read -r line; do
+    if [[ "$line" == "$section" ]]; then
+      in_section=true
+      echo "$line" >> "$temp_file"
+    elif $in_section && [[ "$line" =~ ^$key ]]; then
+      echo "$key: $new_distance" >> "$temp_file"
+      in_section=false
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$file_path"
+
+  mv "$temp_file" "$file_path"
 }
 
 update_switch_pin() {
