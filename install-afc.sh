@@ -622,9 +622,6 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   update_moonraker_config
 
   print_msg INFO "  Prior to starting Klipper, please review all files in the AFC directory to ensure they are correct."
-
-  if [ "$BOARD_TYPE" == "AFC_Lite" ]; then
-    print_msg WARNING "  Ensure you finish the configuration of the ${AFC_CONFIG_PATH}/AFC.cfg file for your AFC-Lite board."
-    print_msg WARNING "  Instructions are at the the top of the file regarding which sections to uncomment / change."
-  fi
+  print_msg WARNING "  This includes especially the AFC_Macro_Vars.cfg file and the pins in AFC_Hardware.cfg"
+  print_msg INFO "  Once you have reviewed the files, restart Klipper to apply the changes."
 fi
