@@ -247,9 +247,18 @@ choose_board_type() {
     ${PROMPT}Please select an option: ${RESET}"
     read -r input
     case $input in
-      1) BOARD_TYPE="AFC_Lite" ;;
-      2) BOARD_TYPE="MMB_1.0" ;;
-      3) BOARD_TYPE="MMB_1.1" ;;
+      1)
+        BOARD_TYPE="AFC_Lite"
+        break
+        ;;
+      2)
+        BOARD_TYPE="MMB_1.0"
+        break
+        ;;
+      3)
+        BOARD_TYPE="MMB_1.1"
+        break
+        ;;
       4) echo "Exiting..." && exit 0 ;;
       *) echo "Invalid selection" ;;
     esac
@@ -267,8 +276,10 @@ toolhead_pin() {
     read -r input
     if [ -z "$input" ]; then
       TOOLHEAD_PIN="UNKNOWN"
+      break
     else
       TOOLHEAD_PIN=$input
+      break
     fi
   done
 }
@@ -284,10 +295,22 @@ buffer_system() {
     ${PROMPT}Please select an option: ${RESET}"
     read -r input
     case $input in
-      1) BUFFER_SYSTEM="TurtleNeck" ;;
-      2) BUFFER_SYSTEM="TurtleNeckV2" ;;
-      3) BUFFER_SYSTEM="AnnexBelay" ;;
-      4) BUFFER_SYSTEM="Other" ;;
+      1)
+        BUFFER_SYSTEM="TurtleNeck"
+        break
+        ;;
+      2)
+        BUFFER_SYSTEM="TurtleNeckV2"
+        break
+        ;;
+      3)
+        BUFFER_SYSTEM="AnnexBelay"
+        break
+        ;;
+      4)
+        BUFFER_SYSTEM="Other"
+        break
+        ;;
       *) echo "Invalid selection" ;;
     esac
   done
