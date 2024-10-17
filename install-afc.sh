@@ -368,14 +368,14 @@ function clone_repo() {
 
 function update_moonraker_config() {
   local moonraker_config
-  print_msg INFO "Updating Moonraker config with AFC-Klipper-Add-On"
-  moonraker_config=$(grep -c '\[update_manager afc-software\]' "${MOONRAKER_CONFIG}/moonraker.conf" || true)
+  print_msg INFO "  Updating Moonraker config with AFC-Klipper-Add-On"
+  moonraker_config=$(grep -c '\[update_manager afc-software\]' "${MOONRAKER_PATH}/moonraker.conf" || true)
   if [ "$moonraker_config" -eq 0 ]; then
-    echo -e -n "\n${MOONRAKER_UPDATE_CONFIG}" >>"${MOONRAKER_CONFIG}/moonraker.conf"
+    echo -e -n "\n${MOONRAKER_UPDATE_CONFIG}" >>"${MOONRAKER_PATH}/moonraker.conf"
     print_msg INFO "Moonraker config updated"
     restart_service moonraker
   else
-    print_msg INFO "Moonraker config already updated"
+    print_msg INFO "  Moonraker config already updated"
   fi
 }
 
