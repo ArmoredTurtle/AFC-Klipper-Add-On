@@ -54,15 +54,20 @@ Finally, review and update the following files as needed for your configuration.
 
 ## Usage
 
+Usage instructions for the `install-afc.sh` script can be shown by running:
+```bash
+~/AFC-Klipper-Add-On/install-afc.sh -h
+```
+
 ## Mandatory Configuration Changes (All)
 
 Prior to operation, the following checks / updates **MUST** be made to your system:
 
 1) Update the following values in the `~/printer_data/config/AFC/AFC.cfg` file:
 
-- tool_stn
-- tool_stn_unload
-- afc_bowden_length
+   - tool_stn
+   - tool_stn_unload
+   - afc_bowden_length
 
 2) If you are using any of the built-in macros, the variables in the `~/printer_data/config/AFC/AFC_Macro_Vars.cfg` file
 must also be modified to match your configuration for your system. 

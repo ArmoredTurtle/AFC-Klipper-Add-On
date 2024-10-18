@@ -12,13 +12,11 @@ AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Variables
 KLIPPER_SERVICE=klipper
-# TODO - Update to real repo
 GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
-AFC_BRANCH="main"
-
 PRIOR_INSTALLATION=False
 UPDATE_CONFIG=False
 UNINSTALL=False
+BRANCH=main
 
 # Moonraker Config
 MOONRAKER_UPDATE_CONFIG="""
@@ -27,7 +25,7 @@ type: git_repo
 path: ~/AFC-Klipper-Add-On
 origin: $GITREPO
 managed_services: klipper moonraker
-primary_branch: main
+primary_branch: $BRANCH
 install_script: install-afc.sh
 """
 
@@ -350,9 +348,8 @@ function clone_repo() {
     echo "Cloning AFC Klipper Add-On repo..."
     if git -C $afc_dir_name clone --quiet $GITREPO $afc_base_name; then
       print_msg INFO "AFC Klipper Add-On repo cloned successfully"
-      # TODO fix below
       pushd "${AFC_PATH}"
-      git checkout --quiet updated-install-script
+      git checkout --quiet "${BRANCH}"
       popd
     else
       print_msg ERROR "Failed to clone AFC Klipper Add-On repo"
@@ -361,8 +358,7 @@ function clone_repo() {
   else
     pushd "${AFC_PATH}"
     git pull --quiet
-    # TODO Fix below
-    git checkout --quiet updated-install-script
+    git checkout --quiet "${BRANCH}"
     popd
   fi
 }
@@ -514,17 +510,19 @@ function show_help() {
   echo "  -m <moonraker config path>  Specify the path to the Moonraker config directory (default: ~/printer_data/config)"
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -u                          Uninstall the extensions"
+  echo "  -b <branch>                 Specify the branch to use (default: main)"
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-u] [-h] "
+  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-b <branch>] [-u] [-h] "
 }
 
-while getopts "k:s:m:uh" arg; do
+while getopts "k:s:m:b:uh" arg; do
   case ${arg} in
   k) KLIPPER_PATH=${OPTARG} ;;
   m) MOONRAKER_PATH=${OPTARG} ;;
   s) KLIPPER_SERVICE=${OPTARG} ;;
+  b) BRANCH=${OPTARG} ;;
   u) UNINSTALL=True ;;
   h)
     show_help
