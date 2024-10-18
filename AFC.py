@@ -91,10 +91,29 @@ class afc:
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
+
+    cmd_SET_BOWDEN_LENGTH_help = "Set length of bowden, hub to toolhead"
+    def cmd_SET_BOWDEN_LENGTH(self, gcmd):
+        config_bowden = self.afc_bowden_length
+        length_param = gcmd.get('LENGTH', None)
+        if length_param is None or length_param.strip() == '':
+            bowden_length = self.config_bowden_length
+        else:
+            if length_param[0] in ('+', '-'):
+                bowden_value = float(length_param)
+                bowden_length = config_bowden + bowden_value
+            else:
+                bowden_length = float(length_param)
+        self.afc_bowden_length = bowden_length
+        msg = (f"Config Bowden Length: {self.config_bowden_length}\n"
+               f"Previous Bowden Length: {config_bowden}\n"
+               f"New Bowden Length: {bowden_length}")
+        self.respond_info(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
