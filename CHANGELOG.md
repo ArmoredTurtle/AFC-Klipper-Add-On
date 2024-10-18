@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+ - Revamped `install-afc.sh` script to be interactive and provide more configuration options for the user.
+ - Updated `ruff` GHA to only scan for changed files.
 ### Fixed
 
 ### Removed
