@@ -44,7 +44,7 @@ cp -R ~/AFC-Klipper-Add-On/config/* ~/printer_data/config/AFC/
 ```
 
 Next, please copy the appropriate `AFC_Hardware.cfg` template file from `~/AFC-Klipper-Add-On/templates` to `~/printer_data/config/AFC` 
-and modify the file to match your hardware configuration.
+and modify the file to match your hardware configuration. Ensure you rename the file properly based on the selected board type to `AFC_Hardware.cfg`.
 
 Finally, review and update the following files as needed for your configuration.
 
@@ -94,5 +94,5 @@ cd ~/AFC-Klipper-Add-On
 ## Support
 
 Join us on Discord [here](https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbk9nSWh2YlRNR3hRYUlEdkVEeVV5VTNUNEo3QXxBQ3Jtc0trYjUtazZiVlZYM1Q4eFhlby05bGJodjFlMVRMOUwwa2NhSGdYMWptSXN0ZW45Y1hKR0dyc0Zmc3QtTlo3Yk5RM2RrcGNDU2tCXzVDa2FNSzlDam4tN3NGZEpSSEF3YUtBUXNya1h0TDhmampkeWEwOA&q=https%3A%2F%2Fdiscord.gg%2FXq9Y3CjYbd&v=sNd2FQ8EbhI).  
-Armored Turtle Configuration / Build Manuals: [here](https://www.armoredturtle.xyz/)
+Armored Turtle Configuration / Build Manuals [here](https://www.armoredturtle.xyz/)
 
