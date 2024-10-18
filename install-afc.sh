@@ -12,7 +12,7 @@ AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Variables
 KLIPPER_SERVICE=klipper
-GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
+GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
 PRIOR_INSTALLATION=False
 UPDATE_CONFIG=False
 UNINSTALL=False
@@ -378,7 +378,6 @@ function update_moonraker_config() {
 
 # Check if the include AFC/*.cfg is in the printer.cfg file and add or remove it based on the action.
 manage_include() {
-  set -x
   local file_path="$1"
   local action="$2"
   local include_statement="[include AFC/*.cfg]"
@@ -386,22 +385,21 @@ manage_include() {
   if [ "$action" == "add" ]; then
     if ! grep -qF "$include_statement" "$file_path"; then
       echo "$include_statement" >> "$file_path"
-      print_msg INFO "Added '$include_statement' to $file_path"
+      print_msg INFO "  Added '$include_statement' to $file_path"
     else
-      print_msg WARNING "'$include_statement' is already present in $file_path, not adding."
+      print_msg WARNING "  '$include_statement' is already present in $file_path, not adding."
     fi
   elif [ "$action" == "remove" ]; then
     if grep -qF "$include_statement" "$file_path"; then
       grep -vF "$include_statement" "$file_path" > "${file_path}.tmp"
       mv "${file_path}.tmp" "$file_path"
-      print_msg INFO "Removed '$include_statement' from $file_path"
+      print_msg INFO "  Removed '$include_statement' from $file_path"
     else
-      print_msg WARNING "'$include_statement' is not present in $file_path, nothing to remove."
+      print_msg WARNING "  '$include_statement' is not present in $file_path, nothing to remove."
     fi
   else
-    print_msg ERROR "Invalid action specified. Use 'add' or 'remove'."
+    print_msg ERROR "  Invalid action specified. Use 'add' or 'remove'."
   fi
-  set +x
 }
 
 # Updates a configuration value in a file. Looks for the value of the key and replaces it with the new value.
@@ -554,7 +552,7 @@ check_root
 
 if [ "$UNINSTALL" = "True" ]; then
   unlink_extensions
-  manage_include "${PRINTER_CONFIG_PATH}/printer.cfg" remove
+  manage_include "${PRINTER_CONFIG_PATH}/printer.cfg" "remove"
   print_msg INFO "Uninstall complete."
   backup_afc_config
   print_msg WARNING "Ensure you perform the following steps:"
@@ -622,7 +620,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
 
   # Update printer.cfg if selected
   if [ "$INCLUDE_AFC_CFG" = "True" ]; then
-    manage_include "${PRINTER_CONFIG_PATH}/printer.cfg" add
+    manage_include "${PRINTER_CONFIG_PATH}/printer.cfg" "add"
   fi
 
   # Update distance on buffer config
