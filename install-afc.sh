@@ -376,16 +376,28 @@ function update_moonraker_config() {
   fi
 }
 
-# Check if the include AFC/*.cfg is in the printer.cfg file.
-check_and_add_include() {
+# Check if the include AFC/*.cfg is in the printer.cfg file and add or remove it based on the action.
+manage_include() {
   local file_path="$1"
+  local action="$2"
   local include_statement="[include AFC/*.cfg]"
 
-  if ! grep -qF "$include_statement" "$file_path"; then
-    echo "$include_statement" >> "$file_path"
-    print_msg INFO "Added '$include_statement' to $file_path"
+  if [ "$action" == "add" ]; then
+    if ! grep -qF "$include_statement" "$file_path"; then
+      echo "$include_statement" >> "$file_path"
+      print_msg INFO "Added '$include_statement' to $file_path"
+    else
+      print_msg WARNING "'$include_statement' is already present in $file_path, not adding."
+    fi
+  elif [ "$action" == "remove" ]; then
+    if grep -qF "$include_statement" "$file_path"; then
+      grep -vF "$include_statement" "$file_path" > "${file_path}.tmp" && mv "${file_path}.tmp" "$file_path"
+      print_msg INFO "Removed '$include_statement' from $file_path"
+    else
+      print_msg WARNING "'$include_statement' is not present in $file_path, nothing to remove."
+    fi
   else
-    print_msg WARNING "'$include_statement' is already present in $file_path, not adding."
+    print_msg ERROR "Invalid action specified. Use 'add' or 'remove'."
   fi
 }
 
@@ -539,6 +551,7 @@ check_root
 
 if [ "$UNINSTALL" = "True" ]; then
   unlink_extensions
+  manage_include "${PRINTER_CONFIG_PATH}/printer.cfg" "remove"
   print_msg INFO "Uninstall complete."
   backup_afc_config
   print_msg WARNING "Ensure you perform the following steps:"
@@ -606,7 +619,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
 
   # Update printer.cfg if selected
   if [ "$INCLUDE_AFC_CFG" = "True" ]; then
-    check_and_add_include "${PRINTER_CONFIG_PATH}/printer.cfg"
+    manage_include "${PRINTER_CONFIG_PATH}/printer.cfg" "add"
   fi
 
   # Update distance on buffer config
