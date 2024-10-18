@@ -378,6 +378,7 @@ function update_moonraker_config() {
 
 # Check if the include AFC/*.cfg is in the printer.cfg file and add or remove it based on the action.
 manage_include() {
+  set -x
   local file_path="$1"
   local action="$2"
   local include_statement="[include AFC/*.cfg]"
@@ -385,20 +386,22 @@ manage_include() {
   if [ "$action" == "add" ]; then
     if ! grep -qF "$include_statement" "$file_path"; then
       echo "$include_statement" >> "$file_path"
-      print_msg INFO "  Added '$include_statement' to $file_path"
+      print_msg INFO "Added '$include_statement' to $file_path"
     else
-      print_msg WARNING "  '$include_statement' is already present in $file_path, not adding."
+      print_msg WARNING "'$include_statement' is already present in $file_path, not adding."
     fi
   elif [ "$action" == "remove" ]; then
     if grep -qF "$include_statement" "$file_path"; then
-      grep -vF "$include_statement" "$file_path" > "${file_path}.tmp" && mv "${file_path}.tmp" "$file_path"
-      print_msg INFO "  Removed '$include_statement' from $file_path"
+      grep -vF "$include_statement" "$file_path" > "${file_path}.tmp"
+      mv "${file_path}.tmp" "$file_path"
+      print_msg INFO "Removed '$include_statement' from $file_path"
     else
-      print_msg WARNING "  '$include_statement' is not present in $file_path, nothing to remove."
+      print_msg WARNING "'$include_statement' is not present in $file_path, nothing to remove."
     fi
   else
-    print_msg ERROR "  Invalid action specified. Use 'add' or 'remove'."
+    print_msg ERROR "Invalid action specified. Use 'add' or 'remove'."
   fi
+  set +x
 }
 
 # Updates a configuration value in a file. Looks for the value of the key and replaces it with the new value.
