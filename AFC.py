@@ -114,7 +114,7 @@ class afc:
         msg = ("Config Bowden Length: {}\n".format(self.config_bowden_length) +
                "Previous Bowden Length: {}\n".format(config_bowden) +
                "New Bowden Length: {}".format(bowden_length))
-        self.respond_info(msg)
+        self.gcode.respond_info(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
