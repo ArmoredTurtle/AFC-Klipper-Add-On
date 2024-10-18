@@ -191,28 +191,18 @@ prompt_boolean() {
   local default_value=$3
   local input
 
-  echo -ne "${PROMPT}${prompt_message} (Y/N) [${PURPLE}Default: ${default_value}${PROMPT}]:${RESET} "
+  echo -ne "${PROMPT}${prompt_message} (True/False) [${PURPLE}Default: ${default_value}${PROMPT}]:${RESET} "
   read -r input
 
   # If input is empty, use the default value
   if [ -z "$input" ]; then
     input=$default_value
   fi
-
-  # Normalize input to lowercase for easier comparison
-  input=$(echo "$input" | tr '[:upper:]' '[:lower:]')
-
-  # Check if the input is valid (y, n) or the default value (true/false)
-  if [[ "$input" != "y" && "$input" != "n" && "$input" != "true" && "$input" != "false" ]]; then
-    echo "Invalid input. Please enter 'Y' or 'N'."
+  if [[ "$input" != "True" && "$input" != "False" ]]; then
+    echo "Invalid input. Please enter 'True' or 'False'."
     prompt_boolean "$prompt_message" "$var_name" "$default_value"
   else
-    # Convert the input to a boolean value
-    if [[ "$input" == "y" || "$input" == "true" ]]; then
-      eval "$var_name=true"
-    else
-      eval "$var_name=false"
-    fi
+    eval "$var_name=$input"
   fi
 }
 
@@ -332,14 +322,14 @@ macro_helpers() {
   print_msg WARNING "  Further configuration for your system is required to be setup in the 'AFC_Macro_Vars.cfg' file."
 
   declare -A questions=(
-    ["Do you want to modify your printer.cfg file automatically?"]="INCLUDE_AFC_CFG Y"
-    ["Do you want to enable tip forming?"]="ENABLE_FORM_TIP N"
-    ["Do you want to enable a toolhead cutter?"]="ENABLE_TOOL_CUT Y"
-    ["Do you want to enable the hub cutter?"]="ENABLE_HUB_CUT N"
-    ["Do you want to enable the park macro?"]="ENABLE_PARK_MACRO Y"
-    ["Do you want to enable the poop macro?"]="ENABLE_POOP_MACRO Y"
-    ["Do you want to enable the kick macro?"]="ENABLE_KICK_MACRO Y"
-    ["Do you want to enable the wipe macro?"]="ENABLE_WIPE_MACRO Y"
+    ["Do you want to modify your printer.cfg file automatically?"]="INCLUDE_AFC_CFG True"
+    ["Do you want to enable tip forming?"]="ENABLE_FORM_TIP False"
+    ["Do you want to enable a toolhead cutter?"]="ENABLE_TOOL_CUT True"
+    ["Do you want to enable the hub cutter?"]="ENABLE_HUB_CUT False"
+    ["Do you want to enable the park macro?"]="ENABLE_PARK_MACRO True"
+    ["Do you want to enable the poop macro?"]="ENABLE_POOP_MACRO True"
+    ["Do you want to enable the kick macro?"]="ENABLE_KICK_MACRO True"
+    ["Do you want to enable the wipe macro?"]="ENABLE_WIPE_MACRO True"
   )
 
   for question in "${!questions[@]}"; do
@@ -578,7 +568,7 @@ info_menu
 
 if [ "$PRIOR_INSTALLATION" = "True" ]; then
   print_msg WARNING "A prior installation of AFC has been detected."
-  prompt_boolean "Would you like to like to update the config files from the repo?" "update_config_repo" "F"
+  prompt_boolean "Would you like to like to update the config files from the repo?" "update_config_repo" "False"
   if [ "$update_config_repo" = "True" ]; then
     backup_afc_config
     UPDATE_CONFIG=True
