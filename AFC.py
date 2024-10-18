@@ -111,9 +111,9 @@ class afc:
             else:
                 bowden_length = float(length_param)
         self.afc_bowden_length = bowden_length
-        msg = (f"Config Bowden Length: {self.config_bowden_length}\n"
-               f"Previous Bowden Length: {config_bowden}\n"
-               f"New Bowden Length: {bowden_length}")
+        msg = ("Config Bowden Length: {}\n".format(self.config_bowden_length) +
+               "Previous Bowden Length: {}\n".format(config_bowden) +
+               "New Bowden Length: {}".format(bowden_length))
         self.respond_info(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
