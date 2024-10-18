@@ -13,23 +13,61 @@ To install this plugin, you should have the following pre-requisites installed:
 To install this plugin, you can use the following commands from the users home directory:
 
 ```bash
-wget -O - https://raw.githubusercontent.com/ArmoredTurtle/AFC-Klipper-Add-On/main/install-afc.sh | bash
+cd ~
+git clone https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
+cd AFC-Klipper-Add-On
+./install-afc.sh
 ```
 
-## Configuration
+## Configuration (Automated)
 
-Sample configuration files for the most popular boards are located in the `Klipper_cfg_example/AFC` directory.
+The `install-afc.sh` script will automatically the majority of the plugin for you. 
 
-The `AFC` directory should be placed in your `~/printer_data/config` directory and included in your `printer.cfg` file.
+Prior to starting Klipper, please review the configuration located at `~/printer_data/config/AFC/AFC_Hardware.cfg` and ensure all pins are correct for your specific hardware.
 
+Additionally, review the following files for any changes that may be required:
+
+  1) `~/printer_data/config/AFC/AFC.cfg`
+  2) `~/printer_data/config/AFC/AFC_Macro_Vars.cfg`
+
+## Installation & Configuration (Manual)
+
+To manually install and configure the plugin, you can use the following commands:
+
+```bash
+cd ~
+git clone https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
+cd AFC-Klipper-Add-On
+ln -sf ~/AFC-Klipper-Add-On/extras/*.py ~/klipper/klippy/extras/
+mkdir -p ~/printer_data/config/AFC
+cp -R ~/AFC-Klipper-Add-On/config/* ~/printer_data/config/AFC/
 ```
-[include AFC/*.cfg]
-```
 
-Ensure you rename one of the sample configuration files and replace the extension with `.cfg` such as `afc_hardware_AFC.cfg` and so forth.
+Next, please copy the appropriate `AFC_Hardware.cfg` template file from `~/AFC-Klipper-Add-On/templates` to `~/printer_data/config/AFC` 
+and modify the file to match your hardware configuration.
 
-You *MUST* double-check all pins in the configuration file for your specific hardware prior to using.
+Finally, review and update the following files as needed for your configuration.
+
+  1) `~/printer_data/config/AFC/AFC.cfg`
+  2) `~/printer_data/config/AFC/AFC_Macro_Vars.cfg`
+  3) `~/printer_data/config/AFC/AFC_Hardware.cfg`
+
 ## Usage
+
+## Mandatory Configuration Changes (All)
+
+Prior to operation, the following checks / updates **MUST** be made to your system:
+
+1) Update the following values in the `~/printer_data/config/AFC/AFC.cfg` file:
+
+- tool_stn
+- tool_stn_unload
+- afc_bowden_length
+
+2) If you are using any of the built-in macros, the variables in the `~/printer_data/config/AFC/AFC_Macro_Vars.cfg` file
+must also be modified to match your configuration for your system. 
+
+**Failure to update these values can result in damage to your system**
 
 
 ## Troubleshooting
@@ -50,5 +88,6 @@ cd ~/AFC-Klipper-Add-On
 
 ## Support
 
-Join us on Discord [here](https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbk9nSWh2YlRNR3hRYUlEdkVEeVV5VTNUNEo3QXxBQ3Jtc0trYjUtazZiVlZYM1Q4eFhlby05bGJodjFlMVRMOUwwa2NhSGdYMWptSXN0ZW45Y1hKR0dyc0Zmc3QtTlo3Yk5RM2RrcGNDU2tCXzVDa2FNSzlDam4tN3NGZEpSSEF3YUtBUXNya1h0TDhmampkeWEwOA&q=https%3A%2F%2Fdiscord.gg%2FXq9Y3CjYbd&v=sNd2FQ8EbhI).
+Join us on Discord [here](https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbk9nSWh2YlRNR3hRYUlEdkVEeVV5VTNUNEo3QXxBQ3Jtc0trYjUtazZiVlZYM1Q4eFhlby05bGJodjFlMVRMOUwwa2NhSGdYMWptSXN0ZW45Y1hKR0dyc0Zmc3QtTlo3Yk5RM2RrcGNDU2tCXzVDa2FNSzlDam4tN3NGZEpSSEF3YUtBUXNya1h0TDhmampkeWEwOA&q=https%3A%2F%2Fdiscord.gg%2FXq9Y3CjYbd&v=sNd2FQ8EbhI).  
+Armored Turtle Configuration / Build Manuals: [here](https://www.armoredturtle.xyz/)
 

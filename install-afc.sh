@@ -587,8 +587,10 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
     cp "${AFC_PATH}/templates/AFC_Hardware-MMB.cfg" "${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
   fi
 
-  ## This section will choose the correct board type.
-  uncomment_board_type "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "${BOARD_TYPE}"
+  ## This section will choose the correct board type for MMB
+  if [ "$BOARD_TYPE" == "MMB_1.0" ] || [ "$BOARD_TYPE" == "MMB_1.1" ]; then
+    uncomment_board_type "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "${BOARD_TYPE}"
+  fi
 
   # The below section will update configuration values in the AFC configuration files. This takes the format of
   # update_config_value <file_path> <key> <new_value>. Any trailing comments will be preserved.
