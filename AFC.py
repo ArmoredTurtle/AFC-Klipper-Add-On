@@ -6,8 +6,8 @@
 import os
 import json
 from . import AFC_hub_cut
-
 from configparser import Error as error
+
 class afc:
     def __init__(self, config):
         self.printer = config.get_printer()
