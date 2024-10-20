@@ -617,6 +617,7 @@ class afc:
                     self.AFC_error(msg)
                     return
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            self.gcode.respond_info(" Tool Change - " + self.current + " -> " + lane)
             self.TOOL_LOAD(CUR_LANE)
             newpos = self.toolhead.get_position()
             newpos[2] = store_pos[2]
