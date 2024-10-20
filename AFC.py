@@ -534,12 +534,9 @@ class afc:
         extruder = self.printer.lookup_object('toolhead').get_extruder()
         pheaters = self.printer.lookup_object('heaters')
         wait = True
-        if self.heater.target_temp >= self.heater.min_extrude_temp:
+        if self.heater.target_temp <= self.heater.min_extrude_temp:
             self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
             pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp, wait)
-        else:
-            self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-            pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp + 5, wait)
         CUR_LANE.do_enable(True)
         if self.tool_cut:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
