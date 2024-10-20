@@ -449,7 +449,7 @@ class afc:
                 wait = True
                 if self.heater.target_temp <= self.heater.min_extrude_temp:
                     self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-                    pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp + 5, wait)
+                    pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
@@ -534,7 +534,7 @@ class afc:
         wait = True
         if self.heater.target_temp <= self.heater.min_extrude_temp:
             self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
-            pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp + 5, wait)
+            pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
         CUR_LANE.do_enable(True)
         if self.tool_cut:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
