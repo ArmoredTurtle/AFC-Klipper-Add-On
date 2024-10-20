@@ -475,7 +475,7 @@ class afc:
                         self.AFC_error(message)
                         self.failure = True
                         break
-                    
+
             if self.failure == False:
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                 CUR_LANE.status = 'Tooled'
