@@ -102,14 +102,15 @@ class afc:
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
-    
+
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
     def cmd_CLEAR_ERROR(self, gcmd):
         self.failure = False
 
     def pause_print(self):
-        self.gcode.respond_info ('PAUSING')
-        self.gcode.run_script_from_command('PAUSE')
+        if self.is_printing() and not self.is_paused():
+            self.gcode.respond_info ('PAUSING')
+            self.gcode.run_script_from_command('PAUSE')
 
     def AFC_error(self, msg):
         # Handle AFC errors
@@ -659,10 +660,6 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
-
-    def pause_print(self):
-        if self.is_printing() and not self.is_paused():
-            self.gcode.run_script_from_command('PAUSE')
 
     def is_printing(self):
         eventtime = self.reactor.monotonic()
