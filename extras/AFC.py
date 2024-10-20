@@ -102,14 +102,15 @@ class afc:
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
-    
+
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
     def cmd_CLEAR_ERROR(self, gcmd):
         self.failure = False
 
     def pause_print(self):
-        self.gcode.respond_info ('PAUSING')
-        self.gcode.run_script_from_command('PAUSE')
+        if self.is_printing() and not self.is_paused():
+            self.gcode.respond_info ('PAUSING')
+            self.gcode.run_script_from_command('PAUSE')
 
     def AFC_error(self, msg):
         # Handle AFC errors
@@ -447,8 +448,8 @@ class afc:
                 pheaters = self.printer.lookup_object('heaters')
                 wait = True
                 if self.heater.target_temp <= self.heater.min_extrude_temp:
-                    self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
-                    pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp, wait)
+                    self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+                    pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, self.short_moves_speed, self.short_moves_accel)
@@ -474,7 +475,7 @@ class afc:
                         self.AFC_error(message)
                         self.failure = True
                         break
-                    
+
             if self.failure == False:
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                 CUR_LANE.status = 'Tooled'
@@ -532,8 +533,8 @@ class afc:
         pheaters = self.printer.lookup_object('heaters')
         wait = True
         if self.heater.target_temp <= self.heater.min_extrude_temp:
-            self.gcode.respond_info('Extruder temp is still below min_extrude_temp, waiting for it to finish heating.')
-            pheaters.set_temperature(extruder.get_heater(), self.heater.target_temp, wait)
+            self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min')
+            pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
         CUR_LANE.do_enable(True)
         if self.tool_cut:
             self.gcode.run_script_from_command(self.tool_cut_cmd)
@@ -607,6 +608,7 @@ class afc:
             if self.is_printing() and not self.is_paused():
                 self.change_tool_pos = store_pos
             if self.current != None:
+                self.gcode.respond_info(" Tool Change - " + self.current + " -> " + lane)
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                 self.TOOL_UNLOAD(CUR_LANE)
                 if self.failure:
@@ -659,10 +661,6 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
-
-    def pause_print(self):
-        if self.is_printing() and not self.is_paused():
-            self.gcode.run_script_from_command('PAUSE')
 
     def is_printing(self):
         eventtime = self.reactor.monotonic()

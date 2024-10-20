@@ -491,7 +491,7 @@ update_switch_pin() {
   local in_section=false
 
   while IFS= read -r line; do
-    if [[ "$line" =~ ^\[filament_switch_sensor\ tool\]$ ]]; then
+    if [[ "$line" =~ ^\[filament_switch_sensor\ tool_start\]$ ]]; then
       in_section=true
       echo "$line" >> "$temp_file"
     elif $in_section && [[ "$line" =~ ^switch_pin: ]]; then
