@@ -91,11 +91,11 @@ class AFCExtruderStepper:
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)
         self.afc_motor_enb = config.get('afc_motor_enb', None)
         if self.afc_motor_rwd is not None:
-            self.afc_motor_rwd = AFC_assist.AFCassistMotor(config,'rwd')
+            self.afc_motor_rwd = AFC_assist.AFCassistMotor(config, 'rwd')
         if self.afc_motor_fwd is not None:
-            self.afc_motor_fwd = AFC_assist.AFCassistMotor(config,'fwd')
+            self.afc_motor_fwd = AFC_assist.AFCassistMotor(config, 'fwd')
         if self.afc_motor_enb is not None:
-            self.afc_motor_enb = AFC_assist.AFCassistMotor(config,'enb')
+            self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
         # Defaulting to false so that extruder motors to not move until PREP has been called
