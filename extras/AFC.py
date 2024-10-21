@@ -253,9 +253,13 @@ class afc:
 
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            except: self.AFC_error(error_string.format("hub"), False); return
+            except:
+                self.AFC_error(error_string.format("hub"), False)
+                return
             try: self.tool_start = self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper
-            except: self.AFC_error(error_string.format("tool_start"), False); return
+            except:
+                self.AFC_error(error_string.format("tool_start"), False)
+                return
             #try: self.tool_end = self.printer.lookup_object('filament_switch_sensor tool_end').runout_helper
             #except: self.tool_end = None
             check_success = False
@@ -323,7 +327,7 @@ class afc:
                                     msg += 'EMPTY READY FOR SPOOL'
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
-                
+
                         # Setting lane to prepped so that loading will happen once user tries to load filament
                         # Always want to call this even if there was a problem
                         CUR_LANE.set_afc_prep_done()
@@ -396,12 +400,12 @@ class afc:
 
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
-                        
+
                         # Setting lane to prepped so that loading will happen once user tries to load filament
                         # Always want to call this even if there was a problem
                         CUR_LANE.set_afc_prep_done()
 
-        if check_success == True:                            
+        if check_success == True:
             self.gcode.respond_info(logo)
         else:
             self.gcode.respond_info(logo_error)
@@ -416,7 +420,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         if CUR_LANE.prep_state == False: return
-        
+
         if CUR_LANE.load_state == False:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
@@ -430,7 +434,7 @@ class afc:
         CUR_LANE.status = 'Hubed'
         CUR_LANE.do_enable(False)
         CUR_LANE.hub_load = True
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
         self.save_vars()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
@@ -446,7 +450,7 @@ class afc:
                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.save_vars()
             CUR_LANE.status = None
         else:
@@ -614,7 +618,7 @@ class afc:
                 return
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
         self.save_vars()
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
