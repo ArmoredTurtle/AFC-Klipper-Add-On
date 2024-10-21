@@ -114,7 +114,7 @@ class afc:
 
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
-        self.gcode.respond_info( msg )
+        self.gcode._respond_error( msg )
         if pause: self.pause_print()
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
@@ -253,9 +253,9 @@ class afc:
 
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            except: self.AFC_error(error_string.format("hub"), False)
+            except: self.AFC_error(error_string.format("hub"), False); return
             try: self.tool_start = self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper
-            except: self.AFC_error(error_string.format("tool_start"), False)
+            except: self.AFC_error(error_string.format("tool_start"), False); return
             #try: self.tool_end = self.printer.lookup_object('filament_switch_sensor tool_end').runout_helper
             #except: self.tool_end = None
             check_success = False
