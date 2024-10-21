@@ -106,7 +106,7 @@ check_root() {
 
 restart_service() {
   local service_name=$1
-  print_msh INFO "Restarting ${service_name} service..."
+  print_msg INFO "Restarting ${service_name} service..."
   if command -v systemctl &> /dev/null; then
     sudo systemctl restart "${service_name}"
   else
@@ -116,7 +116,7 @@ restart_service() {
 
 check_klipper() {
   if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "${KLIPPER_SERVICE}.service"; then
-    print_msh SUCCESS "Klipper service found!"
+    print_msg SUCCESS "Klipper service found!"
   else
     print_msg ERROR "Klipper service not found. Install Klipper first."
     exit 1
@@ -322,7 +322,7 @@ macro_helpers() {
   print_msg WARNING "  Further configuration for your system is required to be setup in the 'AFC_Macro_Vars.cfg' file."
 
   declare -A questions=(
-    ["Do you want to modify your printer.cfg file automatically?"]="INCLUDE_AFC_CFG True"
+    ["Do you want to add AFC includes to your printer.cfg file automatically?"]="INCLUDE_AFC_CFG True"
     ["Do you want to enable tip forming?"]="ENABLE_FORM_TIP False"
     ["Do you want to enable a toolhead cutter?"]="ENABLE_TOOL_CUT True"
     ["Do you want to enable the hub cutter?"]="ENABLE_HUB_CUT False"
