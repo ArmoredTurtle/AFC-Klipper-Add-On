@@ -632,9 +632,8 @@ class afc:
             store_pos = self.toolhead.get_position()
             if self.is_printing() and not self.is_paused():
                 self.change_tool_pos = store_pos
-            self.gcode.respond_info(" Tool Change - " + self.current + " -> " + lane)
+            self.gcode.respond_info(" Tool Change - " + str(self.current) + " -> " + lane)
             if self.current != None:
-               
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                 self.TOOL_UNLOAD(CUR_LANE)
                 if self.failure:
