@@ -112,17 +112,17 @@ class afc:
             self.gcode.respond_info ('PAUSING')
             self.gcode.run_script_from_command('PAUSE')
 
-    def AFC_error(self, msg):
+    def AFC_error(self, msg, pause=True):
         # Handle AFC errors
         self.gcode.respond_info( msg )
-        self.pause_print()
+        if pause: self.pause_print()
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
-    def handle_lane_failure(self, CUR_LANE, message):
+    def handle_lane_failure(self, CUR_LANE, message, pause=True):
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
-        self.AFC_error(msg)
+        self.AFC_error(msg, pause)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
 
     # Helper function to write variables to file. Prints with indents to make it more readable for users
@@ -253,9 +253,9 @@ class afc:
 
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            except: self.AFC_error(error_string.format("hub"))
+            except: self.AFC_error(error_string.format("hub"), False)
             try: self.tool_start = self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper
-            except: self.AFC_error(error_string.format("tool"))
+            except: self.AFC_error(error_string.format("tool_start"), False)
             #try: self.tool_end = self.printer.lookup_object('filament_switch_sensor tool_end').runout_helper
             #except: self.tool_end = None
             check_success = False
@@ -273,7 +273,7 @@ class afc:
                                 #callout if filament can't be retracted before extruder load switch
                                 if num_tries > (self.afc_bowden_length/self.short_move_dis) + 3:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
-                                    self.handle_lane_failure(CUR_LANE, message)
+                                    self.handle_lane_failure(CUR_LANE, message, False)
                                     check_success = False
                                     break
                             num_tries = 0
@@ -283,7 +283,7 @@ class afc:
                                 #callout if filament is past trigger but can't be brought past extruder
                                 if num_tries > 20:
                                     message = (' FAILED TO RELOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                    self.handle_lane_failure(CUR_LANE, message)
+                                    self.handle_lane_failure(CUR_LANE, message, False)
                                     check_success = False
                                     break
                             if check_success == True:
@@ -297,7 +297,7 @@ class afc:
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if num_tries > 20:
                                         message = (' CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                        self.handle_lane_failure(CUR_LANE, message)
+                                        self.handle_lane_failure(CUR_LANE, message, False)
                                         check_success = False
                                         break
                                 if check_success == True:
@@ -341,7 +341,7 @@ class afc:
                                     untool_attempts += 1
                                     if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                                         message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
-                                        self.handle_lane_failure(CUR_LANE, message)
+                                        self.handle_lane_failure(CUR_LANE, message, False)
                                         break
                                 CUR_LANE.status = None
                                 self.current = None
@@ -351,7 +351,7 @@ class afc:
                                     num_tries += 1
                                     if num_tries > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                        self.handle_lane_failure(CUR_LANE, message)
+                                        self.handle_lane_failure(CUR_LANE, message, False)
                                         break
                                 if CUR_LANE.load_state:
                                     CUR_LANE.status = 'Loaded'
@@ -372,7 +372,7 @@ class afc:
                                     num_tries += 1
                                 if num_tries > 20:
                                 	message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
-                                	self.handle_lane_failure(CUR_LANE, message)
+                                	self.handle_lane_failure(CUR_LANE, message, False)
 
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
@@ -408,7 +408,7 @@ class afc:
         # Call out if all lanes are clear but hub is not
         if self.hub.filament_present == True and self.tool_start.filament_present == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
-            self.AFC_error(msg)
+            self.AFC_error(msg, False)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
@@ -448,7 +448,7 @@ class afc:
             CUR_LANE.do_enable(False)
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load 
             self.save_vars()
-			CUR_LANE.status = None
+            CUR_LANE.status = None
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
