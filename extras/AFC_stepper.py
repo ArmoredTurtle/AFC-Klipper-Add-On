@@ -98,6 +98,10 @@ class AFCExtruderStepper:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
+        # Set hub loading speed depending on distance between extruder and hub
+        self.dist_hub_move_speed = self.AFC.long_moves_speed if self.dist_hub >= 200 else self.AFC.short_moves_speed
+        self.dist_hub_move_accel = self.AFC.long_moves_accel if self.dist_hub >= 200 else self.AFC.short_moves_accel
+
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
 
@@ -144,6 +148,7 @@ class AFCExtruderStepper:
         speed (float): The speed of the movement.
         accel (float): The acceleration of the movement.
         """
+
         if distance < 0:
            value = speed * -1
         else:
@@ -155,6 +160,7 @@ class AFCExtruderStepper:
         value /= 100
         if value > 1: value = 1
         if assist_active: self.assist(value)
+
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
         prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
@@ -198,12 +204,13 @@ class AFCExtruderStepper:
                     self.do_enable(True)
                     self.move(10,500,400)
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
-                    if x> 20:
+                    if x> 40:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.AFC_error(msg)
                         self.AFC.afc_led(self.AFC.led_fault, led)
                         self.status=''
                         break
+                self.status=''
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
