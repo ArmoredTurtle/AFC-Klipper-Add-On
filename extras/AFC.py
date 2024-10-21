@@ -108,8 +108,9 @@ class afc:
         self.failure = False
 
     def pause_print(self):
-        self.gcode.respond_info ('PAUSING')
-        self.gcode.run_script_from_command('PAUSE')
+        if self.is_printing() and not self.is_paused():
+            self.gcode.respond_info ('PAUSING')
+            self.gcode.run_script_from_command('PAUSE')
 
     def AFC_error(self, msg):
         # Handle AFC errors
