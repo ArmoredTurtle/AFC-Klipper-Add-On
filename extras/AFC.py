@@ -678,7 +678,7 @@ class afc:
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
-                
+
                 numoflanes +=1
         str["system"]={}
         str["system"]['current_load']= self.current
@@ -688,7 +688,7 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
-    
+
     def is_homed(self):
         curtime = self.reactor.monotonic()
         kin_status = self.toolhead.get_kinematics().get_status(curtime)
