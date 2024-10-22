@@ -508,8 +508,6 @@ class afc:
                 self.toolhead.wait_moves()
                 self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
-                self.save_vars()
                 self.current = CUR_LANE.name
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
@@ -520,6 +518,9 @@ class afc:
                     self.gcode.run_script_from_command(self.kick_cmd)
                 if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
+            # Setting hub loaded outside of failure check since this could be true
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+            self.save_vars() # Always save variables even if a failure happens
             if self.failure:
                 self.pause_print()
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
@@ -673,9 +674,11 @@ class afc:
                 str[UNIT][NAME]['LANE'] = LANE.index
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"]=bool(LANE.prep_state)
+                str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
+                
                 numoflanes +=1
         str["system"]={}
         str["system"]['current_load']= self.current
