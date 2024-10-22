@@ -685,11 +685,23 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
+    
+    def is_homed(self):
+        curtime = self.reactor.monotonic()
+        kin_status = self.toolhead.get_kinematics().get_status(curtime)
+        if ('x' not in kin_status['homed_axes'] or 'y' not in kin_status['homed_axes'] or 'z' not in kin_status['homed_axes']):
+            return False
+        else:
+            return True
+
 
     def is_printing(self):
         eventtime = self.reactor.monotonic()
         idle_timeout = self.printer.lookup_object("idle_timeout")
-        return idle_timeout.get_status(eventtime)["state"] == "Printing"
+        if idle_timeout.get_status(eventtime)["state"] == "Printing":
+            return True
+        else:
+            False
 
     def is_paused(self):
         eventtime = self.reactor.monotonic()
