@@ -107,7 +107,7 @@ class afc:
         self.failure = False
 
     def pause_print(self):
-        if self.is_printing() and not self.is_paused():
+        if self.is_homed() and not self.is_paused():
             self.gcode.respond_info ('PAUSING')
             self.gcode.run_script_from_command('PAUSE')
 
@@ -629,7 +629,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         if lane != self.current:
             store_pos = self.toolhead.get_position()
-            if self.is_printing() and not self.is_paused():
+            if self.is_homed() and not self.is_paused():
                 self.change_tool_pos = store_pos
             self.gcode.respond_info(" Tool Change - " + str(self.current) + " -> " + lane)
             if self.current != None:
