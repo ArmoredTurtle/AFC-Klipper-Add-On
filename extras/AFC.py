@@ -706,7 +706,7 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
-    
+
     def is_homed(self):
         curtime = self.reactor.monotonic()
         kin_status = self.toolhead.get_kinematics().get_status(curtime)
