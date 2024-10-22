@@ -64,6 +64,7 @@ class afc:
         self.tool_stn = config.getfloat("tool_stn", 120)
         self.tool_stn_unload = config.getfloat("tool_stn_unload", self.tool_stn)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
+        self.config_bowden_length = self.afc_bowden_length
 
         # MOVE SETTINGS
         self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)
@@ -90,10 +91,31 @@ class afc:
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
+
+    cmd_SET_BOWDEN_LENGTH_help = "Set length of bowden, hub to toolhead"
+    def cmd_SET_BOWDEN_LENGTH(self, gcmd):
+        config_bowden = self.afc_bowden_length
+        length_param = gcmd.get('LENGTH', None)
+        if length_param is None or length_param.strip() == '':
+            bowden_length = self.config_bowden_length
+        else:
+            if length_param[0] in ('+', '-'):
+                bowden_value = float(length_param)
+                bowden_length = config_bowden + bowden_value
+            else:
+                bowden_length = float(length_param)
+        self.afc_bowden_length = bowden_length
+        msg = ("Config Bowden Length: {}\n".format(self.config_bowden_length) +
+               "Previous Bowden Length: {}\n".format(config_bowden) +
+               "New Bowden Length: {}".format(bowden_length) +
+               "TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UNPDATED IN AFC.cfg")
+        self.respond_info(msg)
+        self.gcode.respond_info(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
