@@ -2,8 +2,9 @@ from . import AFC
 
 class afc_hub_cut:
     def __init__(self, config):
-        self.AFC = self.gcode = self.printer.lookup_object('AFC')
+        
         self.printer = config.get_printer()
+        self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
 
         #HUB cut_sizeself.hub_cut_active = config.getboolean("hub_cut_active", False)
