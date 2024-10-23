@@ -266,6 +266,7 @@ class afc:
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
+                    self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
                     #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
@@ -399,7 +400,6 @@ class afc:
                                 if num_tries > 20:
                                 	message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                 	self.handle_lane_failure(CUR_LANE, message, False)
-
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
                         if check_success == True:
