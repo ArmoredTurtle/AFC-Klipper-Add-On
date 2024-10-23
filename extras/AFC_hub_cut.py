@@ -2,7 +2,7 @@ from . import AFC
 
 class afc_hub_cut:
     def __init__(self, config):
-        self.AFC = AFC.afc
+        self.AFC = self.gcode = self.printer.lookup_object('AFC')
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
 
