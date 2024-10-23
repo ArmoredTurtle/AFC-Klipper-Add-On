@@ -19,7 +19,7 @@ class afc_hub_cut:
         # Prep the servo for cutting.
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
-        while self.hub.filament_present == False:
+        while self.AFC.hub.filament_present == False:
             CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         # Go back, to allow the `hub_cut_dist` to be accurate.
         CUR_LANE.move( -self.hub_move_dis*4, self.short_moves_speed, self.short_moves_accel)
