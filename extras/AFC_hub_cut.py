@@ -20,6 +20,7 @@ class afc_hub_cut:
 
     def hub_cut(self, CUR_LANE):
         self.hub = self.AFC.hub
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + CUR_LANE)
         # Prep the servo for cutting.
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
