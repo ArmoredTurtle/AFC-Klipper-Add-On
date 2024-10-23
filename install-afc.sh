@@ -381,11 +381,17 @@ manage_include() {
   local file_path="$1"
   local action="$2"
   local include_statement="[include AFC/*.cfg]"
+  local save_config_line="#*# <---------------------- SAVE_CONFIG ---------------------->"
 
   if [ "$action" == "add" ]; then
     if ! grep -qF "$include_statement" "$file_path"; then
-      echo "$include_statement" >> "$file_path"
-      print_msg INFO "  Added '$include_statement' to $file_path"
+      if grep -qF "$save_config_line" "$file_path"; then
+        sed -i "/$save_config_line/i $include_statement" "$file_path"
+        print_msg INFO "  Added '$include_statement' in $file_path"
+      else
+        echo "$include_statement" >> "$file_path"
+        print_msg INFO "  Added '$include_statement' to $file_path"
+      fi
     else
       print_msg WARNING "  '$include_statement' is already present in $file_path, not adding."
     fi
