@@ -15,11 +15,13 @@ class afc_hub_cut:
         self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
         self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
 
+        self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
+
     def hub_cut(self, CUR_LANE):
         # Prep the servo for cutting.
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
-        while self.AFC.hub.filament_present == False:
+        while self.hub.filament_present == False:
             CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         # Go back, to allow the `hub_cut_dist` to be accurate.
         CUR_LANE.move( -self.hub_move_dis*4, self.short_moves_speed, self.short_moves_accel)
