@@ -1,4 +1,4 @@
-# 8 Track Automated Filament Changer
+2# 8 Track Automated Filament Changer
 #
 # Copyright (C) 2024 Armored Turtle
 #
@@ -73,6 +73,7 @@ class AFCExtruderStepper:
             self.index = 0
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
+        self.afc_motor_speed = config.getfloat('afc_motor_speed', 100)
         # distance to retract filament from the hub
         self.park_dist = config.getfloat('park_dist', 10)
         self.led_index = config.get('led_index')
@@ -157,7 +158,7 @@ class AFCExtruderStepper:
         #       The trouble is the "just right" speed would also vary based on how full the
         #       spool is and perhaps variance in N20 motors and the voltage they are receiving.
         #       Perhaps the speed ratio should be configurable?
-        value /= 100
+        value /= self.afc_motor_speed
         if value > 1: value = 1
         if assist_active: self.assist(value)
 
