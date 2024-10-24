@@ -210,6 +210,19 @@ print_section_delimiter() {
   print_msg SUCCESS "----------------------------------------"
 }
 
+check_for_hh() {
+  local file_path="${KLIPPER_PATH}/klippy/extras/mmu.py"
+  local search_text="Happy Hare"
+
+  if [ -f "$file_path" ]; then
+    if grep -q "$search_text" "$file_path"; then
+      print_msg ERROR "  Happy Hare was found installed in your klipper extras. AFC is not currently compatible"
+      print_msg ERROR "  with Happy Hare. Please remove it, and then re-run this install-afc.sh script."
+      exit 1
+    fi
+  fi
+}
+
 install_type() {
   while true; do
     echo -ne "
@@ -555,6 +568,7 @@ done
 
 clear
 check_root
+check_for_hh
 
 if [ "$UNINSTALL" = "True" ]; then
   unlink_extensions
