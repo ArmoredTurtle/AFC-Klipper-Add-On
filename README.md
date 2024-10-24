@@ -21,7 +21,7 @@ cd AFC-Klipper-Add-On
 
 ## Configuration (Automated)
 
-The `install-afc.sh` script will automatically the majority of the plugin for you. 
+The `install-afc.sh` script will automatically install the majority of the plugin for you. 
 
 Prior to starting Klipper, please review the configuration located at `~/printer_data/config/AFC/AFC_Hardware.cfg` and ensure all pins are correct for your specific hardware.
 
@@ -94,5 +94,5 @@ cd ~/AFC-Klipper-Add-On
 ## Support
 
 Join us on Discord [here](https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbk9nSWh2YlRNR3hRYUlEdkVEeVV5VTNUNEo3QXxBQ3Jtc0trYjUtazZiVlZYM1Q4eFhlby05bGJodjFlMVRMOUwwa2NhSGdYMWptSXN0ZW45Y1hKR0dyc0Zmc3QtTlo3Yk5RM2RrcGNDU2tCXzVDa2FNSzlDam4tN3NGZEpSSEF3YUtBUXNya1h0TDhmampkeWEwOA&q=https%3A%2F%2Fdiscord.gg%2FXq9Y3CjYbd&v=sNd2FQ8EbhI).  
-Armored Turtle Configuration / Build Manuals [here](https://www.armoredturtle.xyz/)
+Armored Turtle Configuration / Build Manuals [here](https://armoredturtle.xyz/)
 
