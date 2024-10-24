@@ -5,6 +5,9 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from configparser import Error as error
 
+ADVANCE_STATE_NAME = "Advance"
+TRAILING_STATE_NAME = "Trailing"
+
 class AFCtrigger:
 
     def __init__(self, config):
@@ -75,7 +78,12 @@ class AFCtrigger:
         if self.debug == True: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
         if self.turtleneck:
             self._set_extruder_stepper()
-            self.set_high_multiplier()
+            multiplier = 1.0
+            if self.last_state == ADVANCE_STATE_NAME:
+                multiplier = self.multiplier_high
+            elif self.last_state == TRAILING_STATE_NAME:
+                multiplier = self.multiplier_low
+            self.set_multiplier( multiplier )
 
     def disable_buffer(self):
         self.enable = False
@@ -110,35 +118,18 @@ class AFCtrigger:
         else:
             return  
 
-    def set_low_multiplier(self):
-        if self.enable:
-            multiplier = self.multiplier_low
-            self.set_multiplier(multiplier)
-            if self.debug == True: 
-                stepper = self.printer.lookup_object('AFC_stepper ' + self.printer.lookup_object('AFC').current).extruder_stepper.stepper
-                new_rotation_dist = stepper.get_rotation_distance()[0]
-                self.gcode.respond_info("New rotation distance after applying factor: {}".format(new_rotation_dist))
-
-    def set_high_multiplier(self):
-        if self.enable:
-            multiplier = self.multiplier_high
-            self.set_multiplier(multiplier)
-            if self.debug == True: 
-                stepper = self.printer.lookup_object('AFC_stepper ' + self.printer.lookup_object('AFC').current).extruder_stepper.stepper
-                new_rotation_dist = stepper.get_rotation_distance()[0]
-                self.gcode.respond_info("New rotation distance after applying factor: {}".format(new_rotation_dist))
-
     def reset_multiplier(self):
         if self.debug == True: self.gcode.respond_info("Buffer multiplier reset")
         self.set_multiplier(1.0)
 
-    def advance_callback(self, state):
-        self.last_state = state
-        if self.printer.state_message == 'Printer is ready' and self.enable:
+    def advance_callback(self, eventtime, state):
+        if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != ADVANCE_STATE_NAME:
             if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
                 if self.printer.lookup_object('AFC').current != None:
-                    self.set_low_multiplier()
+                    self.set_multiplier( self.multiplier_high )
                     if self.debug == True: self.gcode.respond_info("Buffer Triggered State: Advanced")
+        
+        self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, state):
         self.last_state = state
@@ -147,6 +138,8 @@ class AFCtrigger:
                 if self.printer.lookup_object('AFC').current != None:
                     self.set_high_multiplier()
                     if self.debug == True: self.gcode.respond_info("Buffer Triggered State: Trailing")
+
+        self.last_state = TRAILING_STATE_NAME
 
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):
@@ -197,23 +190,28 @@ class AFCtrigger:
         distance of the current AFC stepper motor.
 
         Behavior:
-            - If the buffer sensor is compressed, the state is reported as 'compressed'. 
-            Otherwise, it is reported as 'expanded'.
-            - If the turtleneck feature is enabled and a tool is loaded, the rotation 
-            distance of the current AFC stepper motor is also reported.
-            - Both the buffer state and the stepper motor's rotation distance are 
-            sent back as G-code responses.
+            - If the `turtleneck` feature is enabled and a tool is loaded, the rotation 
+            distance of the current AFC stepper motor is reported, along with the 
+            current state of the buffer sensor.
+            - If the `turtleneck` feature is not enabled, only the buffer state is 
+            reported.
+            - The buffer state is reported as 'compressed' if the last state indicates 
+            compression, or 'expanded' otherwise.
+            - Both the buffer state and, if applicable, the stepper motor's rotation 
+            distance are sent back as G-code responses.
         """
-        if self.last_state:
-            state_info = "compressed"
-        else:
-            state_info = "expanded"
         if self.turtleneck:
             tool_loaded=self.printer.lookup_object('AFC').current
             LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
             stepper = LANE.extruder_stepper.stepper
             rotation_dist = stepper.get_rotation_distance()[0]
             self.gcode.respond_info("{} Rotation distance: {}".format(LANE.name.upper(), rotation_dist))
+            state_info = self.last_state
+        else:
+            if self.last_state:
+                state_info = "compressed"
+            else:
+                state_info = "expanded"
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
 def load_config_prefix(config):
