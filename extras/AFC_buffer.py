@@ -77,12 +77,12 @@ class AFCtrigger:
     def belay_sensor_callback(self, state):
         self.last_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
-            if self.printer.lookup_object('filament_switch_sensor tool').runout_helper.filament_present == True:
+            if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
                     tool_loaded = self.AFC.current
                     LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                     if LANE.status != 'unloading':
-                        if self.debug == True: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
+                        if self.debug: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
                         LANE.move(self.buffer_distance, self.velocity ,self.accel)
 
     # Turtleneck commands
@@ -95,24 +95,22 @@ class AFCtrigger:
             elif self.last_state == TRAILING_STATE_NAME:
                 multiplier = self.multiplier_low
             self.set_multiplier( multiplier )
-        if self.debug == True: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
+        if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
         self.enable = True
 
     def disable_buffer(self):
         self.enable = False
-        if self.debug == True: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
+        if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
         if self.turtleneck:
             self.reset_multiplier()
 
     def _set_extruder_stepper(self):
         if self.printer.state_message == 'Printer is ready' and self.AFC.current != None and not self.enable:
-            tool_loaded = self.AFC.current
-            LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
-            stepper = LANE.extruder_stepper.stepper
+            LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
             base_rotation_dist = stepper.get_rotation_distance()[0]
             self.base_rotation_dist = base_rotation_dist
-            if self.debug == True: self.gcode.respond_info("Base rotation distance for {}: {}".format(LANE.name.upper(), base_rotation_dist))
-            self.update_rotation_distance = lambda m: stepper.set_rotation_distance(
+            if self.debug: self.gcode.respond_info("Base rotation distance for {}: {}".format(LANE.name.upper(), base_rotation_dist))
+            self.update_rotation_distance = lambda m: LANE.extruder_stepper.stepper.stepper.set_rotation_distance(
                 base_rotation_dist / m
             )
         else:
@@ -123,13 +121,13 @@ class AFCtrigger:
         if self.AFC.current is None: return
 
         self.update_rotation_distance( multiplier )
-        if self.debug == True:
+        if self.debug:
             stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current).extruder_stepper.stepper
             new_rotation_dist = stepper.get_rotation_distance()[0]
             self.gcode.respond_info("New rotation distance after applying factor: {}".format(new_rotation_dist))
 
     def reset_multiplier(self):
-        if self.debug == True: self.gcode.respond_info("Buffer multiplier reset")
+        if self.debug: self.gcode.respond_info("Buffer multiplier reset")
         self.update_rotation_distance(1.0)
 
     def advance_callback(self, eventime, state):
@@ -138,7 +136,7 @@ class AFCtrigger:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
                     self.set_multiplier( self.multiplier_high )
-                    if self.debug == True: self.gcode.respond_info("Buffer Triggered State: Advanced")
+                    if self.debug: self.gcode.respond_info("Buffer Triggered State: Advancing")
         
         self.last_state = ADVANCE_STATE_NAME
 
@@ -147,8 +145,8 @@ class AFCtrigger:
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != TRAILING_STATE_NAME:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
-                    self.set_high_multiplier()
-                    if self.debug == True: self.gcode.respond_info("Buffer Triggered State: Trailing")
+                    self.set_multiplier( self.multiplier_low )
+                    if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
 
         self.last_state = TRAILING_STATE_NAME
 
