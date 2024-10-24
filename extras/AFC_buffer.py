@@ -58,8 +58,6 @@ class AFCtrigger:
             raise error( msg )
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        def _handle_ready(self):
-            self.min_event_systime = self.reactor.monotonic() + 2.
 
         self.gcode.register_mux_command("QUERY_BUFFER", "BUFFER", self.name, self.cmd_QUERY_BUFFER, desc=self.cmd_QUERY_BUFFER_help) 
 
@@ -72,6 +70,9 @@ class AFCtrigger:
             self.buttons.register_buttons([self.advance_pin], self.advance_callback)
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
+
+    def _handle_ready(self):
+        self.min_event_systime = self.reactor.monotonic() + 2.
 
     def enable_buffer(self):
         self.enable = True
