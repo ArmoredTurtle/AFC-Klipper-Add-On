@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sample configuration files for the most popular boards are located in the `Klipper_cfg_example/AFC` directory.
 
-## [Unreleased]
+## [2024-10-24]
 
 ### Added
 
@@ -39,6 +39,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - If using sensor after gears `[filament_switch_sensor extruder]` updaste to `[filament_switch_sensor tool_end]`
 
 ### Fixed
+### Removed
 
+## [2024-10-24]
+
+### Added
+
+  - Added `Buffer_Name` to `AFC.cfg`
+    - this allows the code base to have a name for the buffer to reference.
+    - The name must match how buffer is defined in `[AFC_buffer *Buffer_Name*]`
+    - ^^^This has to be manually updated and must be uncommented/added to AFC.cfg file^^^
+  -  Additions to `AFC.py`
+    - establish Buffer name
+    - With buffer set up
+      - Enable during `PREP`
+      - Enable during `tool_load`
+      - Disable during `tool_unload`
+  - Added `SET_ROTATION_FACTOR` that uses variable `FACTOR`
+    - if a turtleneck style buffer is enabled it will change the current rotation distance of the AFC stepper,
+    - Values greater than 0
+    - Values greater than 1 will cause more filament to be fed
+    - Values Less than 1 greater than 0 will cause less filament to be fed
+
+### Changed
+
+  - Full functionality change for Turtleneck/ Turtleneck 2.0 style buffers
+  - Changed buffer configuration examples, new configuration is required for full functionality!
+    - `multiplier_high` controls the speed up of filament being fed
+    - `multiplier_low` controls the slow down of filament being fed
+  - `QUERY_BUFFER` will output rotation distance if applicable
+
+### Fixed
+  - minor adjustments to the use of single sensor buffers, retaining functionality for Belay
 ### Removed
 

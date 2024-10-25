@@ -5,7 +5,6 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os
 import json
-from . import AFC_hub_cut
 
 from configparser import Error as error
 class afc:
@@ -17,6 +16,7 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
+        self.buffer_name = config.get('Buffer_Name', None)
         self.current = None
         self.failure = False
         self.lanes = {}
@@ -429,6 +429,9 @@ class afc:
 
         if check_success == True:
             self.gcode.respond_info(logo)
+            if self.buffer_name != None:
+                self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
+                self.buffer.enable_buffer()
         else:
             self.gcode.respond_info(logo_error)
         # Call out if all lanes are clear but hub is not
@@ -530,7 +533,11 @@ class afc:
                 self.toolhead.wait_moves()
                 self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
+
                 self.current = CUR_LANE.name
+                if self.buffer_name != None:
+                    self.buffer.enable_buffer()
+
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
                     self.gcode.run_script_from_command(self.poop_cmd)
@@ -574,6 +581,10 @@ class afc:
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'unloading'
+
+        if self.buffer_name != None:
+            self.buffer.disable_buffer()
+
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
         extruder = self.printer.lookup_object('toolhead').get_extruder()
