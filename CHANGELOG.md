@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `Buffer_Name` to `AFC.cfg`
     - this allows the code base to have a name for the buffer to reference.
     - The name must match how buffer is defined in `[AFC_buffer *Buffer_Name*]`
+    - ^^^This has to be manually updated^^^
   -  Additions to `AFC.py`
     - establish Buffer name
     - With buffer set up
