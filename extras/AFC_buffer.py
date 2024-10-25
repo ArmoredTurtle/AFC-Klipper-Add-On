@@ -188,23 +188,23 @@ class AFCtrigger:
             else:
                 self.gcode.respond_info("BUFFER {} NOT ENABLED".format(self.name.upper()))
         else:
-            self.gcode.respond_info("BUFFER {} CAN'T CHANGE ROTATION DISTANCE".format(self.name.upper())) 
+            self.gcode.respond_info("BUFFER {} CAN'T CHANGE ROTATION DISTANCE".format(self.name.upper()))
 
     cmd_QUERY_BUFFER_help = "Report Buffer sensor state"
     def cmd_QUERY_BUFFER(self, gcmd):
         """
-        Reports the current state of the buffer sensor and, if applicable, the rotation 
+        Reports the current state of the buffer sensor and, if applicable, the rotation
         distance of the current AFC stepper motor.
 
         Behavior:
-            - If the `turtleneck` feature is enabled and a tool is loaded, the rotation 
-            distance of the current AFC stepper motor is reported, along with the 
+            - If the `turtleneck` feature is enabled and a tool is loaded, the rotation
+            distance of the current AFC stepper motor is reported, along with the
             current state of the buffer sensor.
-            - If the `turtleneck` feature is not enabled, only the buffer state is 
+            - If the `turtleneck` feature is not enabled, only the buffer state is
             reported.
-            - The buffer state is reported as 'compressed' if the last state indicates 
+            - The buffer state is reported as 'compressed' if the last state indicates
             compression, or 'expanded' otherwise.
-            - Both the buffer state and, if applicable, the stepper motor's rotation 
+            - Both the buffer state and, if applicable, the stepper motor's rotation
             distance are sent back as G-code responses.
         """
         if self.turtleneck:
