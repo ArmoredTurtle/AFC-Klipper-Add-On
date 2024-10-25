@@ -76,7 +76,7 @@ class AFCtrigger:
     # Belay Call back
     def belay_sensor_callback(self, state):
         self.last_state = state
-        if self.printer.state_message == 'Printer is ready' and self.enable:
+        if self.printer.state_message == 'Printer is ready':
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
                     tool_loaded = self.AFC.current
