@@ -107,10 +107,11 @@ class AFCtrigger:
     def _set_extruder_stepper(self):
         if self.printer.state_message == 'Printer is ready' and self.AFC.current != None and not self.enable:
             LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+            stepper = LANE.extruder_stepper.stepper
             base_rotation_dist = stepper.get_rotation_distance()[0]
             self.base_rotation_dist = base_rotation_dist
             if self.debug: self.gcode.respond_info("Base rotation distance for {}: {}".format(LANE.name.upper(), base_rotation_dist))
-            self.update_rotation_distance = lambda m: LANE.extruder_stepper.stepper.stepper.set_rotation_distance(
+            self.update_rotation_distance = lambda m: stepper.set_rotation_distance(
                 base_rotation_dist / m
             )
         else:
