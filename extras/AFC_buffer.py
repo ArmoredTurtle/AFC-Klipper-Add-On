@@ -58,9 +58,9 @@ class AFCtrigger:
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
 
-        self.gcode.register_mux_command("QUERY_BUFFER", "BUFFER", self.name, self.cmd_QUERY_BUFFER, desc=self.cmd_QUERY_BUFFER_help) 
+        self.gcode.register_mux_command("QUERY_BUFFER", "BUFFER", self.name, self.cmd_QUERY_BUFFER, desc=self.cmd_QUERY_BUFFER_help)
 
-        # Belay Buffer 
+        # Belay Buffer
         if self.belay:
             self.buttons.register_buttons([self.pin], self.belay_sensor_callback)
 
@@ -138,7 +138,7 @@ class AFCtrigger:
                 if self.AFC.current != None:
                     self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Advancing")
-        
+
         self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, eventime, state):
@@ -154,23 +154,23 @@ class AFCtrigger:
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):
         """
-        Adjusts the rotation distance of the current AFC stepper motor by applying a 
-        specified factor. If no factor is provided, it defaults to 1.0, which resets 
+        Adjusts the rotation distance of the current AFC stepper motor by applying a
+        specified factor. If no factor is provided, it defaults to 1.0, which resets
         the rotation distance to the base value.
 
         Args:
-            gcmd: A G-code command object containing the parameters for the factor. 
-                The 'FACTOR' parameter is used to specify the multiplier for the 
+            gcmd: A G-code command object containing the parameters for the factor.
+                The 'FACTOR' parameter is used to specify the multiplier for the
                 rotation distance.
 
         Behavior:
             - The FACTOR must be greater than 0.
-            - If the buffer is enabled and active, and a valid factor is provided, 
+            - If the buffer is enabled and active, and a valid factor is provided,
             the function adjusts the rotation distance for the current AFC stepper.
             - If FACTOR is 1.0, the rotation distance is reset to the base value.
-            - If FACTOR is a valid non-zero number, the rotation distance is updated 
+            - If FACTOR is a valid non-zero number, the rotation distance is updated
             by the provided factor.
-            - If FACTOR is 0 or AFC is not enabled, an appropriate message is sent 
+            - If FACTOR is 0 or AFC is not enabled, an appropriate message is sent
             back through the G-code interface.
         """
         if self.turtleneck:
