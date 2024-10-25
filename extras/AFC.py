@@ -267,11 +267,13 @@ class afc:
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
+                    self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
                     #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
                     #$self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
+                    CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
 
             error_string = "Error: Filament switch sensor {} not found in config file"
             try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
@@ -399,7 +401,6 @@ class afc:
                                 if num_tries > 20:
                                 	message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                 	self.handle_lane_failure(CUR_LANE, message, False)
-
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
                         if check_success == True:
@@ -549,6 +550,9 @@ class afc:
                     self.gcode.run_script_from_command(self.kick_cmd)
                 if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
+            # Setting hub loaded outside of failure check since this could be true
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+            self.save_vars() # Always save variables even if a failure happens
             if self.failure:
                 self.pause_print()
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
@@ -637,7 +641,7 @@ class afc:
         if self.hub_cut:
             if self.hub_cut_cmd == 'AFC':
                 self.AFC_hub_cut = self.printer.lookup_object('AFC_hub_cut')
-                AFC_hub_cut.hub_cut(CUR_LANE.name)
+                self.AFC_hub_cut.hub_cut(CUR_LANE.name)
             else:
                 self.gcode.run_script_from_command(self.hub_cut_cmd)
         while self.hub.filament_present == True:
@@ -706,9 +710,11 @@ class afc:
                 str[UNIT][NAME]['LANE'] = LANE.index
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"]=bool(LANE.prep_state)
+                str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
+
                 numoflanes +=1
         str["system"]={}
         str["system"]['current_load']= self.current
