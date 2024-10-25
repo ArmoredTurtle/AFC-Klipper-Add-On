@@ -534,8 +534,6 @@ class afc:
                 self.toolhead.wait_moves()
                 self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
-                self.save_vars()
 
                 self.current = CUR_LANE.name
                 if self.buffer_name != None:
