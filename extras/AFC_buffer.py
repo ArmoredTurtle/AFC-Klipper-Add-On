@@ -95,8 +95,8 @@ class AFCtrigger:
             elif self.last_state == TRAILING_STATE_NAME:
                 multiplier = self.multiplier_low
             self.set_multiplier( multiplier )
-        if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
-        self.enable = True
+            if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
+            self.enable = True
 
     def disable_buffer(self):
         self.enable = False
