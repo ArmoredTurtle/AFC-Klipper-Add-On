@@ -431,7 +431,8 @@ class afc:
             self.gcode.respond_info(logo)
             if self.buffer_name != None:
                 self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
-                self.buffer.enable_buffer()
+                is self.current != None:
+                    self.buffer.enable_buffer()
         else:
             self.gcode.respond_info(logo_error)
         # Call out if all lanes are clear but hub is not
