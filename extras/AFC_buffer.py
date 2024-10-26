@@ -132,7 +132,6 @@ class AFCtrigger:
         self.update_rotation_distance(1.0)
 
     def advance_callback(self, eventime, state):
-        self.last_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != ADVANCE_STATE_NAME:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
@@ -142,7 +141,6 @@ class AFCtrigger:
         self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, eventime, state):
-        self.last_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != TRAILING_STATE_NAME:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
