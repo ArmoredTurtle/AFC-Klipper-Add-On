@@ -431,7 +431,7 @@ class afc:
             self.gcode.respond_info(logo)
             if self.buffer_name != None:
                 self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
-                is self.current != None:
+                if self.current != None:
                     self.buffer.enable_buffer()
         else:
             self.gcode.respond_info(logo_error)
