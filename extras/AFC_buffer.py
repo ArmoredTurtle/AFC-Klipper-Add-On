@@ -89,6 +89,7 @@ class AFCtrigger:
     def enable_buffer(self):
         if self.turtleneck:
             self._set_extruder_stepper()
+            self.enable = True
             multiplier = 1.0
             if self.last_state == ADVANCE_STATE_NAME:
                 multiplier = self.multiplier_high
@@ -96,7 +97,6 @@ class AFCtrigger:
                 multiplier = self.multiplier_low
             self.set_multiplier( multiplier )
             if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
-            self.enable = True
 
     def disable_buffer(self):
         self.enable = False
