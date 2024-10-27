@@ -200,8 +200,8 @@ multiplier_low:  0.9   # default 0.9, factor to feed less filament"
     "TurtleNeckV2")
       buffer_config="
 [AFC_buffer TN2]
-advance_pin: turtleneck:!PB1
-trailing_pin: turtleneck:!PB2
+advance_pin: !turtleneck:PB1
+trailing_pin: !turtleneck:PB2
 multiplier_high: 1.1   # default 1.1, factor to feed more filament
 multiplier_low:  0.9   # default 0.9, factor to feed less filament"
       buffer_name="TN2"
