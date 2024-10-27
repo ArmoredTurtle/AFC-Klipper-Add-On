@@ -73,19 +73,26 @@ class AFCtrigger:
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
 
-    # Belay Call back
-    def belay_sensor_callback(self, state):
+     # Belay Call back
+    def belay_sensor_callback(self, eventime, state):
+        if not self.last_state and state:
+            if self.printer.state_message == 'Printer is ready' and self.enable:
+                if self.AFC.tool_start.filament_present:
+                    if self.AFC.current != None:
+                        self.belay_move_lane(state)
         self.last_state = state
-        if self.printer.state_message == 'Printer is ready':
-            if self.AFC.tool_start.filament_present:
-                if self.AFC.current != None:
-                    tool_loaded = self.AFC.current
-                    LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
-                    if LANE.status != 'unloading':
-                        if self.debug: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
-                        LANE.move(self.buffer_distance, self.velocity ,self.accel)
 
-    # Turtleneck commands
+    def belay_move_lane(self, state):
+        if not self.enable: return
+        if self.AFC.current is None: return
+
+        if state:
+            tool_loaded = self.AFC.current
+            LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
+            if LANE.status != 'unloading':
+                if self.debug: self.gcode.respond_info("Buffer Triggered, Moving Lane {} forward {}mm".format(tool_loaded, self.buffer_distance))
+                LANE.move(self.buffer_distance, self.velocity ,self.accel)
+
     def enable_buffer(self):
         if self.turtleneck:
             self._set_extruder_stepper()
@@ -97,6 +104,10 @@ class AFCtrigger:
                 multiplier = self.multiplier_low
             self.set_multiplier( multiplier )
             if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
+        elif self.belay:
+            self.enable = True
+            if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
+            self.belay_move_lane(self.last_state)
 
     def disable_buffer(self):
         self.enable = False
@@ -104,6 +115,7 @@ class AFCtrigger:
         if self.turtleneck:
             self.reset_multiplier()
 
+    # Turtleneck commands
     def _set_extruder_stepper(self):
         if self.printer.state_message == 'Printer is ready' and self.AFC.current != None and not self.enable:
             LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
