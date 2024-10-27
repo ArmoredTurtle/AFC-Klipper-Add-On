@@ -65,13 +65,10 @@ restart_service() {
 
 
 function copy_config() {
-  # Function to copy the AFC configuration files.
-  # Uses the global variables:
-  #   - AFC_CONFIG_PATH: The path to the AFC configuration directory.
-  #   - AFC_PATH: The path to the AFC Klipper Add-On repository.
-
-  mkdir -p "${AFC_CONFIG_PATH}"
-  print_msg INFO "Copying AFC config files..."
+  if [ -d "${AFC_CONFIG_PATH}" ]; then
+    mkdir -p "${AFC_CONFIG_PATH}"
+  fi
+  print_msg INFO "  Copying AFC config files..."
   cp -R "${AFC_PATH}/config" "${AFC_CONFIG_PATH}"
 }
 

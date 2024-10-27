@@ -181,7 +181,7 @@ uncomment_board_type() {
 
 append_buffer_config() {
   local buffer_system="$1"
-  local config_path="${AFC_CONFIG_PATH}/AFC_Hardware-AFC.cfg"
+  local config_path="${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
   local afc_config_path="${AFC_CONFIG_PATH}/AFC.cfg"
   local hardware_config_path="${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
   local buffer_config=""

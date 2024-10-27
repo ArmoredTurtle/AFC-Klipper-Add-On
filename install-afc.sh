@@ -34,8 +34,22 @@ primary_branch: $BRANCH
 install_script: install-afc.sh
 """
 
-#source "${AFC_CONFIG_PATH}/include/*.sh"
-source include/*.sh
+# Debugging: Check if the directory exists
+if [ ! -d "${AFC_PATH}/include/" ]; then
+  echo "Directory ${AFC_PATH}/include/ does not exist."
+  exit 1
+fi
+
+# Debugging: Check if there are any files in the directory
+if [ -z "$(ls -A "${AFC_PATH}/include/")" ]; then
+  echo "No files found in ${AFC_PATH}/include/"
+  exit 1
+fi
+
+# Source the files
+for file in "${AFC_PATH}/include/"*; do
+  source "$file"
+done
 
 install_type() {
   while true; do
