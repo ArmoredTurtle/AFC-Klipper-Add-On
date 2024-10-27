@@ -210,7 +210,7 @@ multiplier_low:  0.9   # default 0.9, factor to feed less filament"
       buffer_config="
 [AFC_buffer Belay]
 pin: mcu:BUFFER
-distance: 15
+distance: 12
 velocity: 1000
 accel: 1000"
       buffer_name="Belay"
