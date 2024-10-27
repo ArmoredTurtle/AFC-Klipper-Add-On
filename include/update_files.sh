@@ -229,9 +229,8 @@ accel: 1000"
 
   # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
   if [ "$buffer_system" == "TurtleNeckV2" ]; then
-  if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
-    # Find the last [include] line and insert the new include line after it
-    sed -i '/\[include\]/!b; :a; n; /\[include\]/ba; a\[include mcu/TurtleNeckv2.cfg]' "$hardware_config_path"
+    if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
+      awk '/\[include mcu\/.*\]/ {print; print "[include mcu/TurtleNeckv2.cfg]"; next}1' "$hardware_config_path" > temp && mv temp "$hardware_config_path"
+    fi
   fi
-fi
 }
