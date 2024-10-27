@@ -20,8 +20,9 @@ class afc:
         self.current = None
         self.failure = False
         self.lanes = {}
-        # tool position when tool change was requested
-        self.change_tool_pos = None
+        # whether we failed during a tool change. used to determine if the restore position macro
+        # should actually restore gcode state
+        self.failed_in_toolchange = False
         self.tool_start = None
 
         # SPOOLMAN
@@ -662,10 +663,10 @@ class afc:
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
+        self.failed_in_toolchange = False
         if lane != self.current:
-            store_pos = self.toolhead.get_position()
-            if self.is_homed() and not self.is_paused():
-                self.change_tool_pos = store_pos
+            # Create save state
+            self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_AFC_CHANGE_TOOL")
             self.gcode.respond_info(" Tool Change - " + str(self.current) + " -> " + lane)
             if self.current != None:
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
@@ -676,19 +677,17 @@ class afc:
                     return
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             self.TOOL_LOAD(CUR_LANE)
-            newpos = self.toolhead.get_position()
-            newpos[2] = store_pos[2]
-            self.toolhead.manual_move(newpos, self.tool_unload_speed)
-            self.toolhead.wait_moves()
-            if self.is_printing() and not self.is_paused():
-                self.change_tool_pos = None
+            # Restore state
+            self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_AFC_CHANGE_TOOL MOVE=1 MOVE_SPEED={}".format(self.tool_unload_speed))
+            if self.is_printing() and self.is_paused():
+                self.failed_in_toolchange = True
 
     cmd_RESTORE_CHANGE_TOOL_POS_help = "change filaments in tool head"
     def cmd_RESTORE_CHANGE_TOOL_POS(self, gcmd):
-        if self.change_tool_pos:
-            restore_pos = self.change_tool_pos[:3]
-            self.toolhead.manual_move(restore_pos, self.tool_start_unload_speed)
-            self.toolhead.wait_moves()
+        if self.failed_in_toolchange:
+            # Restore previous state
+            self.failed_in_toolchange = False
+            self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_AFC_CHANGE_TOOL MOVE=1 MOVE_SPEED={}".format(self.tool_unload_speed))
 
     def get_status(self, eventtime):
         str = {}
