@@ -93,7 +93,6 @@ class AFCtrigger:
                 if self.debug: self.gcode.respond_info("Buffer Triggered, Moving Lane {} forward {}mm".format(tool_loaded, self.buffer_distance))
                 LANE.move(self.buffer_distance, self.velocity ,self.accel)
 
-    # Turtleneck commands
     def enable_buffer(self):
         if self.turtleneck:
             self._set_extruder_stepper()
@@ -116,6 +115,7 @@ class AFCtrigger:
         if self.turtleneck:
             self.reset_multiplier()
 
+    # Turtleneck commands
     def _set_extruder_stepper(self):
         if self.printer.state_message == 'Printer is ready' and self.AFC.current != None and not self.enable:
             LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
