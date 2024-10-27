@@ -200,8 +200,8 @@ multiplier_low:  0.9   # default 0.9, factor to feed less filament"
     "TurtleNeckV2")
       buffer_config="
 [AFC_buffer TN2]
-advance_pin:     !PB1
-trailing_pin:    !PB2
+advance_pin: turtleneck:!PB1
+trailing_pin: turtleneck:!PB2
 multiplier_high: 1.1   # default 1.1, factor to feed more filament
 multiplier_low:  0.9   # default 0.9, factor to feed less filament"
       buffer_name="TN2"
@@ -229,8 +229,9 @@ accel: 1000"
 
   # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
   if [ "$buffer_system" == "TurtleNeckV2" ]; then
-    if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
-      echo "[include mcu/TurtleNeckv2.cfg]" >> "$hardware_config_path"
-    fi
+  if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
+    # Find the last [include] line and insert the new include line after it
+    sed -i '/\[include\]/!b; :a; n; /\[include\]/ba; a\[include mcu/TurtleNeckv2.cfg]' "$hardware_config_path"
   fi
+fi
 }
