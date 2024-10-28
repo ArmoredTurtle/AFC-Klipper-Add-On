@@ -77,3 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Broke the `install-afc.sh` script out into multiple files that are sourced by the main script for maintainability.
 
 
+
+  - Added `part_cooling_fan_speed` to poop macro
+    - Add `variable_part_cooling_fan_speed   : 1.0         # Speed to run fan when enabled above. 0 - 1.0` to your `_AFC_POOP_VARS` to change the value.
+	
+### Fixed
+  - Fixed bug when `part_cooling_fan` was set to False
