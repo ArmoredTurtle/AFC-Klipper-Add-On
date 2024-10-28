@@ -17,7 +17,7 @@ AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Variables
 KLIPPER_SERVICE=klipper
-GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
+GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
 PRIOR_INSTALLATION=False
 UPDATE_CONFIG=False
 UNINSTALL=False
