@@ -239,6 +239,7 @@ accel: 1000"
   if [ "$buffer_system" == "TurtleNeckV2" ]; then
     if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
       awk '/\[include mcu\/.*\]/ {print; print "[include mcu/TurtleNeckv2.cfg]"; next}1' "$hardware_config_path" > temp && mv temp "$hardware_config_path"
+      print_msg INFO "  Ensure you add the correct serial information to the ~/printer_data/config/AFC/mcu/TurtleNeckv2.cfg file"
     fi
   fi
 }
