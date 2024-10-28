@@ -1,8 +1,13 @@
-from . import AFC
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
 
 class afc_hub_cut:
     def __init__(self, config):
-        
+
         self.printer = config.get_printer()
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
@@ -16,7 +21,7 @@ class afc_hub_cut:
         self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
         self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
 
-        
+
 
     def hub_cut(self, LANE):
         self.hub = self.AFC.hub

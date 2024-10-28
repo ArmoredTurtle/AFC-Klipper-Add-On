@@ -1,3 +1,8 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
 
 class afc_tip_form:
     def __init__(self, config):
@@ -22,7 +27,7 @@ class afc_tip_form:
         self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
         self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
         self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
-        
+
 
     def afc_extrude(self, distance, speed):
         pos = self.AFC.toolhead.get_position()
@@ -30,7 +35,7 @@ class afc_tip_form:
         self.AFC.toolhead.manual_move(pos, speed)
         self.AFC.toolhead.wait_moves()
 
-       
+
 
     def tip_form(self):
         step = 1

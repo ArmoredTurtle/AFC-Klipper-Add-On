@@ -27,23 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
              - `SET_BOWDEN_LENGTH LENGTH=+100` if the original length was `955` it will be changed to `1055`
              - `SET_BOWDEN_LENGTH LENGTH=-100` if the original length was `955` it will be changed to `855`
        - `SET_BOWDEN_LENGTH` is called without a `LENGTH` specified then the value will be reset back to the configured length
-       - Changed distance will have to be manually updated in `AFC.cfg`
-
-### Changed
-
- - Revamped `install-afc.sh` script to be interactive and provide more configuration options for the user.
- - Updated `ruff` GHA to only scan for changed files.
- - Updates to AFC.cfg file. Be sure to backup current file and replace with new version, then update values from backed up file.
- - Manually changes needed to AFC_hardware.cfg
-    - `[filament_switch_sensor tool]` update to `[filament_switch_sensor tool_start]`
-    - If using sensor after gears `[filament_switch_sensor extruder]` updaste to `[filament_switch_sensor tool_end]`
-
-### Fixed
-### Removed
-
-## [2024-10-24]
-
-### Added
+       - Changed distance will have to be manually updated in `AFC.cfg`  
 
   - Added `Buffer_Name` to `AFC.cfg`
     - this allows the code base to have a name for the buffer to reference.
@@ -60,25 +44,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Values greater than 0
     - Values greater than 1 will cause more filament to be fed
     - Values Less than 1 greater than 0 will cause less filament to be fed
-
+    
 ### Changed
+
+ - Revamped `install-afc.sh` script to be interactive and provide more configuration options for the user.
+ - Updated `ruff` GHA to only scan for changed files.
+ - Updates to AFC.cfg file. Be sure to back up current file and replace with new version, then update values from backed up file.
+ - Manually changes needed to AFC_hardware.cfg
+    - `[filament_switch_sensor tool]` update to `[filament_switch_sensor tool_start]`
+    - If using sensor after gears `[filament_switch_sensor extruder]` update to `[filament_switch_sensor tool_end]`
 
   - Full functionality change for Turtleneck/ Turtleneck 2.0 style buffers
   - Changed buffer configuration examples, new configuration is required for full functionality!
-    - `multiplier_high` controls the speed up of filament being fed
-    - `multiplier_low` controls the slow down of filament being fed
+    - `multiplier_high` controls the speed-up of filament being fed
+    - `multiplier_low` controls the slow-down of filament being fed
   - `QUERY_BUFFER` will output rotation distance if applicable
 
 ### Fixed
-  - minor adjustments to the use of single sensor buffers, retaining functionality for Belay
+
+  - Minor adjustments to the use of single sensor buffers, retaining functionality for Belay
+
 ### Removed
 
 ## [2024-10-27]
 
 ### Added
 
-  - Added `part_cooling_fan_speed` to poop macro
-    - Add `variable_part_cooling_fan_speed   : 1.0         # Speed to run fan when enabled above. 0 - 1.0` to your `_AFC_POOP_VARS` to change the value.
-	
+- Updated the `install-afc.sh` script to include setup of the buffer configuration.
+- Added `part_cooling_fan_speed` to poop macro
+- Add `variable_part_cooling_fan_speed   : 1.0         # Speed to run fan when enabled above. 0 - 1.0` to your `_AFC_POOP_VARS` to change the value.
+
+### Changed
+
+- Broke the `install-afc.sh` script out into multiple files that are sourced by the main script for maintainability.
+
 ### Fixed
   - Fixed bug when `part_cooling_fan` was set to False
