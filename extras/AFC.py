@@ -711,20 +711,20 @@ class afc:
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
-                str[UNIT][NAME]["material"] =self.lanes[UNIT][NAME]['material']
-                str[UNIT][NAME]["spool_id"] =self.lanes[UNIT][NAME]['spool_id']
-                str[UNIT][NAME]["color"] =self.lanes[UNIT][NAME]['color']
+                str[UNIT][NAME]["material"] = self.lanes[UNIT][NAME]['material']
+                str[UNIT][NAME]["spool_id"] = self.lanes[UNIT][NAME]['spool_id']
+                str[UNIT][NAME]["color"] = self.lanes[UNIT][NAME]['color']
 
                 numoflanes +=1
-        str["system"]={}
+        str["system"] = {}
         str["system"]['current_load'] = self.current
         # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
         str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
         str["system"]['buffer'] = ('{} : {}'.format(
             self.buffer_name.upper(),
-            "compressed" if self.buffer.last_state is 1
-            else "expanded" if self.buffer.last_state is 0
+            "compressed" if self.buffer.last_state == 1
+            else "expanded" if self.buffer.last_state == 0
             else self.buffer.last_state if self.buffer is not None
             else None))
         str["system"]['num_units'] = len(self.lanes)
