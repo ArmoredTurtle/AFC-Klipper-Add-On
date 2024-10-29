@@ -222,7 +222,7 @@ class AFCtrigger:
         if self.turtleneck:
             if self.last_state == TRAILING_STATE_NAME:
                 state_info += "Expanded"
-            if self.last_state == ADVANCE_STATE_NAME:
+            elif self.last_state == ADVANCE_STATE_NAME:
                 state_info = "Compressed"
             elif self.last_state != TRAILING_STATE_NAME or ADVANCE_STATE_NAME:
                 state_info += "buffer tube floating in the middle"
