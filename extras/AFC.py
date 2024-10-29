@@ -114,8 +114,8 @@ class afc:
         self.afc_bowden_length = bowden_length
         msg = ("Config Bowden Length: {}\n".format(self.config_bowden_length) +
                "Previous Bowden Length: {}\n".format(config_bowden) +
-               "New Bowden Length: {}".format(bowden_length) +
-               "TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UNPDATED IN AFC.cfg")
+               "New Bowden Length: {}\n".format(bowden_length) +
+               "TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC.cfg")
         self.gcode.respond_info(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
@@ -696,8 +696,11 @@ class afc:
         try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
         except: self.hub = None
         # Try to get tool filament sensor, if lookup fails default to None
-        try: self.tool=self.printer.lookup_object('filament_switch_sensor tool').runout_helper
-        except: self.tool= None
+        try: self.tool = self.printer.lookup_object('filament_switch_sensor tool').runout_helper
+        except: self.tool = None
+        # Try to get buffer, if lookup fails default to None
+        try: self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
+        except: self.buffer = None
         numoflanes = 0
         for UNIT in self.lanes.keys():
             str[UNIT]={}
@@ -706,18 +709,24 @@ class afc:
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = LANE.index
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
-                str[UNIT][NAME]["prep"]=bool(LANE.prep_state)
+                str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
-                str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
-                str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
-                str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
+                str[UNIT][NAME]["material"] = self.lanes[UNIT][NAME]['material']
+                str[UNIT][NAME]["spool_id"] = self.lanes[UNIT][NAME]['spool_id']
+                str[UNIT][NAME]["color"] = self.lanes[UNIT][NAME]['color']
 
                 numoflanes +=1
-        str["system"]={}
-        str["system"]['current_load']= self.current
+        str["system"] = {}
+        str["system"]['current_load'] = self.current
         # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
         str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
+        str["system"]['buffer'] = ('{} : {}'.format(
+            self.buffer_name.upper(),
+            "compressed" if self.buffer.last_state == 1
+            else "expanded" if self.buffer.last_state == 0
+            else self.buffer.last_state if self.buffer is not None
+            else None))
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
