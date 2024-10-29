@@ -698,7 +698,7 @@ class afc:
         # Try to get tool filament sensor, if lookup fails default to None
         try: self.tool = self.printer.lookup_object('filament_switch_sensor tool').runout_helper
         except: self.tool = None
-        # Try to get buffer, if lookup failes degault to None
+        # Try to get buffer, if lookup fails default to None
         try: self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
         except: self.buffer = None
         numoflanes = 0
