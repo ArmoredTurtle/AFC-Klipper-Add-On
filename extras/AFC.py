@@ -727,7 +727,7 @@ class afc:
             else "expanded" if self.buffer.last_state is 0
             else self.buffer.last_state if self.buffer is not None
             else None))
-        str["system"]['num_units'] = len(self.lanes)a
+        str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
 
