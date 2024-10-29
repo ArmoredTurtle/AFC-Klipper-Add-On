@@ -725,8 +725,7 @@ class afc:
             self.buffer_name.upper(),
             "compressed" if self.buffer.last_state == 1
             else "expanded" if self.buffer.last_state == 0
-            else self.buffer.last_state if self.buffer is not None
-            else None))
+            else self.buffer.last_state) if self.buffer is not None else None)
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
