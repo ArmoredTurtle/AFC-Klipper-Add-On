@@ -218,19 +218,27 @@ class AFCtrigger:
             - Both the buffer state and, if applicable, the stepper motor's rotation
             distance are sent back as G-code responses.
         """
+        state_info = ''
         if self.turtleneck:
-            tool_loaded=self.AFC.current
-            LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
-            stepper = LANE.extruder_stepper.stepper
-            rotation_dist = stepper.get_rotation_distance()[0]
-            self.gcode.respond_info("{} Rotation distance: {}".format(LANE.name.upper(), rotation_dist))
-            state_info = self.last_state
+            if self.last_state == TRAILING_STATE_NAME:
+                state_info += "Expanded"
+            if self.last_state == ADVANCE_STATE_NAME:
+                state_info = "Compressed"
+            elif self.last_state != TRAILING_STATE_NAME or ADVANCE_STATE_NAME:
+                state_info += "buffer tube floating in the middle"
+            if self.enable:
+                tool_loaded=self.AFC.current
+                LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
+                stepper = LANE.extruder_stepper.stepper
+                rotation_dist = stepper.get_rotation_distance()[0]
+                state_info += ("\n{} Rotation distance: {}".format(LANE.name.upper(), rotation_dist))
         else:
             if self.last_state:
-                state_info = "compressed"
+                state_info += "compressed"
             else:
-                state_info = "expanded"
-            self.gcode.respond_info("{} : {}".format(self.name, state_info))
+                state_info += "expanded"
+
+        self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
 def load_config_prefix(config):
     return AFCtrigger(config)
