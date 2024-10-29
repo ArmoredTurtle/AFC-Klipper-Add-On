@@ -6,8 +6,8 @@
 
 from configparser import Error as error
 
-ADVANCE_STATE_NAME = "Advance"
-TRAILING_STATE_NAME = "Trailing"
+ADVANCE_STATE_NAME = "Compressed"
+TRAILING_STATE_NAME = "Expanded"
 
 class AFCtrigger:
 
