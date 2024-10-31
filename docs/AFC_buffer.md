@@ -1,10 +1,10 @@
 # Armored Turtle Automated Filament Changer (AFC) Buffer
 
-This file describes the `AFC_buffer` module, part of the Armored Turtle Automated Filament Changer (AFC) project. The AFC system enables the automated loading and unloading of filaments in a 3D printer through the use of either a Turtleneck buffer or a Annex Engineering Belay.
+This file describes the `AFC_buffer` module, part of the Armored Turtle Automated Filament Changer (AFC) project.
 
 ## Overview
 
-The `AFC_buffer` module is responsible for handling two types of buffers: TurtleNeck, TurtleNeck 2.0 and Annex Engineering Belay. The Turtleneck buffer involves two sensors (advance and trailing), while the Belay buffer uses a single sensor to control filament movement.
+The `AFC_buffer` module is responsible for handling two types of buffers: [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck), [TurtleNeck 2.0](https://github.com/ArmoredTurtle/TurtleNeck2.0) and [Annex Engineering Belay](https://github.com/Annex-Engineering/Belay). The Turtleneck buffer involves two sensors (advance and trailing), while the Belay buffer uses a single sensor to control filament movement.
 
 The buffer adjusts the filament movement based on sensor inputs and can either compress or expand to manage filament feeding properly. Each buffer type has unique configuration options and behaviors.
 
