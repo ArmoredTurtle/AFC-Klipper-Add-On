@@ -46,15 +46,15 @@ class AFCExtruderStepper:
     def __init__(self, config):
         self.config = config
         self.printer = config.get_printer()
+        self.name = config.get_name().split()[-1]
         self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
         self.extruder_name = config.get('extruder')
-        self.name = config.get_name().split()[-1]
+        
         self.motion_queue = None
         self.status = None
         self.hub_load = False
         self.next_cmd_time = 0.
-        self.reactor = self.printer.get_reactor()
         ffi_main, ffi_lib = chelper.get_ffi()
         self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
         self.trapq_append = ffi_lib.trapq_append
@@ -71,6 +71,7 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
+        self.hub= ''
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
         # distance to retract filament from the hub

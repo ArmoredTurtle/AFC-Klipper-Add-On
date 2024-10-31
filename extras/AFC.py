@@ -39,7 +39,6 @@ class afc:
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
         # HUB
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
-        self.hub = ''
 
         # TOOL Cutting Settings
         self.tool = ''
@@ -264,6 +263,7 @@ class afc:
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
                 for LANE in self.lanes[UNIT].keys():
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
+                    CUR_LANE.hub = 12
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
@@ -274,10 +274,6 @@ class afc:
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
 
             error_string = "Error: Filament switch sensor {} not found in config file"
-            try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            except:
-                self.AFC_error(error_string.format("hub"), False)
-                return
             try: self.tool_start = self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper
             except:
                 self.AFC_error(error_string.format("tool_start"), False)
@@ -291,7 +287,7 @@ class afc:
                         check_success = True
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                         CUR_LANE.do_enable(True)
-                        if self.hub.filament_present == True and CUR_LANE.load_state == True:
+                        if CUR_LANE.hub.filament_present == True and CUR_LANE.load_state == True:
                             num_tries = 0
                             while CUR_LANE.load_state == True:
                                 CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
@@ -360,7 +356,7 @@ class afc:
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                         CUR_LANE.do_enable(True)
                         if self.current == CUR_LANE.name:
-                            if self.tool_start.filament_present == False and self.hub.filament_present == True:
+                            if self.tool_start.filament_present == False and CUR_LANE.filament_present == True:
                                 untool_attempts = 0
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
@@ -397,8 +393,13 @@ class afc:
                                     CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
                                     num_tries += 1
                                 if num_tries > 20:
+<<<<<<< Updated upstream
                                 	message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                                 	self.handle_lane_failure(CUR_LANE, message, False)
+=======
+                                    message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                                    self.handle_lane_failure(CUR_LANE, message, False)
+>>>>>>> Stashed changes
 
                             if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 self.afc_led(self.led_ready, CUR_LANE.led_index)
@@ -432,7 +433,7 @@ class afc:
         else:
             self.gcode.respond_info(logo_error)
         # Call out if all lanes are clear but hub is not
-        if self.hub.filament_present == True and self.tool_start.filament_present == False:
+        if CUR_LANE.hub.filament_present == True and self.tool_start.filament_present == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
             self.AFC_error(msg, False)
 
@@ -449,9 +450,9 @@ class afc:
                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         if CUR_LANE.hub_load == False:
             CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
-        while self.hub.filament_present == False:
+        while CUR_LANE.filament_present == False:
             CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-        while self.hub.filament_present == True:
+        while CUR_LANE.filament_present == True:
             CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         CUR_LANE.status = 'Hubed'
         CUR_LANE.do_enable(False)
@@ -486,7 +487,7 @@ class afc:
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'loading'
         self.afc_led(self.led_loading, CUR_LANE.led_index)
-        if CUR_LANE.load_state == True and self.hub.filament_present == False:
+        if CUR_LANE.load_state == True and CUR_LANE.filament_present == False:
             if not self.heater.can_extrude: #Heat extruder if not at min temp
                 extruder = self.printer.lookup_object('toolhead').get_extruder()
                 pheaters = self.printer.lookup_object('heaters')
@@ -499,7 +500,7 @@ class afc:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
             CUR_LANE.hub_load = True
             hub_attempts = 0
-            while self.hub.filament_present == False:
+            while CUR_LANE.filament_present == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
@@ -548,7 +549,7 @@ class afc:
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
         else:
             #callout if hub is triggered when trying to load
-            if self.hub.filament_present == True:
+            if CUR_LANE.filament_present == True:
                 msg = ('HUB NOT CLEAR TRYING TO LOAD ' + CUR_LANE.name.upper() + '\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 self.gcode.run_script_from_command('PAUSE')
@@ -614,7 +615,7 @@ class afc:
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
         CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
         num_tries = 0
-        while self.hub.filament_present == True:
+        while CUR_LANE.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
@@ -630,7 +631,7 @@ class afc:
                 AFC_hub_cut.hub_cut(CUR_LANE.name)
             else:
                 self.gcode.run_script_from_command(self.hub_cut_cmd)
-        while self.hub.filament_present == True:
+        while CUR_LANE.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
@@ -700,13 +701,13 @@ class afc:
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
-
                 numoflanes +=1
+            str[UNIT]['hub_loaded']  = True == self.printer.lookup_object('filament_switch_sensor ' + UNIT).runout_helper.filament_present
         str["system"]={}
         str["system"]['current_load']= self.current
         # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
-        str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
+       
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
