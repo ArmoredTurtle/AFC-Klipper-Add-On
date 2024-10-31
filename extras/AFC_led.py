@@ -3,16 +3,13 @@
 # Copyright (C) 2019-2022  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+
 import logging
 from . import led
-
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
-
 BIT_MAX_TIME = .000004
 RESET_MIN_TIME = .000050
-
 MAX_MCU_SIZE = 500  # Sanity check on LED chain length
-
 class AFCled:
     def __init__(self, config):
         self.printer = printer = config.get_printer()
@@ -108,6 +105,7 @@ class AFCled:
                 self.update_color_data(led_state)
                 self.send_data(print_time)
         self.printer.get_reactor().register_callback(reactor_bgfunc)
+
     def get_status(self, eventtime=None):
         return self.led_helper.get_status(eventtime)
 

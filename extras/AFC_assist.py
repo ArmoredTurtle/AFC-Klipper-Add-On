@@ -1,8 +1,13 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
 #respooler
 PIN_MIN_TIME = 0.100
 RESEND_HOST_TIME = 0.300 + PIN_MIN_TIME
 MAX_SCHEDULE_TIME = 5.0
-
 class AFCassistMotor:
     def __init__(self, config, type):
         self.printer = config.get_printer()
@@ -43,10 +48,10 @@ class AFCassistMotor:
             self.shutdown_value = config.getfloat(
                 'shutdown_value', 0., minval=0., maxval=self.scale) / self.scale
         self.mcu_pin.setup_start_value(self.last_value, self.shutdown_value)
-        
+
     def get_status(self, eventtime):
         return {'value': self.last_value}
-    
+
     def _set_pin(self, print_time, value, is_resend=False):
         if value == self.last_value and not is_resend:
             return
@@ -59,14 +64,13 @@ class AFCassistMotor:
         self.last_print_time = print_time
         if self.resend_interval and self.resend_timer is None:
             self.resend_timer = self.reactor.register_timer(
-                self._resend_current_val, self.reactor.NOW) 
-    
+                self._resend_current_val, self.reactor.NOW)
+
     def _resend_current_val(self, eventtime):
         if self.last_value == self.shutdown_value:
             self.reactor.unregister_timer(self.resend_timer)
             self.resend_timer = None
             return self.reactor.NEVER
-
         systime = self.reactor.monotonic()
         print_time = self.mcu_pin.get_mcu().estimated_print_time(systime)
         time_diff = (self.last_print_time + self.resend_interval) - print_time
@@ -74,5 +78,4 @@ class AFCassistMotor:
             # Reschedule for resend time
             return systime + time_diff
         self._set_pin(print_time + PIN_MIN_TIME, self.last_value, True)
-        return systime + self.resend_interval     
-
+        return systime + self.resend_interval
