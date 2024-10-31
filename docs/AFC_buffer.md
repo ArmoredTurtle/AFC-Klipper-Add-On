@@ -14,7 +14,11 @@ The AFC is a two extruder filament changer. The primary extruder is at the print
 
 ### TurtleNeck Style buffer
 
-Two sensor TurtleNeck style buffers are used to modulate the rotation distance of the secondary extruder. This is done by increasing or decreasing the rotation distance if the buffer is expanded or compressed. While
+Two sensor TurtleNeck style buffers are used to modulate the rotation distance of the secondary extruder. This is done by increasing or decreasing the rotation distance if the buffer is expanded or compressed. 
+
+*If the `advance` sensor is triggered, this means that the buffer is compressed, then the AFC will decrease rotation distance in order to move filament quicker to the primary extruder. 
+
+*If the `trailing` sensor is triggered, this means that the buffer is expanded, then the AFC will increase rotation distance in order to slow the filament moving to the primary extruder.
 
 ### Belay Style buffer
 
@@ -46,9 +50,17 @@ In your SFC hardware configuration file, ensure you include the following option
 ### Example Configs
 
 ```
+[AFC_buffer TN]
+advance_pin: mcu:PB1
+trailing_pin: mcu:PB2
+multiplier_high: 1.15
+multiplier_low: 0.95
+```
+
+```
 [AFC_buffer TN2]
-advance_pin: !TN2:PB1
-trailing_pin: !TN2:PB2
+advance_pin: !TN:PB1
+trailing_pin: !TN:PB2
 multiplier_high: 1.15
 multiplier_low: 0.95
 ```
@@ -76,7 +88,7 @@ Example output:
 ### SET_ROTATION_FACTOR
 _for TurtleNeck Style Buffers_
 
-This command allows you to adjust the rotation distance of the current AFC stepper motor by applying a factor. Factors greater than 1 will increase the rate filament is fed to the primary extruder, factors less than 1 but greater than 0 will decrease the ratefilament to the primary extruder.
+This command allows the adjustment of rotation distance of the current AFC stepper motor by applying a factor. Factors greater than 1 will increase the rate filament is fed to the primary extruder, factors less than 1 but greater than 0 will decrease the rate filament to the primary extruder.
 
 Example Usage:
 `SET_ROTATION_FACTOR FACTOR=1.1`
