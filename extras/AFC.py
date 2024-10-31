@@ -17,7 +17,6 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
-        self.buffer_name = config.get('Buffer_Name', None)
         self.current = None
         self.failure = False
         self.lanes = {}
@@ -30,6 +29,7 @@ class afc:
         self.spoolman = config.getboolean('spoolman', False)
         if self.spoolman:
             self.spoolman_filament={}
+
         #LED SETTINGS
         self.ind_lights = None
         self.led_name = config.get('led_name')
@@ -39,6 +39,11 @@ class afc:
         self.led_loading = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
+
+        # BUFFER
+        self.buffer_name = config.get('Buffer_Name', None)
+        self.buffer = ''
+
         # HUB
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
         self.hub = ''
@@ -286,6 +291,13 @@ class afc:
                 return
             #try: self.tool_end = self.printer.lookup_object('filament_switch_sensor tool_end').runout_helper
             #except: self.tool_end = None
+            buffer_warning = "Warning: Buffer {} not found in hardware config file"
+            if self.buffer_name is not None:
+                try: self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
+                except:
+                    self.AFC_error(buffer_warning.format(self.buffer_name))
+            else:
+                self.gcode.respond_info("Warning: No buffer defined in config file")
             check_success = False
             if self.current == None:
                 for UNIT in self.lanes.keys():
@@ -430,8 +442,7 @@ class afc:
 
         if check_success == True:
             self.gcode.respond_info(logo)
-            if self.buffer_name != None:
-                self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
+            if self.buffer != None:
                 if self.current != None:
                     self.buffer.enable_buffer()
         else:
@@ -537,7 +548,7 @@ class afc:
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
 
                 self.current = CUR_LANE.name
-                if self.buffer_name != None:
+                if self.buffer != None:
                     self.buffer.enable_buffer()
 
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
@@ -584,7 +595,7 @@ class afc:
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'unloading'
 
-        if self.buffer_name != None:
+        if self.buffer != None:
             self.buffer.disable_buffer()
 
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
