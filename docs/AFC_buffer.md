@@ -68,24 +68,20 @@ _Optional_
 
 ```
 [AFC_buffer TN]
-advance_pin: mcu:PB1
-trailing_pin: mcu:PB2
-multiplier_high: 1.15
-multiplier_low: 0.95
-```
+advance_pin:     # set advance pin
+trailing_pin:    # set trailing pin
+multiplier_high: 1.1   # default 1.1, factor to feed more filament
+multiplier_low:  0.9   # default 0.9, factor to feed less filament"
 
-```
 [AFC_buffer TN2]
-advance_pin: !TN:PB2
-trailing_pin: !TN:PB1
-multiplier_high: 1.15
-multiplier_low: 0.95
-```
+advance_pin: !turtleneck:ADVANCE
+trailing_pin: !turtleneck:TRAILING
+multiplier_high: 1.1   # default 1.1, factor to feed more filament
+multiplier_low:  0.9   # default 0.9, factor to feed less filament
 
-```
 [AFC_buffer Belay]
-pin: mcu:PB0
-distance: 15.0
+pin: mcu:BUFFER
+distance: 12
 velocity: 1000
 accel: 1000
 ```
