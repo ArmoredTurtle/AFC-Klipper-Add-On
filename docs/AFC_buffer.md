@@ -22,7 +22,8 @@ Two sensor TurtleNeck-style buffers are used to modulate the rotation distance o
 
 ### Turtleneck 1.0
 
-![TN Pin Render](https://github.com/user-attachments/assets/64728942-90c0-42ba-a5fd-1331b822c8e9)
+![Heading](https://github.com/user-attachments/assets/c5b6faa9-e110-4e4d-a5d5-b909daad857a)
+
 
 ### TurtleNeck 2.0
 
