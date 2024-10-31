@@ -27,9 +27,9 @@ Two sensor TurtleNeck-style buffers are used to modulate the rotation distance o
 
 ### TurtleNeck 2.0
 
-![image](https://github.com/user-attachments/assets/3feba749-e228-4dd4-b6bc-bc3089d14dce)
-
 [__Flashing TurtleNeck 2.0__](https://github.com/ArmoredTurtle/TurtleNeck2.0/blob/main/Flashing/README.md)
+
+![image](https://github.com/user-attachments/assets/3feba749-e228-4dd4-b6bc-bc3089d14dce)
 
 ## Belay Style buffer
 
