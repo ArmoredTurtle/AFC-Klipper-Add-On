@@ -43,7 +43,7 @@ In your SFC hardware configuration file, ensure you include the following option
 - **pin**: Pin for the buffer sensor.
 - **distance**: Distance the filament should move when triggered.
 
-### Example Config for Turtleneck 2.0 Buffer
+### Example Configs
 
 ```
 [AFC_buffer TN2]
