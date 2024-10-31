@@ -74,7 +74,8 @@ Example output:
 `Turtleneck: Expanded`
 
 ### SET_ROTATION_FACTOR
-**for TurtleNeck Style Buffers**
+_for TurtleNeck Style Buffers_
+
 This command allows you to adjust the rotation distance of the current AFC stepper motor by applying a factor. Factors greater than 1 will increase the rate filament is fed to the primary extruder, factors less than 1 but greater than 0 will decrease the ratefilament to the primary extruder.
 
 Example Usage:
