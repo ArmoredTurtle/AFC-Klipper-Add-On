@@ -49,6 +49,7 @@ In your AFC hardware configuration file, ensure you include the following option
 
 - **advance_pin**: Pin for the advance sensor.
 - **trailing_pin**: Pin for the trailing sensor.
+
 _Optional for more fine tuning_
 - **multiplier_high**: Factor to move more filament through the secondary extruder.
 - **multiplier_low**: Factor to move less filament through the secondary extruder.
@@ -57,6 +58,7 @@ _Optional for more fine tuning_
 
 - **pin**: Pin for the buffer sensor.
 - **distance**: Distance the filament should move when triggered.
+
 _Optional_
 - **velocity**: The speed the lane will move the filament.
 - **accel**: Lane acceleration.
