@@ -35,7 +35,7 @@ Example:
 
 ### Required AFC Hardware Configuration Options
 
-In your SFC hardware configuration file, ensure you include the following options:
+In your AFC hardware configuration file, ensure you include the following options:
 
 ### TurtleNeck Style buffer
 
