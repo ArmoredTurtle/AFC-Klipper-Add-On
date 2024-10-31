@@ -16,9 +16,9 @@ The AFC is a two extruder filament changer. The primary extruder is at the print
 
 Two sensor TurtleNeck-style buffers are used to modulate the rotation distance of the secondary extruder. The buffer's expansion or compression increases or decreases the rotation distance. 
 
-*If the `trailing` sensor is triggered, this means that the buffer is compressed, then the AFC will decrease rotation distance in order to move filament quicker to the primary extruder. 
+* If the `trailing` sensor is triggered, this means that the buffer is compressed, then the AFC will decrease rotation distance in order to move filament quicker to the primary extruder. 
 
-*If the `advance` sensor is triggered, this means that the buffer is expanded, then the AFC will increase rotation distance in order to slow the filament moving to the primary extruder.
+* If the `advance` sensor is triggered, this means that the buffer is expanded, then the AFC will increase rotation distance in order to slow the filament moving to the primary extruder.
 
 ### Turtleneck 1.0
 
