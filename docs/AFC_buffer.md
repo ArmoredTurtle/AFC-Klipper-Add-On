@@ -8,11 +8,11 @@ The `AFC_buffer` module is responsible for handling two types of buffers: [Turtl
 
 The buffer adjusts the filament movement based on sensor inputs and can either compress or expand to manage filament feeding properly. Each buffer type has unique configuration options and behaviors.
 
-## Basic Functionality
+### Basic Functionality
 
 The AFC is a two extruder filament changer. The primary extruder is at the print head(s) and the second is in the AFC unit. While the 2 extruders are synced they will never be perfect. This is where a buffer comes in. The buffer is used to make up for any inconsistencies in the sync between the 2 stepper motors.
 
-### TurtleNeck Style buffer
+## TurtleNeck Style buffer
 
 Two sensor TurtleNeck-style buffers are used to modulate the rotation distance of the secondary extruder. The buffer's expansion or compression increases or decreases the rotation distance. 
 
@@ -20,17 +20,17 @@ Two sensor TurtleNeck-style buffers are used to modulate the rotation distance o
 
 *If the `advance` sensor is triggered, this means that the buffer is expanded, then the AFC will increase rotation distance in order to slow the filament moving to the primary extruder.
 
-## Turtleneck 1.0
+### Turtleneck 1.0
 
 ![TN Pin Render](https://github.com/user-attachments/assets/64728942-90c0-42ba-a5fd-1331b822c8e9)
 
-## TurtleNeck 2.0
+### TurtleNeck 2.0
 
 ![image](https://github.com/user-attachments/assets/3feba749-e228-4dd4-b6bc-bc3089d14dce)
 
-### Belay Style buffer
+## Belay Style buffer
 
-With the current implementation of `AFC_buffer` support for Belay is limited. Belay will still help to keep even tension on the primary extruder but in a different way. First, the AFC rotation distance has to be greater than the rotation distance of the primary extruder. While printing, the AFC will be pushing slightly less filament than the primary extruder, this will cause the Belay to become compressed towards it's switch. When the switch is reached the AFC will push a configured amount of material to expand the Belay. This will continue for the duration of the print.
+With the current implementation of `AFC_buffer` support for Belay is limited. Belay will still help to keep even tension on the primary extruder but in a different way. First, the AFC rotation distance has to be greater than the rotation distance of the primary extruder. While printing, the AFC will be pushing slightly less filament than the primary extruder, this will cause the Belay to become compressed toward the switch. When the switch is reached the AFC will make a configured amount of material to expand the Belay. This will continue for the duration of the print.
 
 ## Configuration
 
