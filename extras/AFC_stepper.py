@@ -242,7 +242,7 @@ class AFCExtruderStepper:
             toolhead.dwell(self.next_cmd_time - print_time)
         else:
             self.next_cmd_time = print_time
-    
+
     def update_rotation_distance(self, multiplier):
         self.extruder_stepper.stepper.set_rotation_distance( self.base_rotation_dist / multiplier )
 
