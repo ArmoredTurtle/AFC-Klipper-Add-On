@@ -517,9 +517,6 @@ class afc:
             if CUR_LANE.hub_load == False:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
             CUR_LANE.hub_load = True
-            if self.hub.filament_present == False:
-                CUR_LANE.move(self.hub_dis + self.shot_move_dis, self.short_moves_speed, self.short_moves_accel)
-                self.toolhead.wait_moves()
             hub_attempts = 0
             while self.hub.filament_present == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
