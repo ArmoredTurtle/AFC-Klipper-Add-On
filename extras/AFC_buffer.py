@@ -103,7 +103,6 @@ class AFCtrigger:
 
     def enable_buffer(self):
         if self.turtleneck:
-            self._set_extruder_stepper()
             self.enable = True
             multiplier = 1.0
             if self.last_state == ADVANCE_STATE_NAME:
