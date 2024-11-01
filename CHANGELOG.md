@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Broke the `install-afc.sh` script out into multiple files that are sourced by the main script for maintainability.
 
 ### Fixed
-  - Fixed bug when `part_cooling_fan` was set to 
+  - Fixed bug when `part_cooling_fan` was set to False
 
 ## [2024-10-31]
 
