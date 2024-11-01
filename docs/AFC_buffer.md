@@ -57,6 +57,29 @@ _Optional for more fine tuning_
 - **multiplier_high**: Factor to move more filament through the secondary extruder.
 - **multiplier_low**: Factor to move less filament through the secondary extruder.
 
+__TurtleNeck 2.0 LED Indicator Configuration__
+
+_add to AFC_hardware file_
+
+```
+[AFC_led Buffer_Indicator]
+pin: TN:PD3
+chain_count: 1
+color_order: GRBW
+initial_RED: 0.0
+initial_GREEN: 0.0
+initial_BLUE: 0.0
+initial_WHITE: 0.0
+```
+
+_Optional AFC.cfg LED settings_
+
+```
+led_buffer_advancing: 0,0,1,0
+led_buffer_trailing: 0,1,0,0
+led_buffer_disable: 0,0,0,0.25
+```
+
 ### Belay Style buffer
 
 - **pin**: Pin for the buffer sensor.
@@ -80,6 +103,7 @@ advance_pin: !turtleneck:ADVANCE
 trailing_pin: !turtleneck:TRAILING
 multiplier_high: 1.1   # default 1.1, factor to feed more filament
 multiplier_low:  0.9   # default 0.9, factor to feed less filament
+led_index: Buffer_Indicator:1
 
 [AFC_buffer Belay]
 pin: mcu:BUFFER
