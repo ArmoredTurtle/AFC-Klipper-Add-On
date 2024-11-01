@@ -6,8 +6,8 @@
 
 from configparser import Error as error
 
-ADVANCE_STATE_NAME = "Compressed"
-TRAILING_STATE_NAME = "Expanded"
+ADVANCE_STATE_NAME = "Expanded"
+TRAILING_STATE_NAME = "Compressed"
 
 class AFCtrigger:
 
@@ -24,6 +24,13 @@ class AFCtrigger:
         self.AFC = self.printer.lookup_object('AFC')
         self.debug = config.getboolean("debug", False)
         self.buttons = self.printer.load_object(config, "buttons")
+
+        # LED SETTINGS
+        self.led_index = config.get('led_index', None)
+        self.led = False
+        if self.led_index is not None:
+            self.led = True
+            self.led_index = config.get('led_index')
 
         # Try and get one of each pin to see how user has configured buffer
         self.advance_pin = config.get('advance_pin', None)
@@ -100,9 +107,9 @@ class AFCtrigger:
             self.enable = True
             multiplier = 1.0
             if self.last_state == ADVANCE_STATE_NAME:
-                multiplier = self.multiplier_high
-            elif self.last_state == TRAILING_STATE_NAME:
                 multiplier = self.multiplier_low
+            elif self.last_state == TRAILING_STATE_NAME:
+                multiplier = self.multiplier_high
             self.set_multiplier( multiplier )
             if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
         elif self.belay:
@@ -113,42 +120,39 @@ class AFCtrigger:
     def disable_buffer(self):
         self.enable = False
         if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
+        if self.led:
+            self.AFC.afc_led(self.AFC.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
 
     # Turtleneck commands
-    def _set_extruder_stepper(self):
-        if self.printer.state_message == 'Printer is ready' and self.AFC.current != None and not self.enable:
-            LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
-            stepper = LANE.extruder_stepper.stepper
-            base_rotation_dist = stepper.get_rotation_distance()[0]
-            self.base_rotation_dist = base_rotation_dist
-            if self.debug: self.gcode.respond_info("Base rotation distance for {}: {}".format(LANE.name.upper(), base_rotation_dist))
-            self.update_rotation_distance = lambda m: stepper.set_rotation_distance(
-                base_rotation_dist / m
-            )
-        else:
-            return
-
     def set_multiplier(self, multiplier):
         if not self.enable: return
         if self.AFC.current is None: return
 
-        self.update_rotation_distance( multiplier )
+        cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+        cur_stepper.update_rotation_distance( multiplier )
+        if self.led:
+            if multiplier > 1:
+                self.AFC.afc_led(self.AFC.led_trailing, self.led_index)
+            elif multiplier < 1:
+                self.AFC.afc_led(self.AFC.led_advancing, self.led_index)
         if self.debug:
-            stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current).extruder_stepper.stepper
-            new_rotation_dist = stepper.get_rotation_distance()[0]
-            self.gcode.respond_info("New rotation distance after applying factor: {}".format(new_rotation_dist))
+            stepper = cur_stepper.extruder_stepper.stepper
+            self.gcode.respond_info("New rotation distance after applying factor: {}".format(stepper.get_rotation_distance()[0]))
 
     def reset_multiplier(self):
         if self.debug: self.gcode.respond_info("Buffer multiplier reset")
-        self.update_rotation_distance(1.0)
+
+        cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+        cur_stepper.update_rotation_distance( 1 )
+        self.gcode.respond_info("Rotation distance reset : {}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
 
     def advance_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != ADVANCE_STATE_NAME:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
-                    self.set_multiplier( self.multiplier_high )
+                    self.set_multiplier( self.multiplier_low )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Advancing")
 
         self.last_state = ADVANCE_STATE_NAME
@@ -157,10 +161,26 @@ class AFCtrigger:
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != TRAILING_STATE_NAME:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
-                    self.set_multiplier( self.multiplier_low )
+                    self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
 
         self.last_state = TRAILING_STATE_NAME
+
+    def buffer_status(self):
+        state_info = ''
+        if self.turtleneck:
+            if self.last_state == TRAILING_STATE_NAME:
+                state_info += "Expanded"
+            elif self.last_state == ADVANCE_STATE_NAME:
+                state_info = "Compressed"
+            elif self.last_state != TRAILING_STATE_NAME or ADVANCE_STATE_NAME:
+                state_info += "buffer tube floating in the middle"
+        else:
+            if self.last_state:
+                state_info += "compressed"
+            else:
+                state_info += "expanded"
+        return state_info
 
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):
@@ -213,30 +233,17 @@ class AFCtrigger:
             current state of the buffer sensor.
             - If the `turtleneck` feature is not enabled, only the buffer state is
             reported.
-            - The buffer state is reported as 'compressed' if the last state indicates
-            compression, or 'expanded' otherwise.
             - Both the buffer state and, if applicable, the stepper motor's rotation
             distance are sent back as G-code responses.
         """
-        state_info = ''
+        state_info = self.buffer_status()
         if self.turtleneck:
-            if self.last_state == TRAILING_STATE_NAME:
-                state_info += "Expanded"
-            elif self.last_state == ADVANCE_STATE_NAME:
-                state_info = "Compressed"
-            elif self.last_state != TRAILING_STATE_NAME or ADVANCE_STATE_NAME:
-                state_info += "buffer tube floating in the middle"
             if self.enable:
                 tool_loaded=self.AFC.current
                 LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
                 stepper = LANE.extruder_stepper.stepper
                 rotation_dist = stepper.get_rotation_distance()[0]
                 state_info += ("\n{} Rotation distance: {}".format(LANE.name.upper(), rotation_dist))
-        else:
-            if self.last_state:
-                state_info += "compressed"
-            else:
-                state_info += "expanded"
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 

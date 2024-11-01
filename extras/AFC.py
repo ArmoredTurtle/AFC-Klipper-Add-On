@@ -39,6 +39,9 @@ class afc:
         self.led_loading = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
+        self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')
+        self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')
+        self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')
 
         # BUFFER
         self.buffer_name = config.get('Buffer_Name', None)
@@ -735,11 +738,7 @@ class afc:
         # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
         str["system"]['hub_loaded']  = True == self.hub.filament_present  if self.hub is not None else False
-        str["system"]['buffer'] = ('{} : {}'.format(
-            self.buffer_name.upper(),
-            "compressed" if self.buffer.last_state == 1
-            else "expanded" if self.buffer.last_state == 0
-            else self.buffer.last_state) if self.buffer is not None else None)
+        str["system"]['buffer'] = ('{} : {}'.format(self.buffer_name.upper(),self.buffer.buffer_status()) if self.buffer is not None else None)
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
