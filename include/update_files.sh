@@ -204,11 +204,16 @@ advance_pin: !turtleneck:ADVANCE
 trailing_pin: !turtleneck:TRAILING
 multiplier_high: 1.1   # default 1.1, factor to feed more filament
 multiplier_low:  0.9   # default 0.9, factor to feed less filament
+led_index: Buffer_Indicator:1
 
-[neopixel TN2]
+[AFC_led Buffer_Indicator]
 pin: turtleneck:RGB
 chain_count: 1
-color_order: GRBW"
+color_order: GRBW
+initial_RED: 0.0
+initial_GREEN: 0.0
+initial_BLUE: 0.0
+initial_WHITE: 0.0"
       buffer_name="TN2"
       ;;
     "AnnexBelay")
