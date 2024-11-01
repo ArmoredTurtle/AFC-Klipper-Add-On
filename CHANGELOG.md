@@ -79,4 +79,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Broke the `install-afc.sh` script out into multiple files that are sourced by the main script for maintainability.
 
 ### Fixed
-  - Fixed bug when `part_cooling_fan` was set to False
+  - Fixed bug when `part_cooling_fan` was set to 
+
+## [2024-10-31]
+
+### Added
+
+- Added LED buffer_indicator
+  - allows for state change indication through color change
+- Added AFC_buffer.md to layout the integration of a buffer into the AFC system
+
+### Changed
+
+- Changed buffer code to reflect buffer functionality and pin names
+- Moved stepper commands from AFC_buffer to AFC_stepper
+- Abstracted buffer status to be used in IP query and query buffer
