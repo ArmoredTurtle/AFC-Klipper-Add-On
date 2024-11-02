@@ -265,15 +265,6 @@ class afc:
                     self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
-
-            error_string = "Error: Filament switch sensor {} not found in config file"
-            try: self.tool_start = self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper
-            except: self.tool_end = None
-            try: self.tool_end = self.printer.lookup_object('filament_switch_sensor tool_end').runout_helper
-            except: self.tool_end = None
-            if self.tool_start == None and self.tool_end == None:
-                self.AFC_error('No Tool Head Sensor', False)
-                return
             check_success = False
             if self.current == None:
                 for UNIT in self.lanes.keys():
@@ -349,8 +340,9 @@ class afc:
                         check_success = True
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                         CUR_LANE.do_enable(True)
+                        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                         if self.current == CUR_LANE.name:
-                            if self.tool_start.filament_present == False and CUR_LANE.hub.filament_present == True:
+                            if CUR_EXTRUDER.tool_start_state == False and CUR_LANE.hub.filament_present == True:
                                 untool_attempts = 0
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
@@ -692,10 +684,12 @@ class afc:
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
                 numoflanes +=1
             str[UNIT]['hub_loaded']  = True == self.printer.lookup_object('filament_switch_sensor ' + UNIT).runout_helper.filament_present
+            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + LANE.extruder_name)
+            str[UNIT]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            str[UNIT]['tool_end _sensor'] = True == CUR_EXTRUDER.tool_end_state if CUR_EXTRUDER.tool_end is not None else False
         str["system"]={}
         str["system"]['current_load']= self.current
         # Set status of filament sensors if they exist, false if sensors are not found
-        str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
