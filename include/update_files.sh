@@ -242,7 +242,7 @@ EOF
   if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$config_path"; then
     echo "Buffer configuration not found. Appending to $config_path"
     # Append the buffer configuration to the config file
-    echo "$buffer_config" >> "$config_path"
+    echo -e "\n$buffer_config" >> "$config_path"
   else
     echo "Buffer configuration already exists in $config_path"
   fi
