@@ -102,6 +102,8 @@ class AFCtrigger:
                 LANE.move(self.buffer_distance, self.velocity ,self.accel)
 
     def enable_buffer(self):
+        if self.led:
+            self.AFC.afc_led(self.AFC.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.enable = True
             multiplier = 1.0
@@ -116,13 +118,14 @@ class AFCtrigger:
             if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
             self.belay_move_lane(self.last_state)
 
-    def disable_buffer(self):
+    def disabled_buffer(self):
         self.enable = False
         if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
         if self.led:
             self.AFC.afc_led(self.AFC.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
+        self.last_state = False
 
     # Turtleneck commands
     def set_multiplier(self, multiplier):
@@ -152,9 +155,10 @@ class AFCtrigger:
             if self.AFC.tool_start.filament_present:
                 if self.AFC.current != None:
                     self.set_multiplier( self.multiplier_low )
-                    if self.debug: self.gcode.respond_info("Buffer Triggered State: Advancing")
+                    if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
 
-        self.last_state = ADVANCE_STATE_NAME
+        if state: self.last_state = ADVANCE_STATE_NAME
+        if not state: self.last_state = False
 
     def trailing_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != TRAILING_STATE_NAME:
@@ -163,16 +167,17 @@ class AFCtrigger:
                     self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
 
-        self.last_state = TRAILING_STATE_NAME
+        if state: self.last_state = TRAILING_STATE_NAME
+        if not state: self.last_state = False
 
     def buffer_status(self):
         state_info = ''
         if self.turtleneck:
             if self.last_state == TRAILING_STATE_NAME:
-                state_info += "Expanded"
+                state_info += "Compressed"
             elif self.last_state == ADVANCE_STATE_NAME:
-                state_info = "Compressed"
-            elif self.last_state != TRAILING_STATE_NAME or ADVANCE_STATE_NAME:
+                state_info = "Expanded"
+            else:
                 state_info += "buffer tube floating in the middle"
         else:
             if self.last_state:
@@ -210,11 +215,10 @@ class AFCtrigger:
                     self.gcode.respond_info("FACTOR must be greater than 0")
                     return
                 elif change_factor == 1.0:
-                    stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current).extruder_stepper.stepper
-                    stepper.set_rotation_distance(self.base_rotation_dist)
-                    self.gcode.respond_info("Rotation distance reset to base value: {}".format(self.base_rotation_dist))
+                    self.set_multiplier ( 1 )
+                    self.gcode.respond_info("Rotation distance reset to base value")
                 else:
-                    self.set_multiplier(change_factor)
+                    self.set_multiplier( change_factor )
             else:
                 self.gcode.respond_info("BUFFER {} NOT ENABLED".format(self.name.upper()))
         else:
