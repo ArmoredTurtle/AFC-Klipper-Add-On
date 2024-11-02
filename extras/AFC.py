@@ -22,7 +22,6 @@ class afc:
         self.lanes = {}
         # tool position when tool change was requested
         self.change_tool_pos = None
-        self.tool_start = None
 
         # SPOOLMAN
         self.spoolman = config.getboolean('spoolman', False)
@@ -60,11 +59,6 @@ class afc:
         self.form_tip = config.getboolean("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
 
-        self.tool_stn = config.getfloat("tool_stn", 120)
-        self.tool_stn_unload = config.getfloat("tool_stn_unload", self.tool_stn)
-        self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
-        self.config_bowden_length = self.afc_bowden_length
-
         # MOVE SETTINGS
         self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)
         self.long_moves_speed = config.getfloat("long_moves_speed", 100)
@@ -74,8 +68,6 @@ class afc:
         self.short_move = ' VELOCITY=' + str(self.short_moves_speed) + ' ACCEL='+ str(self.short_moves_accel)
         self.long_move = ' VELOCITY=' + str(self.long_moves_speed) + ' ACCEL='+ str(self.long_moves_accel)
         self.short_move_dis = config.getfloat("short_move_dis", 10)
-        self.tool_unload_speed =config.getfloat("tool_unload_speed", 10)
-        self.tool_load_speed =config.getfloat("tool_load_speed", 10)
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
@@ -477,6 +469,7 @@ class afc:
     def TOOL_LOAD(self, CUR_LANE):
         if CUR_LANE == None:
             return
+        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         self.failure = False
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
@@ -506,8 +499,8 @@ class afc:
                     return
             CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             tool_attempts = 0
-            if self.tool_start != None:
-                while self.tool_start.filament_present == False:
+            if CUR_EXTRUDER.tool_start != None:
+                while CUR_EXTRUDER.tool_start_state == False:
                     tool_attempts += 1
                     CUR_LANE.move( self.short_move_dis, self.tool_load_speed, self.long_moves_accel)
                     #callout if filament doesn't reach toolhead
@@ -521,8 +514,8 @@ class afc:
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                 CUR_LANE.status = 'Tooled'
                 pos = self.toolhead.get_position()
-                pos[3] += self.tool_stn
-                self.toolhead.manual_move(pos, self.tool_load_speed)
+                pos[3] += CUR_EXTRUDER.tool_stn
+                self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
                 self.toolhead.wait_moves()
                 self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
@@ -559,13 +552,13 @@ class afc:
     def TOOL_UNLOAD(self, CUR_LANE):
         if CUR_LANE == None:
             return
-        #self.toolhead = self.printer.lookup_object('toolhead')
+        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         pos = self.toolhead.get_position()
         pos[3] -= 2
-        self.toolhead.manual_move(pos, self.tool_unload_speed)
+        self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
         self.toolhead.wait_moves()
         pos[2] += self.z_hop
-        self.toolhead.manual_move(pos, self.tool_unload_speed)
+        self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
         self.toolhead.wait_moves()
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
@@ -591,7 +584,7 @@ class afc:
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
         num_tries = 0
-        while self.tool_start.filament_present == True:
+        while CUR_EXTRUDER.tool_start_state == True:
             num_tries += 1
             if num_tries > self.tool_max_unload_attempts:
                 self.failure = True
@@ -599,12 +592,12 @@ class afc:
                 self.AFC_error(msg)
                 return
             pos = self.toolhead.get_position()
-            pos[3] += self.tool_stn_unload * -1
+            pos[3] += CUR_EXTRUDER.tool_stn_unload * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
-        if self.tool_sensor_after_extruder >0:
+        if CUR_EXTRUDER.tool_sensor_after_extruder >0:
             pos = self.toolhead.get_position()
-            pos[3] += self.tool_sensor_after_extruder * -1
+            pos[3] += CUR_EXTRUDER.tool_sensor_after_extruder * -1
             self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
@@ -702,7 +695,6 @@ class afc:
         str["system"]['current_load']= self.current
         # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['tool_loaded'] = True == self.tool_start.filament_present if self.tool_start is not None else False
-       
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         return str
@@ -714,7 +706,6 @@ class afc:
             return False
         else:
             return True
-
 
     def is_printing(self):
         eventtime = self.reactor.monotonic()
