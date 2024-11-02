@@ -1,7 +1,7 @@
 import chelper
 from . import AFC
 
-class afc_hubcut:
+class afc_hub:
     def __init__(self, config):
         self.AFC = AFC.afc
         self.printer = config.get_printer()
@@ -10,20 +10,28 @@ class afc_hubcut:
         self.gcode = self.printer.lookup_object('gcode')
         self.reactor = self.printer.get_reactor()
 
-
-        #HUB cut_sizeself.hub_cut_active = config.getboolean("hub_cut_active", False)
         self.AFC = self.printer.lookup_object('AFC')
-        self.hub_cut_dist = config.getfloat("hub_cut_dist", 200)
-        self.hub_cut_clear = config.getfloat("hub_cut_clear", 120)
-        self.hub_cut_min_length = config.getfloat("hub_cut_min_length", 200)
-        self.hub_cut_servo_pass_angle = config.getfloat("hub_cut_servo_pass_angle", 0)
-        self.hub_cut_servo_clip_angle = config.getfloat("hub_cut_servo_clip_angle", 160)
-        self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
-        self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
+        self.cut = config.getboolean("cut", False)
+        self.cut_cmd = config.get('cut_cmd', None)
+        self.cut_dist = config.getfloat("cut_dist", 200)
+        self.cut_clear = config.getfloat("cut_clear", 120)
+        self.cut_min_length = config.getfloat("cut_min_length", 200)
+        self.cut_servo_pass_angle = config.getfloat("cut_servo_pass_angle", 0)
+        self.cut_servo_clip_angle = config.getfloat("cut_servo_clip_angle", 160)
+        self.cut_servo_prep_angle = config.getfloat("cut_servo_prep_angle", 75)
+        self.cut_confirm = config.getfloat("cut_confirm", 0)
+        self.move_dis = config.getfloat("move_dis", 50)
+        self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
+        buttons = self.printer.load_object(config, "buttons")
+        self.switch_pin = config.get('switch_pin', None)
+        if self.switch_pin is not None:
+            self.state = False
+            buttons.register_buttons([self.switch_pin], self.switch_pin_callback)
+
+    def switch_pin_callback(self, eventtime, state):
+        self.state = state
 
     def hub_cut(self, CUR_LANE):
-
-    
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
         self.hub = self.printer.lookup_object('filament_switch_sensor ' + self.name).runout_helper
 
@@ -50,4 +58,4 @@ class afc_hubcut:
         CUR_LANE.move( -self.hub_cut_clear, self.short_moves_speed, self.short_moves_accel)
 
 def load_config_prefix(config):
-    return afc_hubcut(config)
+    return afc_hub(config)

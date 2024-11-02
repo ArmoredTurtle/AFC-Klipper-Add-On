@@ -5,7 +5,6 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os
 import json
-from . import AFC_hub_cut
 
 from configparser import Error as error
 class afc:
@@ -20,6 +19,7 @@ class afc:
         self.current = None
         self.failure = False
         self.lanes = {}
+        self.extrude = []
         # tool position when tool change was requested
         self.change_tool_pos = None
 
@@ -36,9 +36,6 @@ class afc:
         self.led_loading = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
-        # HUB
-        self.hub_move_dis = config.getfloat("hub_move_dis", 50)
-        self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
 
         # TOOL Cutting Settings
         self.tool = ''
@@ -54,8 +51,6 @@ class afc:
         self.wipe_cmd = config.get('wipe_cmd', None)
         self.poop = config.getboolean("poop", False)
         self.poop_cmd = config.get('poop_cmd', None)
-        self.hub_cut = config.getboolean("hub_cut", False)
-        self.hub_cut_cmd = config.get('hub_cut_cmd', None)
 
         self.form_tip = config.getboolean("form_tip", False)
         self.form_tip_cmd = config.get('form_tip_cmd', None)
@@ -75,7 +70,6 @@ class afc:
         self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
         self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
-        self.gcode.register_command('RESTORE_CHANGE_TOOL_POS', self.cmd_RESTORE_CHANGE_TOOL_POS, desc=self.cmd_RESTORE_CHANGE_TOOL_POS_help)
         self.gcode.register_command('PREP', self.cmd_PREP, desc=self.cmd_PREP_help)
         self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
@@ -171,7 +165,9 @@ class afc:
     def cmd_HUB_CUT_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
-        self.hub_cut(lane)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
+        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+        CUR_HUB.hub_cut(lane)
         self.gcode.respond_info('Done!')
 
     cmd_TEST_help = "Test Assist Motors"
@@ -223,6 +219,7 @@ class afc:
                 temp.append(LANE.name)
                 if LANE.unit not in self.lanes: self.lanes[LANE.unit]={}
                 if LANE.name not in self.lanes[LANE.unit]: self.lanes[LANE.unit][LANE.name]={}
+                if LANE.extruder_name not in self.extrude: self.extrude.append(LANE.extruder_name)
                 if 'index' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'material' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['spool_id']=''
@@ -254,7 +251,8 @@ class afc:
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
                 for LANE in self.lanes[UNIT].keys():
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
-                    CUR_LANE.hub = self.printer.lookup_object('filament_switch_sensor ' + UNIT).runout_helper
+                    CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+                    CUR_LANE.hub = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
@@ -270,10 +268,10 @@ class afc:
                         check_success = True
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                         CUR_LANE.do_enable(True)
-                        if CUR_LANE.hub.filament_present == True and CUR_LANE.load_state == True:
+                        if CUR_LANE.hub.state == True and CUR_LANE.load_state == True:
                             num_tries = 0
                             while CUR_LANE.load_state == True:
-                                CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                                CUR_LANE.move( CUR_LANE.hub.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
                                 num_tries += 1
                                 #callout if filament can't be retracted before extruder load switch
                                 if num_tries > (self.afc_bowden_length/self.short_move_dis) + 3:
@@ -283,7 +281,7 @@ class afc:
                                     break
                             num_tries = 0
                             while CUR_LANE.load_state == False:
-                                CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                                CUR_LANE.move( CUR_LANE.hub.move_dis, self.short_moves_speed, self.short_moves_accel)
                                 num_tries += 1
                                 #callout if filament is past trigger but can't be brought past extruder
                                 if num_tries > 20:
@@ -297,7 +295,7 @@ class afc:
                             if CUR_LANE.prep_state == True:
                                 num_tries = 0
                                 while CUR_LANE.load_state == False:
-                                    CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                                    CUR_LANE.move( CUR_LANE.hub.move_dis, self.short_moves_speed, self.short_moves_accel)
                                     num_tries += 1
                                     #callout if filament is past trigger but can't be brought past extruder
                                     if num_tries > 20:
@@ -340,10 +338,10 @@ class afc:
                         CUR_LANE.do_enable(True)
                         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                         if self.current == CUR_LANE.name:
-                            if CUR_EXTRUDER.tool_start_state == False and CUR_LANE.hub.filament_present == True:
+                            if CUR_EXTRUDER.tool_start_state == False and CUR_LANE.hub.state == True:
                                 untool_attempts = 0
                                 while CUR_LANE.load_state == True:
-                                    CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+                                    CUR_LANE.move( CUR_LANE.hub.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                     untool_attempts += 1
                                     if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
                                         message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
@@ -353,7 +351,7 @@ class afc:
                                 self.current = None
                                 num_tries = 0
                                 while CUR_LANE.load_state == False:
-                                    CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+                                    CUR_LANE.move( CUR_LANE.hub.move_dis, self.short_moves_speed, self.short_moves_accel)
                                     num_tries += 1
                                     if num_tries > 20:
                                         message = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
@@ -411,7 +409,7 @@ class afc:
         else:
             self.gcode.respond_info(logo_error)
         # Call out if all lanes are clear but hub is not
-        if CUR_LANE.hub.filament_present == True and self.tool_start.filament_present == False:
+        if CUR_LANE.hub.state == True and self.tool_start.filament_present == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
             self.AFC_error(msg, False)
 
@@ -676,15 +674,17 @@ class afc:
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
                 numoflanes +=1
-            str[UNIT]['hub_loaded']  = True == self.printer.lookup_object('filament_switch_sensor ' + UNIT).runout_helper.filament_present
-            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + LANE.extruder_name)
-            str[UNIT]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
-            str[UNIT]['tool_end _sensor'] = True == CUR_EXTRUDER.tool_end_state if CUR_EXTRUDER.tool_end is not None else False
+            str[UNIT]['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
         str["system"]={}
         str["system"]['current_load']= self.current
-        # Set status of filament sensors if they exist, false if sensors are not found
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
+        str["system"]['num_extruders'] = len(self.extrude)
+        for EXTRUDE in self.extrude:
+            str["system"][EXTRUDE]={}
+            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
+            str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            str["system"][EXTRUDE]['tool_end _sensor'] = True == CUR_EXTRUDER.tool_end_state if CUR_EXTRUDER.tool_end is not None else False
         return str
 
     def is_homed(self):
