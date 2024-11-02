@@ -118,7 +118,7 @@ class AFCtrigger:
             if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
             self.belay_move_lane(self.last_state)
 
-    def disabled_buffer(self):
+    def disable_buffer(self):
         self.enable = False
         if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
         if self.led:
