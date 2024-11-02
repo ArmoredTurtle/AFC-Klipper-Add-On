@@ -189,16 +189,18 @@ append_buffer_config() {
 
   case "$buffer_system" in
     "TurtleNeck")
-      buffer_config="
+      buffer_config=$(cat <<'EOF'
 [AFC_buffer TN]
 advance_pin:     # set advance pin
 trailing_pin:    # set trailing pin
 multiplier_high: 1.1   # default 1.1, factor to feed more filament
-multiplier_low:  0.9   # default 0.9, factor to feed less filament"
+multiplier_low:  0.9   # default 0.9, factor to feed less filament
+EOF
+)
       buffer_name="TN"
       ;;
     "TurtleNeckV2")
-      buffer_config="
+      buffer_config=$(cat <<'EOF'
 [AFC_buffer TN2]
 advance_pin: !turtleneck:ADVANCE
 trailing_pin: !turtleneck:TRAILING
@@ -213,16 +215,20 @@ color_order: GRBW
 initial_RED: 0.0
 initial_GREEN: 0.0
 initial_BLUE: 0.0
-initial_WHITE: 0.0"
+initial_WHITE: 0.0
+EOF
+)
       buffer_name="TN2"
       ;;
     "AnnexBelay")
-      buffer_config="
+      buffer_config=$(cat <<'EOF'
 [AFC_buffer Belay]
 pin: mcu:BUFFER
 distance: 12
 velocity: 1000
-accel: 1000"
+accel: 1000
+EOF
+)
       buffer_name="Belay"
       ;;
     *)
@@ -232,9 +238,12 @@ accel: 1000"
   esac
 
   # Check if the buffer configuration already exists in the config file
-  if ! grep -qF "$buffer_config" "$config_path"; then
+  echo "Checking if buffer configuration already exists in $config_path"
+  if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$config_path"; then
     # Append the buffer configuration to the config file
-    echo "$buffer_config" >> "$config_path"
+    echo -e "\n$buffer_config" >> "$config_path"
+  else
+    echo "Buffer configuration already exists in $config_path"
   fi
 
   # Add Buffer_Name below the line containing Type: in AFC.cfg
