@@ -38,6 +38,7 @@ class afc:
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
         # HUB
         self.hub_move_dis = config.getfloat("hub_move_dis", 50)
+        self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
 
         # TOOL Cutting Settings
         self.tool = ''

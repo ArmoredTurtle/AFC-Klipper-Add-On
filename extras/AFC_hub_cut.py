@@ -3,15 +3,13 @@ from . import AFC
 
 class afc_hubcut:
     def __init__(self, config):
-<<<<<<< Updated upstream
         self.AFC = AFC.afc
-=======
         self.printer = config.get_printer()
         self.name = config.get_name().split()[-1]
-        self.AFC = self.printer.lookup_object('AFC')2
+        self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
         self.reactor = self.printer.get_reactor()
->>>>>>> Stashed changes
+
 
         #HUB cut_sizeself.hub_cut_active = config.getboolean("hub_cut_active", False)
         self.AFC = self.printer.lookup_object('AFC')
@@ -23,13 +21,12 @@ class afc_hubcut:
         self.hub_cut_servo_prep_angle = config.getfloat("hub_cut_servo_prep_angle", 75)
         self.hub_cut_confirm = config.getfloat("hub_cut_confirm", 0)
 
-<<<<<<< Updated upstream
     def hub_cut(self, CUR_LANE):
-=======
-    def hub_cut(self, LANE):
+
+    
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
         self.hub = self.printer.lookup_object('filament_switch_sensor ' + self.name).runout_helper
->>>>>>> Stashed changes
+
         # Prep the servo for cutting.
         self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
