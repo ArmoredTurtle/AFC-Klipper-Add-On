@@ -274,7 +274,7 @@ class afc:
                                 CUR_LANE.move( CUR_LANE.hub.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
                                 num_tries += 1
                                 #callout if filament can't be retracted before extruder load switch
-                                if num_tries > (self.afc_bowden_length/self.short_move_dis) + 3:
+                                if num_tries > (CUR_LANE.hub.afc_bowden_length/self.short_move_dis) + 3:
                                     message = (' FAILED TO RESET EXTRUDER\n||=====||=x--||-----||\nTRG   LOAD   HUB   TOOL')
                                     self.handle_lane_failure(CUR_LANE, message, False)
                                     check_success = False
@@ -343,7 +343,7 @@ class afc:
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.move( CUR_LANE.hub.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
                                     untool_attempts += 1
-                                    if untool_attempts > (self.afc_bowden_length/self.short_move_dis)+3:
+                                    if untool_attempts > (CUR_LANE.hub.afc_bowden_length/self.short_move_dis)+3:
                                         message = (' FAILED TO CLEAR LINE, CHECK FILAMENT PATH\n')
                                         self.handle_lane_failure(CUR_LANE, message, False)
                                         break
@@ -486,7 +486,7 @@ class afc:
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
                     return
-            CUR_LANE.move( self.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
+            CUR_LANE.move( CUR_LANE.hub.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
             tool_attempts = 0
             if CUR_EXTRUDER.tool_start != None:
                 while CUR_EXTRUDER.tool_start_state == False:
@@ -590,13 +590,13 @@ class afc:
             self.toolhead.manual_move(pos, self.tool_unload_speed)
             self.toolhead.wait_moves()
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
-        CUR_LANE.move( self.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+        CUR_LANE.move( CUR_LANE.hub.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
         num_tries = 0
         while CUR_LANE.hub.filament_present == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
-            if num_tries > (self.afc_bowden_length/self.short_move_dis):
+            if num_tries > (CUR_LANE.hub.afc_bowden_length/self.short_move_dis):
                 self.failure = True
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
@@ -612,7 +612,7 @@ class afc:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
-            if num_tries > (self.afc_bowden_length/self.short_move_dis):
+            if num_tries > (CUR_LANE.hub.afc_bowden_length/self.short_move_dis):
                 self.failure = True
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
