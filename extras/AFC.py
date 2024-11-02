@@ -66,8 +66,6 @@ class afc:
         self.long_moves_accel = config.getfloat("long_moves_accel", 400)
         self.short_moves_speed = config.getfloat("short_moves_speed", 25)
         self.short_moves_accel = config.getfloat("short_moves_accel", 400)
-        self.short_move = ' VELOCITY=' + str(self.short_moves_speed) + ' ACCEL='+ str(self.short_moves_accel)
-        self.long_move = ' VELOCITY=' + str(self.long_moves_speed) + ' ACCEL='+ str(self.long_moves_accel)
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
@@ -207,7 +205,7 @@ class afc:
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
     def cmd_SPOOL_ID(self, gcmd):
         return
-
+    
     cmd_PREP_help = "Prep AFC"
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
@@ -261,8 +259,8 @@ class afc:
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
-                    self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1), "LANE", CUR_LANE.name, self.cmd_CHANGE_TOOL, desc=None)
-                    self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
+                    #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1),'LANE', CUR_LANE.name, self.cmd_CHANGE_TOOL(), desc=self.cmd_CHANGE_TOOL)
+                    #self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
             check_success = False
@@ -634,32 +632,27 @@ class afc:
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
         if lane != self.current:
-            store_pos = self.toolhead.get_position()
-            if self.is_homed() and not self.is_paused():
-                self.change_tool_pos = store_pos
-            self.gcode.respond_info(" Tool Change - " + str(self.current) + " -> " + lane)
-            if self.current != None:
-                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
-                self.TOOL_UNLOAD(CUR_LANE)
-                if self.failure:
-                    msg = (' UNLOAD ERROR NOT CLEARED')
-                    self.AFC_error(msg)
-                    return
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-            self.TOOL_LOAD(CUR_LANE)
-            newpos = self.toolhead.get_position()
-            newpos[2] = store_pos[2]
-            self.toolhead.manual_move(newpos, self.tool_unload_speed)
-            self.toolhead.wait_moves()
-            if self.is_printing() and not self.is_paused():
-                self.change_tool_pos = None
-
-    cmd_RESTORE_CHANGE_TOOL_POS_help = "change filaments in tool head"
-    def cmd_RESTORE_CHANGE_TOOL_POS(self, gcmd):
-        if self.change_tool_pos:
-            restore_pos = self.change_tool_pos[:3]
-            self.toolhead.manual_move(restore_pos, self.tool_start_unload_speed)
-            self.toolhead.wait_moves()
+            if CUR_LANE._afc_prep_done == True:
+                store_pos = self.toolhead.get_position()
+                if self.is_homed() and not self.is_paused():
+                    self.change_tool_pos = store_pos
+                self.gcode.respond_info(" Tool Change - " + str(self.current) + " -> " + lane)
+                if self.current != None:
+                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
+                    self.TOOL_UNLOAD(CUR_LANE)
+                    if self.failure:
+                        msg = (' UNLOAD ERROR NOT CLEARED')
+                        self.AFC_error(msg)
+                        return
+                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+                self.TOOL_LOAD(CUR_LANE)
+                newpos = self.toolhead.get_position()
+                newpos[2] = store_pos[2]
+                self.toolhead.manual_move(newpos, self.tool_unload_speed)
+                self.toolhead.wait_moves()
+                if self.is_printing() and not self.is_paused():
+                    self.change_tool_pos = None
 
     def get_status(self, eventtime):
         str = {}
