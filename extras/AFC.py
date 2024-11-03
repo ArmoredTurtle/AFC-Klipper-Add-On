@@ -675,6 +675,7 @@ class afc:
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
                 numoflanes +=1
             str[UNIT]['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
+            str[UNIT]['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
         str["system"]={}
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.lanes)
