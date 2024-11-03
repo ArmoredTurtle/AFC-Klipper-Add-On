@@ -449,8 +449,8 @@ class afc:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
             CUR_LANE.hub_load = False
             while CUR_LANE.load_state == True:
-               CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-            CUR_LANE.move( self.hub_move_dis * -5, self.short_moves_speed, self.short_moves_accel)
+               CUR_LANE.move( CUR_LANE.hub.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+            CUR_LANE.move( CUR_LANE.hub.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.save_vars()
@@ -677,8 +677,9 @@ class afc:
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
                 numoflanes +=1
-            str[UNIT]['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
-            str[UNIT]['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
+            str[UNIT]['system']={}
+            str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
+            str[UNIT]['system']['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
         str["system"]={}
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.lanes)
