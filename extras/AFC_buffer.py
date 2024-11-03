@@ -22,8 +22,8 @@ class AFCtrigger:
       self.gcode = self.printer.lookup_object('gcode')
       self.printer.register_event_handler("klippy:ready", self._handle_ready)
       self.gcode.register_mux_command("QUERY_BUFFER","BUFFER", self.name,self.cmd_QUERY_BUFFER,desc=self.cmd_QUERY_BUFFER_help)
-    cmd_QUERY_BUFFER_help = "Report Buffer sensor state"
 
+    cmd_QUERY_BUFFER_help = "Report Buffer sensor state"
     def cmd_QUERY_BUFFER(self, gcmd):
         if self.last_state:
             state_info = "compressed"
@@ -37,13 +37,14 @@ class AFCtrigger:
     def sensor_callback(self, eventtime, state):
         self.last_state = state
         if self.printer.state_message == 'Printer is ready':
-            if self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper.filament_present == True:
-                if self.printer.lookup_object('AFC').current != None:
-                    tool_loaded=self.printer.lookup_object('AFC').current
-                    LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
+            if self.printer.lookup_object('AFC').current != None:
+                tool_loaded=self.printer.lookup_object('AFC').current
+                LANE = self.printer.lookup_object('AFC_stepper ' + tool_loaded)
+                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + LANE.extruder_name)
+                if CUR_EXTRUDER.tool_start_state == True:
                     if LANE.status != 'unloading':
                         if self.debug == True: self.gcode.respond_info("Buffer Triggered, State: {}".format(state))
-                        LANE.move(self.buffer_distance, self.velocity ,self.accel)
+                        LANE.move(LANE.hub.buffer_distance, self.velocity ,self.accel)
 
 def load_config_prefix(config):
     return AFCtrigger(config)
