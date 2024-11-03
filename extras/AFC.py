@@ -412,7 +412,7 @@ class afc:
         else:
             self.gcode.respond_info(logo_error)
         # Call out if all lanes are clear but hub is not
-        if CUR_LANE.hub.state == True and self.tool_start.filament_present == False:
+        if CUR_LANE.hub.state == True and CUR_EXTRUDER.tool_start_state == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
             self.AFC_error(msg, False)
 
@@ -429,9 +429,9 @@ class afc:
                 CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
         if CUR_LANE.hub_load == False:
             CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
-        while CUR_LANE.hub.filament_present == False:
+        while CUR_LANE.hub.state == False:
             CUR_LANE.move(self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
-        while CUR_LANE.hub.filament_present == True:
+        while CUR_LANE.hub.state == True:
             CUR_LANE.move(self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         CUR_LANE.status = 'Hubed'
         CUR_LANE.do_enable(False)
@@ -467,7 +467,7 @@ class afc:
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'loading'
         self.afc_led(self.led_loading, CUR_LANE.led_index)
-        if CUR_LANE.load_state == True and CUR_LANE.hub.filament_present == False:
+        if CUR_LANE.load_state == True and CUR_LANE.hub.state == False:
             if not self.heater.can_extrude: #Heat extruder if not at min temp
                 extruder = self.printer.lookup_object('toolhead').get_extruder()
                 pheaters = self.printer.lookup_object('heaters')
@@ -480,7 +480,7 @@ class afc:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
             CUR_LANE.hub_load = True
             hub_attempts = 0
-            while CUR_LANE.hub.filament_present == False:
+            while CUR_LANE.hub.state == False:
                 CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
@@ -529,7 +529,7 @@ class afc:
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
         else:
             #callout if hub is triggered when trying to load
-            if CUR_LANE.hub.filament_present == True:
+            if CUR_LANE.hub.state == True:
                 msg = ('HUB NOT CLEAR TRYING TO LOAD ' + CUR_LANE.name.upper() + '\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 self.gcode.run_script_from_command('PAUSE')
@@ -585,17 +585,17 @@ class afc:
                 return
             pos = self.toolhead.get_position()
             pos[3] += CUR_EXTRUDER.tool_stn_unload * -1
-            self.toolhead.manual_move(pos, self.tool_unload_speed)
+            self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
         if CUR_EXTRUDER.tool_sensor_after_extruder >0:
             pos = self.toolhead.get_position()
             pos[3] += CUR_EXTRUDER.tool_sensor_after_extruder * -1
-            self.toolhead.manual_move(pos, self.tool_unload_speed)
+            self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
         CUR_LANE.extruder_stepper.sync_to_extruder(None)
         CUR_LANE.move( CUR_LANE.hub.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
         num_tries = 0
-        while CUR_LANE.hub.filament_present == True:
+        while CUR_LANE.hub.state == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
@@ -604,14 +604,13 @@ class afc:
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 return
-        CUR_LANE.move( self.hub_move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-        if self.hub_cut:
-            if self.hub_cut_cmd == 'AFC':
-                self.AFC_hub_cut = self.printer.lookup_object('AFC_hub_cut')
-                AFC_hub_cut.hub_cut(CUR_LANE.name)
+        CUR_LANE.move( CUR_LANE.hub.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+        if CUR_LANE.hub.cut:
+            if CUR_LANE.hub.cut_cmd == 'AFC':
+                CUR_LANE.hub.hub_cut(CUR_LANE.name)
             else:
-                self.gcode.run_script_from_command(self.hub_cut_cmd)
-        while CUR_LANE.hub.filament_present == True:
+                self.gcode.run_script_from_command(CUR_LANE.hub.cut_cmd)
+        while CUR_LANE.hub.state == True:
             CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
@@ -647,10 +646,11 @@ class afc:
                         self.AFC_error(msg)
                         return
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 self.TOOL_LOAD(CUR_LANE)
                 newpos = self.toolhead.get_position()
                 newpos[2] = store_pos[2]
-                self.toolhead.manual_move(newpos, self.tool_unload_speed)
+                self.toolhead.manual_move(newpos, CUR_EXTRUDER.tool_unload_speed)
                 self.toolhead.wait_moves()
                 if self.is_printing() and not self.is_paused():
                     self.change_tool_pos = None
