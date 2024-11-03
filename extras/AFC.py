@@ -36,11 +36,14 @@ class afc:
         self.led_loading = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
+        self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')
+        self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')
+        self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')
 
         # TOOL Cutting Settings
         self.tool = ''
         self.tool_cut = config.getboolean("tool_cut", False)
-        self.tool_cut_cmd = config.get('tool_cut_cmd')
+        self.tool_cut_cmd = config.get('tool_cut_cmd', None)
 
         # CHOICES
         self.park = config.getboolean("park", False)
