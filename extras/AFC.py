@@ -619,6 +619,8 @@ class afc:
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 return
+        while CUR_LANE.load_state == False:
+            CUR_LANE.move(self.short_move_dis, self.short_moves_speed, self.short_moves_accel, True)
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
