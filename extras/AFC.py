@@ -14,6 +14,7 @@ class afc:
         self.printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
         self.gcode = self.printer.lookup_object('gcode')
+        self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
         self.Type = config.get('Type')
         self.current = None
@@ -22,7 +23,13 @@ class afc:
         self.extrude = []
         # tool position when tool change was requested
         self.change_tool_pos = None
-
+        self.in_toolchange = False
+        self.tool_start = None
+        self.base_position = [0.0, 0.0, 0.0, 0.0]
+        self.last_gcode_position = [0.0, 0.0, 0.0, 0.0]
+        self.last_toolhead_position = [0.0, 0.0, 0.0, 0.0]
+        self.homing_position = [0.0, 0.0, 0.0, 0.0]
+        self.speed = 25.
         # SPOOLMAN
         self.spoolman = config.getboolean('spoolman', False)
         if self.spoolman:
@@ -67,6 +74,9 @@ class afc:
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
         self.z_hop =config.getfloat("z_hop", 0)
+        self.xy_resume =config.getboolean("xy_resume", False)
+        self.resume_speed =config.getfloat("resume_speed", 0)
+        self.resume_z_speed = config.getfloat("resume_z_speed", 0)
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
         if self.Type == 'Box_Turtle':
             self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
@@ -78,6 +88,7 @@ class afc:
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
@@ -113,12 +124,53 @@ class afc:
 
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
     def cmd_CLEAR_ERROR(self, gcmd):
-        self.failure = False
+        self.set_error_state(False)
+
+    def save_pos(self):
+        # Only save previous location on the first toolchange call to keep an error state from overwriting the location
+        if self.in_toolchange == False:
+            if self.failure == False:
+                self.last_toolhead_position = self.toolhead.get_position()
+                self.base_position = self.gcode_move.base_position
+                self.last_gcode_position = self.gcode_move.last_position
+                self.homing_position = self.gcode_move.homing_position
+                self.speed = self.gcode_move.speed
+
+    def restore_pos(self, justz=False):
+        newpos = self.toolhead.get_position()
+        newpos[2] = self.last_gcode_position[2]
+
+        speed = self.resume_speed if self.resume_speed > 0 else self.speed
+        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.speed
+        
+        # Update GCODE STATE variables
+        self.gcode_move.base_position = self.base_position
+        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
+        self.gcode_move.homing_position = self.homing_position
+        
+        # Restore the relative E position
+        e_diff = newpos[3] - self.last_gcode_position[3]
+        self.gcode_move.base_position[3] += e_diff
+        
+        # Move toolhead to previous z location
+        self.gcode_move.move_with_transform(newpos, speedz)
+
+        # If this is a full pos restore move to the previous x,y after moving to previous z
+        if justz == False or self.xy_resume == True:
+            newpos[:2] = self.last_gcode_position[:2]
+            self.gcode_move.move_with_transform(newpos, speed)
 
     def pause_print(self):
         if self.is_homed() and not self.is_paused():
+            self.save_pos()
             self.gcode.respond_info ('PAUSING')
             self.gcode.run_script_from_command('PAUSE')
+
+    def set_error_state(self, state):
+        # Only save position on first error state call
+        if state == True and self.failure == False:
+            self.save_pos()
+        self.failure = state
 
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
@@ -149,6 +201,13 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
+        
+    cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
+    def cmd_AFC_RESUME(self, gcmd):
+        self.set_error_state(False)
+        self.in_toolchange = False
+        self.gcode.run_script_from_command('RESUME')
+        self.restore_pos()
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
@@ -177,13 +236,13 @@ class afc:
     def cmd_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.AFC_error('Must select LANE')
+            self.AFC_error('Must select LANE', False)
             return
         self.gcode.respond_info('TEST ROUTINE')
         try:
             CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
         except error as e:
-            self.AFC_error(str(e))
+            self.AFC_error(str(e), False)
             return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
@@ -462,7 +521,7 @@ class afc:
         if CUR_LANE == None:
             return
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        self.failure = False
+        self.set_error_state(False)
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'loading'
@@ -494,12 +553,12 @@ class afc:
             if CUR_EXTRUDER.tool_start != None:
                 while CUR_EXTRUDER.tool_start_state == False:
                     tool_attempts += 1
-                    CUR_LANE.move( self.short_move_dis, self.tool_load_speed, self.long_moves_accel)
+                    CUR_LANE.move( self.short_move_dis, CUR_EXTRUDER.tool_load_speed, self.long_moves_accel)
                     #callout if filament doesn't reach toolhead
                     if tool_attempts > 20:
                         message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
                         self.AFC_error(message)
-                        self.failure = True
+                        self.set_error_state(True)
                         break
 
             if self.failure == False:
@@ -524,7 +583,7 @@ class afc:
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.save_vars() # Always save variables even if a failure happens
-            if self.failure:
+            if self.failure == True:
                 self.pause_print()
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
         else:
@@ -579,7 +638,7 @@ class afc:
         while CUR_EXTRUDER.tool_start_state == True:
             num_tries += 1
             if num_tries > self.tool_max_unload_attempts:
-                self.failure = True
+                self.set_error_state(True)
                 msg = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.\n||=====||====||====|x|\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 return
@@ -600,7 +659,7 @@ class afc:
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
             if num_tries > (CUR_LANE.hub.afc_bowden_length/self.short_move_dis):
-                self.failure = True
+                self.set_error_state(True)
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 return
@@ -615,12 +674,10 @@ class afc:
             num_tries += 1
             # callout if while unloading, filament doesn't move past HUB
             if num_tries > (CUR_LANE.hub.afc_bowden_length/self.short_move_dis):
-                self.failure = True
+                self.set_error_state(True)
                 msg = (' HUB NOT CLEARING' + '\n||=====||====|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 return
-        while CUR_LANE.load_state == False:
-            CUR_LANE.move(self.short_move_dis, self.short_moves_speed, self.short_moves_accel, True)
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
@@ -634,11 +691,12 @@ class afc:
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
         if lane != self.current:
+            # Create save state
+            self.save_pos()
+            # Set in_toolchange flag so if there is a failure it doesnt overwrite the saved position
+            self.in_toolchange = True
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             if CUR_LANE._afc_prep_done == True:
-                store_pos = self.toolhead.get_position()
-                if self.is_homed() and not self.is_paused():
-                    self.change_tool_pos = store_pos
                 self.gcode.respond_info(" Tool Change - " + str(self.current) + " -> " + lane)
                 if self.current != None:
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
@@ -650,12 +708,10 @@ class afc:
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 self.TOOL_LOAD(CUR_LANE)
-                newpos = self.toolhead.get_position()
-                newpos[2] = store_pos[2]
-                self.toolhead.manual_move(newpos, CUR_EXTRUDER.tool_unload_speed)
-                self.toolhead.wait_moves()
-                if self.is_printing() and not self.is_paused():
-                    self.change_tool_pos = None
+                # Restore state
+            if self.failure == False:
+                self.restore_pos(True)
+                self.in_toolchange = False
 
     def get_status(self, eventtime):
         str = {}
