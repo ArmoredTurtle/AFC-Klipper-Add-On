@@ -1,3 +1,9 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
 class afc_poop:
     def __init__(self, config):
         self.config = config
@@ -8,8 +14,8 @@ class afc_poop:
         self.verbose = config.getboolean('verbose', False)
         self.purge_loc_xy = config.get('purge_loc_xy')
         self.purge_start = config.getfloat('purge_start', 0)
-        self.purge_spd = (config.getfloat('purge_spd', 6.5)) 
-        self.fast_z = (config.getfloat('fast_z', 200)) 
+        self.purge_spd = (config.getfloat('purge_spd', 6.5))
+        self.fast_z = (config.getfloat('fast_z', 200))
         self.z_lift = config.getfloat('z_lift', 20)
         self.restore_position = config.getboolean('restore_position', False)
         self.purge_start = config.getfloat('purge_start', 20)
