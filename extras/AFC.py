@@ -142,16 +142,16 @@ class afc:
 
         speed = self.resume_speed if self.resume_speed > 0 else self.speed
         speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.speed
-        
+
         # Update GCODE STATE variables
         self.gcode_move.base_position = self.base_position
         self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
         self.gcode_move.homing_position = self.homing_position
-        
+
         # Restore the relative E position
         e_diff = newpos[3] - self.last_gcode_position[3]
         self.gcode_move.base_position[3] += e_diff
-        
+
         # Move toolhead to previous z location
         self.gcode_move.move_with_transform(newpos, speedz)
 
@@ -201,7 +201,7 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
-        
+
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
         self.set_error_state(False)
@@ -263,7 +263,7 @@ class afc:
     cmd_SPOOL_ID_help = "LINK SPOOL into hub"
     def cmd_SPOOL_ID(self, gcmd):
         return
-    
+
     cmd_PREP_help = "Prep AFC"
     def cmd_PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
@@ -714,7 +714,7 @@ class afc:
                         self.AFC_error(msg)
                         return
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                #CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 self.TOOL_LOAD(CUR_LANE)
                 # Restore state
             if self.failure == False:
