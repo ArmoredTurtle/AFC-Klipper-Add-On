@@ -85,7 +85,8 @@ class AFCtrigger:
     def belay_sensor_callback(self, eventime, state):
         if not self.last_state and state:
             if self.printer.state_message == 'Printer is ready' and self.enable:
-                if self.AFC.tool_start.filament_present:
+                cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+                if cur_stepper.hub.tool_state:
                     if self.AFC.current != None:
                         self.belay_move_lane(state)
         self.last_state = state
@@ -152,7 +153,8 @@ class AFCtrigger:
 
     def advance_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != ADVANCE_STATE_NAME:
-            if self.AFC.tool_start.filament_present:
+            cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+            if cur_stepper.hub.tool_state:
                 if self.AFC.current != None:
                     self.set_multiplier( self.multiplier_low )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
@@ -162,7 +164,8 @@ class AFCtrigger:
 
     def trailing_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable and self.last_state != TRAILING_STATE_NAME:
-            if self.AFC.tool_start.filament_present:
+            cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+            if cur_stepper.hub.tool_state:
                 if self.AFC.current != None:
                     self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
