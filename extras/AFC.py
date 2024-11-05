@@ -322,9 +322,25 @@ class afc:
             logo_error+='! \_________/ |___|\n'
             for UNIT in self.lanes.keys():
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
+
+                # Check each unit has a buffer
+                try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
+                except:
+                    error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
+                    self.AFC_error(error_string, False)
+                    return
+
                 for LANE in self.lanes[UNIT].keys():
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
-                    CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+
+                    # Check each lane is assigned to a valid extruder
+                    try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                    except:
+                        error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
+                        self.AFC_error(error_string, False)
+                        return
+                    
+                    # Run test forward/reverse on each lane
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     self.reactor.pause(self.reactor.monotonic() + 1)
@@ -335,17 +351,7 @@ class afc:
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
 
-            error_string = "Error: Filament switch sensor {} not found in config file"
-            try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-            except:
-                self.AFC_error(error_string.format("hub"), False)
-                return
-            try: self.tool_start = self.printer.lookup_object('filament_switch_sensor tool_start').runout_helper
-            except:
-                self.AFC_error(error_string.format("tool_start"), False)
-                return
-            #try: self.tool_end = self.printer.lookup_object('filament_switch_sensor tool_end').runout_helper
-            #except: self.tool_end = None
+            # Check for valid buffer deffinition
             buffer_warning = "Warning: Buffer {} not found in hardware config file"
             if self.buffer_name is not None:
                 try: self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
@@ -581,7 +587,10 @@ class afc:
             CUR_LANE.hub_load = True
             hub_attempts = 0
             while CUR_HUB.state == False:
-                CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
+                if hub_attempts == 0:
+                    CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
+                else:
+                    CUR_LANE.move( self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 20:
