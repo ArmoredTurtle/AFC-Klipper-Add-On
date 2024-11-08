@@ -782,6 +782,10 @@ class afc:
         except: self.buffer = None
         numoflanes = 0
         for UNIT in self.lanes.keys():
+            try:
+                screen_mac = self.printer.lookup_object('AFC_screen ' + UNIT).mac
+            except error:
+                screen_mac = 'None'
             str[UNIT]={}
             for NAME in self.lanes[UNIT].keys():
                 LANE=self.printer.lookup_object('AFC_stepper '+ NAME)
@@ -797,11 +801,14 @@ class afc:
             str[UNIT]['system']={}
             str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
             str[UNIT]['system']['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
+            str[UNIT]['system']['screen'] = screen_mac
+
         str["system"]={}
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         str["system"]['num_extruders'] = len(self.extrude)
+        
         for EXTRUDE in self.extrude:
             str["system"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
