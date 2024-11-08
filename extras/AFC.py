@@ -367,7 +367,6 @@ class afc:
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                         CUR_LANE.do_enable(True)
                         if CUR_HUB.state == True and CUR_LANE.load_state == True:
-
                             num_tries = 0
                             while CUR_LANE.load_state == True:
                                 if CUR_HUB.state == True:
