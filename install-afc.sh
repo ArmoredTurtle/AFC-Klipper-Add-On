@@ -47,12 +47,11 @@ if [ -z "$(ls -A "${AFC_PATH}/include/")" ]; then
   exit 1
 fi
 
-# Source the files
-#for file in "${AFC_PATH}/include/"*; do
-#  source "$file"
-#done
+ Source the files
+for file in "${AFC_PATH}/include/"*; do
+  source "$file"
+done
 
-source include/*
 
 install_type() {
   while true; do
