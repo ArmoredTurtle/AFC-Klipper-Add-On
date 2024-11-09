@@ -13,7 +13,7 @@ merge_configs() {
   local in_section=0
   local in_comment_block=0
 
-  temp_file=${mktemp}
+  temp_file=$(mktemp)
 
   echo "Base file: $base_file"
   echo "New file: $new_file"
