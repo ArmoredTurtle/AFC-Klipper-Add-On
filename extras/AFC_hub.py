@@ -1,4 +1,4 @@
-import chelper
+#import chelper
 from . import AFC
 
 class afc_hub:
@@ -32,7 +32,7 @@ class afc_hub:
     def switch_pin_callback(self, eventtime, state):
         self.state = state
 
-    def hub_cut(self, CUR_LANE):
+    def hub_cut(self, LANE):
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
         self.hub = self.printer.lookup_object('filament_switch_sensor ' + self.name).runout_helper
 
