@@ -101,24 +101,30 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
-    cmd_SET_BOWDEN_LENGTH_help = "Set length of bowden, hub to toolhead"
+    cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden length between hub to toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
-        config_bowden = self.afc_bowden_length
-        length_param = gcmd.get('LENGTH', None)
+        CUR_LANE      = self.printer.lookup_object('AFC_stepper ' + self.current)
+        hub           = gcmd.get("HUB", CUR_LANE.unit )
+        length_param  = gcmd.get('LENGTH', None)
+        CUR_HUB       = self.printer.lookup_object('AFC_hub '+ hub )
+        config_bowden = CUR_HUB.afc_bowden_length
+
         if length_param is None or length_param.strip() == '':
-            bowden_length = self.config_bowden_length
+            bowden_length = CUR_HUB.config_bowden_length
         else:
             if length_param[0] in ('+', '-'):
                 bowden_value = float(length_param)
                 bowden_length = config_bowden + bowden_value
             else:
                 bowden_length = float(length_param)
-        self.afc_bowden_length = bowden_length
-        msg = ("Config Bowden Length: {}\n".format(self.config_bowden_length) +
-               "Previous Bowden Length: {}\n".format(config_bowden) +
-               "New Bowden Length: {}\n".format(bowden_length) +
-               "TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC.cfg")
-        self.gcode.respond_info(msg)
+
+        CUR_HUB.afc_bowden_length = bowden_length
+        msg =  '// Hub : {}\n'.format( hub )
+        msg += '//   Config Bowden Length:   {}\n'.format(CUR_HUB.config_bowden_length)
+        msg += '//   Previous Bowden Length: {}\n'.format(config_bowden)
+        msg += '//   New Bowden Length:      {}\n'.format(bowden_length)
+        msg += '\n//<span class=accent--text>TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple</span>'
+        self.gcode.respond_raw(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
