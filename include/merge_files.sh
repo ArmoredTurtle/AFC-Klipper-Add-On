@@ -15,10 +15,6 @@ merge_configs() {
 
   temp_file=$(mktemp)
 
-  echo "Base file: $base_file"
-  echo "New file: $new_file"
-  echo "Output file: $output_file"
-
   cp "$base_file" "$temp_file"
 
   while IFS= read -r line || [[ -n $line ]]; do
