@@ -96,6 +96,7 @@ class afc:
         self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
         self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
+        self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
@@ -355,8 +356,7 @@ class afc:
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
-                    #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1),'LANE', CUR_LANE.name, self.cmd_CHANGE_TOOL(), desc=self.cmd_CHANGE_TOOL)
-                    #self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
+                    
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
 
@@ -777,7 +777,18 @@ class afc:
             if self.failure == False:
                 self.restore_pos(True)
                 self.in_toolchange = False
-
+    cmd_SET_COLOR_help = "change filaments color"
+    def cmd_SET_COLOR(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        color = gcmd.get('COLOR', '#000000')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.color = color
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = color
+        self.save_vars()
+        
     def get_status(self, eventtime):
         str = {}
         # Try to get hub filament sensor, if lookup fails default to None
@@ -800,6 +811,7 @@ class afc:
                 LANE=self.printer.lookup_object('AFC_stepper '+ NAME)
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = LANE.index
+                str[UNIT][NAME]['Command'] = LANE.gcode_cmd
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
