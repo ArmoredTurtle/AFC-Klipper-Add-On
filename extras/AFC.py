@@ -314,18 +314,20 @@ class afc:
                 del self.lanes[UNIT][erase]
         self.save_vars()
         if self.Type == 'Box_Turtle':
-            logo ='R  _____     ____\n'
-            logo+='E /      \  |  o | \n'
+            firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
+            secondLeg = firstLeg + '<span class=warning--text>|</span>'
+            logo ='<span class=success--text>R  _____     ____\n'
+            logo+='E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
             logo+='A |       |/ ___/ \n'
             logo+='D |_________/     \n'
-            logo+='Y |_|_| |_|_|\n'
+            logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
 
-            logo_error ='E  _ _   _ _\n'
+            logo_error ='<span class=error--text>E  _ _   _ _\n'
             logo_error+='R |_|_|_|_|_|\n'
             logo_error+='R |         \____\n'
             logo_error+='O |              \ \n'
-            logo_error+='R |          |\ X |\n'
-            logo_error+='! \_________/ |___|\n'
+            logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
+            logo_error+='! \_________/ |___|</error>\n'
             for UNIT in self.lanes.keys():
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
 
@@ -513,12 +515,12 @@ class afc:
                         CUR_LANE.set_afc_prep_done()
 
         if check_success == True:
-            self.gcode.respond_info(logo)
+            self.gcode.respond_raw(logo)
             if self.buffer != None:
                 if self.current != None:
                     self.buffer.enable_buffer()
         else:
-            self.gcode.respond_info(logo_error)
+            self.gcode.respond_raw(logo_error)
         # Call out if all lanes are clear but hub is not
         if CUR_HUB.state == True and CUR_EXTRUDER.tool_start_state == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
