@@ -304,7 +304,7 @@ class afc:
                 if 'index' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'material' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['spool_id']=''
-                if 'color' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['color']=''
+                if 'color' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['color']='#000000'
                 if 'tool_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
                 if 'hub_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
                 if self.lanes[LANE.unit][LANE.name]['tool_loaded'] == True: self.current = LANE.name
@@ -785,8 +785,8 @@ class afc:
             return
         color = gcmd.get('COLOR', '#000000')
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.color = color
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = color
+        CUR_LANE.color = '#' + color
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.save_vars()
         
     def get_status(self, eventtime):
