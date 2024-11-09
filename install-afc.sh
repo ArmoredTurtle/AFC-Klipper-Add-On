@@ -17,9 +17,10 @@ AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Variables
 KLIPPER_SERVICE=klipper
-GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
+GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
 PRIOR_INSTALLATION=False
 UPDATE_CONFIG=False
+AUTO_UPDATE_CONFIG=False
 UNINSTALL=False
 BRANCH=main
 
@@ -47,9 +48,11 @@ if [ -z "$(ls -A "${AFC_PATH}/include/")" ]; then
 fi
 
 # Source the files
-for file in "${AFC_PATH}/include/"*; do
-  source "$file"
-done
+#for file in "${AFC_PATH}/include/"*; do
+#  source "$file"
+#done
+
+source include/*
 
 install_type() {
   while true; do
@@ -201,16 +204,34 @@ check_existing_install
 info_menu
 
 if [ "$PRIOR_INSTALLATION" = "True" ]; then
-  print_msg WARNING "A prior installation of AFC has been detected."
-  prompt_boolean "Would you like to like to update the config files from the repo?" "update_config_repo" "False"
+  print_msg WARNING "  A prior installation of AFC has been detected."
+  print_msg WARNING "  Would you like to update the config files from the repo?"
+  print_msg WARNING "  Warning: this will overwrite your existing config files."
+  prompt_boolean "Select False to migrate your existing configuration" "update_config_repo" "False"
   if [ "$update_config_repo" = "True" ]; then
     backup_afc_config
     UPDATE_CONFIG=True
   else
     print_msg WARNING "  Skipping configuration update and updating AFC extensions only."
     link_extensions
-    exit 0
+    print_msg WARNING "  (BETA) Would you like to attempt to automatically update your configuration files?"
+    print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
+    print_msg WARNING "  A backup will be created prior to this operation."
+    prompt_boolean "Select True to update your configuration files" "auto_update_config" "False"
+    if [ "$auto_update_config" = "True" ]; then
+      backup_afc_config
+      AUTO_UPDATE_CONFIG=True
+    else
+      print_msg INFO "  Skipping configuration update."
+      exit 0
+    fi
   fi
+fi
+
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
+  print_msg INFO "  Auto updating configuration files..."
+  auto_update
+  exit 0
 fi
 
 if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then

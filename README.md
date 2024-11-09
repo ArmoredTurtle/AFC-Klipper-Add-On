@@ -66,8 +66,8 @@ You should add the following block to your `AFC_Hardware.cfg` file based on the 
 [AFC_buffer TN]
 advance_pin:     # set advance pin
 trailing_pin:    # set trailing pin
-multiplier_high: 1.1   # default 1.1, factor to feed more filament
-multiplier_low:  0.9   # default 0.9, factor to feed less filament
+multiplier_high: 1.05   # default 1.05, factor to feed more filament
+multiplier_low:  0.95   # default 0.95, factor to feed less filament
 ```
 
 Turtleneck v2
@@ -75,8 +75,8 @@ Turtleneck v2
 [AFC_buffer TN2]
 advance_pin: !turtleneck:ADVANCE
 trailing_pin: !turtleneck:TRAILING
-multiplier_high: 1.1   # default 1.1, factor to feed more filament
-multiplier_low:  0.9   # default 0.9, factor to feed less filament
+multiplier_high: 1.05   # default 1.05, factor to feed more filament
+multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
 
 [AFC_led Buffer_Indicator]
