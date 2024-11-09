@@ -103,9 +103,17 @@ class afc:
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden length between hub to toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
-        CUR_LANE      = self.printer.lookup_object('AFC_stepper ' + self.current)
-        hub           = gcmd.get("HUB", CUR_LANE.unit )
+        hub           = gcmd.get("HUB", None )
         length_param  = gcmd.get('LENGTH', None)
+
+        # If hub is not passed in try and get hub if a lane is currently loaded
+        if hub is None and self.current is not None:
+            CUR_LANE= self.printer.lookup_object('AFC_stepper ' + self.current)
+            hub     = CUR_LANE.unit
+        elif hub is None and self.current is None:
+            self.gcode.respond_info("A lane is not loaded please specify hub to adjust bowden length")
+            return
+
         CUR_HUB       = self.printer.lookup_object('AFC_hub '+ hub )
         config_bowden = CUR_HUB.afc_bowden_length
 
@@ -123,7 +131,7 @@ class afc:
         msg += '//   Config Bowden Length:   {}\n'.format(CUR_HUB.config_bowden_length)
         msg += '//   Previous Bowden Length: {}\n'.format(config_bowden)
         msg += '//   New Bowden Length:      {}\n'.format(bowden_length)
-        msg += '\n//<span class=accent--text>TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple</span>'
+        msg += '\n// TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple'
         self.gcode.respond_raw(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
