@@ -819,7 +819,7 @@ class afc:
             str["system"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
-            str["system"][EXTRUDE]['tool_end _sensor'] = True == CUR_EXTRUDER.tool_end_state if CUR_EXTRUDER.tool_end is not None else False
+            str["system"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
         return str
 
     def is_homed(self):
