@@ -227,13 +227,6 @@ class afc:
         self.gcode.run_script_from_command('RESUME')
         self.restore_pos()
 
-    cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
-    def cmd_AFC_RESUME(self, gcmd):
-        self.set_error_state(False)
-        self.in_toolchange = False
-        self.gcode.run_script_from_command('RESUME')
-        self.restore_pos()
-
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
         lane = gcmd.get('LANE', None)
