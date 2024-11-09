@@ -101,7 +101,7 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
-    cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden length between hub to toolhead. Pass in HUB if using multiple box turtles"
+    cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
         hub           = gcmd.get("HUB", None )
         length_param  = gcmd.get('LENGTH', None)
