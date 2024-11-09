@@ -217,7 +217,7 @@ if [ "$PRIOR_INSTALLATION" = "True" ]; then
     print_msg WARNING "  A backup will be created prior to this operation."
     prompt_boolean "Select True to update your configuration files" "auto_update_config" "False"
     if [ "$auto_update_config" = "True" ]; then
-      backup_afc_config
+      #backup_afc_config
       AUTO_UPDATE_CONFIG=True
     else
       print_msg INFO "  Skipping configuration update."
