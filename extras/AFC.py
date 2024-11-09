@@ -219,7 +219,7 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
-        
+
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
         self.set_error_state(False)
@@ -355,7 +355,7 @@ class afc:
                         error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
                         self.AFC_error(error_string, False)
                         return
-                    
+
                     # Run test forward/reverse on each lane
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
@@ -824,7 +824,7 @@ class afc:
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         str["system"]['num_extruders'] = len(self.extrude)
-        
+
         for EXTRUDE in self.extrude:
             str["system"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
