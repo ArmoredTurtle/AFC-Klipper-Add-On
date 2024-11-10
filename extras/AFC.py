@@ -356,7 +356,7 @@ class afc:
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
-                    
+
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
 
@@ -792,7 +792,7 @@ class afc:
         CUR_LANE.color = '#' + color
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.save_vars()
-        
+
     def get_status(self, eventtime):
         str = {}
         # Try to get hub filament sensor, if lookup fails default to None
