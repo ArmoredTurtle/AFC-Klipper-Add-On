@@ -203,26 +203,26 @@ info_menu
 
 if [ "$PRIOR_INSTALLATION" = "True" ]; then
   print_msg WARNING "  A prior installation of AFC has been detected."
-  print_msg WARNING "  Would you like to update the config files from the repo?"
-  print_msg WARNING "  Warning: this will overwrite your existing config files."
-  prompt_boolean "Select False to migrate your existing configuration" "update_config_repo" "False"
-  if [ "$update_config_repo" = "True" ]; then
-    backup_afc_config
-    UPDATE_CONFIG=True
+  print_msg WARNING "  Would you like to update your existing configuration files with the latest settings?"
+  print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
+  print_msg WARNING "  A backup will be created prior to this operation."
+  prompt_boolean "Select False if you prefer to replace your existing config files with the latest ones from the repository" "auto_update_config" "True"
+  if [ "$auto_update_config" = "True" ]; then
+    print_msg WARNING "  Updating AFC Klipper extensions..."
+    link_extensions
+    backup_afc_config_copy
+    AUTO_UPDATE_CONFIG=True
   else
     print_msg WARNING "  Updating AFC Klipper extensions..."
     link_extensions
-    print_msg WARNING "  (BETA) Would you like to attempt to automatically update your configuration files?"
-    print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
-    print_msg WARNING "  A backup will be created prior to this operation."
-    prompt_boolean "Select True to update your configuration files" "auto_update_config" "False"
-    if [ "$auto_update_config" = "True" ]; then
-      backup_afc_config_copy
-      AUTO_UPDATE_CONFIG=True
+    print_msg WARNING "  Warning: Replacing your configuration will overwrite your current settings."
+    prompt_boolean "Select True to proceed with replacing your configuration files" "update_config_repo" "False"
+    if [ "$update_config_repo" = "True" ]; then
+      backup_afc_config
+      UPDATE_CONFIG=True
     else
       print_msg INFO "  Skipping configuration update."
       exit 0
-    fi
   fi
 fi
 
