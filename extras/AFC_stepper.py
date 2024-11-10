@@ -8,6 +8,7 @@ import math
 import chelper
 from kinematics import extruder
 from . import AFC_assist
+
 #LED
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 BIT_MAX_TIME=.000004
@@ -51,6 +52,7 @@ class AFCExtruderStepper:
         self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
         self.extruder_name = config.get('extruder')
+        self.gcode_cmd = config.get('cmd',None)
         
         self.motion_queue = None
         self.status = None

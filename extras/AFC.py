@@ -96,29 +96,44 @@ class afc:
         self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
         self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
+        self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
-    cmd_SET_BOWDEN_LENGTH_help = "Set length of bowden, hub to toolhead"
+    cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
-        config_bowden = self.afc_bowden_length
-        length_param = gcmd.get('LENGTH', None)
+        hub           = gcmd.get("HUB", None )
+        length_param  = gcmd.get('LENGTH', None)
+
+        # If hub is not passed in try and get hub if a lane is currently loaded
+        if hub is None and self.current is not None:
+            CUR_LANE= self.printer.lookup_object('AFC_stepper ' + self.current)
+            hub     = CUR_LANE.unit
+        elif hub is None and self.current is None:
+            self.gcode.respond_info("A lane is not loaded please specify hub to adjust bowden length")
+            return
+
+        CUR_HUB       = self.printer.lookup_object('AFC_hub '+ hub )
+        config_bowden = CUR_HUB.afc_bowden_length
+
         if length_param is None or length_param.strip() == '':
-            bowden_length = self.config_bowden_length
+            bowden_length = CUR_HUB.config_bowden_length
         else:
             if length_param[0] in ('+', '-'):
                 bowden_value = float(length_param)
                 bowden_length = config_bowden + bowden_value
             else:
                 bowden_length = float(length_param)
-        self.afc_bowden_length = bowden_length
-        msg = ("Config Bowden Length: {}\n".format(self.config_bowden_length) +
-               "Previous Bowden Length: {}\n".format(config_bowden) +
-               "New Bowden Length: {}\n".format(bowden_length) +
-               "TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC.cfg")
-        self.gcode.respond_info(msg)
+
+        CUR_HUB.afc_bowden_length = bowden_length
+        msg =  '// Hub : {}\n'.format( hub )
+        msg += '//   Config Bowden Length:   {}\n'.format(CUR_HUB.config_bowden_length)
+        msg += '//   Previous Bowden Length: {}\n'.format(config_bowden)
+        msg += '//   New Bowden Length:      {}\n'.format(bowden_length)
+        msg += '\n// TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple'
+        self.gcode.respond_raw(msg)
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
@@ -205,13 +220,6 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
-        
-    cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
-    def cmd_AFC_RESUME(self, gcmd):
-        self.set_error_state(False)
-        self.in_toolchange = False
-        self.gcode.run_script_from_command('RESUME')
-        self.restore_pos()
 
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
@@ -296,7 +304,7 @@ class afc:
                 if 'index' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'material' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['material']=''
                 if 'spool_id' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['spool_id']=''
-                if 'color' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['color']=''
+                if 'color' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['color']='#000000'
                 if 'tool_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
                 if 'hub_loaded' not in self.lanes[LANE.unit][LANE.name]: self.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
                 if self.lanes[LANE.unit][LANE.name]['tool_loaded'] == True: self.current = LANE.name
@@ -308,18 +316,20 @@ class afc:
                 del self.lanes[UNIT][erase]
         self.save_vars()
         if self.Type == 'Box_Turtle':
-            logo ='R  _____     ____\n'
-            logo+='E /      \  |  o | \n'
+            firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
+            secondLeg = firstLeg + '<span class=warning--text>|</span>'
+            logo ='<span class=success--text>R  _____     ____\n'
+            logo+='E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
             logo+='A |       |/ ___/ \n'
             logo+='D |_________/     \n'
-            logo+='Y |_|_| |_|_|\n'
+            logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
 
-            logo_error ='E  _ _   _ _\n'
+            logo_error ='<span class=error--text>E  _ _   _ _\n'
             logo_error+='R |_|_|_|_|_|\n'
             logo_error+='R |         \____\n'
             logo_error+='O |              \ \n'
-            logo_error+='R |          |\ X |\n'
-            logo_error+='! \_________/ |___|\n'
+            logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
+            logo_error+='! \_________/ |___|</error>\n'
             for UNIT in self.lanes.keys():
                 self.gcode.respond_info(self.Type + ' ' + UNIT +' Prepping lanes')
 
@@ -339,15 +349,14 @@ class afc:
                         error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
                         self.AFC_error(error_string, False)
                         return
-                    
+
                     # Run test forward/reverse on each lane
                     CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( -5, self.short_moves_speed, self.short_moves_accel, True)
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.move( 5, self.short_moves_speed, self.short_moves_accel, True)
                     # create T codes for macro use
-                    #self.gcode.register_mux_command('T' + str(CUR_LANE.index - 1),'LANE', CUR_LANE.name, self.cmd_CHANGE_TOOL(), desc=self.cmd_CHANGE_TOOL)
-                    #self.gcode.respond_info('Addin T' + str(CUR_LANE.index - 1) + ' with Lane defined as ' + CUR_LANE.name)
+                    
                     if CUR_LANE.prep_state == False: self.afc_led(self.led_not_ready, CUR_LANE.led_index)
                     CUR_LANE.hub_load = self.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
 
@@ -367,7 +376,6 @@ class afc:
                         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                         CUR_LANE.do_enable(True)
                         if CUR_HUB.state == True and CUR_LANE.load_state == True:
-
                             num_tries = 0
                             while CUR_LANE.load_state == True:
                                 if CUR_HUB.state == True:
@@ -508,12 +516,12 @@ class afc:
                         CUR_LANE.set_afc_prep_done()
 
         if check_success == True:
-            self.gcode.respond_info(logo)
+            self.gcode.respond_raw(logo)
             if self.buffer != None:
                 if self.current != None:
                     self.buffer.enable_buffer()
         else:
-            self.gcode.respond_info(logo_error)
+            self.gcode.respond_raw(logo_error)
         # Call out if all lanes are clear but hub is not
         if CUR_HUB.state == True and CUR_EXTRUDER.tool_start_state == False:
             msg = ('LANES READY, HUB NOT CLEAR\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
@@ -769,7 +777,18 @@ class afc:
             if self.failure == False:
                 self.restore_pos(True)
                 self.in_toolchange = False
-
+    cmd_SET_COLOR_help = "change filaments color"
+    def cmd_SET_COLOR(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        color = gcmd.get('COLOR', '#000000')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.color = '#' + color
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
+        self.save_vars()
+        
     def get_status(self, eventtime):
         str = {}
         # Try to get hub filament sensor, if lookup fails default to None
@@ -783,11 +802,16 @@ class afc:
         except: self.buffer = None
         numoflanes = 0
         for UNIT in self.lanes.keys():
+            try:
+                screen_mac = self.printer.lookup_object('AFC_screen ' + UNIT).mac
+            except error:
+                screen_mac = 'None'
             str[UNIT]={}
             for NAME in self.lanes[UNIT].keys():
                 LANE=self.printer.lookup_object('AFC_stepper '+ NAME)
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = LANE.index
+                str[UNIT][NAME]['Command'] = LANE.gcode_cmd
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
@@ -798,16 +822,19 @@ class afc:
             str[UNIT]['system']={}
             str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
             str[UNIT]['system']['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
+            str[UNIT]['system']['screen'] = screen_mac
+
         str["system"]={}
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
         str["system"]['num_extruders'] = len(self.extrude)
+
         for EXTRUDE in self.extrude:
             str["system"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
-            str["system"][EXTRUDE]['tool_end _sensor'] = True == CUR_EXTRUDER.tool_end_state if CUR_EXTRUDER.tool_end is not None else False
+            str["system"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
         return str
 
     def is_homed(self):
