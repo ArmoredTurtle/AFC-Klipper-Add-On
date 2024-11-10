@@ -80,7 +80,7 @@ class AFCExtruderStepper:
         self.afc_motor_speed = config.getfloat('afc_motor_speed', 100)
         # distance to retract filament from the hub
         self.park_dist = config.getfloat('park_dist', 10)
-        self.led_index = config.get('led_index')
+        self.led_index = config.get('led_index', None)
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
         self.prep = config.get('prep', None)
