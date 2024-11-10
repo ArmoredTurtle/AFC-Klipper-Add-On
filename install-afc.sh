@@ -223,6 +223,7 @@ if [ "$PRIOR_INSTALLATION" = "True" ]; then
     else
       print_msg INFO "  Skipping configuration update."
       exit 0
+    fi
   fi
 fi
 
