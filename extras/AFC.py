@@ -449,7 +449,11 @@ class afc:
                         CUR_LANE.do_enable(True)
                         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                         if self.current == CUR_LANE.name:
-                            if CUR_EXTRUDER.tool_start_state == False and CUR_HUB.state == True:
+                            if CUR_EXTRUDER.tool_start_state == False and CUR_HUB.state == False:
+                                if CUR_LANE.load_state == False and CUR_LANE.prep_state == False:
+                                    CUR_LANE.status = None
+                                    self.current = None
+                            elif CUR_EXTRUDER.tool_start_state == False and CUR_HUB.state == True:
                                 untool_attempts = 0
                                 while CUR_LANE.load_state == True:
                                     CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
