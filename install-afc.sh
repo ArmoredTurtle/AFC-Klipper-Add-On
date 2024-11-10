@@ -216,7 +216,8 @@ if [ "$PRIOR_INSTALLATION" = "True" ]; then
     print_msg WARNING "  Updating AFC Klipper extensions..."
     link_extensions
     print_msg WARNING "  Warning: Replacing your configuration will overwrite your current settings."
-    prompt_boolean "Select True to proceed with replacing your configuration files" "update_config_repo" "False"
+    print_msg WARNING "  Selecting False will require you to manually update the configuration files, but no changes will be made."
+    prompt_boolean "Select True to proceed with replacing your configuration files or False to exit." "update_config_repo" "False"
     if [ "$update_config_repo" = "True" ]; then
       backup_afc_config
       UPDATE_CONFIG=True
