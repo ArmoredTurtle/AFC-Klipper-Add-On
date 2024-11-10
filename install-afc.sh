@@ -206,6 +206,7 @@ if [ "$PRIOR_INSTALLATION" = "True" ]; then
   print_msg WARNING "  Would you like to update your existing configuration files with the latest settings?"
   print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
   print_msg WARNING "  A backup will be created prior to this operation."
+  print_msg ERROR "  This will only work with the AFC-Lite boards. Select False if you have an MMB board."
   prompt_boolean "Select False if you prefer to replace your existing config files with the latest ones from the repository" "auto_update_config" "True"
   if [ "$auto_update_config" = "True" ]; then
     print_msg WARNING "  Updating AFC Klipper extensions..."
