@@ -210,14 +210,14 @@ if [ "$PRIOR_INSTALLATION" = "True" ]; then
     backup_afc_config
     UPDATE_CONFIG=True
   else
-    print_msg WARNING "  Skipping configuration update and updating AFC extensions only."
+    print_msg WARNING "  Updating AFC Klipper extensions..."
     link_extensions
     print_msg WARNING "  (BETA) Would you like to attempt to automatically update your configuration files?"
     print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
     print_msg WARNING "  A backup will be created prior to this operation."
     prompt_boolean "Select True to update your configuration files" "auto_update_config" "False"
     if [ "$auto_update_config" = "True" ]; then
-      #backup_afc_config
+      backup_afc_config_copy
       AUTO_UPDATE_CONFIG=True
     else
       print_msg INFO "  Skipping configuration update."

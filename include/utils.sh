@@ -49,6 +49,20 @@ backup_afc_config() {
   fi
 }
 
+backup_afc_config_copy() {
+  # Function to back up the existing AFC configuration.
+  # Arguments:
+  #   - AFC_CONFIG_PATH: The path to the AFC configuration directory.
+  #   - PRINTER_CONFIG_PATH: The path to the printer configuration directory.
+
+  if [ -d "${AFC_CONFIG_PATH}" ]; then
+    print_msg INFO "Backing up existing AFC config..."
+    pushd "${PRINTER_CONFIG_PATH}" || exit
+    cp -R AFC AFC.backup."$(date +%Y%m%d%H%M%S)"
+    popd || exit
+  fi
+}
+
 restart_service() {
   # Function to restart a given service.
   # Arguments:
