@@ -112,13 +112,7 @@ class AFCExtruderStepper:
 
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
-
-        # BUFFER
-        self.buffer_name = config.get('buffer', None)
-        if self.buffer_name !=None:
-            self.buffer = self.printer.lookup_object('AFC_buffer ' + self.buffer_name)
-
-        
+                
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return

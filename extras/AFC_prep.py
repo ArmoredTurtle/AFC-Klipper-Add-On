@@ -50,13 +50,14 @@ class afcPrep:
             for UNIT in self.AFC.lanes.keys():
                 logo=''
                 logo_error = ''
-               
                 try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
                 except:
                     error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
                     self.AFC.AFC_error(error_string, False)
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
+                if CUR_HUB.buffer_name !=None:
+                    CUR_HUB.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_HUB.buffer_name)
                 if CUR_HUB.type == 'Box_Turtle':
                     firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
                     secondLeg = firstLeg + '<span class=warning--text>|</span>'
