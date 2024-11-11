@@ -50,8 +50,7 @@ class afcPrep:
             for UNIT in self.AFC.lanes.keys():
                 logo=''
                 logo_error = ''
-                
-                # Check each unit has a buffer
+               
                 try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
                 except:
                     error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
@@ -86,15 +85,7 @@ class afcPrep:
                     logo+='Y  {/^^^\}\n'
                     logo+='!   `m-m`\n'
                     logo+='  ' + UNIT + '\n'
-                # Check for valid buffer deffinition
-                buffer_warning = "Warning: Buffer {} not found in hardware config file"
-                if self.AFC.buffer_name is not None:
-                    try: self.AFC.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
-                    except:
-                        self.AFC.AFC_error(buffer_warning.format(self.buffer_name))
-                else:
-                    self.gcode.respond_info("Warning: No buffer defined in config file")
-
+                
                 if self.AFC.current != None:
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
                     CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
@@ -147,9 +138,6 @@ class afcPrep:
                             CUR_LANE.set_afc_prep_done()
                 if check_success == True:
                     self.gcode.respond_raw(logo)
-                    if self.AFC.buffer != None:
-                        if self.AFC.current != None:
-                            self.AFC.buffer.enable_buffer()
                 else:
                     self.gcode.respond_raw(logo_error)
 

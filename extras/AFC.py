@@ -48,9 +48,7 @@ class afc:
         self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')
         self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')
 
-        # BUFFER
-        self.buffer_name = config.get('Buffer_Name', None)
-        self.buffer = ''
+        
 
         # TOOL Cutting Settings
         self.tool = ''
