@@ -12,9 +12,9 @@ check_klipper() {
   # If the service is not found, it prints an error message and exits with status 1.
 
   if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "${KLIPPER_SERVICE}.service"; then
-    print_msg SUCCESS "Klipper service found!"
+    print_msg SUCCESS "  Klipper service found!"
   else
-    print_msg ERROR "Klipper service not found. Install Klipper first."
+    print_msg ERROR "  Klipper service not found. Install Klipper first."
     exit 1
   fi
 }
@@ -25,7 +25,7 @@ check_root() {
   # This is to ensure the script is run by a normal user for security reasons.
 
   if [ "$EUID" -eq 0 ]; then
-    print_msg ERROR "Do not run as root, use a normal user"
+    print_msg ERROR "  Do not run as root, use a normal user"
     exit 1
   fi
 }
@@ -37,12 +37,12 @@ check_existing_dirs() {
   # The user can override the default directories using '-k <klipper_dir>' and '-m <moonraker_dir>' options.
 
   if [ ! -d "${KLIPPER_PATH}" ]; then
-    print_msg ERROR "Klipper directory not found. Use '-k <klipper_dir>' to override."
+    print_msg ERROR "  Klipper directory not found. Use '-k <klipper_dir>' to override."
     exit 1
   fi
 
   if [ ! -d "${MOONRAKER_PATH}" ]; then
-    print_msg ERROR "Moonraker directory not found. Use '-m <moonraker_dir>' to override."
+    print_msg ERROR "  Moonraker directory not found. Use '-m <moonraker_dir>' to override."
     exit 1
   fi
 }
@@ -54,11 +54,11 @@ check_existing_install() {
   # If an existing installation is found, it sets the PRIOR_INSTALLATION variable to True and breaks the loop.
 
   local extension
-  print_msg INFO "Checking for prior AFC Klipper installation..."
+  print_msg INFO "  Checking for prior AFC Klipper installation..."
   for extension in "${AFC_PATH}"/extras/*.py; do
     extension=$(basename "${extension}")
     if [ -L "${KLIPPER_PATH}/klippy/extras/${extension}" ]; then
-      print_msg INFO "Existing installation found..."
+      print_msg INFO "  Existing installation found..."
       PRIOR_INSTALLATION=True
       break
     fi

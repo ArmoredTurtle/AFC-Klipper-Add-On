@@ -42,9 +42,23 @@ backup_afc_config() {
   #   - PRINTER_CONFIG_PATH: The path to the printer configuration directory.
 
   if [ -d "${AFC_CONFIG_PATH}" ]; then
-    print_msg INFO "Backing up existing AFC config..."
+    print_msg INFO "  Backing up existing AFC config..."
     pushd "${PRINTER_CONFIG_PATH}" || exit
     mv AFC AFC.backup."$(date +%Y%m%d%H%M%S)"
+    popd || exit
+  fi
+}
+
+backup_afc_config_copy() {
+  # Function to back up the existing AFC configuration.
+  # Arguments:
+  #   - AFC_CONFIG_PATH: The path to the AFC configuration directory.
+  #   - PRINTER_CONFIG_PATH: The path to the printer configuration directory.
+
+  if [ -d "${AFC_CONFIG_PATH}" ]; then
+    print_msg INFO "  Backing up existing AFC config..."
+    pushd "${PRINTER_CONFIG_PATH}" || exit
+    cp -R AFC AFC.backup."$(date +%Y%m%d%H%M%S)"
     popd || exit
   fi
 }
@@ -55,7 +69,7 @@ restart_service() {
   #   $1 - The name of the service to restart.
 
   local service_name=$1
-  print_msg INFO "Restarting ${service_name} service..."
+  print_msg INFO "  Restarting ${service_name} service..."
   if command -v systemctl &> /dev/null; then
     sudo systemctl restart "${service_name}"
   else
