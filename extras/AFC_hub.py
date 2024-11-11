@@ -11,6 +11,7 @@ class afc_hub:
         self.reactor = self.printer.get_reactor()
 
         self.AFC = self.printer.lookup_object('AFC')
+        self.type = config.get('type', None)
         self.cut = config.getboolean("cut", False)
         self.cut_cmd = config.get('cut_cmd', None)
         self.cut_dist = config.getfloat("cut_dist", 200)
