@@ -584,6 +584,12 @@ class afc:
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
             str["system"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
+            if CUR_EXTRUDER.buffer_name !=None:
+                CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
+                str["system"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer.last_state
+            else:
+                str["system"][EXTRUDE]['buffer']   = 'None'
+
         return str
 
     def is_homed(self):

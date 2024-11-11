@@ -56,8 +56,7 @@ class afcPrep:
                     self.AFC.AFC_error(error_string, False)
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
-                if CUR_HUB.buffer_name !=None:
-                    CUR_HUB.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_HUB.buffer_name)
+                
                 if CUR_HUB.type == 'Box_Turtle':
                     firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
                     secondLeg = firstLeg + '<span class=warning--text>|</span>'
@@ -106,6 +105,8 @@ class afcPrep:
                             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
                             self.AFC.AFC_error(error_string, False)
                             check_success = False
+                        if CUR_EXTRUDER.buffer_name !=None:
+                            CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
                         # Run test reverse/forward on each lane
                         if check_success == True:
                             CUR_LANE.extruder_stepper.sync_to_extruder(None)
