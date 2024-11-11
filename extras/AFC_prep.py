@@ -19,7 +19,7 @@ class afcPrep:
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
         if os.path.exists(self.AFC.VarFile) and os.stat(self.AFC.VarFile).st_size > 0:
-            try: self.lanes=json.load(open(self.AFC.VarFile))
+            try: self.AFC.lanes=json.load(open(self.AFC.VarFile))
             except IOError: self.AFC.lanes={}
             except ValueError: self.AFC.lanes={}
         else:
