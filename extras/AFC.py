@@ -614,8 +614,8 @@ class afc:
         return bool(pause_resume.get_status(eventtime)["is_paused"])
 
     def afc_led (self, status, idx=None):
-        if idx == None:
-            return
+        #if idx == None:
+        #    return
         afc_object = 'AFC_led '+ idx.split(':')[0]
         # Try to find led object, if not found print error to console for user to see
         try: led = self.printer.lookup_object(afc_object)
