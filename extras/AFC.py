@@ -90,6 +90,7 @@ class afc:
         self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
+        self.gcode.register_mux_command('SET_SPOOLID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
@@ -551,6 +552,18 @@ class afc:
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.color = '#' + color
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
+        self.save_vars()
+
+    cmd_SET_SPOOLID_help = "change filaments ID"
+    def cmd_SET_SPOOLID(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        ID = gcmd.get('ID', '')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.spool_id = ID
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ID
         self.save_vars()
         
     def get_status(self, eventtime):
