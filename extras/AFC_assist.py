@@ -79,3 +79,18 @@ class AFCassistMotor:
             return systime + time_diff
         self._set_pin(print_time + PIN_MIN_TIME, self.last_value, True)
         return systime + self.resend_interval
+
+    def sync_to_extruder(self, extruder_name):
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.flush_step_generation()
+        if not extruder_name:
+            self.stepper.set_trapq(None)
+            self.motion_queue = None
+            return
+        extruder = self.printer.lookup_object(extruder_name, None)
+        if extruder is None or not isinstance(extruder, PrinterExtruder):
+            raise self.printer.command_error("'%s' is not a valid extruder."
+                                             % (extruder_name,))
+        self.stepper.set_position([extruder.last_position, 0., 0.])
+        self.stepper.set_trapq(extruder.get_trapq())
+        self.motion_queue = extruder_name

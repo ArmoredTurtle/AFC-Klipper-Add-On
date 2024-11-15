@@ -321,8 +321,16 @@ class afc:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
     def TOOL_LOAD(self, CUR_LANE):
+
         if CUR_LANE == None:
             return
+        # Try to get bypass filament sensor, if lookup fails default to None
+        try: 
+            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+            if bypass.filament_present == True:
+                return
+        except: bypass = None
+
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         self.set_error_state(False)
@@ -504,6 +512,13 @@ class afc:
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
+        # Try to get bypass filament sensor, if lookup fails default to None
+        try: 
+            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+            if bypass.filament_present == True:
+                return
+        except: bypass = None
+        
         if lane != self.current:
             # Create save state
             self.save_pos()
@@ -540,12 +555,7 @@ class afc:
         
     def get_status(self, eventtime):
         str = {}
-        # Try to get hub filament sensor, if lookup fails default to None
-        try: self.hub = self.printer.lookup_object('filament_switch_sensor hub').runout_helper
-        except: self.hub = None
-        # Try to get tool filament sensor, if lookup fails default to None
-        try: self.tool = self.printer.lookup_object('filament_switch_sensor tool').runout_helper
-        except: self.tool = None
+        
         # Try to get buffer, if lookup fails default to None
         try: self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
         except: self.buffer = None
