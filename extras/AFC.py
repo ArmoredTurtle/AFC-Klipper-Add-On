@@ -326,7 +326,7 @@ class afc:
         if CUR_LANE == None:
             return
         # Try to get bypass filament sensor, if lookup fails default to None
-        try: 
+        try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present == True:
                 return
@@ -514,12 +514,12 @@ class afc:
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
         # Try to get bypass filament sensor, if lookup fails default to None
-        try: 
+        try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present == True:
                 return
         except: bypass = None
-        
+
         if lane != self.current:
             # Create save state
             self.save_pos()
@@ -565,10 +565,10 @@ class afc:
         CUR_LANE.spool_id = ID
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ID
         self.save_vars()
-        
+
     def get_status(self, eventtime):
         str = {}
-        
+
         numoflanes = 0
         for UNIT in self.lanes.keys():
             try:
