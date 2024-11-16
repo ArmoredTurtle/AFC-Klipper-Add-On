@@ -326,7 +326,7 @@ class afc:
         if CUR_LANE == None:
             return
         # Try to get bypass filament sensor, if lookup fails default to None
-        try: 
+        try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present == True:
                 return
@@ -388,8 +388,8 @@ class afc:
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
 
                 self.current = CUR_LANE.name
-                if self.buffer != None:
-                    self.buffer.enable_buffer()
+                if CUR_EXTRUDER.buffer_name != None:
+                    CUR_EXTRUDER.buffer.enable_buffer()
 
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
@@ -434,8 +434,8 @@ class afc:
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'unloading'
 
-        if self.buffer != None:
-            self.buffer.disable_buffer()
+        if CUR_EXTRUDER.buffer_name != None:
+            CUR_EXTRUDER.buffer.disable_buffer()
 
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
@@ -514,12 +514,12 @@ class afc:
     def cmd_CHANGE_TOOL(self, gcmd):
         lane = gcmd.get('LANE', None)
         # Try to get bypass filament sensor, if lookup fails default to None
-        try: 
+        try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present == True:
                 return
         except: bypass = None
-        
+
         if lane != self.current:
             # Create save state
             self.save_pos()
@@ -565,13 +565,10 @@ class afc:
         CUR_LANE.spool_id = ID
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ID
         self.save_vars()
-        
+
     def get_status(self, eventtime):
         str = {}
-        
-        # Try to get buffer, if lookup fails default to None
-        try: self.buffer = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
-        except: self.buffer = None
+
         numoflanes = 0
         for UNIT in self.lanes.keys():
             try:
@@ -607,9 +604,8 @@ class afc:
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
             str["system"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
-            if CUR_EXTRUDER.buffer_name !=None:
-                CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
-                str["system"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer.last_state
+            if CUR_EXTRUDER.buffer_name != None:
+                str["system"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer.buffer_status()
             else:
                 str["system"][EXTRUDE]['buffer']   = 'None'
 
