@@ -56,7 +56,7 @@ class afcPrep:
                     self.AFC.AFC_error(error_string, False)
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
-                
+
                 if CUR_HUB.type == 'Box_Turtle':
                     firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
                     secondLeg = firstLeg + '<span class=warning--text>|</span>'
@@ -85,15 +85,19 @@ class afcPrep:
                     logo+='Y  {/^^^\}\n'
                     logo+='!   `m-m`\n'
                     logo+='  ' + UNIT + '\n'
-                
+
                 if self.AFC.current != None:
-                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
+                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
                     CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                     if CUR_HUB.state == True and CUR_LANE.load_state == True and CUR_EXTRUDER.tool_start_state == True:
-                        self.gcode.respond_info(self.current + " Currently Loaded")
+                        if CUR_EXTRUDER.buffer_name !=None:
+                            CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
+                        self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
+                        CUR_EXTRUDER.buffer.enable_buffer()
+                        self.gcode.respond_info( "{} Currently Loaded".format(self.AFC.current.upper()) )
                     else:
                         if CUR_LANE.load_state == True and CUR_EXTRUDER.tool_start_state == False:
-                            self.gcode.respond_info(self.current + " Not in Tool Head")
+                            self.gcode.respond_info( "{} Not in Tool Head".format(self.AFC.current.upper()) )
                             return
                 for LANE in self.AFC.lanes[UNIT].keys():
                     if self.AFC.current != LANE:
@@ -105,6 +109,8 @@ class afcPrep:
                             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
                             self.AFC.AFC_error(error_string, False)
                             check_success = False
+                            break
+
                         if CUR_EXTRUDER.buffer_name !=None:
                             CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
                         # Run test reverse/forward on each lane
@@ -113,12 +119,14 @@ class afcPrep:
                             CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                             self.reactor.pause(self.reactor.monotonic() + 1)
                             CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                    
+
                             if CUR_LANE.prep_state == False:
                                 self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
-                            elif CUR_HUB.state == True:
+
+                            elif CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                 CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
                                 self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
+
                             msg = ''
                             if CUR_LANE.prep_state == True:
                                 msg +="LOCKED"
@@ -138,6 +146,7 @@ class afcPrep:
                             CUR_LANE.do_enable(False)
                             self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
                             CUR_LANE.set_afc_prep_done()
+
                 if check_success == True:
                     self.gcode.respond_raw(logo)
                 else:
