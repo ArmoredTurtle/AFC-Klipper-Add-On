@@ -8,7 +8,6 @@ import math
 import chelper
 from kinematics import extruder
 from . import AFC_assist
-import multiprocessing
 
 #LED
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
