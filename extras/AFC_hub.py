@@ -53,7 +53,7 @@ class afc_hub:
         # Have a snooze
         self.reactor.pause(self.reactor.monotonic() + 0.5)
 
-        
+
         # Choppy Chop
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_clip_angle))
         if self.cut_confirm == True:
@@ -67,7 +67,7 @@ class afc_hub:
         self.reactor.pause(self.reactor.monotonic() + 1)
         # Align bowden tube (reset)
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
-        
+
         # Retract lane by `hub_cut_clear`.
         CUR_LANE.move( -self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
 
