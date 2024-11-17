@@ -278,20 +278,6 @@ class afc:
         self.gcode.run_script_from_command('RESUME')
         self.restore_pos()
 
-    cmd_TOOL_LOAD_help = "Load lane into tool"
-    def cmd_TOOL_LOAD(self, gcmd):
-        lane = gcmd.get('LANE', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        self.TOOL_LOAD(CUR_LANE)
-
-    cmd_TOOL_UNLOAD_help = "Unload from tool head"
-    def cmd_TOOL_UNLOAD(self, gcmd):
-        lane = gcmd.get('LANE', self.current)
-        if lane == None:
-            return
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
-        self.TOOL_UNLOAD(CUR_LANE)
-
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
     def cmd_HUB_CUT_TEST(self, gcmd):
         lane = gcmd.get('LANE', None)
@@ -377,8 +363,13 @@ class afc:
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
-    def TOOL_LOAD(self, CUR_LANE):
+    cmd_TOOL_LOAD_help = "Load lane into tool"
+    def cmd_TOOL_LOAD(self, gcmd):
+        lane = gcmd.get('LANE', None)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        self.TOOL_LOAD(CUR_LANE)
 
+    def TOOL_LOAD(self, CUR_LANE):
         if CUR_LANE == None:
             return
         # Try to get bypass filament sensor, if lookup fails default to None
@@ -473,6 +464,14 @@ class afc:
                 msg = (CUR_LANE.name.upper() + ' NOT READY' + '\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.AFC_error(msg)
                 self.afc_led(self.led_not_ready, CUR_LANE.led_index)
+
+    cmd_TOOL_UNLOAD_help = "Unload from tool head"
+    def cmd_TOOL_UNLOAD(self, gcmd):
+        lane = gcmd.get('LANE', self.current)
+        if lane == None:
+            return
+        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
+        self.TOOL_UNLOAD(CUR_LANE)
 
     def TOOL_UNLOAD(self, CUR_LANE):
         if CUR_LANE == None:
@@ -598,6 +597,7 @@ class afc:
             if self.failure == False:
                 self.restore_pos(True)
                 self.in_toolchange = False
+
     cmd_SET_COLOR_help = "change filaments color"
     def cmd_SET_COLOR(self, gcmd):
         lane = gcmd.get('LANE', None)
@@ -691,30 +691,12 @@ class afc:
     def afc_led (self, status, idx=None):
         if idx == None:
             return
-        afc_object = 'AFC_led '+ idx.split(':')[0]
         # Try to find led object, if not found print error to console for user to see
-        try: led = self.printer.lookup_object(afc_object)
+        try: led = self.printer.lookup_object('AFC_led '+ idx.split(':')[0])
         except:
             error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
             self.AFC_error( error_string)
-        colors=list(map(float,status.split(',')))
-        transmit = 1
-        if idx is not None:
-            index = int(idx.split(':')[1])
-        else:
-            index = None
-        def lookahead_bgfunc(print_time):
-            if hasattr(led.led_helper, "_set_color"):
-                set_color_fn = led.led_helper._set_color
-                check_transmit_fn = led.led_helper._check_transmit
-            else:
-                set_color_fn = led.led_helper.set_color
-                check_transmit_fn = led.led_helper.check_transmit
-            set_color_fn(index, colors)
-            if transmit:
-                check_transmit_fn(print_time)
-        toolhead = self.printer.lookup_object('toolhead')
-        toolhead.register_lookahead_callback(lookahead_bgfunc)
+        led.led_change(int(idx.split(':')[1]), status)
 
 def load_config(config):
     return afc(config)
