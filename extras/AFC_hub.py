@@ -1,4 +1,3 @@
-#import chelper
 from . import AFC
 
 class afc_hub:
@@ -12,15 +11,20 @@ class afc_hub:
 
         self.AFC = self.printer.lookup_object('AFC')
         self.type = config.get('type', None)
+
+        # HUB Cut variables
+        # Next two variables are used in AFC
         self.cut = config.getboolean("cut", False)
         self.cut_cmd = config.get('cut_cmd', None)
+        self.cut_servo_name = config.get('cut_servo_name', 'cut')
         self.cut_dist = config.getfloat("cut_dist", 200)
         self.cut_clear = config.getfloat("cut_clear", 120)
         self.cut_min_length = config.getfloat("cut_min_length", 200)
         self.cut_servo_pass_angle = config.getfloat("cut_servo_pass_angle", 0)
         self.cut_servo_clip_angle = config.getfloat("cut_servo_clip_angle", 160)
         self.cut_servo_prep_angle = config.getfloat("cut_servo_prep_angle", 75)
-        self.cut_confirm = config.getfloat("cut_confirm", 0)
+        self.cut_confirm = config.getboolean("cut_confirm", 0)
+
         self.move_dis = config.getfloat("move_dis", 50)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
@@ -33,31 +37,38 @@ class afc_hub:
     def switch_pin_callback(self, eventtime, state):
         self.state = state
 
-    def hub_cut(self, LANE):
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
-        self.hub = self.printer.lookup_object('filament_switch_sensor ' + self.name).runout_helper
+    def hub_cut(self, CUR_LANE):
+        servo_string = 'SET_SERVO SERVO={servo} ANGLE={{angle}}'.format(servo=self.cut_servo_name)
 
         # Prep the servo for cutting.
-        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
+        self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
-        while self.hub.filament_present == False:
-            CUR_LANE.move( self.hub_move_dis, self.short_moves_speed, self.short_moves_accel)
+        while self.state == False:
+            CUR_LANE.move( self.move_dis, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
         # Go back, to allow the `hub_cut_dist` to be accurate.
-        CUR_LANE.move( -self.hub_move_dis*4, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move( -self.move_dis*4, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
         # Feed the `hub_cut_dist` amount.
-        CUR_LANE.move( self.hub_cut_dist, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move( self.cut_dist, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
         # Have a snooze
+        self.reactor.pause(self.reactor.monotonic() + 0.5)
+
+
         # Choppy Chop
-        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
-        if self.hub_cut_confirm == 1:
+        self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_clip_angle))
+        if self.cut_confirm == True:
+            self.reactor.pause(self.reactor.monotonic() + 0.5)
             # ReChop, To be doubly choppy sure.
-            self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_prep_angle))
-            self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_clip_angle))
+            self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))
+
+            self.reactor.pause(self.reactor.monotonic() + 1)
+            self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_clip_angle))
         # Longer Snooze
+        self.reactor.pause(self.reactor.monotonic() + 1)
         # Align bowden tube (reset)
-        self.gcode.run_script_from_command('SET_SERVO SERVO=cut ANGLE=' + str(self.hub_cut_servo_pass_angle))
+        self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
+
         # Retract lane by `hub_cut_clear`.
-        CUR_LANE.move( -self.hub_cut_clear, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move( -self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
 
 def load_config_prefix(config):
     return afc_hub(config)
