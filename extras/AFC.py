@@ -112,9 +112,10 @@ class afc:
                 lane_msg = ''
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
                 CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
+                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 if self.current != None:
                     if self.current == CUR_LANE.name:
-                        if not self.tool_start.filament_present or not self.hub.filament_present:
+                        if not CUR_EXTRUDER.tool_start.filament_present or not CUR_HUB.filament_present:
                             lane_msg += '<span class=warning--text>{} </span>'.format(CUR_LANE.name.upper())
                         else:
                             lane_msg += '<span class=success--text>{} </span>'.format(CUR_LANE.name.upper())
@@ -133,7 +134,6 @@ class afc:
                     lane_msg += '  <span class=error--text>xx</span>  |'
 
                 if self.current != None:
-                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                     if self.current == CUR_LANE.name:
                         if CUR_HUB.state == True:
                             lane_msg += ' <span class=success--text><-></span> |'
