@@ -367,7 +367,7 @@ class afc:
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
                     return
-            CUR_LANE.move( CUR_HUB.afc_bowden_length, self.long_moves_speed, self.long_moves_accel)
+            CUR_LANE.move( CUR_HUB.afc_bowden_length, self.long_moves_speed, self.long_moves_accel, True)
             tool_attempts = 0
             if CUR_EXTRUDER.tool_start != None:
                 while CUR_EXTRUDER.tool_start_state == False:
