@@ -130,6 +130,24 @@ gcode:
 
 ### Added
 - New variable `cut_servo_name` for AFC_hub configuration to specify which servo to use
+- AFC_STATUS macro call, will print out what the current status is for each lane
+  
+  ex. 
+  ```
+  Turtle_1 Status
+  LANE | Prep | Load | Hub | Tool |
+  LEG1 |  xx  |  xx  |  x  |  xx  |
+  LEG2 |  xx  |  xx  |  x  |  xx  |
+  LEG3 |  xx  |  xx  |  x  |  xx  |
+  LEG4 |  xx  |  xx  |  x  |  xx  |
+  
+  Turtle_2 Status
+  LANE | Prep | Load | Hub | Tool |
+  LEG5 |  xx  |  xx  |  x  |  xx  |
+  LEG6 |  xx  |  xx  |  x  |  xx  |
+  LEG7 |  xx  |  xx  |  x  |  xx  |
+  LEG8 | <--> | <--> | <-> | <--> |
+  ```
 
 ### Fixed
 - Fixed hub_cut function to work with new structure
