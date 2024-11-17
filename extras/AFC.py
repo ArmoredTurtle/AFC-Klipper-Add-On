@@ -94,10 +94,63 @@ class afc:
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
         self.gcode.register_mux_command('SET_SPOOLID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
+        self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
+
+    cmd_AFC_STATUS_help = "Return current status of AFC"
+    def cmd_AFC_STATUS(self, gcmd):
+        status_msg = ''
+
+        for UNIT in self.lanes.keys():
+            status_msg += '<span class=info--text>{} Status</span>'.format(UNIT)
+            status_msg += '\nLANE | Prep | Load | Hub | Tool |\n'
+
+            for LANE in self.lanes[UNIT].keys():
+                lane_msg = ''
+                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
+                CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
+                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                if self.current != None:
+                    if self.current == CUR_LANE.name:
+                        if not CUR_EXTRUDER.tool_start.filament_present or not CUR_HUB.filament_present:
+                            lane_msg += '<span class=warning--text>{} </span>'.format(CUR_LANE.name.upper())
+                        else:
+                            lane_msg += '<span class=success--text>{} </span>'.format(CUR_LANE.name.upper())
+                    else:
+                        lane_msg += '{} '.format(CUR_LANE.name.upper())
+                else:
+                    lane_msg += '{} '.format(CUR_LANE.name.upper())
+
+                if CUR_LANE.prep_state == True:
+                    lane_msg += '| <span class=success--text><--></span> |'
+                else:
+                    lane_msg += '|  <span class=error--text>xx</span>  |'
+                if CUR_LANE.load_state == True:
+                    lane_msg += ' <span class=success--text><--></span> |'
+                else:
+                    lane_msg += '  <span class=error--text>xx</span>  |'
+
+                if self.current != None:
+                    if self.current == CUR_LANE.name:
+                        if CUR_HUB.state == True:
+                            lane_msg += ' <span class=success--text><-></span> |'
+                        else:
+                            lane_msg += '  <span class=error--text>xx</span>  |'
+                        if CUR_EXTRUDER.tool_start_state == True:
+                            lane_msg += ' <span class=success--text><--></span> |\n'
+                        else:
+                            lane_msg += '  <span class=error--text>xx</span>  |\n'
+                    else:
+                        lane_msg += '  <span class=error--text>x</span>  |'
+                        lane_msg += '  <span class=error--text>xx</span>  |\n'
+                else:
+                    lane_msg += '  <span class=error--text>x</span>  |'
+                    lane_msg += '  <span class=error--text>xx</span>  |\n'
+                status_msg += lane_msg
+        self.gcode.respond_raw(status_msg)
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
