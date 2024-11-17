@@ -6,6 +6,7 @@
 
 import os
 import json
+
 class afcPrep:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -19,9 +20,16 @@ class afcPrep:
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
         if os.path.exists(self.AFC.VarFile) and os.stat(self.AFC.VarFile).st_size > 0:
-            try: self.AFC.lanes=json.load(open(self.AFC.VarFile))
-            except IOError: self.AFC.lanes={}
-            except ValueError: self.AFC.lanes={}
+            self.AFC.lanes=json.load(open(self.AFC.VarFile))
+            #try: self.AFC.lanes=json.load(open(self.AFC.VarFile))
+            #except IOError:
+            #    self.gcode.respond_info('IO ERROR')
+            #    self.AFC.lanes={}
+            #    return
+            #except ValueError:
+            #    self.gcode.respond_info('Value Error')
+            #    self.AFC.lanes={}
+            #    return
         else:
             self.AFC.lanes={}
         temp=[]
@@ -29,6 +37,8 @@ class afcPrep:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
+                if LANE.afc_motor_fwd != None:
+                    self.AFC.FWD_ASSIST_MONITOR
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
                 if LANE.extruder_name not in self.AFC.extrude: self.AFC.extrude.append(LANE.extruder_name)
