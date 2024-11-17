@@ -77,7 +77,7 @@ class AFCExtruderStepper:
         self.hub= ''
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
-        self.afc_motor_speed = config.getfloat('afc_motor_speed', 100)
+        self.afc_motor_speed = config.getfloat('afc_motor_speed', 250)
         # distance to retract filament from the hub
         self.park_dist = config.getfloat('park_dist', 10)
         self.led_index = config.get('led_index', None)

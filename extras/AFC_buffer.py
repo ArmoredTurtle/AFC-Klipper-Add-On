@@ -49,6 +49,7 @@ class AFCtrigger:
             self.trailing_pin = config.get('trailing_pin')
             self.multiplier_high = config.getfloat("multiplier_high", default=1.1, minval=1.0)
             self.multiplier_low = config.getfloat("multiplier_low", default=0.9, minval=0.0, maxval=1.0)
+            self.velocity = config.getfloat('velocity', 0)
 
         # Pull config for Belay style buffer (single switch)
         elif self.buffer_distance is not None:

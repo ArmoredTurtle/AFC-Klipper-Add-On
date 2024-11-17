@@ -97,6 +97,7 @@ class afcPrep:
                 if self.AFC.current != None:
                     CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
                     CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                    CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                     if CUR_HUB.state == True and CUR_LANE.load_state == True and CUR_EXTRUDER.tool_start_state == True:
                         if CUR_EXTRUDER.buffer_name !=None:
                             CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
