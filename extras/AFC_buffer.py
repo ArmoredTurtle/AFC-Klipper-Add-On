@@ -158,6 +158,8 @@ class AFCtrigger:
             if CUR_EXTRUDER.tool_start_state:
                 if self.AFC.current != None:
                     CUR_LANE.assist(self.velocity / 100)
+                    self.reactor.pause(self.reactor.monotonic() + 1)
+                    CUR_LANE.assist(0)
                     self.set_multiplier( self.multiplier_low )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
 
@@ -171,6 +173,8 @@ class AFCtrigger:
             if CUR_EXTRUDER.tool_start_state:
                 if self.AFC.current != None:
                     CUR_LANE.assist(self.velocity / 100)
+                    self.reactor.pause(self.reactor.monotonic() + 1)
+                    CUR_LANE.assist(0)
                     self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
 
