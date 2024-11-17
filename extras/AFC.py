@@ -115,7 +115,7 @@ class afc:
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 if self.current != None:
                     if self.current == CUR_LANE.name:
-                        if not CUR_EXTRUDER.tool_start.filament_present or not CUR_HUB.filament_present:
+                        if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
                             lane_msg += '<span class=warning--text>{} </span>'.format(CUR_LANE.name.upper())
                         else:
                             lane_msg += '<span class=success--text>{} </span>'.format(CUR_LANE.name.upper())
