@@ -125,3 +125,12 @@ gcode:
 
 - Save/Restore position to use proper gcode location
 - It will restore the z position first before making an x,y move
+
+## [2024-11-16]
+
+### Added
+- New variable `cut_servo_name` for AFC_hub configuration to specify which servo to use
+
+### Fixed
+- Fixed hub_cut function to work with new structure
+- Added sleeps back to hub_cut with reactor class

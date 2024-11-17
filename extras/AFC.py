@@ -269,8 +269,8 @@ class afc:
         self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
-        CUR_HUB.hub_cut(lane)
-        self.gcode.respond_info('Done!')
+        CUR_HUB.hub_cut(CUR_LANE)
+        self.gcode.respond_info('Hub cut Done!')
 
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
@@ -516,7 +516,7 @@ class afc:
         CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         if CUR_HUB.cut:
             if CUR_HUB.cut_cmd == 'AFC':
-                CUR_HUB.hub_cut(CUR_LANE.name)
+                CUR_HUB.hub_cut(CUR_LANE)
             else:
                 self.gcode.run_script_from_command(CUR_HUB.cut_cmd)
         while CUR_HUB.state == True:
