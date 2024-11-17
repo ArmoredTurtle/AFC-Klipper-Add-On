@@ -8,6 +8,8 @@ class AFCextruder:
       self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)
       self.tool_unload_speed = config.getfloat("tool_unload_speed", 25)
       self.tool_load_speed = config.getfloat("tool_load_speed", 25)
+      # BUFFER
+      self.buffer_name = config.get('buffer', None)
 
       buttons = self.printer.load_object(config, "buttons")
       self.tool_start = config.get('pin_tool_start', None)
@@ -18,7 +20,7 @@ class AFCextruder:
       if self.tool_end is not None:
         self.tool_end_state = False
         buttons.register_buttons([self.tool_end], self.tool_end_callback)
-    
+
     def tool_start_callback(self, eventtime, state):
         self.tool_start_state = state
     def tool_end_callback(self, eventtime, state):
