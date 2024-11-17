@@ -68,6 +68,7 @@ advance_pin:     # set advance pin
 trailing_pin:    # set trailing pin
 multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
+velocity: 100
 ```
 
 Turtleneck v2
@@ -78,6 +79,7 @@ trailing_pin: !turtleneck:TRAILING
 multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
+velocity: 100
 
 [AFC_led Buffer_Indicator]
 pin: turtleneck:RGB
