@@ -267,3 +267,13 @@ check_and_append_prep() {
     echo -e "\n$section\n$content" >> "$file_path"
   fi
 }
+
+replace_varfile_path() {
+  local file_path="$1"
+  local old_path="VarFile: ../printer_data/config/AFC/AFC.var"
+  local new_path="VarFile: ${AFC_CONFIG_PATH}/AFC.var"
+
+  if grep -qF "$old_path" "$file_path"; then
+    sed -i "s|$old_path|$new_path|" "$file_path"
+  fi
+}
