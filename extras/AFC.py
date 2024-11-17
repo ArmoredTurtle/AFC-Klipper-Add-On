@@ -6,7 +6,6 @@
 
 import os
 import json
-
 from configparser import Error as error
 
 class afc:
