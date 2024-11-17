@@ -102,8 +102,6 @@ class AFCExtruderStepper:
             self.afc_motor_rwd = AFC_assist.AFCassistMotor(config, 'rwd')
         if self.afc_motor_fwd is not None:
             self.afc_motor_fwd = AFC_assist.AFCassistMotor(config, 'fwd')
-
-            
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
         self.AFC = self.printer.lookup_object('AFC')

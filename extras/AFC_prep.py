@@ -37,8 +37,6 @@ class afcPrep:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 temp.append(LANE.name)
-                if LANE.afc_motor_fwd != None:
-                    self.AFC.FWD_ASSIST_MONITOR
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
                 if LANE.extruder_name not in self.AFC.extrude: self.AFC.extrude.append(LANE.extruder_name)

@@ -157,6 +157,7 @@ class AFCtrigger:
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             if CUR_EXTRUDER.tool_start_state:
                 if self.AFC.current != None:
+                    CUR_LANE.assist(self.velocity / 100)
                     self.set_multiplier( self.multiplier_low )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
 
@@ -169,6 +170,7 @@ class AFCtrigger:
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             if CUR_EXTRUDER.tool_start_state:
                 if self.AFC.current != None:
+                    CUR_LANE.assist(self.velocity / 100)
                     self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
 

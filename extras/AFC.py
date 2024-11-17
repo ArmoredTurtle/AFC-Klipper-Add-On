@@ -6,7 +6,6 @@
 
 import os
 import json
-import threading
 
 from configparser import Error as error
 
@@ -99,29 +98,6 @@ class afc:
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
-
-    def FWD_ASSIST_MONITOR(self):
-        if self.afc_monitoring == False:
-            t1 = threading.Thread(target=self.AFC_MONITOR)
-            self.afc_monitoring = True
-            t1.start()
-    def AFC_MONITOR(self):
-        while self.afc_monitoring == True:
-            if self.current != None:
-                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
-            else:
-                return
-            velocity = self.printer['motion_report'].live_extruder_velocity
-            if velocity > 0:
-                motor_diam=CUR_LANE.afc_motor_fwd_drive_diam * 3.14159265
-                spool_diam=180 * 3.14159265
-                geartop = float(CUR_LANE.afc_motor_fwd_gear_ration.split(':')[0])
-                gearbot = float(CUR_LANE.afc_motor_fwd_gear_ration.split(':')[1])
-                motor_velocity = ((motor_diam/(CUR_LANE.afc_motor_fwd_pulse*(gearbot/geartop)))*(spool_diam/motor_diam))
-                velocity /= motor_velocity
-                CUR_LANE.assist(velocity)
-            else:
-                CUR_LANE.assist(0)
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
