@@ -135,16 +135,31 @@ class afcPrep:
                             else:
                                 msg += 'EMPTY READY FOR SPOOL'
                         if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
-                            if CUR_EXTRUDER.tool_start_state:
+                            if CUR_EXTRUDER.tool_start_state == True:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                     CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                                     msg +="\n in TooHead"
+                                    if len(self.AFC.extruders) == 1:
+                                        self.AFC.current = CUR_LANE.name
                             else:
                                 self.error_tool_unload(CUR_LANE)
+                        else:
+                            if CUR_EXTRUDER.tool_start_state == True:
+                                if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
+                                    msg +="\n error in TooHead Extruder thinks lane is loaded when not"
+                                    check_success = False
 
                         CUR_LANE.do_enable(False)
                         self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
                         CUR_LANE.set_afc_prep_done()
+
+                for EXTRUDE in self.AFC.extruders.keys():
+                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
+                    if CUR_EXTRUDER.tool_start_state == True:
+                        if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
+                            self.gcode.respond_info('Extruder loaded with out knowing Lane')
+                            check_success = False
+
             if check_success == True:
                 self.gcode.respond_raw(logo)
             else:

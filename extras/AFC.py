@@ -453,6 +453,7 @@ class afc:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
             self.save_vars() # Always save variables even if a failure happens
             if self.failure == True:
                 self.pause_print()
@@ -563,6 +564,7 @@ class afc:
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+        self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = ''
         self.save_vars()
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
