@@ -20,7 +20,7 @@ class afc:
         self.current = None
         self.failure = False
         self.lanes = {}
-        self.extrude = []
+        self.extruders = {}
         self.afc_monitoring = False
 
         # tool position when tool change was requested
@@ -259,8 +259,10 @@ class afc:
         save_vars function saves lane variables to var file and prints with indents to
                   make it more readable for users
         """
-        with open(self.VarFile, 'w') as f:
+        with open(self.VarFile+ '.unit', 'w') as f:
             f.write(json.dumps(self.lanes, indent=4))
+        with open(self.VarFile+ '.tool', 'w') as f:
+            f.write(json.dumps(self.extruders, indent=4))
 
     def handle_connect(self):
         """
@@ -652,17 +654,21 @@ class afc:
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
-        str["system"]['num_extruders'] = len(self.extrude)
+        str["system"]['num_extruders'] = len(self.extruders)
+        str["system"]["extruders"]={}
 
-        for EXTRUDE in self.extrude:
-            str["system"][EXTRUDE]={}
+        for EXTRUDE in self.extruders.keys():
+            
+            str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-            str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
-            str["system"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
+            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
+            str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
             if CUR_EXTRUDER.buffer_name != None:
-                str["system"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer.buffer_status()
+                str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
+                str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer.buffer_status()
             else:
-                str["system"][EXTRUDE]['buffer']   = 'None'
+                str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
 
         return str
 
