@@ -195,6 +195,7 @@ advance_pin:     # set advance pin
 trailing_pin:    # set trailing pin
 multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
+velocity: 100
 EOF
 )
       buffer_name="TN"
@@ -207,6 +208,7 @@ trailing_pin: !turtleneck:TRAILING
 multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
+velocity: 100
 
 [AFC_led Buffer_Indicator]
 pin: turtleneck:RGB
@@ -246,9 +248,6 @@ EOF
     echo "Buffer configuration already exists in $config_path"
   fi
 
-  # Add Buffer_Name below the line containing Type: in AFC.cfg
-  sed -i "/^Type:/a Buffer_Name: $buffer_name" "$afc_config_path"
-
   # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
   if [ "$buffer_system" == "TurtleNeckV2" ]; then
     if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
@@ -259,6 +258,9 @@ EOF
 }
 
 check_and_append_prep() {
+  # Function to check for the presence of a specific section in a configuration file and append it if not present.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
   local file_path="$1"
   local section="[AFC_prep]"
   local content="enable: True"
@@ -269,11 +271,34 @@ check_and_append_prep() {
 }
 
 replace_varfile_path() {
+  # Function to replace the VarFile path in a configuration file.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  #   $2: old_path - The old VarFile path to be replaced.
+  #   $3: new_path - The new VarFile path to replace with.
   local file_path="$1"
   local old_path="VarFile: ../printer_data/config/AFC/AFC.var"
   local new_path="VarFile: ${AFC_CONFIG_PATH}/AFC.var"
 
   if grep -qF "$old_path" "$file_path"; then
     sed -i "s|$old_path|$new_path|" "$file_path"
+  fi
+}
+
+add_buffer_to_extruder() {
+  # Function to add a buffer configuration to the [AFC_extruder extruder] section in a configuration file.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  #   $2: buffer_name - The name of the buffer to be added.
+  local file_path="$1"
+  local buffer_name="$2"
+  local section="[AFC_extruder extruder]"
+  local buffer_line="buffer: $buffer_name"
+
+  if grep -qF "$section" "$file_path"; then
+    sed -i "/$section/{:a;n;/^$/!ba;i $buffer_line" -e '}' "$file_path"
+    echo "Added '$buffer_line' to the '$section' section in $file_path"
+  else
+    echo "'$section' section not found in $file_path"
   fi
 }

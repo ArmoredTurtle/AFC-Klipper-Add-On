@@ -205,12 +205,12 @@ class afc:
                 self.homing_position = self.gcode_move.homing_position
                 self.speed = self.gcode_move.speed
 
-    def restore_pos(self, justz=False):
+    def restore_pos(self):
         newpos = self.toolhead.get_position()
-        newpos[2] = self.last_gcode_position[2]
+        newpos[2] = self.last_gcode_position[2] + self.z_hop
 
-        speed = self.resume_speed if self.resume_speed > 0 else self.speed
-        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.speed
+        speed = self.resume_speed * 60 if self.resume_speed > 0 else self.speed
+        speedz = self.resume_z_speed * 60 if self.resume_z_speed > 0 else self.speed
         # Update GCODE STATE variables
         self.gcode_move.base_position = self.base_position
         self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
@@ -220,13 +220,16 @@ class afc:
         e_diff = newpos[3] - self.last_gcode_position[3]
         self.gcode_move.base_position[3] += e_diff
 
-        # Move toolhead to previous z location
+        # Move toolhead to previous z location with zhop added
         self.gcode_move.move_with_transform(newpos, speedz)
 
-        # If this is a full pos restore move to the previous x,y after moving to previous z
-        if justz == False or self.xy_resume == True:
-            newpos[:2] = self.last_gcode_position[:2]
-            self.gcode_move.move_with_transform(newpos, speed)
+        # Move to previous x,y location
+        newpos[:2] = self.last_gcode_position[:2]
+        self.gcode_move.move_with_transform(newpos, speed)
+        
+        # Drop to previous z
+        newpos[2] = self.last_gcode_position[2]
+        self.gcode_move.move_with_transform(newpos, speedz)
 
     def pause_print(self):
         if self.is_homed() and not self.is_paused():
@@ -596,7 +599,7 @@ class afc:
                 self.TOOL_LOAD(CUR_LANE)
                 # Restore state
             if self.failure == False:
-                self.restore_pos(True)
+                self.restore_pos()
                 self.in_toolchange = False
 
     cmd_SET_COLOR_help = "change filaments color"
