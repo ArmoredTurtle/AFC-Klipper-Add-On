@@ -137,7 +137,7 @@ class afcPrep:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                     CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                                     msg +="\n in TooHead"
-                                    if len(self.AFC.extruders) == '':
+                                    if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
                             else:
                                 self.error_tool_unload(CUR_LANE)
