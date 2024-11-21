@@ -111,14 +111,20 @@ class afcPrep:
                         CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                         self.reactor.pause(self.reactor.monotonic() + 1)
                         CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-
+                    msg = ''
                     if CUR_LANE.prep_state == False:
-                        self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
+                        if CUR_LANE.load_state == False:
+                            self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
+                            msg += 'EMPTY READY FOR SPOOL'
+                        else:
+                            CUR_LANE.status = None
+                            msg +=" NOT READY"
+                            CUR_LANE.do_enable(False)
+                            msg = 'CHECK FILAMENT Prep: False - Load: True'
 
-                    elif CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
+                    elif CUR_LANE.prep_state == True:
                         CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
                         self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
-                        msg = ''
                         if CUR_LANE.prep_state == True:
                             msg +="LOCKED"
                             if CUR_LANE.load_state == True:
@@ -126,14 +132,6 @@ class afcPrep:
                                 msg +=" AND LOADED"
                             else:
                                 msg +=" NOT LOADED"
-                        else:
-                            if CUR_LANE.load_state == True:
-                                CUR_LANE.status = None
-                                msg +=" NOT READY"
-                                CUR_LANE.do_enable(False)
-                                msg = 'CHECK FILAMENT Prep: False - Load: True'
-                            else:
-                                msg += 'EMPTY READY FOR SPOOL'
                         if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
@@ -149,9 +147,9 @@ class afcPrep:
                                     msg +="\n error in TooHead Extruder thinks lane is loaded when not"
                                     check_success = False
 
-                        CUR_LANE.do_enable(False)
-                        self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
-                        CUR_LANE.set_afc_prep_done()
+                    CUR_LANE.do_enable(False)
+                    self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
+                    CUR_LANE.set_afc_prep_done()
 
                 for EXTRUDE in self.AFC.extruders.keys():
                     CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
