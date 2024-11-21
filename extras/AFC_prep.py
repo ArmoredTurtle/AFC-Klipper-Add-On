@@ -137,14 +137,14 @@ class afcPrep:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                     CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                                     msg +="\n in TooHead"
-                                    if len(self.AFC.extruders) == 1:
+                                    if len(self.AFC.extruders) == '':
                                         self.AFC.current = CUR_LANE.name
                             else:
                                 self.error_tool_unload(CUR_LANE)
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                                    msg +="\n error in TooHead Extruder thinks lane is loaded when not"
+                                    msg +="\n error in TooHead Extruder loaded with no lane identified"
                                     check_success = False
 
                     CUR_LANE.do_enable(False)
