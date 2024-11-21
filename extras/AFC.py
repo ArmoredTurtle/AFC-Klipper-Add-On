@@ -376,9 +376,6 @@ class afc:
     def TOOL_LOAD(self, CUR_LANE):
         if CUR_LANE == None:
             return
-        if CUR_LANE.name != self.current:
-            return
-
         # Try to get bypass filament sensor, if lookup fails default to None
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
