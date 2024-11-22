@@ -162,6 +162,8 @@ class afcPrep:
                 self.gcode.respond_raw(logo)
             else:
                 self.gcode.respond_raw(logo_error)
+    def error_tool_unload(self, CUR_LANE):
+        self.gcode.respond_info('Error on filament')
 
 def load_config(config):
     return afcPrep(config)
