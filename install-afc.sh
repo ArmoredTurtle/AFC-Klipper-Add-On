@@ -296,10 +296,13 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   # Update buffer configuration
   if [ "$BUFFER_SYSTEM" == "TurtleNeck" ]; then
     append_buffer_config "TurtleNeck"
+    add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "TN"
   elif [ "$BUFFER_SYSTEM" == "TurtleNeckV2" ]; then
     append_buffer_config "TurtleNeckV2"
+    add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "TN2"
   elif [ "$BUFFER_SYSTEM" == "AnnexBelay" ]; then
     append_buffer_config "AnnexBelay"
+    add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "Belay"
   else
     print_msg WARNING "  Buffer not configured, skipping configuration."
   fi

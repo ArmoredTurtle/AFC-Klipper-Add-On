@@ -20,7 +20,7 @@ class afc:
         self.current = None
         self.failure = False
         self.lanes = {}
-        self.extrude = []
+        self.extruders = {}
         self.afc_monitoring = False
 
         # tool position when tool change was requested
@@ -92,7 +92,7 @@ class afc:
         self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
-        self.gcode.register_mux_command('SET_SPOOLID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
+        self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
@@ -104,8 +104,14 @@ class afc:
         status_msg = ''
 
         for UNIT in self.lanes.keys():
-            status_msg += '<span class=info--text>{} Status</span>'.format(UNIT)
-            status_msg += '\nLANE | Prep | Load | Hub | Tool |\n'
+            # Find the maximum length of lane names to determine the column width
+            max_lane_length = max(len(lane) for lane in self.lanes[UNIT].keys())
+
+            status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
+
+            # Create a dynamic format string that adjusts based on lane name length
+            header_format = '{:<{}} | Prep | Load | Hub | Tool |\n'
+            status_msg += header_format.format("LANE", max_lane_length)
 
             for LANE in self.lanes[UNIT].keys():
                 lane_msg = ''
@@ -115,13 +121,13 @@ class afc:
                 if self.current != None:
                     if self.current == CUR_LANE.name:
                         if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
-                            lane_msg += '<span class=warning--text>{} </span>'.format(CUR_LANE.name.upper())
+                            lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
                         else:
-                            lane_msg += '<span class=success--text>{} </span>'.format(CUR_LANE.name.upper())
+                            lane_msg += '<span class=success--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
                     else:
-                        lane_msg += '{} '.format(CUR_LANE.name.upper())
+                        lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
                 else:
-                    lane_msg += '{} '.format(CUR_LANE.name.upper())
+                    lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
 
                 if CUR_LANE.prep_state == True:
                     lane_msg += '| <span class=success--text><--></span> |'
@@ -205,12 +211,12 @@ class afc:
                 self.homing_position = self.gcode_move.homing_position
                 self.speed = self.gcode_move.speed
 
-    def restore_pos(self, justz=False):
+    def restore_pos(self):
         newpos = self.toolhead.get_position()
-        newpos[2] = self.last_gcode_position[2]
+        newpos[2] = self.last_gcode_position[2] + self.z_hop
 
-        speed = self.resume_speed if self.resume_speed > 0 else self.speed
-        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.speed
+        speed = self.resume_speed * 60 if self.resume_speed > 0 else self.speed
+        speedz = self.resume_z_speed * 60 if self.resume_z_speed > 0 else self.speed
         # Update GCODE STATE variables
         self.gcode_move.base_position = self.base_position
         self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
@@ -220,13 +226,16 @@ class afc:
         e_diff = newpos[3] - self.last_gcode_position[3]
         self.gcode_move.base_position[3] += e_diff
 
-        # Move toolhead to previous z location
+        # Move toolhead to previous z location with zhop added
         self.gcode_move.move_with_transform(newpos, speedz)
 
-        # If this is a full pos restore move to the previous x,y after moving to previous z
-        if justz == False or self.xy_resume == True:
-            newpos[:2] = self.last_gcode_position[:2]
-            self.gcode_move.move_with_transform(newpos, speed)
+        # Move to previous x,y location
+        newpos[:2] = self.last_gcode_position[:2]
+        self.gcode_move.move_with_transform(newpos, speed)
+
+        # Drop to previous z
+        newpos[2] = self.last_gcode_position[2]
+        self.gcode_move.move_with_transform(newpos, speedz)
 
     def pause_print(self):
         if self.is_homed() and not self.is_paused():
@@ -259,8 +268,10 @@ class afc:
         save_vars function saves lane variables to var file and prints with indents to
                   make it more readable for users
         """
-        with open(self.VarFile, 'w') as f:
+        with open(self.VarFile+ '.unit', 'w') as f:
             f.write(json.dumps(self.lanes, indent=4))
+        with open(self.VarFile+ '.tool', 'w') as f:
+            f.write(json.dumps(self.extruders, indent=4))
 
     def handle_connect(self):
         """
@@ -331,7 +342,7 @@ class afc:
             while CUR_LANE.load_state == False:
                 CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
         if CUR_LANE.hub_load == False:
-            CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
+            CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
         while CUR_HUB.state == False:
             CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
         while CUR_HUB.state == True:
@@ -395,7 +406,7 @@ class afc:
                     pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
-                CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
+                CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel,  True if CUR_LANE.dist_hub > 200 else False)
             CUR_LANE.hub_load = True
             hub_attempts = 0
             while CUR_HUB.state == False:
@@ -448,6 +459,7 @@ class afc:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
             self.save_vars() # Always save variables even if a failure happens
             if self.failure == True:
                 self.pause_print()
@@ -558,6 +570,7 @@ class afc:
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+        self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = ''
         self.save_vars()
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
@@ -594,7 +607,7 @@ class afc:
                 self.TOOL_LOAD(CUR_LANE)
                 # Restore state
             if self.failure == False:
-                self.restore_pos(True)
+                self.restore_pos()
                 self.in_toolchange = False
 
     cmd_SET_COLOR_help = "change filaments color"
@@ -652,17 +665,21 @@ class afc:
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.lanes)
         str["system"]['num_lanes'] = numoflanes
-        str["system"]['num_extruders'] = len(self.extrude)
+        str["system"]['num_extruders'] = len(self.extruders)
+        str["system"]["extruders"]={}
 
-        for EXTRUDE in self.extrude:
-            str["system"][EXTRUDE]={}
+        for EXTRUDE in self.extruders.keys():
+
+            str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-            str["system"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
-            str["system"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
+            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
+            str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
             if CUR_EXTRUDER.buffer_name != None:
-                str["system"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer.buffer_status()
+                str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
+                str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer.buffer_status()
             else:
-                str["system"][EXTRUDE]['buffer']   = 'None'
+                str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
 
         return str
 
