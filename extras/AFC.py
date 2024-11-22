@@ -6,6 +6,8 @@
 
 import os
 import json
+import urllib.request
+
 from configparser import Error as error
 
 class afc:
@@ -33,10 +35,9 @@ class afc:
         self.homing_position = [0.0, 0.0, 0.0, 0.0]
         self.speed = 25.
         # SPOOLMAN
-        self.spoolman = config.getboolean('spoolman', False)
-        if self.spoolman:
-            self.spoolman_filament={}
-
+        self.spoolman_ip = config.get('spoolman_ip', None)
+        self.spoolman_port = config.get('spoolman_port', None)
+        
         #LED SETTINGS
         self.ind_lights = None
         self.led_name = config.get('led_name')
@@ -628,11 +629,16 @@ class afc:
         if lane == None:
             self.gcode.respond_info("No LANE Defined")
             return
-        ID = gcmd.get('ID', '')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.spool_id = ID
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ID
-        self.save_vars()
+        SpoolID = gcmd.get('SPOOL_ID', '')
+        if SpoolID !='':
+            url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/filament/" + SpoolID
+            result = json.load(urllib.request.urlopen(url))
+            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['material']
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['color_hex']
+            self.save_vars()
 
     def get_status(self, eventtime):
         str = {}
