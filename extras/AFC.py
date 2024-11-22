@@ -336,7 +336,7 @@ class afc:
             while CUR_LANE.load_state == False:
                 CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
         if CUR_LANE.hub_load == False:
-            CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
+            CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
         while CUR_HUB.state == False:
             CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
         while CUR_HUB.state == True:
@@ -400,7 +400,7 @@ class afc:
                     pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load == False:
-                CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel)
+                CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel,  True if CUR_LANE.dist_hub > 200 else False)
             CUR_LANE.hub_load = True
             hub_attempts = 0
             while CUR_HUB.state == False:
