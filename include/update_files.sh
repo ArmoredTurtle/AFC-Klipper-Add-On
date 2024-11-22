@@ -238,12 +238,12 @@ EOF
   esac
 
   # Check if the buffer configuration already exists in the config file
-  echo "Checking if buffer configuration already exists in $config_path"
+  print_msg INFO "  Checking if buffer configuration already exists in $config_path"
   if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$config_path"; then
     # Append the buffer configuration to the config file
     echo -e "\n$buffer_config" >> "$config_path"
   else
-    echo "Buffer configuration already exists in $config_path"
+    print_msg INFO "  Buffer configuration already exists in $config_path. Skipping modification."
   fi
 
   # Add Buffer_Name below the line containing Type: in AFC.cfg

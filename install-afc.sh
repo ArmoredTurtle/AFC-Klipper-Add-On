@@ -25,7 +25,7 @@ UNINSTALL=False
 BRANCH=main
 # This FORCE_UPDATE variable is used to force an update of the AFC configuration files. This would typically be used
 # when there are major changes to the AFC configuration files that require more changes than we can handle automatically.
-FORCE_UPDATE=true
+FORCE_UPDATE=True
 BACKUP_DATE=$(date +%Y%m%d%H%M%S)
 
 # Moonraker Config
@@ -54,6 +54,8 @@ fi
 for file in "${AFC_PATH}/include/"*; do
   source "$file"
 done
+
+source include/*.sh
 
 
 install_type() {
@@ -254,7 +256,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   choose_board_type
   toolhead_pin
   buffer_system
-  replace_varfile_path
+  replace_varfile_path "${AFC_CONFIG_PATH}/AFC.cfg"
   print_section_delimiter
 
   macro_helpers
