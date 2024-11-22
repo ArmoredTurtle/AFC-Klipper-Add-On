@@ -296,9 +296,11 @@ add_buffer_to_extruder() {
   local buffer_line="buffer: $buffer_name"
 
   if grep -qF "$section" "$file_path"; then
-    sed -i "/$section/a $buffer_line" "$file_path"
-    echo "Added '$buffer_line' to the '$section' section in $file_path"
+    sed -i "/$section/{:a;n;/^$/!ba;i\\
+    $buffer_line
+    }" "$file_path"
+    print_msg WARNING "  Added '$buffer_line' to the '$section' section in $file_path"
   else
-    echo "'$section' section not found in $file_path"
+    print_msg ERROR "  '$section' section not found in $file_path"
   fi
 }
