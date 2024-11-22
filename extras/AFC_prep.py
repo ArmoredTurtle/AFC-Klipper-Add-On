@@ -125,26 +125,27 @@ class afcPrep:
                     elif CUR_LANE.prep_state == True:
                         CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
                         self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
-                        if CUR_LANE.prep_state == True:
-                            msg +="LOCKED"
-                            if CUR_LANE.load_state == True:
-                                CUR_LANE.status = 'Loaded'
-                                msg +=" AND LOADED"
-                            else:
-                                msg +=" NOT LOADED"
+                        msg +="LOCKED"
+                        if CUR_LANE.load_state == True:
+                            CUR_LANE.status = 'Loaded'
+                            msg +=" AND LOADED"
+                        else:
+                            msg +=" NOT LOADED"
                         if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                     CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                                    msg +="\n in TooHead"
+                                    msg +="\n in ToolHead"
                                     if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
+                                        CUR_EXTRUDER.buffer.enable_buffer()
                             else:
                                 self.error_tool_unload(CUR_LANE)
+                                check_success = False
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                                    msg +="\n error in TooHead Extruder loaded with no lane identified"
+                                    msg +="\n error in ToolHead Extruder loaded with no lane identified"
                                     check_success = False
 
                     CUR_LANE.do_enable(False)
