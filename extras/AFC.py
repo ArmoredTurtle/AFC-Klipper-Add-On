@@ -104,8 +104,14 @@ class afc:
         status_msg = ''
 
         for UNIT in self.lanes.keys():
-            status_msg += '<span class=info--text>{} Status</span>'.format(UNIT)
-            status_msg += '\nLANE | Prep | Load | Hub | Tool |\n'
+            # Find the maximum length of lane names to determine the column width
+            max_lane_length = max(len(lane) for lane in self.lanes[UNIT].keys())
+
+            status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
+
+            # Create a dynamic format string that adjusts based on lane name length
+            header_format = '{:<{}} | Prep | Load | Hub | Tool |\n'
+            status_msg += header_format.format("LANE", max_lane_length)
 
             for LANE in self.lanes[UNIT].keys():
                 lane_msg = ''
@@ -115,13 +121,13 @@ class afc:
                 if self.current != None:
                     if self.current == CUR_LANE.name:
                         if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
-                            lane_msg += '<span class=warning--text>{} </span>'.format(CUR_LANE.name.upper())
+                            lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
                         else:
-                            lane_msg += '<span class=success--text>{} </span>'.format(CUR_LANE.name.upper())
+                            lane_msg += '<span class=success--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
                     else:
-                        lane_msg += '{} '.format(CUR_LANE.name.upper())
+                        lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
                 else:
-                    lane_msg += '{} '.format(CUR_LANE.name.upper())
+                    lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
 
                 if CUR_LANE.prep_state == True:
                     lane_msg += '| <span class=success--text><--></span> |'
@@ -226,7 +232,7 @@ class afc:
         # Move to previous x,y location
         newpos[:2] = self.last_gcode_position[:2]
         self.gcode_move.move_with_transform(newpos, speed)
-        
+
         # Drop to previous z
         newpos[2] = self.last_gcode_position[2]
         self.gcode_move.move_with_transform(newpos, speedz)
@@ -663,7 +669,7 @@ class afc:
         str["system"]["extruders"]={}
 
         for EXTRUDE in self.extruders.keys():
-            
+
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
