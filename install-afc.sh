@@ -23,6 +23,10 @@ UPDATE_CONFIG=False
 AUTO_UPDATE_CONFIG=False
 UNINSTALL=False
 BRANCH=main
+# This FORCE_UPDATE variable is used to force an update of the AFC configuration files. This would typically be used
+# when there are major changes to the AFC configuration files that require more changes than we can handle automatically.
+FORCE_UPDATE=True
+BACKUP_DATE=$(date +%Y%m%d%H%M%S)
 
 # Moonraker Config
 MOONRAKER_UPDATE_CONFIG="""
@@ -50,7 +54,6 @@ fi
 for file in "${AFC_PATH}/include/"*; do
   source "$file"
 done
-
 
 install_type() {
   while true; do
@@ -201,7 +204,7 @@ clone_repo
 check_existing_install
 info_menu
 
-if [ "$PRIOR_INSTALLATION" = "True" ]; then
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = False ]; then
   print_msg WARNING "  A prior installation of AFC has been detected."
   print_msg WARNING "  Would you like to update your existing configuration files with the latest settings?"
   print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
@@ -236,6 +239,14 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
   exit 0
 fi
 
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
+  print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
+  print_msg WARNING "  configuration files. Your existing configuration will be backed up to $PRINTER_CONFIG_PATH/AFC.backup.$BACKUP_DATE"
+  confirm_continue
+  backup_afc_config
+  PRIOR_INSTALLATION=False
+fi
+
 if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   link_extensions
   copy_config
@@ -243,7 +254,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   choose_board_type
   toolhead_pin
   buffer_system
-  replace_varfile_path
+  replace_varfile_path "${AFC_CONFIG_PATH}/AFC.cfg"
   print_section_delimiter
 
   macro_helpers
@@ -293,6 +304,9 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   else
     print_msg WARNING "  Buffer not configured, skipping configuration."
   fi
+
+  # Any additional configuration can be added here.
+  check_and_append_prep "${AFC_CONFIG_PATH}/AFC.cfg"
 
   # Update moonraker config
   update_moonraker_config

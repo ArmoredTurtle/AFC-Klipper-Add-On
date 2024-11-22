@@ -118,12 +118,12 @@ update_switch_pin() {
   # Read the configuration file line by line.
   while IFS= read -r line; do
     # Check if the line indicates the start of the filament switch sensor section.
-    if [[ "$line" =~ ^\[filament_switch_sensor\ tool_start\]$ ]]; then
+    if [[ "$line" =~ ^\[AFC_extruder\ extruder\]$ ]]; then
       in_section=true
       echo "$line" >> "$temp_file"
     # If within the section and the line contains the switch pin, update its value.
-    elif $in_section && [[ "$line" =~ ^switch_pin: ]]; then
-      echo "switch_pin: $new_value" >> "$temp_file"
+    elif $in_section && [[ "$line" =~ ^pin_tool_start: ]]; then
+      echo "pin_tool_start: $new_value" >> "$temp_file"
       in_section=false
     else
       # Write the original line to the temporary file if it does not match the above conditions.
@@ -240,12 +240,12 @@ EOF
   esac
 
   # Check if the buffer configuration already exists in the config file
-  echo "Checking if buffer configuration already exists in $config_path"
+  print_msg INFO "  Checking if buffer configuration already exists in $config_path"
   if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$config_path"; then
     # Append the buffer configuration to the config file
     echo -e "\n$buffer_config" >> "$config_path"
   else
-    echo "Buffer configuration already exists in $config_path"
+    print_msg INFO "  Buffer configuration already exists in $config_path. Skipping modification."
   fi
 
   # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
@@ -295,10 +295,24 @@ add_buffer_to_extruder() {
   local section="[AFC_extruder extruder]"
   local buffer_line="buffer: $buffer_name"
 
-  if grep -qF "$section" "$file_path"; then
-    sed -i "/$section/{:a;n;/^$/!ba;i $buffer_line" -e '}' "$file_path"
-    echo "Added '$buffer_line' to the '$section' section in $file_path"
-  else
-    echo "'$section' section not found in $file_path"
-  fi
+  awk -v section="$section" -v buffer="$buffer_line" '
+    BEGIN { in_section = 0 }
+    # Match the start of the target section
+    $0 == section {
+      in_section = 1
+      print $0
+      next
+    }
+    # Insert buffer line before the first blank line within the target section
+    in_section && /^$/ {
+      print buffer
+      in_section = 0
+    }
+    # End section processing if a new section starts
+    in_section && /^\[.+\]/ { in_section = 0 }
+    # Print all lines
+    { print $0 }
+  ' "$file_path" > "$file_path.tmp" && mv "$file_path.tmp" "$file_path"
+
+  print_msg WARNING "  Added '$buffer_line' to the '$section' section in $file_path"
 }
