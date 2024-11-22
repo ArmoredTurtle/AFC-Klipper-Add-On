@@ -244,7 +244,7 @@ fi
 
 if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
   print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
-  print_msg WARNING "  configuration files. Your existing configuration will be backed up to AFC.backup.$BACKUP_DATE"
+  print_msg WARNING "  configuration files. Your existing configuration will be backed up to $PRINTER_CONFIG_PATH/AFC.backup.$BACKUP_DATE"
   backup_afc_config
   PRIOR_INSTALLATION=False
 fi
