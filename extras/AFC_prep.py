@@ -170,6 +170,7 @@ class afcPrep:
             CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
         while CUR_LANE.load_state == False:
             CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
         return True
 
 def load_config(config):
