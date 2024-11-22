@@ -55,9 +55,6 @@ for file in "${AFC_PATH}/include/"*; do
   source "$file"
 done
 
-source include/*.sh
-
-
 install_type() {
   while true; do
     echo -ne "

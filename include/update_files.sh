@@ -118,12 +118,12 @@ update_switch_pin() {
   # Read the configuration file line by line.
   while IFS= read -r line; do
     # Check if the line indicates the start of the filament switch sensor section.
-    if [[ "$line" =~ ^\[filament_switch_sensor\ tool_start\]$ ]]; then
+    if [[ "$line" =~ ^\[AFC_extruder\ extruder\]$ ]]; then
       in_section=true
       echo "$line" >> "$temp_file"
     # If within the section and the line contains the switch pin, update its value.
-    elif $in_section && [[ "$line" =~ ^switch_pin: ]]; then
-      echo "switch_pin: $new_value" >> "$temp_file"
+    elif $in_section && [[ "$line" =~ ^pin_tool_start: ]]; then
+      echo "pin_tool_start: $new_value" >> "$temp_file"
       in_section=false
     else
       # Write the original line to the temporary file if it does not match the above conditions.
