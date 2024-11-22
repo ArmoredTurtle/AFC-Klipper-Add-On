@@ -307,6 +307,9 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
     print_msg WARNING "  Buffer not configured, skipping configuration."
   fi
 
+  # Any additional configuration can be added here.
+  check_and_append_prep "${AFC_CONFIG_PATH}/AFC.cfg"
+
   # Update moonraker config
   update_moonraker_config
 
