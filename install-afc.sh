@@ -17,12 +17,16 @@ AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Variables
 KLIPPER_SERVICE=klipper
-GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
+GITREPO="https://github.com/ejsears/AFC-Klipper-Add-On.git"
 PRIOR_INSTALLATION=False
 UPDATE_CONFIG=False
 AUTO_UPDATE_CONFIG=False
 UNINSTALL=False
 BRANCH=main
+# This FORCE_UPDATE variable is used to force an update of the AFC configuration files. This would typically be used
+# when there are major changes to the AFC configuration files that require more changes than we can handle automatically.
+FORCE_UPDATE=true
+BACKUP_DATE=$(date +%Y%m%d%H%M%S)
 
 # Moonraker Config
 MOONRAKER_UPDATE_CONFIG="""
@@ -201,7 +205,7 @@ clone_repo
 check_existing_install
 info_menu
 
-if [ "$PRIOR_INSTALLATION" = "True" ]; then
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = False ]; then
   print_msg WARNING "  A prior installation of AFC has been detected."
   print_msg WARNING "  Would you like to update your existing configuration files with the latest settings?"
   print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
@@ -234,6 +238,13 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
   print_msg INFO "  This will still require manual review and potential configuration. Visit the Github page for more info."
   auto_update
   exit 0
+fi
+
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
+  print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
+  print_msg WARNING "  configuration files. Your existing configuration will be backed up to AFC.backup.$BACKUP_DATE"
+  backup_afc_config
+  PRIOR_INSTALLATION=False
 fi
 
 if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
