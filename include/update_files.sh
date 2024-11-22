@@ -295,12 +295,24 @@ add_buffer_to_extruder() {
   local section="[AFC_extruder extruder]"
   local buffer_line="buffer: $buffer_name"
 
-  if grep -qF "$section" "$file_path"; then
-    sed -i "/$section/{:a;n;/^$/!ba;i\\
-    $buffer_line
-    }" "$file_path"
-    print_msg WARNING "  Added '$buffer_line' to the '$section' section in $file_path"
-  else
-    print_msg ERROR "  '$section' section not found in $file_path"
-  fi
+  awk -v section="$section" -v buffer="$buffer_line" '
+    BEGIN { in_section = 0 }
+    # Match the start of the target section
+    $0 == section {
+      in_section = 1
+      print $0
+      next
+    }
+    # Insert buffer line before the first blank line within the target section
+    in_section && /^$/ {
+      print buffer
+      in_section = 0
+    }
+    # End section processing if a new section starts
+    in_section && /^\[.+\]/ { in_section = 0 }
+    # Print all lines
+    { print $0 }
+  ' "$file_path" > "$file_path.tmp" && mv "$file_path.tmp" "$file_path"
+
+  print_msg WARNING "  Added '$buffer_line' to the '$section' section in $file_path"
 }
