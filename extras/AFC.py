@@ -232,7 +232,7 @@ class afc:
         # Move to previous x,y location
         newpos[:2] = self.last_gcode_position[:2]
         self.gcode_move.move_with_transform(newpos, speed)
-        
+
         # Drop to previous z
         newpos[2] = self.last_gcode_position[2]
         self.gcode_move.move_with_transform(newpos, speedz)
@@ -669,7 +669,7 @@ class afc:
         str["system"]["extruders"]={}
 
         for EXTRUDE in self.extruders.keys():
-            
+
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
