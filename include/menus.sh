@@ -71,3 +71,15 @@ prompt_boolean() {
     eval "$var_name=$input"
   fi
 }
+
+confirm_continue() {
+  # Function to prompt the user to press Y or y to continue.
+  # Exits the script if the user does not press Y or y.
+
+  read -p "  Do you want to continue? (Y/y to continue): " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    print_msg ERROR "  Operation aborted."
+    exit 1
+  fi
+}
