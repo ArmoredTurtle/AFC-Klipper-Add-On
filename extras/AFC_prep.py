@@ -140,8 +140,9 @@ class afcPrep:
                                         self.AFC.current = CUR_LANE.name
                                         CUR_EXTRUDER.buffer.enable_buffer()
                             else:
-                                self.error_tool_unload(CUR_LANE)
-                                check_success = False
+                                lane_check=self.error_tool_unload(CUR_LANE)
+                                if lane_check != True:
+                                    check_success = False
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
@@ -164,7 +165,12 @@ class afcPrep:
             else:
                 self.gcode.respond_raw(logo_error)
     def error_tool_unload(self, CUR_LANE):
-        self.gcode.respond_info('Error on filament')
+        self.gcode.respond_info('Error on filament trying to correct')
+        while CUR_LANE.load_state == True:
+            CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+        while CUR_LANE.load_state == False:
+            CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+        return True
 
 def load_config(config):
     return afcPrep(config)
