@@ -53,6 +53,6 @@ if [ "$INSTALLATION_TYPE" == "mainsail" ]; then
     print_msg ERROR "  $MAINSAIL_SRC not found. Aborting."
     exit 1
   fi
-  unzip -o "$MAINSAIL_SRC" -d "$MAINSAIL_DST"
+  unzip -oq "$MAINSAIL_SRC" -d "$MAINSAIL_DST"
   print_msg INFO "  Mainsail interface installed successfully. Please refresh any browser windows to see the changes."
 fi
