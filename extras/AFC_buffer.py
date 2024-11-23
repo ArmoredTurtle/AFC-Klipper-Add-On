@@ -157,7 +157,7 @@ class AFCtrigger:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             if CUR_EXTRUDER.tool_start_state:
-                if self.AFC.current != None:
+                if self.AFC.current != None and state:
                     CUR_LANE.assist(self.velocity / 100)
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.assist(0)
@@ -172,7 +172,7 @@ class AFCtrigger:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             if CUR_EXTRUDER.tool_start_state:
-                if self.AFC.current != None:
+                if self.AFC.current != None and state:
                     CUR_LANE.assist(self.velocity / 100)
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.assist(0)
