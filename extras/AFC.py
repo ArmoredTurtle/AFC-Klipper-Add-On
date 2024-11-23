@@ -630,16 +630,20 @@ class afc:
             self.gcode.respond_info("No LANE Defined")
             return
         SpoolID = gcmd.get('SPOOL_ID', '')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         if SpoolID !='':
             url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/filament/" + SpoolID
             result = json.load(urllib.request.urlopen(url))
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['material']
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['color_hex']
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['weight']
-            self.save_vars()
+        else:
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = ''
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
+        self.save_vars()
 
     def get_status(self, eventtime):
         str = {}
