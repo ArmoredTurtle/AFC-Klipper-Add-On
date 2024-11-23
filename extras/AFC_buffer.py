@@ -78,6 +78,7 @@ class AFCtrigger:
             self.buttons.register_buttons([self.advance_pin], self.advance_callback)
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
+            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTILIER, desc=self.cmd_SET_MULTILIER_help)
 
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
@@ -157,7 +158,7 @@ class AFCtrigger:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             if CUR_EXTRUDER.tool_start_state:
-                if self.AFC.current != None:
+                if self.AFC.current != None and state:
                     CUR_LANE.assist(self.velocity / 100)
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.assist(0)
@@ -172,7 +173,7 @@ class AFCtrigger:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             if CUR_EXTRUDER.tool_start_state:
-                if self.AFC.current != None:
+                if self.AFC.current != None and state:
                     CUR_LANE.assist(self.velocity / 100)
                     self.reactor.pause(self.reactor.monotonic() + 1)
                     CUR_LANE.assist(0)
@@ -197,6 +198,29 @@ class AFCtrigger:
             else:
                 state_info += "expanded"
         return state_info
+
+    cmd_SET_MULTILIER_help = "live adjust buffer high and low multiplier"
+    def cmd_SET_MULTILIER(self, gcmd):
+        if self.turtleneck:
+            if self.AFC.current != None and self.enable:
+                chg_multiplier = gcmd.get('MULTIPLIER', None)
+                if chg_multiplier == None:
+                    self.gcode.respond_info("Multiplier must be provided, HIGH or LOW")
+                    return
+                chg_factor = gcmd.get_float('FACTOR')
+                if chg_factor <= 0:
+                    self.gcode.respond_info("FACTOR must be greater than 0")
+                    return
+                if chg_multiplier == "HIGH" and chg_factor > 1:
+                    self.multiplier_high = chg_factor
+                    self.set_multiplier(chg_factor)
+                    self.gcode.respond_info("multiplier_high set to {}").format(chg_factor)
+                    self.gcode.respond_info('multiplier_high: {} MUST be updated under buffer config for value to be saved').format(chg_factor)
+                elif chg_multiplier == "LOW" and chg_factor < 1:
+                    self.multiplier_low = chg_factor
+                    self.set_multiplier(chg_factor)
+                    self.gcode.respond_info("multiplier_low set to {}").format(chg_factor)
+                    self.gcode.respond_info('multiplier_low: {} MUST be updated under buffer config for value to be saved').format(chg_factor)
 
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):
