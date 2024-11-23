@@ -459,9 +459,9 @@ class afc:
                 if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             # Setting hub loaded outside of failure check since this could be true
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = self.gcode.run_script_from_command.hub_load
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = True
             self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
-            self.gcode.run_script_from_command("SET_ACTIVE_SPOOL id=" + str(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id']))
+            self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
 
             self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
@@ -626,6 +626,14 @@ class afc:
         CUR_LANE.color = '#' + color
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.save_vars()
+    
+    def set_active_spool(self, ID):
+        webhooks = self.printer.lookup_object('webhooks')
+        args = {'spool_id' : int(ID)}
+        try:
+            webhooks.call_remote_method("spoolman_set_active_spool", **args)
+        except self.printer.command_error:
+            self.gcode._respond_error("Error trying to set active spool")
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
