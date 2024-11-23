@@ -137,6 +137,8 @@ class afcPrep:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                     CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                                     msg +="\n in ToolHead"
+                                    self.AFC.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+                                    self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                                     if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
                                         CUR_EXTRUDER.buffer.enable_buffer()
