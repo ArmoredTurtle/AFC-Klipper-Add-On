@@ -461,6 +461,7 @@ class afc:
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
+            self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
             self.save_vars() # Always save variables even if a failure happens
             if self.failure == True:
                 self.pause_print()
@@ -622,6 +623,10 @@ class afc:
         CUR_LANE.color = '#' + color
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.save_vars()
+
+    def set_active_spool(self, SpoolID):
+         url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/filament/" + SpoolID
+         result = json.load(urllib.request.urlopen(url,{"spool_id": SpoolID}))
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
