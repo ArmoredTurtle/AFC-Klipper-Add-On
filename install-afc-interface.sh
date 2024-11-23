@@ -49,12 +49,10 @@ install_type
 if [ "$INSTALLATION_TYPE" == "mainsail" ]; then
   check_for_mainsail
   backup_mainsail
-  stop_service mainsail
   if [ ! -f "$MAINSAIL_SRC" ]; then
     print_msg ERROR "  $MAINSAIL_SRC not found. Aborting."
     exit 1
   fi
   unzip -o "$MAINSAIL_SRC" -d "$MAINSAIL_DST"
   print_msg INFO "  Mainsail interface installed successfully. Please refresh any browser windows to see the changes."
-  start_service mainsail
 fi
