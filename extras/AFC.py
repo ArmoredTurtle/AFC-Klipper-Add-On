@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-import os
+
 import json
 import urllib.request
 
@@ -37,7 +37,7 @@ class afc:
         # SPOOLMAN
         self.spoolman_ip = config.get('spoolman_ip', None)
         self.spoolman_port = config.get('spoolman_port', None)
-        
+
         #LED SETTINGS
         self.ind_lights = None
         self.led_name = config.get('led_name')
@@ -624,7 +624,7 @@ class afc:
         CUR_LANE.color = '#' + color
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.save_vars()
-    
+
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
         if self.spoolman_ip != None:
@@ -738,7 +738,8 @@ class afc:
         if idx == None:
             return
         # Try to find led object, if not found print error to console for user to see
-        try: led = self.printer.lookup_object('AFC_led '+ idx.split(':')[0])
+        afc_object = 'AFC_led '+ idx.split(':')[0]
+        try: led = self.printer.lookup_object(afc_object)
         except:
             error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
             self.AFC_error( error_string)
