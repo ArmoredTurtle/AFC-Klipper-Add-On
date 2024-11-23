@@ -462,6 +462,7 @@ class afc:
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
             self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+            self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars() # Always save variables even if a failure happens
             if self.failure == True:
                 self.pause_print()
