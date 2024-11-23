@@ -627,12 +627,15 @@ class afc:
     
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
-        args = {'spool_id' : int(ID)}
-        try:
-            webhooks.call_remote_method("spoolman_set_active_spool", **args)
-        except self.printer.command_error:
-            if self.spoolman_ip !=None:
-                self.gcode._respond_error("Error trying to set active spool")
+        if self.spoolman_ip != None:
+            if ID:
+                args = {'spool_id' : int(ID)}
+                try:
+                    webhooks.call_remote_method("spoolman_set_active_spool", **args)
+                except self.printer.command_error:
+                    self.gcode._respond_error("Error trying to set active spool")
+            else:
+                self.gcode.respond_info("Spool ID not set, cannot update spoolman with active spool")
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
