@@ -633,32 +633,34 @@ class afc:
         try:
             webhooks.call_remote_method("spoolman_set_active_spool", **args)
         except self.printer.command_error:
-            self.gcode._respond_error("Error trying to set active spool")
+            if self.spoolman_ip !=None:
+                self.gcode._respond_error("Error trying to set active spool")
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
-        lane = gcmd.get('LANE', None)
-        if lane == None:
-            self.gcode.respond_info("No LANE Defined")
-            return
-        SpoolID = gcmd.get('SPOOL_ID', '')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        if SpoolID !='':
-            url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/filament/" + SpoolID
-            result = json.load(urllib.request.urlopen(url))
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['material']
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['color_hex']
-            if hasattr(result, 'weight'):
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['weight']
+        if self.spoolman_ip !=None:
+            lane = gcmd.get('LANE', None)
+            if lane == None:
+                self.gcode.respond_info("No LANE Defined")
+                return
+            SpoolID = gcmd.get('SPOOL_ID', '')
+            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            if SpoolID !='':
+                url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/filament/" + SpoolID
+                result = json.load(urllib.request.urlopen(url))
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['material']
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['color_hex']
+                if hasattr(result, 'weight'):
+                    self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['weight']
+                else:
+                    self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
             else:
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = ''
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
-        else:
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = ''
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
-        self.save_vars()
+            self.save_vars()
 
     def get_status(self, eventtime):
         str = {}
