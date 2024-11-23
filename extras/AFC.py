@@ -643,7 +643,10 @@ class afc:
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['material']
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['color_hex']
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['weight']
+            if hasattr(result, 'weight'):
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['weight']
+            else:
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
         else:
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
