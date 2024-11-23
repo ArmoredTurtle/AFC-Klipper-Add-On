@@ -90,7 +90,7 @@ check_for_afc() {
   # If the AFC extension is found, it prints an error message and exits with status 1.
   # This is to prevent the user from installing AFC multiple times.
 
-  local file_path="${KLIPPER_PATH}/klippy/extras/afc.py"
+  local file_path="${KLIPPER_PATH}/klippy/extras/AFC.py"
 
   if [ ! -f "$file_path" ]; then
     print_msg ERROR "  AFC Klipper extension not found. Install AFC first."
