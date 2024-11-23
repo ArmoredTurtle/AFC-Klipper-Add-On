@@ -77,7 +77,6 @@ class AFCExtruderStepper:
         self.hub= ''
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
-        self.afc_motor_speed = config.getfloat('afc_motor_speed', 250)
         # distance to retract filament from the hub
         self.park_dist = config.getfloat('park_dist', 10)
         self.led_index = config.get('led_index', None)
@@ -107,7 +106,6 @@ class AFCExtruderStepper:
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
 
-        self.enabled = config.get("enabled", False)
         self.filament_diameter = config.getfloat("filament_diameter", 1.75)
         self.filament_density = config.getfloat("filament_density", 1.24)
         self.inner_diameter = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
@@ -115,6 +113,8 @@ class AFCExtruderStepper:
         self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)  # Empty spool weight in g
         self.remaining_weight = config.getfloat("spool_weight", 1000)  # Remaining spool weight in g
         self.max_motor_rpm = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
+        self.rwd_speed_multi = config.getfloat("rwd_speed_multiplier", 0.5) # Multiplier to apply to rpm
+        self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5) # Multiplier to apply to rpm
         self.diameter_range = self.outer_diameter - self.inner_diameter  # Range for effective diameter
 
         # Set hub loading speed depending on distance between extruder and hub
@@ -174,12 +174,11 @@ class AFCExtruderStepper:
         if assist_active: 
             self.update_remaining_weight(distance)
             if distance < 0:
-                # Rewinding: Use afc_motor_speed to calculate value
-                value = (speed * -1) / self.afc_motor_speed
+                # Calculate Rewind Speed
+                value = self.calculate_pwm_value(speed, True) * -1
             else:
-                # Forward motion: Use dynamic assist motor control
+                # Calculate Forward Assist Speed
                 value = self.calculate_pwm_value(speed)
-                #self.gcode.respond_info("Filament Assist - " + str(value) + " PWM Val")
             
             # Clamp value to a maximum of 1
             if value > 1: 
@@ -268,7 +267,7 @@ class AFCExtruderStepper:
 
     def calculate_effective_diameter(self, weight_g, spool_width_mm=60):
 
-        # Calculate the cross-sectional area of the filament (mm²)
+        # Calculate the cross-sectional area of the filament
         density_g_mm3 = self.filament_density / 1000.0
         filament_cross_section_mm2 = 3.14159 * (self.filament_diameter / 2) ** 2
         filament_volume_mm3 = weight_g / density_g_mm3
@@ -296,7 +295,7 @@ class AFCExtruderStepper:
         rpm = (feed_rate * 60) / (math.pi * effective_diameter)
         return min(rpm, self.max_motor_rpm)  # Clamp to max motor RPM
 
-    def calculate_pwm_value(self, feed_rate):
+    def calculate_pwm_value(self, feed_rate, rewind=False):
         """
         Calculate the PWM value for the assist motor based on the feed rate.
 
@@ -304,7 +303,10 @@ class AFCExtruderStepper:
         :return: PWM value between 0 and 1
         """
         rpm = self.calculate_rpm(feed_rate)
-        pwm_value = rpm / (self.max_motor_rpm / 10)
+        if not rewind:
+            pwm_value = rpm / (self.max_motor_rpm / (1 + 9 * self.fwd_speed_multi))
+        else:
+            pwm_value = rpm / (self.max_motor_rpm / (15 + 15 * self.rwd_speed_multi))
         return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
 
     def update_remaining_weight(self, distance_moved):
@@ -314,7 +316,7 @@ class AFCExtruderStepper:
         :param distance_moved: Distance of filament moved in mm.
         """
         filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
-        filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm³ to g
+        filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mmï¿½ to g
         self.remaining_weight -= filament_weight_change
         
         if self.remaining_weight < self.empty_spool_weight:
