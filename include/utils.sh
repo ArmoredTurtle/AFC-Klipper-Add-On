@@ -77,7 +77,6 @@ restart_service() {
   fi
 }
 
-
 function copy_config() {
   if [ -d "${AFC_CONFIG_PATH}" ]; then
     mkdir -p "${AFC_CONFIG_PATH}"
@@ -86,11 +85,51 @@ function copy_config() {
   cp -R "${AFC_PATH}/config" "${AFC_CONFIG_PATH}"
 }
 
-
 pushd() {
   command pushd "$@" >/dev/null
 }
 
 popd() {
   command popd >/dev/null
+}
+
+backup_mainsail() {
+  # Function to back up the existing Mainsail configuration.
+  # Arguments:
+  #   - MAINSAIL_DST: The path to the Mainsail configuration directory.
+
+  if [ -d "${MAINSAIL_DST}" ]; then
+    print_msg INFO "  Backing up existing Mainsail config..."
+    pushd "${HOME}" || exit
+    mv mainsail mainsail.backup."$BACKUP_DATE"
+    popd || exit
+  fi
+}
+
+stop_service() {
+  # Function to restart a given service.
+  # Arguments:
+  #   $1 - The name of the service to restart.
+
+  local service_name=$1
+  print_msg INFO "  Stopping ${service_name} service..."
+  if command -v systemctl &> /dev/null; then
+    sudo systemctl stop "${service_name}"
+  else
+    sudo service "${service_name}" stop
+  fi
+}
+
+start_service() {
+  # Function to restart a given service.
+  # Arguments:
+  #   $1 - The name of the service to restart.
+
+  local service_name=$1
+  print_msg INFO "  Starting ${service_name} service..."
+  if command -v systemctl &> /dev/null; then
+    sudo systemctl start "${service_name}"
+  else
+    sudo service "${service_name}" start
+  fi
 }
