@@ -6,6 +6,7 @@
 
 import os
 import json
+import urllib.request
 
 class afcPrep:
     def __init__(self, config):
@@ -37,6 +38,19 @@ class afcPrep:
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
                 if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
+                if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]:
+                    self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
+                else:
+                    if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
+                        url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
+                        result = json.load(urllib.request.urlopen(url))
+                        self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
+                        self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
+                        if 'remaining_weight' in result:
+                            self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
+                        else:
+                            self.AFC.lanes[LANE.unit][LANE.name]['weight'] = ''
+
                 if 'lane_loaded' not in self.AFC.extruders[LANE.extruder_name]: self.AFC.extruders[LANE.extruder_name]['lane_loaded']=''
                 if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
