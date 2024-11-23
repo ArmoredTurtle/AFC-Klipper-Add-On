@@ -646,7 +646,7 @@ class afc:
             if SpoolID !='':
                 url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/spool/" + SpoolID
                 result = json.load(urllib.request.urlopen(url))
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID1
+                self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
                 if hasattr(result, 'weight'):
