@@ -109,5 +109,21 @@ class AFCled:
     def get_status(self, eventtime=None):
         return self.led_helper.get_status(eventtime)
 
+    def led_change(self, index, status):
+        colors=list(map(float,status.split(',')))
+        transmit = 1
+        def lookahead_bgfunc(print_time):
+            if hasattr(self.led_helper, "_set_color"):
+                set_color_fn = self.led_helper._set_color
+                check_transmit_fn = self.led_helper._check_transmit
+            else:
+                set_color_fn = self.led_helper.set_color
+                check_transmit_fn = self.led_helper.check_transmit
+            set_color_fn(index, colors)
+            if transmit:
+                check_transmit_fn(print_time)
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.register_lookahead_callback(lookahead_bgfunc)
+
 def load_config_prefix(config):
     return AFCled(config)

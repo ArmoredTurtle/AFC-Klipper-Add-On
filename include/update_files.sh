@@ -118,12 +118,12 @@ update_switch_pin() {
   # Read the configuration file line by line.
   while IFS= read -r line; do
     # Check if the line indicates the start of the filament switch sensor section.
-    if [[ "$line" =~ ^\[filament_switch_sensor\ tool_start\]$ ]]; then
+    if [[ "$line" =~ ^\[AFC_extruder\ extruder\]$ ]]; then
       in_section=true
       echo "$line" >> "$temp_file"
     # If within the section and the line contains the switch pin, update its value.
-    elif $in_section && [[ "$line" =~ ^switch_pin: ]]; then
-      echo "switch_pin: $new_value" >> "$temp_file"
+    elif $in_section && [[ "$line" =~ ^pin_tool_start: ]]; then
+      echo "pin_tool_start: $new_value" >> "$temp_file"
       in_section=false
     else
       # Write the original line to the temporary file if it does not match the above conditions.
@@ -193,8 +193,9 @@ append_buffer_config() {
 [AFC_buffer TN]
 advance_pin:     # set advance pin
 trailing_pin:    # set trailing pin
-multiplier_high: 1.1   # default 1.1, factor to feed more filament
-multiplier_low:  0.9   # default 0.9, factor to feed less filament
+multiplier_high: 1.05   # default 1.05, factor to feed more filament
+multiplier_low:  0.95   # default 0.95, factor to feed less filament
+velocity: 100
 EOF
 )
       buffer_name="TN"
@@ -204,9 +205,10 @@ EOF
 [AFC_buffer TN2]
 advance_pin: !turtleneck:ADVANCE
 trailing_pin: !turtleneck:TRAILING
-multiplier_high: 1.1   # default 1.1, factor to feed more filament
-multiplier_low:  0.9   # default 0.9, factor to feed less filament
+multiplier_high: 1.05   # default 1.05, factor to feed more filament
+multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
+velocity: 100
 
 [AFC_led Buffer_Indicator]
 pin: turtleneck:RGB
@@ -238,16 +240,13 @@ EOF
   esac
 
   # Check if the buffer configuration already exists in the config file
-  echo "Checking if buffer configuration already exists in $config_path"
+  print_msg INFO "  Checking if buffer configuration already exists in $config_path"
   if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$config_path"; then
     # Append the buffer configuration to the config file
     echo -e "\n$buffer_config" >> "$config_path"
   else
-    echo "Buffer configuration already exists in $config_path"
+    print_msg INFO "  Buffer configuration already exists in $config_path. Skipping modification."
   fi
-
-  # Add Buffer_Name below the line containing Type: in AFC.cfg
-  sed -i "/^Type:/a Buffer_Name: $buffer_name" "$afc_config_path"
 
   # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
   if [ "$buffer_system" == "TurtleNeckV2" ]; then
@@ -256,4 +255,64 @@ EOF
       print_msg INFO "  Ensure you add the correct serial information to the ~/printer_data/config/AFC/mcu/TurtleNeckv2.cfg file"
     fi
   fi
+}
+
+check_and_append_prep() {
+  # Function to check for the presence of a specific section in a configuration file and append it if not present.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  local file_path="$1"
+  local section="[AFC_prep]"
+  local content="enable: True"
+
+  if ! grep -qF "$section" "$file_path"; then
+    echo -e "\n$section\n$content" >> "$file_path"
+  fi
+}
+
+replace_varfile_path() {
+  # Function to replace the VarFile path in a configuration file.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  #   $2: old_path - The old VarFile path to be replaced.
+  #   $3: new_path - The new VarFile path to replace with.
+  local file_path="$1"
+  local old_path="VarFile: ../printer_data/config/AFC/AFC.var"
+  local new_path="VarFile: ${AFC_CONFIG_PATH}/AFC.var"
+
+  if grep -qF "$old_path" "$file_path"; then
+    sed -i "s|$old_path|$new_path|" "$file_path"
+  fi
+}
+
+add_buffer_to_extruder() {
+  # Function to add a buffer configuration to the [AFC_extruder extruder] section in a configuration file.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  #   $2: buffer_name - The name of the buffer to be added.
+  local file_path="$1"
+  local buffer_name="$2"
+  local section="[AFC_extruder extruder]"
+  local buffer_line="buffer: $buffer_name"
+
+  awk -v section="$section" -v buffer="$buffer_line" '
+    BEGIN { in_section = 0 }
+    # Match the start of the target section
+    $0 == section {
+      in_section = 1
+      print $0
+      next
+    }
+    # Insert buffer line before the first blank line within the target section
+    in_section && /^$/ {
+      print buffer
+      in_section = 0
+    }
+    # End section processing if a new section starts
+    in_section && /^\[.+\]/ { in_section = 0 }
+    # Print all lines
+    { print $0 }
+  ' "$file_path" > "$file_path.tmp" && mv "$file_path.tmp" "$file_path"
+
+  print_msg WARNING "  Added '$buffer_line' to the '$section' section in $file_path"
 }

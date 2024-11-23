@@ -20,8 +20,13 @@ KLIPPER_SERVICE=klipper
 GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
 PRIOR_INSTALLATION=False
 UPDATE_CONFIG=False
+AUTO_UPDATE_CONFIG=False
 UNINSTALL=False
 BRANCH=main
+# This FORCE_UPDATE variable is used to force an update of the AFC configuration files. This would typically be used
+# when there are major changes to the AFC configuration files that require more changes than we can handle automatically.
+FORCE_UPDATE=True
+BACKUP_DATE=$(date +%Y%m%d%H%M%S)
 
 # Moonraker Config
 MOONRAKER_UPDATE_CONFIG="""
@@ -46,7 +51,6 @@ if [ -z "$(ls -A "${AFC_PATH}/include/")" ]; then
   exit 1
 fi
 
-# Source the files
 for file in "${AFC_PATH}/include/"*; do
   source "$file"
 done
@@ -200,17 +204,47 @@ clone_repo
 check_existing_install
 info_menu
 
-if [ "$PRIOR_INSTALLATION" = "True" ]; then
-  print_msg WARNING "A prior installation of AFC has been detected."
-  prompt_boolean "Would you like to like to update the config files from the repo?" "update_config_repo" "False"
-  if [ "$update_config_repo" = "True" ]; then
-    backup_afc_config
-    UPDATE_CONFIG=True
-  else
-    print_msg WARNING "  Skipping configuration update and updating AFC extensions only."
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = False ]; then
+  print_msg WARNING "  A prior installation of AFC has been detected."
+  print_msg WARNING "  Would you like to update your existing configuration files with the latest settings?"
+  print_msg WARNING "  This will preserve your existing configuration, and add any additional configuration options."
+  print_msg WARNING "  A backup will be created prior to this operation."
+  print_msg ERROR "  This will only work with the AFC-Lite boards. Select False if you have an MMB board."
+  prompt_boolean "Select False if you prefer to replace your existing config files with the latest ones from the repository" "auto_update_config" "True"
+  if [ "$auto_update_config" = "True" ]; then
+    print_msg WARNING "  Updating AFC Klipper extensions..."
     link_extensions
-    exit 0
+    backup_afc_config_copy
+    AUTO_UPDATE_CONFIG=True
+  else
+    print_msg WARNING "  Updating AFC Klipper extensions..."
+    link_extensions
+    print_msg WARNING "  Warning: Replacing your configuration will overwrite your current settings."
+    print_msg WARNING "  Selecting False will require you to manually update the configuration files, but no changes will be made."
+    prompt_boolean "Select True to proceed with replacing your configuration files or False to exit." "update_config_repo" "False"
+    if [ "$update_config_repo" = "True" ]; then
+      backup_afc_config
+      UPDATE_CONFIG=True
+    else
+      print_msg INFO "  Skipping configuration update."
+      exit 0
+    fi
   fi
+fi
+
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
+  print_msg INFO "  Auto updating configuration files..."
+  print_msg INFO "  This will still require manual review and potential configuration. Visit the Github page for more info."
+  auto_update
+  exit 0
+fi
+
+if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
+  print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
+  print_msg WARNING "  configuration files. Your existing configuration will be backed up to $PRINTER_CONFIG_PATH/AFC.backup.$BACKUP_DATE"
+  confirm_continue
+  backup_afc_config
+  PRIOR_INSTALLATION=False
 fi
 
 if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
@@ -220,7 +254,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   choose_board_type
   toolhead_pin
   buffer_system
-
+  replace_varfile_path "${AFC_CONFIG_PATH}/AFC.cfg"
   print_section_delimiter
 
   macro_helpers
@@ -260,13 +294,19 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   # Update buffer configuration
   if [ "$BUFFER_SYSTEM" == "TurtleNeck" ]; then
     append_buffer_config "TurtleNeck"
+    add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "TN"
   elif [ "$BUFFER_SYSTEM" == "TurtleNeckV2" ]; then
     append_buffer_config "TurtleNeckV2"
+    add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "TN2"
   elif [ "$BUFFER_SYSTEM" == "AnnexBelay" ]; then
     append_buffer_config "AnnexBelay"
+    add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "Belay"
   else
     print_msg WARNING "  Buffer not configured, skipping configuration."
   fi
+
+  # Any additional configuration can be added here.
+  check_and_append_prep "${AFC_CONFIG_PATH}/AFC.cfg"
 
   # Update moonraker config
   update_moonraker_config

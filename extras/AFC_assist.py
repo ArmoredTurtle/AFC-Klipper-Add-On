@@ -4,10 +4,14 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+import math
+
 #respooler
 PIN_MIN_TIME = 0.100
 RESEND_HOST_TIME = 0.300 + PIN_MIN_TIME
 MAX_SCHEDULE_TIME = 5.0
+
+
 class AFCassistMotor:
     def __init__(self, config, type):
         self.printer = config.get_printer()
@@ -79,3 +83,7 @@ class AFCassistMotor:
             return systime + time_diff
         self._set_pin(print_time + PIN_MIN_TIME, self.last_value, True)
         return systime + self.resend_interval
+
+
+
+    
