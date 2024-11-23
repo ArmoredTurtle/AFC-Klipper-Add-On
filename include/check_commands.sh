@@ -101,7 +101,7 @@ check_for_afc() {
 check_for_mainsail() {
   # Function to check if the Mainsail interface is already installed.
 
-  if ! grep -q "mainsail" "${MAINSAIL_DST}/manifest.webmanifest"; then
+  if ! grep -q "Mainsail" "${MAINSAIL_DST}/manifest.webmanifest"; then
     print_msg ERROR "  Mainsail interface not found. Exiting."
     exit 1
   fi
