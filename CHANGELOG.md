@@ -152,3 +152,21 @@ gcode:
 ### Fixed
 - Fixed hub_cut function to work with new structure
 - Added sleeps back to hub_cut with reactor class
+
+## [2024-11-22]
+
+### Changed
+
+*Full update, this needs more details*
+
+## [2024-11-23]
+
+### Added
+- New buffer function `SET_MULTIPLIER` used to live adjust the high and low multipliers for the buffer
+    - To change `multiplier_high`: `SET_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2`
+    - To change `multiplier_low`: `SET_MULTIPLIER MULTIPLIER=HIGH FACTOR=0.8`
+    - `MULTIPLIER` and `FACTOR` must be defined
+    - Buffer config section must be updated for values to be saved
+
+### Fixed
+-Corrected buffer to only trigger when tube comes onto switch/sensor and not off
