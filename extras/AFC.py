@@ -460,7 +460,7 @@ class afc:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = True
-            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
+            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
             self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars() # Always save variables even if a failure happens
