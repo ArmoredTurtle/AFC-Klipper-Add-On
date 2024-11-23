@@ -638,6 +638,7 @@ class afc:
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['material']
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['color_hex']
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['weight']
             self.save_vars()
 
     def get_status(self, eventtime):
@@ -661,6 +662,7 @@ class afc:
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
+                str[UNIT][NAME]["weight"]=self.lanes[UNIT][NAME]['weight']
                 numoflanes +=1
             str[UNIT]['system']={}
             str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
