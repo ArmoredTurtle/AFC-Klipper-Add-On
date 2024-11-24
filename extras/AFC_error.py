@@ -10,9 +10,9 @@ class afcError:
 
         self.errorLog= {}
 
-    def PauseUserIntervention(self):
+    def PauseUserIntervention(self,message):
         #pause for user intervention
-        self.gcode.respond_info('User intervention required')
+        self.gcode.respond_info(message)
 
     def fix(self,problem, LANE=None):
         if problem == None:
@@ -25,13 +25,11 @@ class afcError:
         if CUR_EXTRUDER.tool_start_state:   #toolhead has filament
             if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:   #var has right lane loaded
                 if CUR_LANE.load_state == False: #Lane has filament
-                    self.gcode.respond_info('Filament not loaded in Lane')
-                    #pause for user intervention
+                    self.PauseUserIntervention('Filament not loaded in Lane')
                 else:
-                    self.gcode.respond_info('no error detected')
+                    self.PauseUserIntervention('no error detected')
             else:
-                self.gcode.respond_info('laneloaded does not match extruder')
-                    #pause for user intervention
+                self.PauseUserIntervention('laneloaded does not match extruder')
 
         else: #toolhead empty
             if CUR_LANE.load_state == True: #Lane has filament
@@ -43,24 +41,10 @@ class afcError:
                 self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded']= ''
                 self.AFC.save_vars()
             else:
-                self.gcode.respond_info('Filament not loaded in Lane')
-                    #pause for user intervention
+                self.PauseUserIntervention('Filament not loaded in Lane')
 
                 
             
-                
-
-
-
-
-
-
-
-
-
-
-
-
 def load_config(config):
     return afcError(config)
 
