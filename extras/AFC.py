@@ -389,7 +389,7 @@ class afc:
             if bypass.filament_present == True:
                 return
         except: bypass = None
-        failure = False
+        self.failure = False
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         extruder = self.toolhead.get_extruder() #Get extruder
