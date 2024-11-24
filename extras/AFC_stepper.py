@@ -316,7 +316,7 @@ class AFCExtruderStepper:
         :param distance_moved: Distance of filament moved in mm.
         """
         filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
-        filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm� to g
+        filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
         self.remaining_weight -= filament_weight_change
         
         if self.remaining_weight < self.empty_spool_weight:
