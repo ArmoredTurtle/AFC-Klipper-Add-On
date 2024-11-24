@@ -6,7 +6,11 @@
 
 import os
 import json
-import urllib.request
+try:
+    from urllib.request import urlopen
+except:
+    # Python 2.7 support
+    from urllib2 import urlopen
 
 class afcPrep:
     def __init__(self, config):
@@ -45,7 +49,7 @@ class afcPrep:
                 else:
                     if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
                         url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
-                        result = json.load(urllib.request.urlopen(url))
+                        result = json.load(urlopen(url))
                         self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
                         self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
                         if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
