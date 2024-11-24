@@ -53,7 +53,7 @@ class AFCExtruderStepper:
         self.extruder_stepper = extruder.ExtruderStepper(config)
         self.extruder_name = config.get('extruder')
         self.gcode_cmd = config.get('cmd',None)
-        
+
         self.motion_queue = None
         self.status = None
         self.hub_load = False
@@ -126,7 +126,7 @@ class AFCExtruderStepper:
 
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
-                
+
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -171,7 +171,7 @@ class AFCExtruderStepper:
         accel (float): The acceleration of the movement.
         """
 
-        if assist_active: 
+        if assist_active:
             self.update_remaining_weight(distance)
             if distance < 0:
                 # Calculate Rewind Speed
@@ -179,9 +179,9 @@ class AFCExtruderStepper:
             else:
                 # Calculate Forward Assist Speed
                 value = self.calculate_pwm_value(speed)
-            
+
             # Clamp value to a maximum of 1
-            if value > 1: 
+            if value > 1:
                 value = 1
             self.assist(value)  # Activate assist motor with calculated value
 
@@ -277,7 +277,7 @@ class AFCExtruderStepper:
         spool_outer_diameter_mm = spool_outer_diameter_mm2 ** 0.5
 
         return spool_outer_diameter_mm
-    
+
     def calculate_rpm(self, feed_rate):
         """
         Calculate the RPM for the assist motor based on the filament feed rate.
@@ -318,7 +318,7 @@ class AFCExtruderStepper:
         filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
         filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
         self.remaining_weight -= filament_weight_change
-        
+
         if self.remaining_weight < self.empty_spool_weight:
             self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
 
