@@ -144,7 +144,7 @@ class afcPrep:
                                         self.AFC.current = CUR_LANE.name
                                         CUR_EXTRUDER.buffer.enable_buffer()
                             else:
-                                lane_check=self.error_tool_unload(CUR_LANE)
+                                lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
                                 if lane_check != True:
                                     check_success = False
                         else:

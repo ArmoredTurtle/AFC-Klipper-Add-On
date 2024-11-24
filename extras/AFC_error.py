@@ -18,7 +18,9 @@ class afcError:
         if problem == None:
             return
         if problem=='toolhead':
-            self.ToolHeadFix(LANE)
+            error_handled = self.ToolHeadFix(LANE)
+
+        return error_handled
 
     def ToolHeadFix(self, CUR_LANE):
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
@@ -40,6 +42,8 @@ class afcError:
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
                 self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded']= ''
                 self.AFC.save_vars()
+                return True
+
             else:
                 self.PauseUserIntervention('Filament not loaded in Lane')
 
