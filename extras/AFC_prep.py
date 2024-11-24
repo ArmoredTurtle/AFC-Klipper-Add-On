@@ -14,6 +14,7 @@ class afcPrep:
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
+        self.ERROR = self.printer.load_object(config, 'AFC_error')
 
     def PREP(self, gcmd):
         self.AFC = self.printer.lookup_object('AFC')
