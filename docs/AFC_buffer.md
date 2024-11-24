@@ -39,7 +39,7 @@ With the current implementation of `AFC_buffer` support for Belay is limited. Be
 
 ### Required AFC Configuration Options
 
-In `AFC_Hardware.cfg`, `uffer` must be defined. 
+In `AFC_Hardware.cfg`, `buffer` must be defined. 
 
 Example under `AFC_extruder`:
 `buffer: TN`
