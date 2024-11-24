@@ -39,10 +39,10 @@ With the current implementation of `AFC_buffer` support for Belay is limited. Be
 
 ### Required AFC Configuration Options
 
-In `AFC.cfg`, `Buffer_Name` must be defined. The buffer name must match the defined buffer name in the AFC hardware configuration file.
+In `AFC_Hardware.cfg`, `uffer` must be defined. 
 
-Example:
-`Buffer_Name: TN`
+Example under `AFC_extruder`:
+`buffer: TN`
 
 ### Required AFC Hardware Configuration Options
 
