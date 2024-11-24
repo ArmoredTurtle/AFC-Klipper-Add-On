@@ -417,7 +417,7 @@ class afc:
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 20:
-                    failure = True
+                    self.failure = True
                     self.pause_print()
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
@@ -430,13 +430,13 @@ class afc:
                     CUR_LANE.move( self.short_move_dis, CUR_EXTRUDER.tool_load_speed, self.long_moves_accel)
                     #callout if filament doesn't reach toolhead
                     if tool_attempts > 20:
-                        failure = True
+                        self.failure = True
                         message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
                         self.AFC_error(message)
                         self.set_error_state(True)
                         break
 
-            if failure == False:
+            if self.failure == False:
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                 CUR_LANE.status = 'Tooled'
                 pos = self.toolhead.get_position()
@@ -685,6 +685,7 @@ class afc:
                 str[UNIT][NAME]["weight"]=self.lanes[UNIT][NAME]['weight']
                 numoflanes +=1
             str[UNIT]['system']={}
+            str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
             str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
             str[UNIT]['system']['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
             str[UNIT]['system']['screen'] = screen_mac
