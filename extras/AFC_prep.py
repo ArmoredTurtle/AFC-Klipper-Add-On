@@ -6,6 +6,7 @@
 
 import os
 import json
+import urllib.request
 
 class afcPrep:
     def __init__(self, config):
@@ -38,19 +39,36 @@ class afcPrep:
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
                 if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
                 if 'lane_loaded' not in self.AFC.extruders[LANE.extruder_name]: self.AFC.extruders[LANE.extruder_name]['lane_loaded']=''
-                if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
+
+                if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]:
+                    self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
+                else:
+                    if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
+                        url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
+                        result = json.load(urllib.request.urlopen(url))
+                        self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
+                        self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
+                        if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
+                        
                 if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
-                if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
                 if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
+                if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
+
+                if 'command' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['command'] = LANE.gcode_cmd
+                if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
                 if 'hub_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
+                
         tmp=[]
         for UNIT in self.AFC.lanes.keys():
-            for lanecheck in self.AFC.lanes[UNIT].keys():
-                if lanecheck not in temp: tmp.append(lanecheck)
-            for erase in tmp:
-                del self.AFC.lanes[UNIT][erase]
+            if UNIT !='system':
+                for LANE in self.AFC.lanes[UNIT].keys():
+                    if LANE !='system':
+                        if LANE not in temp: tmp.append(LANE)
+        for erase in tmp:
+            del self.AFC.lanes[UNIT][erase]
+
         self.AFC.save_vars()
         if len(self.AFC.lanes) >0:
             for UNIT in self.AFC.lanes.keys():
@@ -125,26 +143,30 @@ class afcPrep:
                     elif CUR_LANE.prep_state == True:
                         CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
                         self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
-                        if CUR_LANE.prep_state == True:
-                            msg +="LOCKED"
-                            if CUR_LANE.load_state == True:
-                                CUR_LANE.status = 'Loaded'
-                                msg +=" AND LOADED"
-                            else:
-                                msg +=" NOT LOADED"
+                        msg +="LOCKED"
+                        if CUR_LANE.load_state == True:
+                            CUR_LANE.status = 'Loaded'
+                            msg +=" AND LOADED"
+                        else:
+                            msg +=" NOT LOADED"
                         if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
                                     CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                                    msg +="\n in TooHead"
-                                    if len(self.AFC.extruders) == '':
+                                    msg +="\n in ToolHead"
+                                    self.AFC.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+                                    self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
+                                    if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
+                                        CUR_EXTRUDER.buffer.enable_buffer()
                             else:
-                                self.error_tool_unload(CUR_LANE)
+                                lane_check=self.error_tool_unload(CUR_LANE)
+                                if lane_check != True:
+                                    check_success = False
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                                    msg +="\n error in TooHead Extruder loaded with no lane identified"
+                                    msg +="\n error in ToolHead Extruder loaded with no lane identified"
                                     check_success = False
 
                     CUR_LANE.do_enable(False)
@@ -162,6 +184,14 @@ class afcPrep:
                 self.gcode.respond_raw(logo)
             else:
                 self.gcode.respond_raw(logo_error)
+    def error_tool_unload(self, CUR_LANE):
+        self.gcode.respond_info('Error on filament trying to correct')
+        while CUR_LANE.load_state == True:
+            CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+        while CUR_LANE.load_state == False:
+            CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
+        return True
 
 def load_config(config):
     return afcPrep(config)

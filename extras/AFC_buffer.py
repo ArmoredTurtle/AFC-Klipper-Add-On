@@ -92,6 +92,7 @@ class AFCtrigger:
             self.buttons.register_buttons([self.advance_pin] , self.advance_callback)
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
+            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTILIER, desc=self.cmd_SET_MULTILIER_help)
 
     def turtle_fault_enabled(self):
         """Checks if the turtleneck, fault detection. and enabled"""
@@ -197,6 +198,7 @@ class AFCtrigger:
         cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
         cur_stepper.update_rotation_distance( 1 )
         self.gcode.respond_info("Rotation distance reset : {}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
+
 
     def advance_callback(self, eventtime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable:
@@ -323,6 +325,29 @@ class AFCtrigger:
             else:
                 state_info += "expanded"
         return state_info
+
+    cmd_SET_MULTILIER_help = "live adjust buffer high and low multiplier"
+    def cmd_SET_MULTILIER(self, gcmd):
+        if self.turtleneck:
+            if self.AFC.current != None and self.enable:
+                chg_multiplier = gcmd.get('MULTIPLIER', None)
+                if chg_multiplier == None:
+                    self.gcode.respond_info("Multiplier must be provided, HIGH or LOW")
+                    return
+                chg_factor = gcmd.get_float('FACTOR')
+                if chg_factor <= 0:
+                    self.gcode.respond_info("FACTOR must be greater than 0")
+                    return
+                if chg_multiplier == "HIGH" and chg_factor > 1:
+                    self.multiplier_high = chg_factor
+                    self.set_multiplier(chg_factor)
+                    self.gcode.respond_info("multiplier_high set to {}").format(chg_factor)
+                    self.gcode.respond_info('multiplier_high: {} MUST be updated under buffer config for value to be saved').format(chg_factor)
+                elif chg_multiplier == "LOW" and chg_factor < 1:
+                    self.multiplier_low = chg_factor
+                    self.set_multiplier(chg_factor)
+                    self.gcode.respond_info("multiplier_low set to {}").format(chg_factor)
+                    self.gcode.respond_info('multiplier_low: {} MUST be updated under buffer config for value to be saved').format(chg_factor)
 
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):

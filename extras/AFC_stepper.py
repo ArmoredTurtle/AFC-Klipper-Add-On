@@ -77,7 +77,6 @@ class AFCExtruderStepper:
         self.hub= ''
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
-        self.afc_motor_speed = config.getfloat('afc_motor_speed', 250)
         # distance to retract filament from the hub
         self.park_dist = config.getfloat('park_dist', 10)
         self.led_index = config.get('led_index', None)
@@ -106,6 +105,18 @@ class AFCExtruderStepper:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
+
+        self.filament_diameter = config.getfloat("filament_diameter", 1.75)
+        self.filament_density = config.getfloat("filament_density", 1.24)
+        self.inner_diameter = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
+        self.outer_diameter = config.getfloat("spool_outer_diameter", 200)  # Outer diameter in mm
+        self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)  # Empty spool weight in g
+        self.remaining_weight = config.getfloat("spool_weight", 1000)  # Remaining spool weight in g
+        self.max_motor_rpm = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
+        self.rwd_speed_multi = config.getfloat("rwd_speed_multiplier", 0.5) # Multiplier to apply to rpm
+        self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5) # Multiplier to apply to rpm
+        self.diameter_range = self.outer_diameter - self.inner_diameter  # Range for effective diameter
+
         # Set hub loading speed depending on distance between extruder and hub
         self.dist_hub_move_speed = self.AFC.long_moves_speed if self.dist_hub >= 200 else self.AFC.short_moves_speed
         self.dist_hub_move_accel = self.AFC.long_moves_accel if self.dist_hub >= 200 else self.AFC.short_moves_accel
@@ -160,17 +171,19 @@ class AFCExtruderStepper:
         accel (float): The acceleration of the movement.
         """
 
-        if distance < 0:
-           value = speed * -1
-        else:
-            value = speed
-        # TODO: 500 here is too slow for me. 100 works but may be faster than it needs to be.
-        #       The trouble is the "just right" speed would also vary based on how full the
-        #       spool is and perhaps variance in N20 motors and the voltage they are receiving.
-        #       Perhaps the speed ratio should be configurable?
-        value /= self.afc_motor_speed
-        if value > 1: value = 1
-        if assist_active: self.assist(value)
+        if assist_active: 
+            self.update_remaining_weight(distance)
+            if distance < 0:
+                # Calculate Rewind Speed
+                value = self.calculate_pwm_value(speed, True) * -1
+            else:
+                # Calculate Forward Assist Speed
+                value = self.calculate_pwm_value(speed)
+            
+            # Clamp value to a maximum of 1
+            if value > 1: 
+                value = 1
+            self.assist(value)  # Activate assist motor with calculated value
 
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.flush_step_generation()
@@ -251,6 +264,63 @@ class AFCExtruderStepper:
 
     def update_rotation_distance(self, multiplier):
         self.extruder_stepper.stepper.set_rotation_distance( self.base_rotation_dist / multiplier )
+
+    def calculate_effective_diameter(self, weight_g, spool_width_mm=60):
+
+        # Calculate the cross-sectional area of the filament
+        density_g_mm3 = self.filament_density / 1000.0
+        filament_cross_section_mm2 = 3.14159 * (self.filament_diameter / 2) ** 2
+        filament_volume_mm3 = weight_g / density_g_mm3
+        filament_length_mm = filament_volume_mm3 / filament_cross_section_mm2
+        filament_area_mm2 = filament_length_mm * self.filament_diameter / spool_width_mm
+        spool_outer_diameter_mm2 = (4 * filament_area_mm2 / 3.14159) + self.inner_diameter ** 2
+        spool_outer_diameter_mm = spool_outer_diameter_mm2 ** 0.5
+
+        return spool_outer_diameter_mm
+    
+    def calculate_rpm(self, feed_rate):
+        """
+        Calculate the RPM for the assist motor based on the filament feed rate.
+
+        :param feed_rate: Filament feed rate in mm/s
+        :return: Calculated RPM for the assist motor
+        """
+        if self.remaining_weight <= self.empty_spool_weight:
+            return 0  # No filament left to assist
+
+        # Calculate the effective diameter
+        effective_diameter = self.calculate_effective_diameter(self.remaining_weight)
+
+        # Calculate RPM
+        rpm = (feed_rate * 60) / (math.pi * effective_diameter)
+        return min(rpm, self.max_motor_rpm)  # Clamp to max motor RPM
+
+    def calculate_pwm_value(self, feed_rate, rewind=False):
+        """
+        Calculate the PWM value for the assist motor based on the feed rate.
+
+        :param feed_rate: Filament feed rate in mm/s
+        :return: PWM value between 0 and 1
+        """
+        rpm = self.calculate_rpm(feed_rate)
+        if not rewind:
+            pwm_value = rpm / (self.max_motor_rpm / (1 + 9 * self.fwd_speed_multi))
+        else:
+            pwm_value = rpm / (self.max_motor_rpm / (15 + 15 * self.rwd_speed_multi))
+        return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
+
+    def update_remaining_weight(self, distance_moved):
+        """
+        Update the remaining filament weight based on the filament distance moved.
+
+        :param distance_moved: Distance of filament moved in mm.
+        """
+        filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
+        filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm� to g
+        self.remaining_weight -= filament_weight_change
+        
+        if self.remaining_weight < self.empty_spool_weight:
+            self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
 
 def load_config_prefix(config):
     return AFCExtruderStepper(config)

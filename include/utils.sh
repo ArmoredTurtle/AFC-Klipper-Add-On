@@ -44,7 +44,7 @@ backup_afc_config() {
   if [ -d "${AFC_CONFIG_PATH}" ]; then
     print_msg INFO "  Backing up existing AFC config..."
     pushd "${PRINTER_CONFIG_PATH}" || exit
-    mv AFC AFC.backup."$(date +%Y%m%d%H%M%S)"
+    mv AFC AFC.backup."$BACKUP_DATE"
     popd || exit
   fi
 }
@@ -58,7 +58,7 @@ backup_afc_config_copy() {
   if [ -d "${AFC_CONFIG_PATH}" ]; then
     print_msg INFO "  Backing up existing AFC config..."
     pushd "${PRINTER_CONFIG_PATH}" || exit
-    cp -R AFC AFC.backup."$(date +%Y%m%d%H%M%S)"
+    cp -R AFC AFC.backup."$BACKUP_DATE"
     popd || exit
   fi
 }
