@@ -25,7 +25,7 @@ install_type() {
     read -r input
     case $input in
       1) INSTALLATION_TYPE="mainsail"; break ;;
-      2) print_msg WARNING "  Fluidd is not yet supported. Please select another option." ;;
+      2) INSTALLATION_TYPE="fluid" ;;
       3) echo "Exiting..."; exit 0 ;;
       *) echo "Invalid selection. Please try again." ;;
     esac
@@ -40,7 +40,7 @@ check_for_afc
 check_unzip
 
 print_msg WARNING "  This script will install the Mainsail or Fluidd interface for AFC."
-print_msg WARNING "  This will overwrite any existing Mainsail or Fluidd installation, however a backup will be made"
+print_msg WARNING "  This will overwrite any existing Mainsail or Fluidd installation, however a backup will be made."
 
 confirm_continue
 
@@ -55,4 +55,14 @@ if [ "$INSTALLATION_TYPE" == "mainsail" ]; then
   fi
   unzip -oq "$MAINSAIL_SRC" -d "$MAINSAIL_DST"
   print_msg INFO "  Mainsail interface installed successfully. Please refresh any browser windows to see the changes."
+elif [ "$INSTALLATION_TYPE" == "fluid" ]; then
+  check_for_fluidd
+  backup_fluidd
+  if [ ! -f "$FLUIDD_SRC" ]; then
+    print_msg ERROR "  $FLUIDD_SRC not found. Aborting."
+    exit 1
+  fi
+  unzip -oq "$FLUIDD_SRC" -d "$FLUIDD_DST"
+  print_msg INFO "  Fluidd interface installed successfully. Please refresh any browser windows to see the changes."
 fi
+

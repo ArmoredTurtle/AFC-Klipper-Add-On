@@ -106,6 +106,19 @@ backup_mainsail() {
   fi
 }
 
+backup_fluidd() {
+  # Function to back up the existing Fluidd configuration.
+  # Arguments:
+  #   - FLUIDD_DST: The path to the Fluidd configuration directory.
+
+  if [ -d "${FLUIDD_DST}" ]; then
+    print_msg INFO "  Backing up existing Fluidd config..."
+    pushd "${HOME}" || exit
+    mv fluidd fluidd.backup."$BACKUP_DATE"
+    popd || exit
+  fi
+}
+
 stop_service() {
   # Function to restart a given service.
   # Arguments:

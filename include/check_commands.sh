@@ -107,6 +107,15 @@ check_for_mainsail() {
   fi
 }
 
+check_for_fluidd() {
+  # Function to check if the Fluidd interface is already installed.
+
+  if ! grep -q "fluidd" "$FLUIDD_DST"/release_info.json; then
+    print_msg ERROR "  Fluidd interface not found. Exiting."
+    exit 1
+  fi
+}
+
 check_unzip() {
   # Function to check if the unzip command is available.
   # If the unzip command is not found, it prints an error message and exits with status 1.
