@@ -64,8 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   - Minor adjustments to the use of single sensor buffers, retaining functionality for Belay
 
-### Removed
-
 ## [2024-10-27]
 
 ### Added
@@ -169,4 +167,14 @@ gcode:
     - Buffer config section must be updated for values to be saved
 
 ### Fixed
--Corrected buffer to only trigger when tube comes onto switch/sensor and not off
+- Corrected buffer to only trigger when tube comes onto switch/sensor and not off
+
+## [2024-11-25]
+
+### Added
+- New script `install-afc-interface.sh` will allow the installation of a custom Mainsail or Fluidd to fully support AFC features.
+- Added functionality to the `install-afc.sh` script in order to add any AFC-Klipper-Add-On python extensions to the Klipper git repo ignore configuration.
+  This will prevent the `dirty repo` notification in Mainsail / Fluidd when attempting to update AFC.
+
+## Changed 
+- Split out parts of the `install-afc.sh` script to be more modular and easier to maintain.
