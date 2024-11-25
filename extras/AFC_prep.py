@@ -6,7 +6,11 @@
 
 import os
 import json
-import urllib.request
+try:
+    from urllib.request import urlopen
+except:
+    # Python 2.7 support
+    from urllib2 import urlopen
 
 class afcPrep:
     def __init__(self, config):
@@ -38,34 +42,37 @@ class afcPrep:
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
                 if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
+                if 'lane_loaded' not in self.AFC.extruders[LANE.extruder_name]: self.AFC.extruders[LANE.extruder_name]['lane_loaded']=''
+
                 if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]:
                     self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
                 else:
                     if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
                         url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
-                        result = json.load(urllib.request.urlopen(url))
+                        result = json.load(urlopen(url))
                         self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
                         self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
-                        if 'remaining_weight' in result:
-                            self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
-                        else:
-                            self.AFC.lanes[LANE.unit][LANE.name]['weight'] = ''
+                        if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
 
-                if 'lane_loaded' not in self.AFC.extruders[LANE.extruder_name]: self.AFC.extruders[LANE.extruder_name]['lane_loaded']=''
-                if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
-                if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
                 if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
+                if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
+
+                if 'command' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['command'] = LANE.gcode_cmd
+                if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
                 if 'hub_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
+
         tmp=[]
         for UNIT in self.AFC.lanes.keys():
-            for lanecheck in self.AFC.lanes[UNIT].keys():
-                if lanecheck not in temp: tmp.append(lanecheck)
-            for erase in tmp:
-                del self.AFC.lanes[UNIT][erase]
+            if UNIT !='system':
+                for LANE in self.AFC.lanes[UNIT].keys():
+                    if LANE !='system':
+                        if LANE not in temp: tmp.append(LANE)
+        for erase in tmp:
+            del self.AFC.lanes[UNIT][erase]
+
         self.AFC.save_vars()
         if len(self.AFC.lanes) >0:
             for UNIT in self.AFC.lanes.keys():

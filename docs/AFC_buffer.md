@@ -39,10 +39,10 @@ With the current implementation of `AFC_buffer` support for Belay is limited. Be
 
 ### Required AFC Configuration Options
 
-In `AFC.cfg`, `Buffer_Name` must be defined. The buffer name must match the defined buffer name in the AFC hardware configuration file.
+In `AFC_Hardware.cfg`, `buffer` must be defined. 
 
-Example:
-`Buffer_Name: TN`
+Example under `AFC_extruder`:
+`buffer: TN`
 
 ### Required AFC Hardware Configuration Options
 
@@ -133,3 +133,12 @@ This command allows the adjustment of rotation distance of the current AFC stepp
 
 Example Usage:
 `SET_ROTATION_FACTOR FACTOR=1.1`
+
+### SET_BUFFER_MULTIPLIER
+_for TurtleNeck Style Buffers_
+
+`SET_BUFFER_MULTIPLIER` used to live adjust the high and low multipliers for the buffer
+- To change `multiplier_high`: `SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2`
+- To change `multiplier_low`: `SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=0.8`
+    
+__Buffer config section must be updated for values to be saved__

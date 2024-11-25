@@ -4,9 +4,14 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-import os
+
 import json
-import urllib.request
+try:
+    from urllib.request import urlopen
+except:
+    # Python 2.7 support
+    from urllib2 import urlopen
+
 
 from configparser import Error as error
 
@@ -37,7 +42,7 @@ class afc:
         # SPOOLMAN
         self.spoolman_ip = config.get('spoolman_ip', None)
         self.spoolman_port = config.get('spoolman_port', None)
-        
+
         #LED SETTINGS
         self.ind_lights = None
         self.led_name = config.get('led_name')
@@ -365,7 +370,7 @@ class afc:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
             CUR_LANE.hub_load = False
             while CUR_LANE.load_state == True:
-               CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
+               CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             CUR_LANE.move( CUR_HUB.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
@@ -389,10 +394,9 @@ class afc:
             if bypass.filament_present == True:
                 return
         except: bypass = None
-
+        self.failure = False
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
-        self.set_error_state(False)
         extruder = self.toolhead.get_extruder() #Get extruder
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'loading'
@@ -418,6 +422,7 @@ class afc:
                 hub_attempts += 1
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 20:
+                    self.failure = True
                     self.pause_print()
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
                     self.handle_lane_failure(CUR_LANE, message)
@@ -430,6 +435,7 @@ class afc:
                     CUR_LANE.move( self.short_move_dis, CUR_EXTRUDER.tool_load_speed, self.long_moves_accel)
                     #callout if filament doesn't reach toolhead
                     if tool_attempts > 20:
+                        self.failure = True
                         message = (' FAILED TO LOAD ' + CUR_LANE.name.upper() + ' TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
                         self.AFC_error(message)
                         self.set_error_state(True)
@@ -460,7 +466,7 @@ class afc:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = True
-            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = 'CUR_LANE.name'
+            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
             self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars() # Always save variables even if a failure happens
@@ -624,15 +630,18 @@ class afc:
         CUR_LANE.color = '#' + color
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.save_vars()
-    
+
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
-        args = {'spool_id' : int(ID)}
-        try:
-            webhooks.call_remote_method("spoolman_set_active_spool", **args)
-        except self.printer.command_error:
-            if self.spoolman_ip !=None:
-                self.gcode._respond_error("Error trying to set active spool")
+        if self.spoolman_ip != None:
+            if ID:
+                args = {'spool_id' : int(ID)}
+                try:
+                    webhooks.call_remote_method("spoolman_set_active_spool", **args)
+                except self.printer.command_error:
+                    self.gcode._respond_error("Error trying to set active spool")
+            else:
+                self.gcode.respond_info("Spool ID not set, cannot update spoolman with active spool")
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
@@ -645,7 +654,7 @@ class afc:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             if SpoolID !='':
                 url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/spool/" + SpoolID
-                result = json.load(urllib.request.urlopen(url))
+                result = json.load(urlopen(url))
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
@@ -681,6 +690,7 @@ class afc:
                 str[UNIT][NAME]["weight"]=self.lanes[UNIT][NAME]['weight']
                 numoflanes +=1
             str[UNIT]['system']={}
+            str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
             str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
             str[UNIT]['system']['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
             str[UNIT]['system']['screen'] = screen_mac
@@ -732,7 +742,8 @@ class afc:
         if idx == None:
             return
         # Try to find led object, if not found print error to console for user to see
-        try: led = self.printer.lookup_object('AFC_led '+ idx.split(':')[0])
+        afc_object = 'AFC_led '+ idx.split(':')[0]
+        try: led = self.printer.lookup_object(afc_object)
         except:
             error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
             self.AFC_error( error_string)
