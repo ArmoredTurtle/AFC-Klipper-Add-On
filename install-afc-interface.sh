@@ -25,7 +25,7 @@ install_type() {
     read -r input
     case $input in
       1) INSTALLATION_TYPE="mainsail"; break ;;
-      2) INSTALLATION_TYPE="fluid" ;;
+      2) INSTALLATION_TYPE="fluidd" ; break ;;
       3) echo "Exiting..."; exit 0 ;;
       *) echo "Invalid selection. Please try again." ;;
     esac
@@ -46,7 +46,7 @@ confirm_continue
 
 install_type
 
-if [ "$INSTALLATION_TYPE" == "mainsail" ]; then
+if [ "$INSTALLATION_TYPE" = "mainsail" ]; then
   check_for_mainsail
   backup_mainsail
   if [ ! -f "$MAINSAIL_SRC" ]; then
@@ -55,7 +55,7 @@ if [ "$INSTALLATION_TYPE" == "mainsail" ]; then
   fi
   unzip -oq "$MAINSAIL_SRC" -d "$MAINSAIL_DST"
   print_msg INFO "  Mainsail interface installed successfully. Please refresh any browser windows to see the changes."
-elif [ "$INSTALLATION_TYPE" == "fluid" ]; then
+elif [ "$INSTALLATION_TYPE" = "fluidd" ]; then
   check_for_fluidd
   backup_fluidd
   if [ ! -f "$FLUIDD_SRC" ]; then
