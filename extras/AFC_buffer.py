@@ -6,8 +6,8 @@
 
 from configparser import Error as error
 
-ADVANCE_STATE_NAME = "Expanded"
-TRAILING_STATE_NAME = "Compressed"
+ADVANCE_STATE_NAME = "Trailing"
+TRAILING_STATE_NAME = "Advancing"
 
 class AFCtrigger:
 
@@ -137,10 +137,13 @@ class AFCtrigger:
 
         cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
         cur_stepper.update_rotation_distance( multiplier )
-        if self.led:
-            if multiplier > 1:
+        if multiplier > 1:
+            self.last_state = TRAILING_STATE_NAME
+            if self.led:
                 self.AFC.afc_led(self.AFC.led_trailing, self.led_index)
-            elif multiplier < 1:
+        elif multiplier < 1:
+            self.last_state = ADVANCE_STATE_NAME
+            if self.led:
                 self.AFC.afc_led(self.AFC.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
@@ -164,9 +167,7 @@ class AFCtrigger:
                     CUR_LANE.assist(0)
                     self.set_multiplier( self.multiplier_low )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
-
-        if state: self.last_state = ADVANCE_STATE_NAME
-        if not state: self.last_state = False
+        self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable:
@@ -179,19 +180,12 @@ class AFCtrigger:
                     CUR_LANE.assist(0)
                     self.set_multiplier( self.multiplier_high )
                     if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
-
-        if state: self.last_state = TRAILING_STATE_NAME
-        if not state: self.last_state = False
+        self.last_state = TRAILING_STATE_NAME
 
     def buffer_status(self):
         state_info = ''
         if self.turtleneck:
-            if self.last_state == TRAILING_STATE_NAME:
-                state_info += "Compressed"
-            elif self.last_state == ADVANCE_STATE_NAME:
-                state_info = "Expanded"
-            else:
-                state_info += "buffer tube floating in the middle"
+            self.last_state
         else:
             if self.last_state:
                 state_info += "compressed"
