@@ -170,3 +170,10 @@ gcode:
 
 ### Fixed
 -Corrected buffer to only trigger when tube comes onto switch/sensor and not off
+
+## [2024-11-25]
+
+### Changed
+- Simplified buffer status to Trailing and Advancing
+  - Buffer tube moving from Trailing to Advance it is in the Advancing state
+  - Buffer tube moving from Advance to Trialing it is in the Trialing state
