@@ -14,7 +14,7 @@ AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
 
 # Interface specific paths
 MAINSAIL_SRC="$AFC_PATH/software/mainsail-afc.zip"
-FLUIDD_SRC="FluiddworkingCopy.zip"
+FLUIDD_SRC="$AFC_PATH/software/mainsail-afc.zip"
 MAINSAIL_DST="$HOME/mainsail"
 FLUIDD_DST="$HOME/fluidd"
 
