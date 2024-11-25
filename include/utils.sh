@@ -146,3 +146,17 @@ start_service() {
     sudo service "${service_name}" start
   fi
 }
+
+exclude_from_klipper_git() {
+  local EXTRAS_DIR="${AFC_PATH}/extras"
+  local EXCLUDE_FILE="${KLIPPER_PATH}/.git/info/exclude"
+
+  # Find all .py files in the extras directory and add them to the exclude file if they are not already present
+  find "$EXTRAS_DIR" -type f -name "*.py" | while read -r file; do
+    # Adjust the file path to the required format
+    local relative_path="klippy/extras/$(basename "$file")"
+    if ! grep -Fxq "$relative_path" "$EXCLUDE_FILE"; then
+      echo "$relative_path" >> "$EXCLUDE_FILE"
+    fi
+  done
+}
