@@ -39,10 +39,10 @@ With the current implementation of `AFC_buffer` support for Belay is limited. Be
 
 ### Required AFC Configuration Options
 
-In `AFC.cfg`, `Buffer_Name` must be defined. The buffer name must match the defined buffer name in the AFC hardware configuration file.
+In `AFC_Hardware.cfg`, `buffer` must be defined. 
 
-Example:
-`Buffer_Name: TN`
+Example under `AFC_extruder`:
+`buffer: TN`
 
 ### Required AFC Hardware Configuration Options
 
@@ -118,13 +118,14 @@ accel: 1000
 
 ### QUERY BUFFER
 
-The `QUERY_BUFFER` command reports the current state of the buffer sensor and, if applicable, the rotation distance of the AFC stepper motor. 
+The `QUERY_BUFFER` command reports the current state of the buffer and, if applicable, the rotation distance of the AFC stepper motor. 
 
 Example usage:
 `QUERY_BUFFER BUFFER=Turtleneck`
 
-Example output:
-`Turtleneck: Expanded`
+Example outputs:
+`Turtleneck: Trailing` _buffer is moving from the Advance trigger to the Trailing_
+`Turtleneck: Advancing` _buffer is moving from the Trailing trigger to the Advance_ 
 
 ### SET_ROTATION_FACTOR
 _for TurtleNeck Style Buffers_

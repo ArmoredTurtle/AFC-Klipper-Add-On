@@ -6,8 +6,8 @@
 
 from configparser import Error as error
 
-ADVANCE_STATE_NAME = "Expanded"
-TRAILING_STATE_NAME = "Compressed"
+ADVANCE_STATE_NAME = "Trailing"
+TRAILING_STATE_NAME = "Advancing"
 CHECK_RUNOUT_TIMEOUT = .5
 
 class AFCtrigger:
@@ -92,7 +92,7 @@ class AFCtrigger:
             self.buttons.register_buttons([self.advance_pin] , self.advance_callback)
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
-            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTILIER, desc=self.cmd_SET_MULTILIER_help)
+            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTIPLIER, desc=self.cmd_SET_MULTIPLIER_help)
 
     def turtle_fault_enabled(self):
         """Checks if the turtleneck, fault detection. and enabled"""
@@ -183,10 +183,13 @@ class AFCtrigger:
 
         cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
         cur_stepper.update_rotation_distance( multiplier )
-        if self.led:
-            if multiplier > 1:
+        if multiplier > 1:
+            self.last_state = TRAILING_STATE_NAME
+            if self.led:
                 self.AFC.afc_led(self.AFC.led_trailing, self.led_index)
-            elif multiplier < 1:
+        elif multiplier < 1:
+            self.last_state = ADVANCE_STATE_NAME
+            if self.led:
                 self.AFC.afc_led(self.AFC.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
@@ -313,12 +316,7 @@ class AFCtrigger:
     def buffer_status(self):
         state_info = ''
         if self.turtleneck:
-            if self.last_state == TRAILING_STATE_NAME:
-                state_info += "Compressed"
-            elif self.last_state == ADVANCE_STATE_NAME:
-                state_info = "Expanded"
-            else:
-                state_info += "buffer tube floating in the middle"
+            self.last_state
         else:
             if self.last_state:
                 state_info += "compressed"
@@ -326,8 +324,8 @@ class AFCtrigger:
                 state_info += "expanded"
         return state_info
 
-    cmd_SET_MULTILIER_help = "live adjust buffer high and low multiplier"
-    def cmd_SET_MULTILIER(self, gcmd):
+    cmd_SET_MULTIPLIER_help = "live adjust buffer high and low multiplier"
+    def cmd_SET_MULTIPLIER(self, gcmd):
         if self.turtleneck:
             if self.AFC.current != None and self.enable:
                 chg_multiplier = gcmd.get('MULTIPLIER', None)
@@ -341,13 +339,15 @@ class AFCtrigger:
                 if chg_multiplier == "HIGH" and chg_factor > 1:
                     self.multiplier_high = chg_factor
                     self.set_multiplier(chg_factor)
-                    self.gcode.respond_info("multiplier_high set to {}").format(chg_factor)
-                    self.gcode.respond_info('multiplier_high: {} MUST be updated under buffer config for value to be saved').format(chg_factor)
+                    self.gcode.respond_info("multiplier_high set to {}".format(chg_factor))
+                    self.gcode.respond_info('multiplier_high: {} MUST be updated under buffer config for value to be saved'.format(chg_factor))
                 elif chg_multiplier == "LOW" and chg_factor < 1:
                     self.multiplier_low = chg_factor
                     self.set_multiplier(chg_factor)
-                    self.gcode.respond_info("multiplier_low set to {}").format(chg_factor)
-                    self.gcode.respond_info('multiplier_low: {} MUST be updated under buffer config for value to be saved').format(chg_factor)
+                    self.gcode.respond_info("multiplier_low set to {}".format(chg_factor))
+                    self.gcode.respond_info('multiplier_low: {} MUST be updated under buffer config for value to be saved'.format(chg_factor))
+                else:
+                    self.gcode.respond_info('multiplier_high must be greater than 1, multiplier_low must be less than 1')
 
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):
