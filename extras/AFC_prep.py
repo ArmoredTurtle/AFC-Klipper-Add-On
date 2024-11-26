@@ -24,6 +24,19 @@ class afcPrep:
         self.AFC = self.printer.lookup_object('AFC')
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
+
+        # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
+        base_resume_name = "RESUME"
+        prev_cmd = self.gcode.register_command(base_resume_name, None)
+        if prev_cmd is None:
+            raise self.printer.config_error(
+                "Existing command '%s' not found in gcode_macro rename"
+                % (base_resume_name,))
+        pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
+
+        self.gcode.register_command(self.AFC.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
+        self.gcode.register_command(base_resume_name, self.AFC.cmd_AFC_RESUME, desc=self.AFC.cmd_AFC_RESUME_help)
+
         ## load Unit variables
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
             self.AFC.lanes=json.load(open(self.AFC.VarFile + '.unit'))
@@ -162,7 +175,7 @@ class afcPrep:
                                     self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                                     if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
-                                        CUR_EXTRUDER.buffer.enable_buffer()
+                                        if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
                             else:
                                 lane_check=self.error_tool_unload(CUR_LANE)
                                 if lane_check != True:

@@ -105,6 +105,9 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
+        # Constant variable for renaming RESUME macro
+        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
+
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
         status_msg = ''
@@ -291,7 +294,7 @@ class afc:
     def cmd_AFC_RESUME(self, gcmd):
         self.set_error_state(False)
         self.in_toolchange = False
-        self.gcode.run_script_from_command('RESUME')
+        self.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
         self.restore_pos()
 
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
