@@ -6,7 +6,11 @@
 
 import os
 import json
-import urllib.request
+try:
+    from urllib.request import urlopen
+except:
+    # Python 2.7 support
+    from urllib2 import urlopen
 
 class afcPrep:
     def __init__(self, config):
@@ -46,11 +50,11 @@ class afcPrep:
                 else:
                     if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
                         url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
-                        result = json.load(urllib.request.urlopen(url))
+                        result = json.load(urlopen(url))
                         self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
                         self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
                         if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
-                        
+
                 if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
                 if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
                 if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
@@ -60,7 +64,7 @@ class afcPrep:
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
                 if 'hub_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                
+
         tmp=[]
         for UNIT in self.AFC.lanes.keys():
             if UNIT !='system':
@@ -140,19 +144,19 @@ class afcPrep:
                             msg += 'EMPTY READY FOR SPOOL'
                         else:
                             CUR_LANE.status = None
-                            msg +=" NOT READY"
+                            msg +="<span class=error--text> NOT READY</span>"
                             CUR_LANE.do_enable(False)
-                            msg = 'CHECK FILAMENT Prep: False - Load: True'
+                            msg = '<span class=secondary--text>CHECK FILAMENT Prep: False - Load: True</span>'
 
                     elif CUR_LANE.prep_state == True:
                         CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
                         self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
-                        msg +="LOCKED"
+                        msg +="<span class=success--text>LOCKED</span>"
                         if CUR_LANE.load_state == True:
                             CUR_LANE.status = 'Loaded'
-                            msg +=" AND LOADED"
+                            msg +="<span class=success--text> AND LOADED</span>"
                         else:
-                            msg +=" NOT LOADED"
+                            msg +="<span class=error--text> NOT LOADED</span>"
                         if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
@@ -170,7 +174,7 @@ class afcPrep:
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                                    msg +="\n error in ToolHead Extruder loaded with no lane identified"
+                                    msg +="\n<span class=error--text> error in ToolHead. Extruder loaded with no lane identified</span>"
                                     check_success = False
 
                     CUR_LANE.do_enable(False)

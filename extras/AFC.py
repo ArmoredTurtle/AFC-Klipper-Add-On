@@ -6,7 +6,12 @@
 
 
 import json
-import urllib.request
+try:
+    from urllib.request import urlopen
+except:
+    # Python 2.7 support
+    from urllib2 import urlopen
+
 
 from configparser import Error as error
 
@@ -610,7 +615,7 @@ class afc:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             if SpoolID !='':
                 url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/spool/" + SpoolID
-                result = json.load(urllib.request.urlopen(url))
+                result = json.load(urlopen(url))
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']

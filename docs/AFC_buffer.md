@@ -118,13 +118,14 @@ accel: 1000
 
 ### QUERY BUFFER
 
-The `QUERY_BUFFER` command reports the current state of the buffer sensor and, if applicable, the rotation distance of the AFC stepper motor. 
+The `QUERY_BUFFER` command reports the current state of the buffer and, if applicable, the rotation distance of the AFC stepper motor. 
 
 Example usage:
 `QUERY_BUFFER BUFFER=Turtleneck`
 
-Example output:
-`Turtleneck: Expanded`
+Example outputs:
+`Turtleneck: Trailing` _buffer is moving from the Advance trigger to the Trailing_
+`Turtleneck: Advancing` _buffer is moving from the Trailing trigger to the Advance_ 
 
 ### SET_ROTATION_FACTOR
 _for TurtleNeck Style Buffers_
