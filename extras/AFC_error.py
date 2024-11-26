@@ -4,10 +4,7 @@ class afcError:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
-        self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.gcode = self.printer.lookup_object('gcode')
-        self.AFC = self.printer.lookup_object('AFC')
-
         self.errorLog= {}
 
     def PauseUserIntervention(self,message):
@@ -15,6 +12,7 @@ class afcError:
         self.gcode.respond_info(message)
 
     def fix(self,problem, LANE=None):
+        self.AFC = self.printer.lookup_object('AFC')
         if problem == None:
             return
         if problem=='toolhead':

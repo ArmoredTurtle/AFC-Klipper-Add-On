@@ -69,9 +69,12 @@ class afcPrep:
                         if LANE not in temp: tmp.append(LANE)
         for erase in tmp:
             del self.AFC.lanes[UNIT][erase]
-
         self.AFC.save_vars()
-        if len(self.AFC.lanes) >0:
+
+        if self.enable == False:
+            self.gcode.respond_info('Prep Checks Disabled')
+            return
+        elif len(self.AFC.lanes) >0:
             for UNIT in self.AFC.lanes.keys():
                 logo=''
                 logo_error = ''
@@ -181,10 +184,11 @@ class afcPrep:
                             self.gcode.respond_info('Extruder loaded with out knowing Lane')
                             check_success = False
 
-            if check_success == True:
-                self.gcode.respond_raw(logo)
-            else:
-                self.gcode.respond_raw(logo_error)
+                if check_success == True:
+                    self.gcode.respond_raw(logo)
+                else:
+                    self.gcode.respond_raw(logo_error)
+
     def error_tool_unload(self, CUR_LANE):
         self.gcode.respond_info('Error on filament trying to correct')
         while CUR_LANE.load_state == True:
