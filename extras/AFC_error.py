@@ -6,17 +6,21 @@ class afcError:
         self.reactor = self.printer.get_reactor()
         self.gcode = self.printer.lookup_object('gcode')
         self.errorLog= {}
+        self.pause= False
 
-    def PauseUserIntervention(self,message):
-        #pause for user intervention
-        self.gcode.respond_info(message)
+        self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
 
-    def fix(self,problem, LANE=None):
+    def fix(self, problem, LANE=None):
+        self.pause= True
+        self.set_error_state(True)
         self.AFC = self.printer.lookup_object('AFC')
         if problem == None:
-            return
+            self.PauseUserIntervention('Paused for unknown error')
         if problem=='toolhead':
             error_handled = self.ToolHeadFix(LANE)
+        else:
+            self.PauseUserIntervention(problem)
 
         return error_handled
 
@@ -44,8 +48,44 @@ class afcError:
 
             else:
                 self.PauseUserIntervention('Filament not loaded in Lane')
+    
+    def PauseUserIntervention(self,message):
+        #pause for user intervention
+        self.gcode.respond_info(message)
+        if self.is_homed() and not self.is_paused():
+            self.AFC.save_pos()
+            self.gcode.respond_info ('PAUSING')
+            if self.pause: self.pause_print()
 
-                
+    def set_error_state(self, state):
+        # Only save position on first error state call
+        if state == True and self.AFC.failure == False:
+            self.AFC.save_pos()
+        self.AFC.failure = state
+
+    def AFC_error(self, msg, pause=True):
+        # Handle AFC errors
+        self.gcode._respond_error( msg )
+        
+
+    cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
+    def cmd_CLEAR_ERROR(self, gcmd):
+        self.set_error_state(False)
+    
+    cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
+    def cmd_AFC_RESUME(self, gcmd):
+        self.set_error_state(False)
+        self.in_toolchange = False
+        self.gcode.run_script_from_command('RESUME')
+        self.restore_pos()
+
+    handle_lane_failure_help = "Get load errors, stop stepper and respond error"
+    def handle_lane_failure(self, CUR_LANE, message, pause=True):
+        # Disable the stepper for this lane
+        CUR_LANE.do_enable(False)
+        msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
+        self.AFC_error(msg, pause)
+        self.afc_led(self.led_fault, CUR_LANE.led_index)
             
 def load_config(config):
     return afcError(config)
