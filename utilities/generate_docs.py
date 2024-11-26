@@ -37,11 +37,28 @@ def format_markdown(cmd_functions):
         command_name = name[4:].upper()  # Remove 'cmd_' prefix and convert to uppercase
         markdown_lines.append(f"### {command_name}\n")
         markdown_lines.append(f"_Description_: {description}  \n")
-        markdown_lines.append(f"Usage: `{command_name} LANE=<lane>`  \n")
-        markdown_lines.append(f"Example: `{command_name} LANE=leg1`  \n")
+
+        # Extract usage and example from docstring if available
+        usage = ""
+        example = ""
+        for line in docstring.split('\n'):
+            if line.strip().startswith("Usage:"):
+                usage = line.strip().replace("Usage:", "").strip()
+            if line.strip().startswith("Example:"):
+                example = line.strip().replace("Example:", "").strip()
+
+        if usage:
+            markdown_lines.append(f"Usage: `{usage}`  \n")
+        else:
+            markdown_lines.append(f"Usage: `{command_name} LANE=<lane>`  \n")
+
+        if example:
+            markdown_lines.append(f"Example: `{example}`  \n")
+        else:
+            markdown_lines.append(f"Example: `{command_name} LANE=leg1`  \n")
+
         markdown_lines.append("\n")  # Add an extra newline for separation
     return markdown_lines
-
 
 def write_markdown_file(markdown_lines, output_file):
     with open(output_file, 'w') as file:

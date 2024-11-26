@@ -196,11 +196,12 @@ class AFCtrigger:
     cmd_SET_MULTIPLIER_help = "live adjust buffer high and low multiplier"
     def cmd_SET_MULTIPLIER(self, gcmd):
         """
-        Adjust the buffer high and low multipliers.
-
         This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
         It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
         ensures that the factor is valid and updates the corresponding multiplier.
+
+        Usage: SET_BUFFER_MULTIPLIER MULTIPLIER=<HIGH/LOW> FACTOR=<factor>
+        Example: SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -241,6 +242,9 @@ class AFCtrigger:
         specified factor. If no factor is provided, it defaults to 1.0, which resets
         the rotation distance to the base value.
 
+        Usage: SET_ROTATION_FACTOR FACTOR=<factor>
+        Example: SET_ROTATION_FACTOR FACTOR=1.2
+
         Args:
             gcmd: A G-code command object containing the parameters for the factor.
                 The 'FACTOR' parameter is used to specify the multiplier for the
@@ -277,6 +281,9 @@ class AFCtrigger:
         """
         Reports the current state of the buffer sensor and, if applicable, the rotation
         distance of the current AFC stepper motor.
+
+        Usage: QUERY_BUFFER
+        Example: QUERY_BUFFER
 
         Behavior:
             - If the `turtleneck` feature is enabled and a tool is loaded, the rotation
