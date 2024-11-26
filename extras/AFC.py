@@ -245,6 +245,8 @@ class afc:
                   - LANE: The name of the lane to be moved.
                   - DISTANCE: The distance to move the lane.
 
+        NO_DOC: True
+
         Returns:
             None
         """

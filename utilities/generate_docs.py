@@ -15,7 +15,7 @@ def extract_cmd_functions(file_path):
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name.startswith('cmd_'):
                 docstring = ast.get_docstring(node)
-                if docstring:
+                if docstring and "NO_DOC" not in docstring:
                     cmd_functions.append((node.name, docstring))
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
