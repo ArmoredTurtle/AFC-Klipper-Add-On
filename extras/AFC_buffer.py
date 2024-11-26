@@ -195,6 +195,22 @@ class AFCtrigger:
 
     cmd_SET_MULTIPLIER_help = "live adjust buffer high and low multiplier"
     def cmd_SET_MULTIPLIER(self, gcmd):
+        """
+        Adjust the buffer high and low multipliers.
+
+        This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
+        It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
+        ensures that the factor is valid and updates the corresponding multiplier.
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - MULTIPLIER: The type of multiplier to be adjusted ('HIGH' or 'LOW').
+                  - FACTOR: The factor to be applied to the multiplier.
+
+        Returns:
+            None
+        """
         if self.turtleneck:
             if self.AFC.current != None and self.enable:
                 chg_multiplier = gcmd.get('MULTIPLIER', None)
