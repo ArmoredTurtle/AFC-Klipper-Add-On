@@ -21,36 +21,10 @@ class afcPrep:
         self.enable = config.getboolean("enable", False)
         self.ERROR = self.printer.load_object(config, 'AFC_error')
 
-        # Flag to set once resume rename as occured for the first time
-        self.rename_occured = False
-
-    def _rename_resume(self):
-        """
-            Helper function to check if renaming RESUME macro has occured and renames RESUME.
-            Addes a new RESUME macro that points to AFC resume function
-        """
-
-        # Checking to see if rename has already been done, don't want to rename again if prep was already ran
-        if not self.rename_occured:
-            self.rename_occured = True
-            # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
-            base_resume_name = "RESUME"
-            prev_cmd = self.gcode.register_command(base_resume_name, None)
-            if prev_cmd is not None:
-                pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
-                self.gcode.register_command(self.AFC.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
-            else:
-                self.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
-
-            self.gcode.register_command(base_resume_name, self.AFC.cmd_AFC_RESUME, desc=self.AFC.cmd_AFC_RESUME_help)
-
     def PREP(self, gcmd):
         self.AFC = self.printer.lookup_object('AFC')
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
-
-        self._rename_resume()
-
         ## load Unit variables
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
             self.AFC.lanes=json.load(open(self.AFC.VarFile + '.unit'))
@@ -192,7 +166,7 @@ class afcPrep:
                                     self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                                     if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
-                                        if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
+                                        CUR_EXTRUDER.buffer.enable_buffer()
                             else:
                                 lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
                                 if lane_check != True:
