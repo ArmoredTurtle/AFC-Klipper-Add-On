@@ -8,36 +8,13 @@
 set -e
 export LC_ALL=C
 
-# Paths
-KLIPPER_PATH="${HOME}/klipper"
-MOONRAKER_PATH="${HOME}/printer_data/config"
-AFC_PATH="${HOME}/AFC-Klipper-Add-On"
-PRINTER_CONFIG_PATH="${HOME}/printer_data/config"
-AFC_CONFIG_PATH="${PRINTER_CONFIG_PATH}/AFC"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Variables
-KLIPPER_SERVICE=klipper
-GITREPO="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
-PRIOR_INSTALLATION=False
-UPDATE_CONFIG=False
-AUTO_UPDATE_CONFIG=False
-UNINSTALL=False
-BRANCH=main
-# This FORCE_UPDATE variable is used to force an update of the AFC configuration files. This would typically be used
-# when there are major changes to the AFC configuration files that require more changes than we can handle automatically.
-FORCE_UPDATE=True
-BACKUP_DATE=$(date +%Y%m%d%H%M%S)
+for include_file in "${SCRIPT_DIR}/include/"*; do
+  source "$include_file"
+done
 
-# Moonraker Config
-MOONRAKER_UPDATE_CONFIG="""
-[update_manager afc-software]
-type: git_repo
-path: ~/AFC-Klipper-Add-On
-origin: $GITREPO
-managed_services: klipper moonraker
-primary_branch: $BRANCH
-install_script: install-afc.sh
-"""
+
 
 # Debugging: Check if the directory exists
 if [ ! -d "${AFC_PATH}/include/" ]; then
@@ -50,10 +27,6 @@ if [ -z "$(ls -A "${AFC_PATH}/include/")" ]; then
   echo "No files found in ${AFC_PATH}/include/"
   exit 1
 fi
-
-for file in "${AFC_PATH}/include/"*; do
-  source "$file"
-done
 
 install_type() {
   while true; do
@@ -168,7 +141,7 @@ macro_helpers() {
 
 ###################### Main script logic below ######################
 
-while getopts "k:s:m:b:uh" arg; do
+while getopts "k:s:m:b:i:uh" arg; do
   case ${arg} in
   k) KLIPPER_PATH=${OPTARG} ;;
   m) MOONRAKER_PATH=${OPTARG} ;;
@@ -183,10 +156,13 @@ while getopts "k:s:m:b:uh" arg; do
   esac
 done
 
+# Basic checks
 
 clear
 check_root
 check_for_hh
+
+# Uninstall procedure
 
 if [ "$UNINSTALL" = "True" ]; then
   unlink_extensions
@@ -200,9 +176,12 @@ if [ "$UNINSTALL" = "True" ]; then
   exit 0
 fi
 
+# Since we aren't uninstalling, we need to do some basic functions
 clone_repo
 check_existing_install
 info_menu
+
+# Check if the user wants to update the configuration files and FORCE_UPDATE isn't True when a prior installation is detected.
 
 if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = False ]; then
   print_msg WARNING "  A prior installation of AFC has been detected."
@@ -232,12 +211,16 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = False ]; then
   fi
 fi
 
+# If an existing installation is found, and we want to run some auto-update configurations.
+
 if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
   print_msg INFO "  Auto updating configuration files..."
   print_msg INFO "  This will still require manual review and potential configuration. Visit the Github page for more info."
   auto_update
   exit 0
 fi
+
+# If an existing installation is found, and we want to force run configuration changes.
 
 if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
   print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
@@ -246,6 +229,8 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
   backup_afc_config
   PRIOR_INSTALLATION=False
 fi
+
+# If no prior installation is found, or we want to update the configuration files.
 
 if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   link_extensions
@@ -293,6 +278,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
 
   # Update buffer configuration
   if [ "$BUFFER_SYSTEM" == "TurtleNeck" ]; then
+    query_tn_pins "TN"
     append_buffer_config "TurtleNeck"
     add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "TN"
   elif [ "$BUFFER_SYSTEM" == "TurtleNeckV2" ]; then
@@ -307,6 +293,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
 
   # Any additional configuration can be added here.
   check_and_append_prep "${AFC_CONFIG_PATH}/AFC.cfg"
+  exclude_from_klipper_git
 
   # Update moonraker config
   update_moonraker_config

@@ -64,8 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   - Minor adjustments to the use of single sensor buffers, retaining functionality for Belay
 
-### Removed
-
 ## [2024-10-27]
 
 ### Added
