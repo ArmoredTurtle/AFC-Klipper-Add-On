@@ -316,7 +316,7 @@ class AFCtrigger:
     def buffer_status(self):
         state_info = ''
         if self.turtleneck:
-            self.last_state
+            state_info = self.last_state
         else:
             if self.last_state:
                 state_info += "compressed"
