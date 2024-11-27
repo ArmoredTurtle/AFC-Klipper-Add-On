@@ -24,6 +24,11 @@ class afcPrep:
         self.rename_occured = False
 
     def _rename_resume(self):
+        """
+            Helper function to check if renaming RESUME macro has occured and renames RESUME.
+            Addes a new RESUME macro that points to AFC resume function
+        """
+
         # Checking to see if rename has already been done, don't want to rename again if prep was already ran
         if not self.rename_occured:
             self.rename_occured = True
