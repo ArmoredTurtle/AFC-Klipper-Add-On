@@ -22,6 +22,48 @@ def extract_cmd_functions(file_path):
     return cmd_functions
 
 
+
+def parse_macros(file_path):
+    macros = []
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            current_macro = None
+            for line in lines:
+                if line.startswith('[gcode_macro '):
+                    if current_macro:
+                        macros.append(current_macro)
+                    current_macro = {'name': line.strip()[1:-1], 'description': '', 'gcode': ''}
+                elif current_macro:
+                    if line.startswith('description:'):
+                        current_macro['description'] = line.split(':', 1)[1].strip()
+                    elif line.startswith('gcode:'):
+                        current_macro['gcode'] = line.split(':', 1)[1].strip()
+                    elif line.strip():
+                        current_macro['gcode'] += '\n' + line.strip()
+            if current_macro:
+                macros.append(current_macro)
+    except Exception as e:
+        print(f"Error processing {file_path}: {e}")
+    return macros
+
+
+def generate_macro_docs(macros):
+    markdown_lines = [
+        "## AFC Macros\n",
+        "\n",
+        "The following macros are defined in the `config/macros/AFC_macros.cfg` file.\n",
+        "These macros can be executed either from the console, called from another macro, or triggered through \n",
+        "the Mainsail or Fluidd web interfaces.\n",
+        "\n"
+    ]
+    for macro in macros:
+        macro_name = macro['name'].replace('gcode_macro ', '')
+        markdown_lines.append(f"### {macro_name}\n")
+        markdown_lines.append(f"_Description_: {macro['description']}\n")
+    return markdown_lines
+
+
 def format_markdown(cmd_functions):
     markdown_lines = [
         "# AFC Klipper Add-On Command Reference\n",
@@ -85,6 +127,13 @@ def main():
 
     markdown_lines = format_markdown(all_cmd_functions)
     write_markdown_file(markdown_lines, output_file)
+
+    macros = parse_macros('../config/macros/AFC_macros.cfg')
+    macro_docs = generate_macro_docs(macros)
+
+    # Append macro docs to the markdown file
+    with open('../docs/command_reference.md', 'a') as md_file:
+        md_file.writelines(macro_docs)
 
 if __name__ == "__main__":
     check_ast_module()

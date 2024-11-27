@@ -100,31 +100,31 @@ class afcPrep:
                 if CUR_HUB.type == 'Box_Turtle':
                     firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
                     secondLeg = firstLeg + '<span class=warning--text>|</span>'
-                    logo =r'<span class=success--text>R  _____     ____\n'
-                    logo+=r'E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
-                    logo+=r'A |       |/ ___/ \n'
-                    logo+=r'D |_________/     \n'
-                    logo+=r'Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
-                    logo+=r'  ' + UNIT + '\n'
+                    logo ='<span class=success--text>R  _____     ____\n'
+                    logo+='E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
+                    logo+='A |       |/ ___/ \n'
+                    logo+='D |_________/     \n'
+                    logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
+                    logo+='  ' + UNIT + '\n'
 
-                    logo_error =r'<span class=error--text>E  _ _   _ _\n'
-                    logo_error+=r'R |_|_|_|_|_|\n'
-                    logo_error+=r'R |         \____\n'
-                    logo_error+=r'O |              \ \n'
-                    logo_error+=r'R |          |\ <span class=secondary--text>X</span> |\n'
-                    logo_error+=r'! \_________/ |___|</error>\n'
-                    logo_error+=r'  ' + UNIT + '\n'
+                    logo_error ='<span class=error--text>E  _ _   _ _\n'
+                    logo_error+='R |_|_|_|_|_|\n'
+                    logo_error+='R |         \____\n'
+                    logo_error+='O |              \ \n'
+                    logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
+                    logo_error+='! \_________/ |___|</error>\n'
+                    logo_error+='  ' + UNIT + '\n'
 
                 if CUR_HUB.type == 'Night_Owl':
                     logo = 'Night Owl Ready'
                     logo_error = 'Night Owl Not Ready'
-                    logo =r'R  ,     ,\n'
-                    logo+=r'E  )\___/(\n'
-                    logo+=r'A {(@)v(@)}\n'
-                    logo+=r'D  {|~~~|}\n'
-                    logo+=r'Y  {/^^^\}\n'
-                    logo+=r'!   `m-m`\n'
-                    logo+=r'  ' + UNIT + '\n'
+                    logo ='R  ,     ,\n'
+                    logo+='E  )\___/(\n'
+                    logo+='A {(@)v(@)}\n'
+                    logo+='D  {|~~~|}\n'
+                    logo+='Y  {/^^^\}\n'
+                    logo+='!   `m-m`\n'
+                    logo+='  ' + UNIT + '\n'
 
                 for LANE in self.AFC.lanes[UNIT].keys():
                     check_success = True

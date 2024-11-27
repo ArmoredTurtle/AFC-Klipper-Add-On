@@ -282,8 +282,8 @@ class AFCtrigger:
         Reports the current state of the buffer sensor and, if applicable, the rotation
         distance of the current AFC stepper motor.
 
-        Usage: QUERY_BUFFER
-        Example: QUERY_BUFFER
+        Usage: QUERY_BUFFER BUFFER=<buffer_name>
+        Example: QUERY_BUFFER BUFFER=TN2
 
         Behavior:
             - If the `turtleneck` feature is enabled and a tool is loaded, the rotation
