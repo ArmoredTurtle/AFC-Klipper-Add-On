@@ -19,7 +19,6 @@ class afcPrep:
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
-        self.ERROR = self.printer.load_object(config, 'AFC_error')
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
@@ -99,12 +98,9 @@ class afcPrep:
                         if LANE not in temp: tmp.append(LANE)
         for erase in tmp:
             del self.AFC.lanes[UNIT][erase]
-        self.AFC.save_vars()
 
-        if self.enable == False:
-            self.gcode.respond_info('Prep Checks Disabled')
-            return
-        elif len(self.AFC.lanes) >0:
+        self.AFC.save_vars()
+        if len(self.AFC.lanes) >0:
             for UNIT in self.AFC.lanes.keys():
                 logo=''
                 logo_error = ''
@@ -194,7 +190,7 @@ class afcPrep:
                                         self.AFC.current = CUR_LANE.name
                                         if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
                             else:
-                                lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
+                                lane_check=self.error_tool_unload(CUR_LANE)
                                 if lane_check != True:
                                     check_success = False
                         else:
@@ -214,10 +210,10 @@ class afcPrep:
                             self.gcode.respond_info('Extruder loaded with out knowing Lane')
                             check_success = False
 
-                if check_success == True:
-                    self.gcode.respond_raw(logo)
-                else:
-                    self.gcode.respond_raw(logo_error)
+            if check_success == True:
+                self.gcode.respond_raw(logo)
+            else:
+                self.gcode.respond_raw(logo_error)
 
     def error_tool_unload(self, CUR_LANE):
         self.gcode.respond_info('Error on filament trying to correct')
