@@ -183,3 +183,8 @@ gcode:
 ### Added
 
 - `generate_docs.py` utility in the `utilities` folder to auto-generate some basic documentation in the `docs/command_reference.md` file.
+
+## [2024-11-27]]
+
+### Fixed
+- Klipper erroring out when renaming `RESUME` macro when a user call's `BT_PREP` within the same reboot of klipper
