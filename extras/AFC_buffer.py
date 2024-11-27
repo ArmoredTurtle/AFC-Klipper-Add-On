@@ -229,8 +229,7 @@ class AFCtrigger:
                             self.update_filament_error_pos(eventtime)
                             self.reactor.update_timer(self.extruder_pos_timer, self.reactor.NEVER)
 
-        if state: self.last_state = ADVANCE_STATE_NAME
-        if not state: self.last_state = False
+        self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, eventtime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable:
@@ -258,8 +257,7 @@ class AFCtrigger:
                             self.update_filament_error_pos(eventtime)
                             self.reactor.update_timer(self.extruder_pos_timer, self.reactor.NEVER)
 
-        if state: self.last_state = TRAILING_STATE_NAME
-        if not state: self.last_state = False
+        self.last_state = TRAILING_STATE_NAME
 
     # get the position of the extruder for error reference
     def get_extruder_pos(self, eventtime=None):
