@@ -20,21 +20,30 @@ class afcPrep:
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
 
+        # Flag to set once resume rename as occured for the first time
+        self.rename_occured = False
+
+    def _rename_resume(self):
+        # Checking to see if rename has already been done, don't want to rename again if prep was already ran
+        if not self.rename_occured:
+            self.rename_occured = True
+            # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
+            base_resume_name = "RESUME"
+            prev_cmd = self.gcode.register_command(base_resume_name, None)
+            if prev_cmd is not None:
+                pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
+                self.gcode.register_command(self.AFC.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
+            else:
+                self.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
+
+            self.gcode.register_command(base_resume_name, self.AFC.cmd_AFC_RESUME, desc=self.AFC.cmd_AFC_RESUME_help)
+
     def PREP(self, gcmd):
         self.AFC = self.printer.lookup_object('AFC')
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
 
-        # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
-        base_resume_name = "RESUME"
-        prev_cmd = self.gcode.register_command(base_resume_name, None)
-        if prev_cmd is not None:
-            pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
-            self.gcode.register_command(self.AFC.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
-        else:
-            self.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
-
-        self.gcode.register_command(base_resume_name, self.AFC.cmd_AFC_RESUME, desc=self.AFC.cmd_AFC_RESUME_help)
+        self._rename_resume()
 
         ## load Unit variables
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
@@ -200,6 +209,7 @@ class afcPrep:
                 self.gcode.respond_raw(logo)
             else:
                 self.gcode.respond_raw(logo_error)
+
     def error_tool_unload(self, CUR_LANE):
         self.gcode.respond_info('Error on filament trying to correct')
         while CUR_LANE.load_state == True:
