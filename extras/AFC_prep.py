@@ -19,6 +19,7 @@ class afcPrep:
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
+        self.delay = config.get('delay_time', .1)
 
     def PREP(self, gcmd):
         self.AFC = self.printer.lookup_object('AFC')
@@ -141,7 +142,7 @@ class afcPrep:
                     if check_success == True:
                         CUR_LANE.extruder_stepper.sync_to_extruder(None)
                         CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                        self.reactor.pause(self.reactor.monotonic() + .1)
+                        self.reactor.pause(self.reactor.monotonic() + self.delay)
                         CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                     msg = ''
                     if CUR_LANE.prep_state == False:
