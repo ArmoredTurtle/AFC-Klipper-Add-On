@@ -51,7 +51,6 @@ class AFCextruder:
       Enable the buffer if `buffer_name` is set.
       Retrieves the buffer object and calls its `enable_buffer()` method to activate it.
       """
-      self.get_buffer()
       if self.buffer_name != None:
          self.buffer.enable_buffer()
 
