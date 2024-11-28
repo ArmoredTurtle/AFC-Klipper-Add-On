@@ -110,6 +110,19 @@ class afc:
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
+        """
+        This function generates a status message for each unit and lane, indicating the preparation,
+        loading, hub, and tool states. The status message is formatted with HTML tags for display.
+
+        Usage: `AFC_STATUS`
+        Example: `AFC_STATUS`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
         status_msg = ''
 
         for UNIT in self.lanes.keys():
@@ -168,6 +181,24 @@ class afc:
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
+        """
+        This function adjusts the length of the Bowden tube between the hub and the toolhead.
+        It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified
+        by the 'LENGTH' parameter. If the hub is not specified and a lane is currently loaded,
+        it uses the hub of the current lane.
+
+        Usage: `SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length>`
+        Example: `SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=100`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - HUB: The name of the hub to be adjusted (optional).
+                  - LENGTH: The length adjustment value (optional).
+
+        Returns:
+            None
+        """
         hub           = gcmd.get("HUB", None )
         length_param  = gcmd.get('LENGTH', None)
 
@@ -201,6 +232,24 @@ class afc:
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
+        """
+        This function handles the manual movement of a specified lane. It retrieves the lane
+        specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
+
+        Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
+        Example: `LANE_MOVE LANE=leg1 DISTANCE=100`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane to be moved.
+                  - DISTANCE: The distance to move the lane.
+
+        NO_DOC: True
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
@@ -208,6 +257,18 @@ class afc:
 
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
     def cmd_CLEAR_ERROR(self, gcmd):
+        """
+        This function clears the error state of the AFC system by setting the error state to False.
+
+        Usage: `RESET_FAILURE`
+        Example: `RESET_FAILURE`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
         self.set_error_state(False)
 
     def save_pos(self):
@@ -292,6 +353,19 @@ class afc:
 
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
+        """
+        This function clears the error state of the AFC system, sets the in_toolchange flag to False,
+        runs the resume script, and restores the toolhead position to the last saved position.
+
+        Usage: `AFC_RESUME`
+        Example: `AFC_RESUME`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
         self.set_error_state(False)
         self.in_toolchange = False
         self.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
@@ -299,15 +373,49 @@ class afc:
 
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
     def cmd_HUB_CUT_TEST(self, gcmd):
+        """
+        This function tests the cutting sequence of the hub cutter for a specified lane.
+        It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
+        and responds with the status of the operation.
+
+        Usage: `HUB_CUT_TEST LANE=<lane>`
+        Example: `HUB_CUT_TEST LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be tested.
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
         CUR_HUB.hub_cut(CUR_LANE)
         self.gcode.respond_info('Hub cut Done!')
 
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
+        """
+        This function tests the assist motors of a specified lane at various speeds.
+        It performs the following steps:
+        1. Retrieves the lane specified by the 'LANE' parameter.
+        2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
+        3. Reports the status of each test step.
+
+        Usage: `TEST LANE=<lane>`
+        Example: `TEST LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be tested.
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         if lane == None:
             self.AFC_error('Must select LANE', False)
@@ -341,6 +449,21 @@ class afc:
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
     def cmd_HUB_LOAD(self, gcmd):
+        """
+        This function handles the loading of a specified lane into the hub. It performs
+        several checks and movements to ensure the lane is properly loaded.
+
+        Usage: `HUB_LOAD LANE=<lane>`
+        Example: `HUB_LOAD LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be loaded.
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
@@ -364,6 +487,21 @@ class afc:
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
+        """
+        This function handles the unloading of a specified lane from the extruder. It performs
+        several checks and movements to ensure the lane is properly unloaded.
+
+        Usage: `LANE_UNLOAD LANE=<lane>`
+        Example: `LANE_UNLOAD LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be unloaded.
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
@@ -384,11 +522,40 @@ class afc:
 
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
+        """
+        This function handles the loading of a specified lane into the tool. It retrieves
+        the lane specified by the 'LANE' parameter and calls the TOOL_LOAD method to perform
+        the loading process.
+
+        Usage: `TOOL_LOAD LANE=<lane>`
+        Example: `TOOL_LOAD LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be loaded.
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         self.TOOL_LOAD(CUR_LANE)
 
     def TOOL_LOAD(self, CUR_LANE):
+        """
+        This function handles the loading of a specified lane into the tool. It performs
+        several checks and movements to ensure the lane is properly loaded.
+
+        Usage: `TOOL_LOAD LANE=<lane>`
+        Example: `TOOL_LOAD LANE=leg1`
+
+        Args:
+            CUR_LANE: The lane object to be loaded into the tool.
+
+        Returns:
+            None
+        """
         if CUR_LANE == None:
             return
         # Try to get bypass filament sensor, if lookup fails default to None
@@ -489,6 +656,22 @@ class afc:
 
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
     def cmd_TOOL_UNLOAD(self, gcmd):
+        """
+        This function handles the unloading of a specified lane from the tool head. It retrieves
+        the lane specified by the 'LANE' parameter or uses the currently loaded lane if no parameter
+        is provided, and calls the TOOL_UNLOAD method to perform the unloading process.
+
+        Usage: `TOOL_UNLOAD [LANE=<lane>]`
+        Example: `TOOL_UNLOAD LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be unloaded (optional, defaults to the current lane).
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
@@ -496,6 +679,18 @@ class afc:
         self.TOOL_UNLOAD(CUR_LANE)
 
     def TOOL_UNLOAD(self, CUR_LANE):
+        """
+        This function handles the unloading of a specified lane from the tool. It performs
+        several checks and movements to ensure the lane is properly unloaded.
+
+        Usage: `TOOL_UNLOAD LANE=<lane>`
+        Example: `TOOL_UNLOAD LANE=leg1`
+        Args:
+            CUR_LANE: The lane object to be unloaded from the tool.
+
+        Returns:
+            None
+        """
         if CUR_LANE == None:
             return
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
@@ -589,6 +784,22 @@ class afc:
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
     def cmd_CHANGE_TOOL(self, gcmd):
+        """
+        This function handles the tool change process. It retrieves the lane specified by the 'LANE' parameter,
+        checks the filament sensor, saves the current position, and performs the tool change by unloading the
+        current lane and loading the new lane.
+
+        Usage: `CHANGE_TOOL LANE=<lane>`
+        Example: `CHANGE_TOOL LANE=leg1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameter:
+                  - LANE: The name of the lane to be loaded.
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         # Try to get bypass filament sensor, if lookup fails default to None
         try:
@@ -622,6 +833,22 @@ class afc:
 
     cmd_SET_COLOR_help = "change filaments color"
     def cmd_SET_COLOR(self, gcmd):
+        """
+        This function handles changing the color of a specified lane. It retrieves the lane
+        specified by the 'LANE' parameter and sets its color to the value provided by the 'COLOR' parameter.
+
+        Usage: `SET_COLOR LANE=<lane> COLOR=<color>`
+        Example: `SET_COLOR LANE=leg1 COLOR=FF0000`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane whose color is to be changed.
+                  - COLOR: The new color value in hexadecimal format (optional, defaults to '#000000').
+
+        Returns:
+            None
+        """
         lane = gcmd.get('LANE', None)
         if lane == None:
             self.gcode.respond_info("No LANE Defined")
@@ -646,6 +873,23 @@ class afc:
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
+        """
+        This function handles setting the spool ID for a specified lane. It retrieves the lane
+        specified by the 'LANE' parameter and updates its spool ID, material, color, and weight
+        based on the information retrieved from the Spoolman API.
+
+        Usage: `SET_SPOOLID LANE=<lane> SPOOL_ID=<spool_id>`
+        Example: `SET_SPOOLID LANE=leg1 SPOOL_ID=12345`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane whose spool ID is to be set.
+                  - SPOOL_ID: The new spool ID (optional, defaults to an empty string).
+
+        Returns:
+            None
+        """
         if self.spoolman_ip !=None:
             lane = gcmd.get('LANE', None)
             if lane == None:

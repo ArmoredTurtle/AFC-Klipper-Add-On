@@ -177,3 +177,14 @@ gcode:
 - Simplified buffer status to Trailing and Advancing
   - Buffer tube moving from Trailing to Advance it is in the Advancing state
   - Buffer tube moving from Advance to Trialing it is in the Trialing state
+
+## [2024-11-27]
+
+### Added
+
+- `generate_docs.py` utility in the `utilities` folder to auto-generate some basic documentation in the `docs/command_reference.md` file.
+
+## [2024-11-27]]
+
+### Fixed
+- Klipper erroring out when renaming `RESUME` macro when a user call's `BT_PREP` within the same reboot of klipper
