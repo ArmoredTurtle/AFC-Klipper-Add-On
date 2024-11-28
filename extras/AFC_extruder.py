@@ -54,7 +54,7 @@ class AFCextruder:
       self.get_buffer()
       if self.buffer_name != None:
          self.buffer.enable_buffer()
-    
+
     def disable_buffer(self):
        """
        Disable the buffer if `buffer_name` is set.
