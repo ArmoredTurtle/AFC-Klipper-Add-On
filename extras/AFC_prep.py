@@ -115,12 +115,12 @@ class afcPrep:
                     self.AFC.AFC_error(error_string, False)
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
-                
+
                 try: unit_type = self.printer.lookup_object('AFC_{}'.format(CUR_HUB.type.replace('_', '')))
                 except:
                     self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type, False))
                     continue
-        
+
                 logo=unit_type.logo
                 logo+='  ' + UNIT + '\n'
                 logo_error=unit_type.logo_error
