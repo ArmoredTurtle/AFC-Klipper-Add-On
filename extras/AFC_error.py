@@ -51,7 +51,7 @@ class afcError:
 
             else:
                 self.PauseUserIntervention('Filament not loaded in Lane')
-    
+
     def PauseUserIntervention(self,message):
         #pause for user intervention
         self.gcode.respond_info(message)
@@ -69,7 +69,7 @@ class afcError:
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
         self.gcode._respond_error( msg )
-        
+
 
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
     def cmd_CLEAR_ERROR(self, gcmd):
@@ -86,7 +86,7 @@ class afcError:
             None
         """
         self.set_error_state(False)
-    
+
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
         """
@@ -114,7 +114,7 @@ class afcError:
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
         self.AFC_error(msg, pause)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
-            
+
 def load_config(config):
     return afcError(config)
 

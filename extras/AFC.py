@@ -357,7 +357,7 @@ class afc:
         self.gcode.respond_info('TEST ROUTINE')
         try:
             CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
-        except error as e:
+        except error:
             self.ERROR.fix('could not find stepper ' + lane)  #send to error handling
             return
         self.gcode.respond_info('Testing at full speed')
