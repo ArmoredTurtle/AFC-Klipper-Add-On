@@ -13,7 +13,7 @@ class afc_hub:
         self.type = config.get('type', None)
         if self.type =='Box_Turtle':
             self.ERROR = self.printer.load_object(config, 'AFC_BoxTurtle')
-        if self.type =='Box_Turtle':
+        if self.type =='Night_Owl':
             self.ERROR = self.printer.load_object(config, 'AFC_NightOwl')
             
 
