@@ -141,7 +141,7 @@ macro_helpers() {
 
 ###################### Main script logic below ######################
 
-while getopts "k:s:m:b:i:uh" arg; do
+while getopts "k:s:m:b:uh" arg; do
   case ${arg} in
   k) KLIPPER_PATH=${OPTARG} ;;
   m) MOONRAKER_PATH=${OPTARG} ;;
@@ -179,6 +179,7 @@ fi
 # Since we aren't uninstalling, we need to do some basic functions
 clone_repo
 check_existing_install
+check_version_and_set_force_update
 info_menu
 
 # Check if the user wants to update the configuration files and FORCE_UPDATE isn't True when a prior installation is detected.
@@ -215,7 +216,7 @@ fi
 
 if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
   print_msg INFO "  Auto updating configuration files..."
-  print_msg INFO "  This will still require manual review and potential configuration. Visit the Github page for more info."
+  print_msg INFO "  Please review your configuration files for accuracy."
   auto_update
   exit 0
 fi
