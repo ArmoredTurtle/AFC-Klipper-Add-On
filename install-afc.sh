@@ -141,7 +141,7 @@ macro_helpers() {
 
 ###################### Main script logic below ######################
 
-while getopts "k:s:m:b:i:uh" arg; do
+while getopts "k:s:m:b:uh" arg; do
   case ${arg} in
   k) KLIPPER_PATH=${OPTARG} ;;
   m) MOONRAKER_PATH=${OPTARG} ;;
