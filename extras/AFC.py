@@ -104,9 +104,6 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
-        # Constant variable for renaming RESUME macro
-        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
-
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
         """
@@ -360,7 +357,7 @@ class afc:
         self.gcode.respond_info('TEST ROUTINE')
         try:
             CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
-        except error as e:
+        except error:
             self.ERROR.fix('could not find stepper ' + lane)  #send to error handling
             return
         self.gcode.respond_info('Testing at full speed')

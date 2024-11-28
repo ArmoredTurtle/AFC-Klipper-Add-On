@@ -11,6 +11,9 @@ class afcError:
         self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
         self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
 
+        # Constant variable for renaming RESUME macro
+        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
+
     def fix(self, problem, LANE=None):
         self.pause= True
         self.set_error_state(True)
@@ -48,7 +51,7 @@ class afcError:
 
             else:
                 self.PauseUserIntervention('Filament not loaded in Lane')
-    
+
     def PauseUserIntervention(self,message):
         #pause for user intervention
         self.gcode.respond_info(message)
@@ -66,17 +69,42 @@ class afcError:
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
         self.gcode._respond_error( msg )
-        
+
 
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
     def cmd_CLEAR_ERROR(self, gcmd):
+        """
+        This function clears the error state of the AFC system by setting the error state to False.
+
+        Usage: `RESET_FAILURE`
+        Example: `RESET_FAILURE`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
         self.set_error_state(False)
-    
+
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
+        """
+        This function clears the error state of the AFC system, sets the in_toolchange flag to False,
+        runs the resume script, and restores the toolhead position to the last saved position.
+
+        Usage: `AFC_RESUME`
+        Example: `AFC_RESUME`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
         self.set_error_state(False)
         self.in_toolchange = False
-        self.gcode.run_script_from_command('RESUME')
+        self.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
         self.restore_pos()
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
@@ -86,7 +114,7 @@ class afcError:
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
         self.AFC_error(msg, pause)
         self.afc_led(self.led_fault, CUR_LANE.led_index)
-            
+
 def load_config(config):
     return afcError(config)
 
