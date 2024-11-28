@@ -118,7 +118,7 @@ class afcPrep:
 
                 try: unit_type = self.printer.lookup_object('AFC_{}'.format(CUR_HUB.type.replace('_', '')))
                 except:
-                    self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type, False))
+                    self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type), False)
                     continue
 
                 logo=unit_type.logo
