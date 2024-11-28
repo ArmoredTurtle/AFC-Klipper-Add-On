@@ -21,6 +21,10 @@ class afc:
         self.reactor = self.printer.get_reactor()
         self.printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
+
+        self.ERROR = self.printer.load_object(config, 'AFC_error')
+        self.SPOOL = self.printer.load_object(config, 'AFC_spool')
+
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
@@ -96,13 +100,20 @@ class afc:
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
 
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
-        self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
-        self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
+        
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
+
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up the toolhead object
+        and assigns it to the instance variable `self.toolhead`.
+        """
+        self.toolhead = self.printer.lookup_object('toolhead')
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
@@ -296,14 +307,6 @@ class afc:
             f.write(json.dumps(self.lanes, indent=4))
         with open(self.VarFile+ '.tool', 'w') as f:
             f.write(json.dumps(self.extruders, indent=4))
-
-    def handle_connect(self):
-        """
-        Handle the connection event.
-        This function is called when the printer connects. It looks up the toolhead object
-        and assigns it to the instance variable `self.toolhead`.
-        """
-        self.toolhead = self.printer.lookup_object('toolhead')
 
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
     def cmd_HUB_CUT_TEST(self, gcmd):
@@ -765,86 +768,6 @@ class afc:
                 self.restore_pos()
                 self.in_toolchange = False
 
-    cmd_SET_COLOR_help = "change filaments color"
-    def cmd_SET_COLOR(self, gcmd):
-        """
-        This function handles changing the color of a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and sets its color to the value provided by the 'COLOR' parameter.
-
-        Usage: `SET_COLOR LANE=<lane> COLOR=<color>`
-        Example: `SET_COLOR LANE=leg1 COLOR=FF0000`
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane whose color is to be changed.
-                  - COLOR: The new color value in hexadecimal format (optional, defaults to '#000000').
-
-        Returns:
-            None
-        """
-        lane = gcmd.get('LANE', None)
-        if lane == None:
-            self.gcode.respond_info("No LANE Defined")
-            return
-        color = gcmd.get('COLOR', '#000000')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.color = '#' + color
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
-        self.save_vars()
-
-    def set_active_spool(self, ID):
-        webhooks = self.printer.lookup_object('webhooks')
-        if self.spoolman_ip != None:
-            if ID:
-                args = {'spool_id' : int(ID)}
-                try:
-                    webhooks.call_remote_method("spoolman_set_active_spool", **args)
-                except self.printer.command_error:
-                    self.gcode._respond_error("Error trying to set active spool")
-            else:
-                self.gcode.respond_info("Spool ID not set, cannot update spoolman with active spool")
-
-    cmd_SET_SPOOLID_help = "change filaments ID"
-    def cmd_SET_SPOOLID(self, gcmd):
-        """
-        This function handles setting the spool ID for a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and updates its spool ID, material, color, and weight
-        based on the information retrieved from the Spoolman API.
-
-        Usage: `SET_SPOOLID LANE=<lane> SPOOL_ID=<spool_id>`
-        Example: `SET_SPOOLID LANE=leg1 SPOOL_ID=12345`
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane whose spool ID is to be set.
-                  - SPOOL_ID: The new spool ID (optional, defaults to an empty string).
-
-        Returns:
-            None
-        """
-        if self.spoolman_ip !=None:
-            lane = gcmd.get('LANE', None)
-            if lane == None:
-                self.gcode.respond_info("No LANE Defined")
-                return
-            SpoolID = gcmd.get('SPOOL_ID', '')
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-            if SpoolID !='':
-                url = 'http://' + self.spoolman_ip + ':'+ self.spoolman_port +"/api/v1/spool/" + SpoolID
-                result = json.load(urlopen(url))
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
-            else:
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = ''
-                self.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
-            self.save_vars()
-
     def get_status(self, eventtime):
         str = {}
         numoflanes = 0
@@ -866,6 +789,7 @@ class afc:
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
                 str[UNIT][NAME]["weight"]=self.lanes[UNIT][NAME]['weight']
+                str[UNIT][NAME]["runout_lane"]=self.lanes[LANE.unit][LANE.name]['runout_lane']
                 numoflanes +=1
             str[UNIT]['system']={}
             str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
