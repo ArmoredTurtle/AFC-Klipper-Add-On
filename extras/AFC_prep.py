@@ -115,20 +115,16 @@ class afcPrep:
                     self.AFC.AFC_error(error_string, False)
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
-
-                if CUR_HUB.type == 'Box_Turtle':
-                    self.BoxTurtle = self.printer.lookup_object('AFC_BoxTurtle')
-                    logo=self.BoxTurtle.logo
-                    logo+='  ' + UNIT + '\n'
-                    logo_error=self.BoxTurtle.logo_error
-                    logo_error+='  ' + UNIT + '\n'
-
-                if CUR_HUB.type == 'Night_Owl':
-                    self.NightOwl = self.printer.lookup_object('AFC_NightOwl')
-                    logo=self.NightOwl.logo
-                    logo+='  ' + UNIT + '\n'
-                    logo_error=self.NightOwl.logo_error
-                    logo_error+='  ' + UNIT + '\n'
+                
+                try: unit_type = self.printer.lookup_object('AFC_{}'.format(CUR_HUB.type.replace('_', '')))
+                except:
+                    self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type, False))
+                    continue
+        
+                logo=unit_type.logo
+                logo+='  ' + UNIT + '\n'
+                logo_error=unit_type.logo_error
+                logo_error+='  ' + UNIT + '\n'
 
                 for LANE in self.AFC.lanes[UNIT].keys():
                     check_success = True

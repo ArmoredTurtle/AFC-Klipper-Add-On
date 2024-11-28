@@ -813,7 +813,8 @@ class afc:
             str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
             if CUR_EXTRUDER.buffer_name != None:
                 str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
-                str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer.buffer_status()
+                CUR_BUFFER = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
+                str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_BUFFER.buffer_status()
             else:
                 str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
 
