@@ -116,34 +116,15 @@ class afcPrep:
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
 
-                if CUR_HUB.type == 'Box_Turtle':
-                    firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
-                    secondLeg = firstLeg + '<span class=warning--text>|</span>'
-                    logo ='<span class=success--text>R  _____     ____\n'
-                    logo+='E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
-                    logo+='A |       |/ ___/ \n'
-                    logo+='D |_________/     \n'
-                    logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
-                    logo+='  ' + UNIT + '\n'
+                try: unit_type = self.printer.lookup_object('AFC_{}'.format(CUR_HUB.type.replace('_', '')))
+                except:
+                    self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type), False)
+                    continue
 
-                    logo_error ='<span class=error--text>E  _ _   _ _\n'
-                    logo_error+='R |_|_|_|_|_|\n'
-                    logo_error+='R |         \____\n'
-                    logo_error+='O |              \ \n'
-                    logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
-                    logo_error+='! \_________/ |___|</error>\n'
-                    logo_error+='  ' + UNIT + '\n'
-
-                if CUR_HUB.type == 'Night_Owl':
-                    logo = 'Night Owl Ready'
-                    logo_error = 'Night Owl Not Ready'
-                    logo ='R  ,     ,\n'
-                    logo+='E  )\___/(\n'
-                    logo+='A {(@)v(@)}\n'
-                    logo+='D  {|~~~|}\n'
-                    logo+='Y  {/^^^\}\n'
-                    logo+='!   `m-m`\n'
-                    logo+='  ' + UNIT + '\n'
+                logo=unit_type.logo
+                logo+='  ' + UNIT + '\n'
+                logo_error=unit_type.logo_error
+                logo_error+='  ' + UNIT + '\n'
 
                 for LANE in self.AFC.lanes[UNIT].keys():
                     check_success = True

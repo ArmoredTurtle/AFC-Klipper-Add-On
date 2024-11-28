@@ -11,6 +11,10 @@ class afc_hub:
 
         self.AFC = self.printer.lookup_object('AFC')
         self.type = config.get('type', None)
+        if self.type =='Box_Turtle':
+            self.ERROR = self.printer.load_object(config, 'AFC_BoxTurtle')
+        if self.type =='Night_Owl':
+            self.ERROR = self.printer.load_object(config, 'AFC_NightOwl')
 
         # HUB Cut variables
         # Next two variables are used in AFC
