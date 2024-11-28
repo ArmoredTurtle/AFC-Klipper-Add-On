@@ -4,7 +4,6 @@ try:
 except:
     # Python 2.7 support
     from urllib2 import urlopen
-from configparser import Error as error
 
 class afcSpool:
     def __init__(self, config):
