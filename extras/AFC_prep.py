@@ -19,6 +19,7 @@ class afcPrep:
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
+        self.delay = config.get('delay_time', .1, minval=0)
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
@@ -151,13 +152,11 @@ class afcPrep:
                         check_success = False
                         break
 
-                    if CUR_EXTRUDER.buffer_name !=None:
-                        CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
                         # Run test reverse/forward on each lane
                     if check_success == True:
                         CUR_LANE.extruder_stepper.sync_to_extruder(None)
                         CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                        self.reactor.pause(self.reactor.monotonic() + 1)
+                        self.reactor.pause(self.reactor.monotonic() + self.delay)
                         CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                     msg = ''
                     if CUR_LANE.prep_state == False:
@@ -188,7 +187,7 @@ class afcPrep:
                                     self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                                     if len(self.AFC.extruders) == 1:
                                         self.AFC.current = CUR_LANE.name
-                                        if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
+                                        CUR_EXTRUDER.enable_buffer()
                             else:
                                 lane_check=self.error_tool_unload(CUR_LANE)
                                 if lane_check != True:
