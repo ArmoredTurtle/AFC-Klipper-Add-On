@@ -48,7 +48,7 @@ class AFCextruder:
 
     def enable_buffer(self):
       """
-      Enable the buffer if `buffer_name` is set. 
+      Enable the buffer if `buffer_name` is set.
       Retrieves the buffer object and calls its `enable_buffer()` method to activate it.
       """
       self.get_buffer()
@@ -66,7 +66,7 @@ class AFCextruder:
     def buffer_status(self):
        """
        Retrieve the current status of the buffer.
-       If `buffer_name` is set, returns the buffer's status using `buffer_status()`. 
+       If `buffer_name` is set, returns the buffer's status using `buffer_status()`.
        Otherwise, returns None.
        """
        if self.buffer_name != None:
