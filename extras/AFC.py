@@ -104,9 +104,6 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
-        # Constant variable for renaming RESUME macro
-        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
-
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
         """
