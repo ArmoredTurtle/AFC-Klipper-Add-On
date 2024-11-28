@@ -24,6 +24,7 @@ class afcSpool:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
+        self.ERROR = self.printer.lookup_object('AFC_error')
 
     cmd_SET_COLOR_help = "change filaments color"
     def cmd_SET_COLOR(self, gcmd):
