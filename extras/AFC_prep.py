@@ -19,7 +19,7 @@ class afcPrep:
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
-        self.delay = config.get('delay_time', .1)
+        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
