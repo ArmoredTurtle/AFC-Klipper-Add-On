@@ -85,6 +85,7 @@ class afcBoxTurtle:
                     CUR_LANE.do_enable(False)
                     self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
                     CUR_LANE.set_afc_prep_done()
+        return True
 
 def load_config(config):
     return afcBoxTurtle(config)
