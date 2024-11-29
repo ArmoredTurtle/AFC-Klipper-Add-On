@@ -5,26 +5,6 @@
 The following commands are built-in the AFC-Klipper-Add-On and are available through 
 the Klipper console.
 
-### SET_MULTIPLIER
-_Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
-It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
-ensures that the factor is valid and updates the corresponding multiplier.  
-Usage: `SET_BUFFER_MULTIPLIER MULTIPLIER=<HIGH/LOW> FACTOR=<factor>`  
-Example: `SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2`  
-
-### SET_ROTATION_FACTOR
-_Description_: Adjusts the rotation distance of the current AFC stepper motor by applying a
-specified factor. If no factor is provided, it defaults to 1.0, which resets
-the rotation distance to the base value.  
-Usage: `SET_ROTATION_FACTOR FACTOR=<factor>`  
-Example: `SET_ROTATION_FACTOR FACTOR=1.2`  
-
-### QUERY_BUFFER
-_Description_: Reports the current state of the buffer sensor and, if applicable, the rotation
-distance of the current AFC stepper motor.  
-Usage: `QUERY_BUFFER BUFFER=<buffer_name>`  
-Example: `QUERY_BUFFER BUFFER=TN2`  
-
 ### AFC_STATUS
 _Description_: This function generates a status message for each unit and lane, indicating the preparation,
 loading, hub, and tool states. The status message is formatted with HTML tags for display.  
@@ -41,8 +21,8 @@ Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=100``
 
 ### CLEAR_ERROR
 _Description_: This function clears the error state of the AFC system by setting the error state to False.  
-Usage: ``RESET_FAILURE``  
-Example: ``RESET_FAILURE``  
+Usage: ``CLEAR_ERROR``  
+Example: ``CLEAR_ERROR``  
 
 ### AFC_RESUME
 _Description_: This function clears the error state of the AFC system, sets the in_toolchange flag to False,
@@ -112,6 +92,26 @@ based on the information retrieved from the Spoolman API.
 Usage: ``SET_SPOOLID LANE=<lane> SPOOL_ID=<spool_id>``  
 Example: ``SET_SPOOLID LANE=leg1 SPOOL_ID=12345``  
 
+### SET_MULTIPLIER
+_Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
+It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
+ensures that the factor is valid and updates the corresponding multiplier.  
+Usage: `SET_BUFFER_MULTIPLIER MULTIPLIER=<HIGH/LOW> FACTOR=<factor>`  
+Example: `SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2`  
+
+### SET_ROTATION_FACTOR
+_Description_: Adjusts the rotation distance of the current AFC stepper motor by applying a
+specified factor. If no factor is provided, it defaults to 1.0, which resets
+the rotation distance to the base value.  
+Usage: `SET_ROTATION_FACTOR FACTOR=<factor>`  
+Example: `SET_ROTATION_FACTOR FACTOR=1.2`  
+
+### QUERY_BUFFER
+_Description_: Reports the current state of the buffer sensor and, if applicable, the rotation
+distance of the current AFC stepper motor.  
+Usage: `QUERY_BUFFER BUFFER=<buffer_name>`  
+Example: `QUERY_BUFFER BUFFER=TN2`  
+
 ## AFC Macros
 
 The following macros are defined in the `config/macros/AFC_macros.cfg` file.
@@ -130,8 +130,6 @@ _Description_: Move the specified lane the specified amount
 _Description_: Resume the print after an error
 ### BT_PREP
 _Description_: Run the AFC PREP sequence
-### BT_RESUME
-_Description_: Resume the print after an error
 ### T0
 _Description_: Change to tool 0
 ### T1
