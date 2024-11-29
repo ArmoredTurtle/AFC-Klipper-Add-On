@@ -180,10 +180,8 @@ fi
 clone_repo
 check_existing_install
 check_old_config_version
-set_install_version
-echo "FORCE_UPDATE: $FORCE_UPDATE"
+set_install_version_if_missing
 if [ "$FORCE_UPDATE_NO_VERSION" == "False" ]; then
-  echo "FORCE_UPDATE_NO_VERSION is False"
   check_version_and_set_force_update
 fi
 info_menu
@@ -308,4 +306,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   print_msg INFO "  Prior to starting Klipper, please review all files in the AFC directory to ensure they are correct."
   print_msg WARNING "  This includes especially the AFC_Macro_Vars.cfg file and the pins in AFC_Hardware.cfg"
   print_msg INFO "  Once you have reviewed the files, restart Klipper to apply the changes."
+
+  # Set the installed-version to the latest version run
+  echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
 fi
