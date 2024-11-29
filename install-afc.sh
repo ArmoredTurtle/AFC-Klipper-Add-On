@@ -222,6 +222,7 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
   print_msg INFO "  Auto updating configuration files..."
   print_msg INFO "  Please review your configuration files for accuracy."
   auto_update
+  echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
   exit 0
 fi
 
