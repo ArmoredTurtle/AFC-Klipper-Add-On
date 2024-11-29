@@ -784,7 +784,7 @@ class afc:
                 LANE=self.printer.lookup_object('AFC_stepper '+ NAME)
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = LANE.index
-                str[UNIT][NAME]['Command'] = LANE.gcode_cmd
+                str[UNIT][NAME]['map'] = LANE.map
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']

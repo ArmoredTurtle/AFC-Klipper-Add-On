@@ -52,7 +52,7 @@ class AFCExtruderStepper:
         self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
         self.extruder_name = config.get('extruder')
-        self.gcode_cmd = config.get('cmd',None)
+        self.map = config.get('cmd',None)
 
         self.motion_queue = None
         self.status = None
