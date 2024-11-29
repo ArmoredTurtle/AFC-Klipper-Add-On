@@ -186,3 +186,18 @@ gcode:
 
 ### Fixed
 - Klipper erroring out when renaming `RESUME` macro when a user call's `BT_PREP` within the same reboot of klipper
+
+## [2024-11-27]
+
+### Added
+- `self.delay` to AFC_Prep to control delay time during Prep
+  - Config option under `[AFC Prep]`, `delay_time: 1  # default .1`
+  - This can be increased if TTC occurs during prep caused by H-bridge command queue
+
+### Changed
+- Simplified enabling and disabling of the buffer
+- `AFC_extruder.py` now holds the functions and controls of the buffer
+  - These common functions all called throughout
+
+### Fixed
+- Fixed erroring out if a buffer in not configured
