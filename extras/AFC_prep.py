@@ -20,9 +20,18 @@ class afcPrep:
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
         self.ERROR = self.printer.load_object(config, 'AFC_error')
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
+
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC = self.printer.lookup_object('AFC')
 
     def _rename_resume(self):
         """
@@ -45,7 +54,6 @@ class afcPrep:
             self.gcode.register_command(base_resume_name, self.ERROR.cmd_AFC_RESUME, desc=self.ERROR.cmd_AFC_RESUME_help)
 
     def PREP(self, gcmd):
-        self.AFC = self.printer.lookup_object('AFC')
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
 
@@ -120,95 +128,23 @@ class afcPrep:
                 except:
                     self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type), False)
                     continue
-
                 logo=unit_type.logo
                 logo+='  ' + UNIT + '\n'
                 logo_error=unit_type.logo_error
                 logo_error+='  ' + UNIT + '\n'
 
                 for LANE in self.AFC.lanes[UNIT].keys():
-                    check_success = True
-                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
-                    # Check each lane is assigned to a valid extruder
-                    try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-                    except:
-                        error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
-                        self.AFC.AFC_error(error_string, False)
-                        check_success = False
-                        break
+                    LaneCheck=unit_type.system_Test(UNIT,LANE)
 
-                    if CUR_EXTRUDER.buffer_name !=None:
-                        CUR_EXTRUDER.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
-                        # Run test reverse/forward on each lane
-                    if check_success == True:
-                        CUR_LANE.extruder_stepper.sync_to_extruder(None)
-                        CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                        self.reactor.pause(self.reactor.monotonic() + 1)
-                        CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                    msg = ''
-                    if CUR_LANE.prep_state == False:
-                        if CUR_LANE.load_state == False:
-                            self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
-                            msg += 'EMPTY READY FOR SPOOL'
-                        else:
-                            CUR_LANE.status = None
-                            msg +="<span class=error--text> NOT READY</span>"
-                            CUR_LANE.do_enable(False)
-                            msg = '<span class=secondary--text>CHECK FILAMENT Prep: False - Load: True</span>'
-
-                    elif CUR_LANE.prep_state == True:
-                        CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
-                        self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
-                        msg +="<span class=success--text>LOCKED</span>"
-                        if CUR_LANE.load_state == True:
-                            CUR_LANE.status = 'Loaded'
-                            msg +="<span class=success--text> AND LOADED</span>"
-                        else:
-                            msg +="<span class=error--text> NOT LOADED</span>"
-                        if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
-                            if CUR_EXTRUDER.tool_start_state == True:
-                                if CUR_LANE.prep_state == True and CUR_LANE.load_state == True:
-                                    CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                                    msg +="\n in ToolHead"
-                                    self.AFC.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
-                                    self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
-                                    if len(self.AFC.extruders) == 1:
-                                        self.AFC.current = CUR_LANE.name
-                                        if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
-                            else:
-                                lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
-                                if lane_check != True:
-                                    check_success = False
-                        else:
-                            if CUR_EXTRUDER.tool_start_state == True:
-                                if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                                    msg +="\n<span class=error--text> error in ToolHead. Extruder loaded with no lane identified</span>"
-                                    check_success = False
-
-                    CUR_LANE.do_enable(False)
-                    self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
-                    CUR_LANE.set_afc_prep_done()
-
-                for EXTRUDE in self.AFC.extruders.keys():
-                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-                    if CUR_EXTRUDER.tool_start_state == True:
-                        if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
-                            self.gcode.respond_info('Extruder loaded with out knowing Lane')
-                            check_success = False
-
-                if check_success == True:
+                if LaneCheck:
                     self.gcode.respond_raw(logo)
                 else:
                     self.gcode.respond_raw(logo_error)
-
-    def error_tool_unload(self, CUR_LANE):
-        self.gcode.respond_info('Error on filament trying to correct')
-        while CUR_LANE.load_state == True:
-            CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-        while CUR_LANE.load_state == False:
-            CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
-        return True
+            for EXTRUDE in self.AFC.extruders.keys():
+                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
+                if CUR_EXTRUDER.tool_start_state == True:
+                    if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
+                        self.gcode.respond_info(EXTRUDE + ' loaded with out knowing Lane')
 
 def load_config(config):
     return afcPrep(config)
