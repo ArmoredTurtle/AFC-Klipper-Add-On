@@ -260,8 +260,8 @@ class afc:
         """
         This function clears the error state of the AFC system by setting the error state to False.
 
-        Usage: `RESET_FAILURE`
-        Example: `RESET_FAILURE`
+        Usage: `CLEAR_ERROR`
+        Example: `CLEAR_ERROR`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
