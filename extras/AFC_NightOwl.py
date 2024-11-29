@@ -71,6 +71,8 @@ class afcNightOwl:
                                     if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
                             else:
                                 lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
+                                if not lane_check:
+                                    return False
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
