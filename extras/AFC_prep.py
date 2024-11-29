@@ -138,15 +138,6 @@ class afcPrep:
                     if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
                         self.gcode.respond_info(EXTRUDE + ' loaded with out knowing Lane')
 
-    def error_tool_unload(self, CUR_LANE):
-        self.gcode.respond_info('Error on filament trying to correct')
-        while CUR_LANE.load_state == True:
-            CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-        while CUR_LANE.load_state == False:
-            CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
-        return True
-
 def load_config(config):
     return afcPrep(config)
 

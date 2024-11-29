@@ -77,13 +77,10 @@ class afcBoxTurtle:
                                     if CUR_EXTRUDER.buffer_name is not None: CUR_EXTRUDER.buffer.enable_buffer()
                             else:
                                 lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
-                                if lane_check != True:
-                                    check_success = False
                         else:
                             if CUR_EXTRUDER.tool_start_state == True:
                                 if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                                     msg +="\n<span class=error--text> error in ToolHead. Extruder loaded with no lane identified</span>"
-                                    check_success = False
 
                     CUR_LANE.do_enable(False)
                     self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
