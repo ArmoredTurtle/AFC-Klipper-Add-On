@@ -261,6 +261,23 @@ class afc:
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+
+    cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
+    def cmd_CLEAR_ERROR(self, gcmd):
+        """
+        This function clears the error state of the AFC system by setting the error state to False.
+
+        Usage: `CLEAR_ERROR`
+        Example: `CLEAR_ERROR`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
+        self.set_error_state(False)
+
     def save_pos(self):
         # Only save previous location on the first toolchange call to keep an error state from overwriting the location
         if self.in_toolchange == False:
@@ -558,8 +575,7 @@ class afc:
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
 
                 self.current = CUR_LANE.name
-                if CUR_EXTRUDER.buffer_name != None:
-                    CUR_EXTRUDER.buffer.enable_buffer()
+                CUR_EXTRUDER.enable_buffer()
 
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
@@ -645,8 +661,7 @@ class afc:
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'unloading'
 
-        if CUR_EXTRUDER.buffer_name != None:
-            CUR_EXTRUDER.buffer.disable_buffer()
+        CUR_EXTRUDER.disable_buffer()
 
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
@@ -811,12 +826,8 @@ class afc:
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
             str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
             str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
-            if CUR_EXTRUDER.buffer_name != None:
-                str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
-                CUR_BUFFER = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
-                str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_BUFFER.buffer_status()
-            else:
-                str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
+            str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
+            str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer_status()
 
         return str
 

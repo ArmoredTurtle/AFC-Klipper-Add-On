@@ -21,6 +21,7 @@ class afcPrep:
         self.enable = config.getboolean("enable", False)
         self.ERROR = self.printer.load_object(config, 'AFC_error')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False

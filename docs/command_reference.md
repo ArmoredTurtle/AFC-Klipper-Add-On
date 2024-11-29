@@ -19,6 +19,17 @@ it uses the hub of the current lane.
 Usage: ``SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length>``  
 Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=100``  
 
+### CLEAR_ERROR
+_Description_: This function clears the error state of the AFC system by setting the error state to False.  
+Usage: ``CLEAR_ERROR``  
+Example: ``CLEAR_ERROR``  
+
+### AFC_RESUME
+_Description_: This function clears the error state of the AFC system, sets the in_toolchange flag to False,
+runs the resume script, and restores the toolhead position to the last saved position.  
+Usage: ``AFC_RESUME``  
+Example: ``AFC_RESUME``  
+
 ### HUB_CUT_TEST
 _Description_: This function tests the cutting sequence of the hub cutter for a specified lane.
 It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
@@ -100,17 +111,6 @@ _Description_: Reports the current state of the buffer sensor and, if applicable
 distance of the current AFC stepper motor.  
 Usage: `QUERY_BUFFER BUFFER=<buffer_name>`  
 Example: `QUERY_BUFFER BUFFER=TN2`  
-
-### CLEAR_ERROR
-_Description_: This function clears the error state of the AFC system by setting the error state to False.  
-Usage: ``RESET_FAILURE``  
-Example: ``RESET_FAILURE``  
-
-### AFC_RESUME
-_Description_: This function clears the error state of the AFC system, sets the in_toolchange flag to False,
-runs the resume script, and restores the toolhead position to the last saved position.  
-Usage: ``AFC_RESUME``  
-Example: ``AFC_RESUME``  
 
 ## AFC Macros
 
