@@ -181,7 +181,11 @@ clone_repo
 check_existing_install
 check_old_config_version
 set_install_version
-check_version_and_set_force_update
+echo "FORCE_UPDATE: $FORCE_UPDATE"
+if [ "$FORCE_UPDATE_NO_VERSION" == "False" ]; then
+  echo "FORCE_UPDATE_NO_VERSION is False"
+  check_version_and_set_force_update
+fi
 info_menu
 
 # Check if the user wants to update the configuration files and FORCE_UPDATE isn't True when a prior installation is detected.
