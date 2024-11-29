@@ -30,6 +30,7 @@ BRANCH=main
 # This FORCE_UPDATE variable is used to force an update of the AFC configuration files. This would typically be used
 # when there are major changes to the AFC configuration files that require more changes than we can handle automatically.
 # Anything before 1.0.0 or if it isn't defined will cause the FORCE_UPDATE to be TRUE
+CURRENT_INSTALL_VERSION="1.0.0"
 MIN_VERSION="1.0.0"
 FORCE_UPDATE=True
 BACKUP_DATE=$(date +%Y%m%d%H%M%S)

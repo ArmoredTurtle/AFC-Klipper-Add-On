@@ -179,6 +179,8 @@ fi
 # Since we aren't uninstalling, we need to do some basic functions
 clone_repo
 check_existing_install
+check_old_config_version
+set_install_version
 check_version_and_set_force_update
 info_menu
 
@@ -223,7 +225,7 @@ fi
 
 # If an existing installation is found, and we want to force run configuration changes.
 
-if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = True ]; then
+if [ "$PRIOR_INSTALLATION" = "True" ] && { [ "$FORCE_UPDATE" = True ] || [ "$FORCE_UPDATE_NO_VERSION" = True ]; }; then
   print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
   print_msg WARNING "  configuration files. Your existing configuration will be backed up to $PRINTER_CONFIG_PATH/AFC.backup.$BACKUP_DATE"
   confirm_continue
