@@ -17,8 +17,8 @@ class afcNightOwl:
     def handle_connect(self):
         """
         Handle the connection event.
-        This function is called when the printer connects. It looks up the toolhead object
-        and assigns it to the instance variable `self.toolhead`.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
 

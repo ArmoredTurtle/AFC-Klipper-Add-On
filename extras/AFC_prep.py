@@ -20,9 +20,18 @@ class afcPrep:
         self.gcode.register_command('PREP', self.PREP, desc=None)
         self.enable = config.getboolean("enable", False)
         self.ERROR = self.printer.load_object(config, 'AFC_error')
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
+
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC = self.printer.lookup_object('AFC')
 
     def _rename_resume(self):
         """
@@ -45,7 +54,6 @@ class afcPrep:
             self.gcode.register_command(base_resume_name, self.ERROR.cmd_AFC_RESUME, desc=self.ERROR.cmd_AFC_RESUME_help)
 
     def PREP(self, gcmd):
-        self.AFC = self.printer.lookup_object('AFC')
         while self.printer.state_message != 'Printer is ready':
             self.reactor.pause(self.reactor.monotonic() + 1)
 
