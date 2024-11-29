@@ -1,5 +1,7 @@
 from . import AFC
 
+from configparser import Error as error
+
 class afc_hub:
     def __init__(self, config):
         self.AFC = AFC.afc
@@ -11,10 +13,11 @@ class afc_hub:
 
         self.AFC = self.printer.lookup_object('AFC')
         self.type = config.get('type', None)
-        if self.type =='Box_Turtle':
-            self.ERROR = self.printer.load_object(config, 'AFC_BoxTurtle')
-        if self.type =='Night_Owl':
-            self.ERROR = self.printer.load_object(config, 'AFC_NightOwl')
+
+        try:
+            self.unit = self.printer.load_object(config, "AFC_{}".format(self.type.replace("_", "")))
+        except:
+            raise error("{} not supported, please remove or fix correct type for AFC_hub in your configuration".format(self.type))
 
         # HUB Cut variables
         # Next two variables are used in AFC

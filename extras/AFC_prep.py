@@ -125,17 +125,13 @@ class afcPrep:
                     return
                 self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
 
-                try: unit_type = self.printer.lookup_object('AFC_{}'.format(CUR_HUB.type.replace('_', '')))
-                except:
-                    self.ERROR.AFC_error("{} not supported".format(CUR_HUB.type), False)
-                    continue
-                logo=unit_type.logo
+                logo=CUR_HUB.unit.logo
                 logo+='  ' + UNIT + '\n'
-                logo_error=unit_type.logo_error
+                logo_error=CUR_HUB.unit.logo_error
                 logo_error+='  ' + UNIT + '\n'
 
                 for LANE in self.AFC.lanes[UNIT].keys():
-                    LaneCheck=unit_type.system_Test(UNIT,LANE)
+                    LaneCheck=CUR_HUB.unit.system_Test(UNIT,LANE, self.delay)
 
                 if LaneCheck:
                     self.gcode.respond_raw(logo)

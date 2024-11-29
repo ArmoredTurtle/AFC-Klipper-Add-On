@@ -12,7 +12,6 @@ except:
     # Python 2.7 support
     from urllib2 import urlopen
 
-
 from configparser import Error as error
 
 class afc:
@@ -23,7 +22,7 @@ class afc:
                                             self.handle_connect)
 
         self.ERROR = self.printer.load_object(config, 'AFC_error')
-        self.SPOOL = self.printer.load_object(config, 'AFC_spool')
+        self.spool = self.printer.load_object(config, 'AFC_spool')
 
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
@@ -103,6 +102,7 @@ class afc:
         
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.VarFile = config.get('VarFile')
+
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
