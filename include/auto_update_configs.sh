@@ -27,8 +27,9 @@ check_old_config_version() {
 }
 
 set_install_version() {
+  echo "Checking for .afc-version file..."
   if ! grep -q 'AFC_INSTALL_VERSION' "${AFC_CONFIG_PATH}/.afc-version"; then
-    echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" >> "${AFC_CONFIG_PATH}/.afc-version"
+    echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
   fi
 }
 
@@ -37,6 +38,7 @@ check_version_and_set_force_update() {
   local current_version
 
   if [[ -f $version_file ]]; then
+    echo "checking current version in .afc-version file..."
     current_version=$(grep -oP '(?<=AFC_INSTALL_VERSION=)[0-9]+\.[0-9]+\.[0-9]+' "$version_file")
   fi
 
