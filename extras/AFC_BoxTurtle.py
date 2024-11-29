@@ -4,7 +4,7 @@ class afcBoxTurtle:
         self.reactor = self.printer.get_reactor()
         self.gcode = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        
+
         firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
         secondLeg = firstLeg + '<span class=warning--text>|</span>'
         self.logo ='<span class=success--text>R  _____     ____\n'
