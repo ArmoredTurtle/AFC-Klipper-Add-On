@@ -42,7 +42,7 @@ check_version_and_set_force_update() {
     current_version=$(grep -oP '(?<=AFC_INSTALL_VERSION=)[0-9]+\.[0-9]+\.[0-9]+' "$version_file")
   fi
 
-  if [[ -z "$current_version" || "$current_version" < "$min_version" ]]; then
+  if [[ -z "$current_version" || "$current_version" < "$MIN_VERSION" ]]; then
     FORCE_UPDATE=True
   else
     FORCE_UPDATE=False
