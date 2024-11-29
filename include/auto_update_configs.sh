@@ -15,7 +15,7 @@ function auto_update() {
 
 check_old_config_version() {
   # Check if 'Type: Box_Turtle' is found in the first 5 lines of the file
-  if head -n 5 "${AFC_CONFIG_PATH}/AFC.cfg" | grep -q 'Type: Box_Turtle'; then
+  if head -n 15 "${AFC_CONFIG_PATH}/AFC.cfg" | grep -v '^\s*#' | grep -q 'Type: Box_Turtle'; then
     FORCE_UPDATE=True
     # Since we have software without an AFC_INSTALL_VERSION in it, we need a way to designate this as a version that needs to be updated.
     FORCE_UPDATE_NO_VERSION=True
