@@ -32,6 +32,7 @@ class afc:
         self.failure = False
         self.lanes = {}
         self.extruders = {}
+        self.tool_cmds={}
         self.afc_monitoring = False
 
         # tool position when tool change was requested
@@ -737,7 +738,9 @@ class afc:
         Returns:
             None
         """
-        lane = gcmd.get('LANE', None)
+        cmd = gcmd.get_commandline()
+        lane=self.tool_cmds[cmd]
+        
         # Try to get bypass filament sensor, if lookup fails default to None
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
@@ -817,7 +820,7 @@ class afc:
                 str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_BUFFER.buffer_status()
             else:
                 str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
-
+  
         return str
 
     def is_homed(self):

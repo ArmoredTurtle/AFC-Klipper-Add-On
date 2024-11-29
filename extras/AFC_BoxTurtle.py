@@ -87,6 +87,8 @@ class afcBoxTurtle:
                     CUR_LANE.do_enable(False)
                     self.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
                     CUR_LANE.set_afc_prep_done()
+        self.AFC.tool_cmds[self.AFC.lanes[UNIT][LANE]['command']]=LANE
+        self.gcode.register_command(self.AFC.lanes[UNIT][LANE]['command'], self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
         return True
 
 def load_config(config):
