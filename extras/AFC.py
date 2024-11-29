@@ -101,7 +101,6 @@ class afc:
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
 
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
-        
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
@@ -740,7 +739,6 @@ class afc:
         """
         cmd = gcmd.get_commandline()
         lane=self.tool_cmds[cmd]
-        
         # Try to get bypass filament sensor, if lookup fails default to None
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
@@ -820,7 +818,7 @@ class afc:
                 str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_BUFFER.buffer_status()
             else:
                 str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
-  
+
         return str
 
     def is_homed(self):
