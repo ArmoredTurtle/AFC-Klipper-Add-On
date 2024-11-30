@@ -15,6 +15,7 @@ class afcSpool:
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
         self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
         self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
+        self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
 
     def handle_connect(self):
         """
@@ -24,6 +25,47 @@ class afcSpool:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.ERROR = self.printer.lookup_object('AFC_error')
+
+    cmd_SET_MAP_help = "change filaments color"
+    def cmd_SET_MAP(self, gcmd):
+        """
+        This function handles changing the GCODE tool change command for a Lane.
+
+        Usage: `SET_MAP LANE=<lane> MAP=<cmd>`
+        Example: `SET_MAP LANE=leg1 MAP=T1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane whose color is to be changed.
+                  - MAP: The new tool change gcode for lane (optional, defaults to None).
+
+        Returns:
+            None
+        """
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        map_cmd = gcmd.get('MAP', None)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.map = map_cmd
+        for UNIT_SERACH in self.AFC.lanes.keys():
+            if lane in self.AFC.lanes[UNIT_SERACH]:
+                UNIT = UNIT_SERACH
+
+        lane_switch=self.AFC.tool_cmds[map_cmd]
+        for UNIT_SERACH in self.AFC.lanes.keys():
+            if lane_switch in self.AFC.lanes[UNIT_SERACH]:
+                UNIT_switch = UNIT_SERACH
+
+        self.AFC.tool_cmds[map_cmd]=lane_switch
+        self.AFC.lanes[UNIT_switch][lane_switch]['map'] = self.AFC.lanes[UNIT][CUR_LANE]['map']
+
+        self.AFC.tool_cmds[map_cmd]=lane
+        self.AFC.lanes[UNIT][CUR_LANE]['map']
+
+        self.AFC.save_vars()
 
     cmd_SET_COLOR_help = "change filaments color"
     def cmd_SET_COLOR(self, gcmd):

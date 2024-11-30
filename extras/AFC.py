@@ -31,6 +31,7 @@ class afc:
         self.failure = False
         self.lanes = {}
         self.extruders = {}
+        self.tool_cmds={}
         self.afc_monitoring = False
 
         # tool position when tool change was requested
@@ -99,7 +100,6 @@ class afc:
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
 
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
-        
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.VarFile = config.get('VarFile')
 
@@ -752,7 +752,8 @@ class afc:
         Returns:
             None
         """
-        lane = gcmd.get('LANE', None)
+        cmd = gcmd.get_commandline()
+        lane=self.tool_cmds[cmd]
         # Try to get bypass filament sensor, if lookup fails default to None
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
@@ -796,7 +797,7 @@ class afc:
                 LANE=self.printer.lookup_object('AFC_stepper '+ NAME)
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = LANE.index
-                str[UNIT][NAME]['Command'] = LANE.gcode_cmd
+                str[UNIT][NAME]['map'] = LANE.map
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
