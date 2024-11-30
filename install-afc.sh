@@ -234,8 +234,8 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && { [ "$FORCE_UPDATE" = True ] || [ "$FOR
   print_msg WARNING "  Your Box Turtle must be unloaded before continuing."
   confirm_continue
   backup_afc_config
-  rm -f ${AFC_CONFIG_PATH}/AFC*tool || true
-  rm -f ${AFC_CONFIG_PATH}/AFC*unit || true
+  rm -f "${AFC_CONFIG_PATH}"/AFC{,.var}.tool
+  rm -f "${AFC_CONFIG_PATH}"/AFC{,.var}.unit
   PRIOR_INSTALLATION=False
 fi
 
