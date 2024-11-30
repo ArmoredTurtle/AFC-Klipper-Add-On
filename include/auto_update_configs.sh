@@ -12,14 +12,21 @@ function auto_update() {
   # mv "${AFC_CONFIG_PATH}/AFC_Hardware-temp.cfg" "${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
 }
 
-
 check_old_config_version() {
-  # Check if 'Type: Box_Turtle' is found in the first 5 lines of the file
-  if head -n 15 "${AFC_CONFIG_PATH}/AFC.cfg" | grep -v '^\s*#' | grep -q 'Type: Box_Turtle'; then
+  local config_file="${AFC_CONFIG_PATH}/AFC.cfg"
+
+  # Check if the configuration file exists
+  if [[ ! -f "$config_file" ]]; then
+    FORCE_UPDATE=False
+    FORCE_UPDATE_NO_VERSION=False
+    return
+  fi
+
+  # Check if 'Type: Box_Turtle' is found in the first 15 lines of the file
+  if head -n 15 "$config_file" | grep -v '^\s*#' | grep -q 'Type: Box_Turtle'; then
     FORCE_UPDATE=True
     # Since we have software without an AFC_INSTALL_VERSION in it, we need a way to designate this as a version that needs to be updated.
     FORCE_UPDATE_NO_VERSION=True
-    return
   else
     FORCE_UPDATE=False
     FORCE_UPDATE_NO_VERSION=False
@@ -27,8 +34,19 @@ check_old_config_version() {
 }
 
 set_install_version_if_missing() {
-  if ! grep -q 'AFC_INSTALL_VERSION' "${AFC_CONFIG_PATH}/.afc-version"; then
-    echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
+  local version_file="${AFC_CONFIG_PATH}/.afc-version"
+
+  # Check if the version file exists
+  if [[ ! -f "$version_file" ]]; then
+    return
+  fi
+
+  # Check if 'AFC_INSTALL_VERSION' is missing and add it if necessary
+  if ! grep -q 'AFC_INSTALL_VERSION' "$version_file"; then
+    if ! echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "$version_file"; then
+      echo "Error: Failed to write to version file '$version_file'."
+      return 1
+    fi
   fi
 }
 
