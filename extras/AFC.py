@@ -258,22 +258,6 @@ class afc:
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
 
-    cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
-    def cmd_CLEAR_ERROR(self, gcmd):
-        """
-        This function clears the error state of the AFC system by setting the error state to False.
-
-        Usage: `CLEAR_ERROR`
-        Example: `CLEAR_ERROR`
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-
-        Returns:
-            None
-        """
-        self.set_error_state(False)
-
     def save_pos(self):
         # Only save previous location on the first toolchange call to keep an error state from overwriting the location
         if self.in_toolchange == False:

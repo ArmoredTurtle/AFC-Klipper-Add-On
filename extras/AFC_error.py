@@ -17,7 +17,7 @@ class afcError:
         # Constant variable for renaming RESUME macro
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
 
-        self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_RESET_FAILURE, desc=self.cmd_RESET_FAILURE_help)
         self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
 
     def fix(self, problem, LANE=None):
@@ -78,8 +78,8 @@ class afcError:
         self.AFC.gcode._respond_error( msg )
 
 
-    cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
-    def cmd_CLEAR_ERROR(self, gcmd):
+    cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
+    def cmd_RESET_FAILURE(self, gcmd):
         """
         This function clears the error state of the AFC system by setting the error state to False.
 
