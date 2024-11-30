@@ -231,8 +231,11 @@ fi
 if [ "$PRIOR_INSTALLATION" = "True" ] && { [ "$FORCE_UPDATE" = True ] || [ "$FORCE_UPDATE_NO_VERSION" = True ]; }; then
   print_msg WARNING "  Due to many required changes in the software, we are unable to perform an automatic update of the"
   print_msg WARNING "  configuration files. Your existing configuration will be backed up to $PRINTER_CONFIG_PATH/AFC.backup.$BACKUP_DATE"
+  print_msg WARNING "  Your Box Turtle must be unloaded before continuing."
   confirm_continue
   backup_afc_config
+  rm -f "${AFC_CONFIG_PATH}"/AFC{,.var}.tool
+  rm -f "${AFC_CONFIG_PATH}"/AFC{,.var}.unit
   PRIOR_INSTALLATION=False
 fi
 
