@@ -17,13 +17,14 @@ class afcError:
         # Constant variable for renaming RESUME macro
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
 
-        self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_RESET_FAILURE, desc=self.cmd_RESET_FAILURE_help)
         self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
-        
+
     def fix(self, problem, LANE=None):
         self.pause= True
-        self.set_error_state(True)
         self.AFC = self.printer.lookup_object('AFC')
+        self.set_error_state(True)
+        error_handled = False
         if problem == None:
             self.PauseUserIntervention('Paused for unknown error')
         if problem=='toolhead':
@@ -61,7 +62,7 @@ class afcError:
     def PauseUserIntervention(self,message):
         #pause for user intervention
         self.AFC.gcode.respond_info(message)
-        if self.is_homed() and not self.is_paused():
+        if self.AFC.is_homed() and not self.AFC.is_paused():
             self.AFC.save_pos()
             self.AFC.gcode.respond_info ('PAUSING')
             if self.pause: self.pause_print()
@@ -77,8 +78,8 @@ class afcError:
         self.AFC.gcode._respond_error( msg )
 
 
-    cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
-    def cmd_CLEAR_ERROR(self, gcmd):
+    cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
+    def cmd_RESET_FAILURE(self, gcmd):
         """
         This function clears the error state of the AFC system by setting the error state to False.
 
