@@ -6,12 +6,6 @@
 
 
 import json
-try:
-    from urllib.request import urlopen
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
-
 
 from configparser import Error as error
 
@@ -23,7 +17,7 @@ class afc:
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
         self.gcode = self.printer.lookup_object('gcode')
-        
+
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
         self.current = None
@@ -89,8 +83,9 @@ class afc:
         self.xy_resume =config.getboolean("xy_resume", False)
         self.resume_speed =config.getfloat("resume_speed", 0)
         self.resume_z_speed = config.getfloat("resume_z_speed", 0)
-        
+
         self.VarFile = config.get('VarFile')
+
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
@@ -101,12 +96,10 @@ class afc:
         This function is called when the printer connects. It looks up the toolhead object
         and assigns it to the instance variable `self.toolhead`.
         """
-        
+
         self.toolhead = self.printer.lookup_object('toolhead')
-        
 
         # GCODE REGISTERS
-
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
         self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
         self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
@@ -264,6 +257,7 @@ class afc:
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+
     def save_pos(self):
         # Only save previous location on the first toolchange call to keep an error state from overwriting the location
         if self.in_toolchange == False:
@@ -561,8 +555,7 @@ class afc:
                 self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
 
                 self.current = CUR_LANE.name
-                if CUR_EXTRUDER.buffer_name != None:
-                    CUR_EXTRUDER.buffer.enable_buffer()
+                CUR_EXTRUDER.enable_buffer()
 
                 self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
                 if self.poop:
@@ -648,8 +641,7 @@ class afc:
         self.heater = extruder.get_heater() #Get extruder heater
         CUR_LANE.status = 'unloading'
 
-        if CUR_EXTRUDER.buffer_name != None:
-            CUR_EXTRUDER.buffer.disable_buffer()
+        CUR_EXTRUDER.disable_buffer()
 
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
         CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
@@ -815,12 +807,8 @@ class afc:
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
             str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
             str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state   if CUR_EXTRUDER.tool_end   is not None else False
-            if CUR_EXTRUDER.buffer_name != None:
-                str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
-                CUR_BUFFER = self.printer.lookup_object('AFC_buffer ' + CUR_EXTRUDER.buffer_name)
-                str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_BUFFER.buffer_status()
-            else:
-                str["system"]["extruders"][EXTRUDE]['buffer']   = 'None'
+            str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
+            str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer_status()
 
         return str
 

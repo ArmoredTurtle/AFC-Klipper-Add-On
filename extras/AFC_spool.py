@@ -97,7 +97,7 @@ class afcSpool:
 
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
-        if self.spoolman_ip != None:
+        if self.AFC.spoolman_ip != None:
             if ID:
                 args = {'spool_id' : int(ID)}
                 try:
