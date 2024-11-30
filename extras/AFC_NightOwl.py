@@ -84,7 +84,7 @@ class afcNightOwl:
             self.AFC.tool_cmds[self.AFC.lanes[UNIT][LANE]['map']]=LANE
             self.gcode.register_command(self.AFC.lanes[UNIT][LANE]['map'], self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
         else:
-            self.AFC.ERROR.fix('Command ' + self.AFC.lanes[UNIT][LANE]['map'] + ' ALready Taken please re-map ' + UNIT + '/' +LANE)
+            self.AFC.ERROR.fix('Command {} ALready Taken please re-map {}/{}'.format(self.AFC.lanes[UNIT][LANE]['map'], UNIT,LANE))
         return True
 
 def load_config(config):

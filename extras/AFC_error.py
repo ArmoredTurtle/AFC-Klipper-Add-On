@@ -16,8 +16,9 @@ class afcError:
 
     def fix(self, problem, LANE=None):
         self.pause= True
-        self.set_error_state(True)
         self.AFC = self.printer.lookup_object('AFC')
+        self.set_error_state(True)
+        error_handled = False
         if problem == None:
             self.PauseUserIntervention('Paused for unknown error')
         if problem=='toolhead':
@@ -55,7 +56,7 @@ class afcError:
     def PauseUserIntervention(self,message):
         #pause for user intervention
         self.gcode.respond_info(message)
-        if self.is_homed() and not self.is_paused():
+        if self.AFC.is_homed() and not self.AFC.is_paused():
             self.AFC.save_pos()
             self.gcode.respond_info ('PAUSING')
             if self.pause: self.pause_print()
