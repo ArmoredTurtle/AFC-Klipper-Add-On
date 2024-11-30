@@ -44,7 +44,7 @@ class AFCextruder:
           self.buffer = self.printer.lookup_object('AFC_buffer ' + self.buffer_name)
 
     def _handle_ready(self):
-       self.get_buffer()
+      self.get_buffer()
 
     def enable_buffer(self):
       """

@@ -6,11 +6,6 @@
 
 
 import json
-try:
-    from urllib.request import urlopen
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
 
 from configparser import Error as error
 
@@ -22,7 +17,7 @@ class afc:
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
         self.gcode = self.printer.lookup_object('gcode')
-        
+
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
         self.current = None
@@ -88,7 +83,7 @@ class afc:
         self.xy_resume =config.getboolean("xy_resume", False)
         self.resume_speed =config.getfloat("resume_speed", 0)
         self.resume_z_speed = config.getfloat("resume_z_speed", 0)
-        
+
         self.VarFile = config.get('VarFile')
 
         # Get debug and cast to boolean
@@ -101,12 +96,10 @@ class afc:
         This function is called when the printer connects. It looks up the toolhead object
         and assigns it to the instance variable `self.toolhead`.
         """
-        
+
         self.toolhead = self.printer.lookup_object('toolhead')
-        
 
         # GCODE REGISTERS
-
         self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
         self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
         self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
