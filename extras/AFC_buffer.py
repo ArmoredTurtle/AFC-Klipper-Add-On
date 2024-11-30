@@ -87,9 +87,10 @@ class AFCtrigger:
     def belay_sensor_callback(self, eventime, state):
         if not self.last_state and state:
             if self.printer.state_message == 'Printer is ready' and self.enable:
-                cur_stepper = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
-                if cur_stepper.hub.tool_state:
-                    if self.AFC.current != None:
+                if self.AFC.current is not None:
+                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                    if CUR_EXTRUDER.tool_start_state:
                         self.belay_move_lane(state)
         self.last_state = state
 
