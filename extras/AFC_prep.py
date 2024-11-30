@@ -15,13 +15,10 @@ except:
 class afcPrep:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
-        self.gcode.register_command('PREP', self.PREP, desc=None)
-        self.enable = config.getboolean("enable", False)
-        self.ERROR = self.printer.load_object(config, 'AFC_error')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
+       
+        self.enable = config.getboolean("enable", False)
 
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
@@ -33,6 +30,7 @@ class afcPrep:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
+        self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
 
     def _rename_resume(self):
         """
@@ -45,18 +43,18 @@ class afcPrep:
             self.rename_occured = True
             # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
             base_resume_name = "RESUME"
-            prev_cmd = self.gcode.register_command(base_resume_name, None)
+            prev_cmd = self.AFC.gcode.register_command(base_resume_name, None)
             if prev_cmd is not None:
                 pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
-                self.gcode.register_command(self.ERROR.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
+                self.AFC.gcode.register_command(self.AFC.ERROR.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
             else:
-                self.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
+                self.AFC.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
 
-            self.gcode.register_command(base_resume_name, self.ERROR.cmd_AFC_RESUME, desc=self.ERROR.cmd_AFC_RESUME_help)
+            self.AFC.gcode.register_command(base_resume_name, self.AFC.ERROR.cmd_AFC_RESUME, desc=self.AFC.ERROR.cmd_AFC_RESUME_help)
 
     def PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
-            self.reactor.pause(self.reactor.monotonic() + 1)
+            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
 
         self._rename_resume()
 
@@ -112,7 +110,7 @@ class afcPrep:
         self.AFC.save_vars()
 
         if self.enable == False:
-            self.gcode.respond_info('Prep Checks Disabled')
+            self.AFC.gcode.respond_info('Prep Checks Disabled')
             return
         elif len(self.AFC.lanes) >0:
             for UNIT in self.AFC.lanes.keys():
@@ -123,7 +121,7 @@ class afcPrep:
                     error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
                     self.AFC.AFC_error(error_string, False)
                     return
-                self.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
+                self.AFC.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
 
                 logo=CUR_HUB.unit.logo
                 logo+='  ' + UNIT + '\n'
@@ -134,14 +132,14 @@ class afcPrep:
                     LaneCheck=CUR_HUB.unit.system_Test(UNIT,LANE, self.delay)
 
                 if LaneCheck:
-                    self.gcode.respond_raw(logo)
+                    self.AFC.gcode.respond_raw(logo)
                 else:
-                    self.gcode.respond_raw(logo_error)
+                    self.AFC.gcode.respond_raw(logo_error)
             for EXTRUDE in self.AFC.extruders.keys():
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
                 if CUR_EXTRUDER.tool_start_state == True:
                     if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
-                        self.gcode.respond_info(EXTRUDE + ' loaded with out knowing Lane')
+                        self.AFC.gcode.respond_info(EXTRUDE + ' loaded with out knowing Lane')
 
 def load_config(config):
     return afcPrep(config)

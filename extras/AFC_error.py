@@ -3,17 +3,23 @@
 class afcError:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.errorLog= {}
         self.pause= False
 
-        self.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
-        self.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
-
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC = self.printer.lookup_object('AFC')
         # Constant variable for renaming RESUME macro
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
 
+        self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_CLEAR_ERROR, desc=self.cmd_CLEAR_ERROR_help)
+        self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
+        
     def fix(self, problem, LANE=None):
         self.pause= True
         self.AFC = self.printer.lookup_object('AFC')
@@ -55,10 +61,10 @@ class afcError:
 
     def PauseUserIntervention(self,message):
         #pause for user intervention
-        self.gcode.respond_info(message)
+        self.AFC.gcode.respond_info(message)
         if self.AFC.is_homed() and not self.AFC.is_paused():
             self.AFC.save_pos()
-            self.gcode.respond_info ('PAUSING')
+            self.AFC.gcode.respond_info ('PAUSING')
             if self.pause: self.pause_print()
 
     def set_error_state(self, state):
@@ -69,7 +75,7 @@ class afcError:
 
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
-        self.gcode._respond_error( msg )
+        self.AFC.gcode._respond_error( msg )
 
 
     cmd_CLEAR_ERROR_help = "CLEAR STATUS ERROR"
@@ -105,7 +111,7 @@ class afcError:
         """
         self.set_error_state(False)
         self.in_toolchange = False
-        self.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
+        self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
         self.restore_pos()
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
