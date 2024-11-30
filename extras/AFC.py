@@ -19,13 +19,11 @@ class afc:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
-        self.printer.register_event_handler("klippy:connect",
-                                            self.handle_connect)
-
-        self.ERROR = self.printer.load_object(config, 'AFC_error')
-        self.SPOOL = self.printer.load_object(config, 'AFC_spool')
-
+        self.printer.register_event_handler("klippy:connect",self.handle_connect)
+        self.SPOOL = self.printer.load_object(config,'AFC_spool')
+        self.ERROR = self.printer.load_object(config,'AFC_error')
         self.gcode = self.printer.lookup_object('gcode')
+        
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
         self.current = None
@@ -91,17 +89,7 @@ class afc:
         self.xy_resume =config.getboolean("xy_resume", False)
         self.resume_speed =config.getfloat("resume_speed", 0)
         self.resume_z_speed = config.getfloat("resume_z_speed", 0)
-        self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
-        self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
-        self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
-        self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
-        self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
-        self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
-        self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
-        self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
-
-        self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
-        self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
+        
         self.VarFile = config.get('VarFile')
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
@@ -113,7 +101,22 @@ class afc:
         This function is called when the printer connects. It looks up the toolhead object
         and assigns it to the instance variable `self.toolhead`.
         """
+        
         self.toolhead = self.printer.lookup_object('toolhead')
+        
+
+        # GCODE REGISTERS
+
+        self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
+        self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
+        self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
+        self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
+        self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+        self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
+        self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
+        self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
+        self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
+        self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
