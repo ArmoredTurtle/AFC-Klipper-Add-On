@@ -824,7 +824,6 @@ class afc:
     def is_homed(self):
         curtime = self.reactor.monotonic()
         kin_status = self.toolhead.get_kinematics().get_status(curtime)
-        self.gcode.respond_info("{}".format(kin_status))
         if ('x' not in kin_status['homed_axes'] or 'y' not in kin_status['homed_axes'] or 'z' not in kin_status['homed_axes']):
             return False
         else:
