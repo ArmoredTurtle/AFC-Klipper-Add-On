@@ -45,8 +45,9 @@ class afc:
         self.led_name = config.get('led_name')
         self.led_fault =config.get('led_fault','1,0,0,0')
         self.led_ready = config.get('led_ready','1,1,1,1')
-        self.led_not_ready = config.get('led_not_ready','1,0,0,0')
-        self.led_loading = config.get('led_loading','1,1,0,0')
+        self.led_not_ready = config.get('led_not_ready','1,1,0,0')
+        self.led_loading = config.get('led_loading','1,0,0,0')
+        self.led_prep_loaded = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
         self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')
@@ -773,6 +774,31 @@ class afc:
                 self.restore_pos()
                 self.in_toolchange = False
 
+    def get_filament_status(self, LANE):
+        if LANE.prep_state:
+            if LANE.load_state:
+                if self.extruders[LANE.extruder_name]['lane_loaded'] == LANE.name:
+                    return 'In Tool:' + self.led_tool_loaded
+                return "Ready:" + self.HexConvert(self.led_ready)
+            return 'Prep:' + self.HexConvert(self.led_prep_loaded)
+        return 'Not Ready:' + self.HexConvert(self.led_not_ready)
+
+    def HexConvert(self,tmp):
+        led=tmp.split(',')
+        if float(led[0])>0:
+            led[0]=int(255*float(led[0]))
+        else:
+            led[0]=0
+        if float(led[1])>0:
+            led[1]=int(255*float(led[1]))
+        else:
+            led[1]=0
+        if float(led[2])>0:
+            led[2]=int(255*float(led[2]))
+        else:
+            led[2]=0
+        return f'#{led[0]:02x}{led[1]:02x}{led[2]:02x}'
+
     def get_status(self, eventtime):
         str = {}
         numoflanes = 0
@@ -795,6 +821,11 @@ class afc:
                 str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
                 str[UNIT][NAME]["weight"]=self.lanes[UNIT][NAME]['weight']
                 str[UNIT][NAME]["runout_lane"]=self.lanes[LANE.unit][LANE.name]['runout_lane']
+                filiment_stat=self.get_filament_status(LANE).split(':')
+                str[UNIT][NAME]['filament_status']=filiment_stat[0]
+                self.lanes[UNIT][NAME]['filament_status']=filiment_stat[0]
+                str[UNIT][NAME]['filament_status_led']=filiment_stat[1]
+                self.lanes[UNIT][NAME]['filament_status_led']=filiment_stat[1]
                 numoflanes +=1
             str[UNIT]['system']={}
             str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
@@ -810,7 +841,6 @@ class afc:
         str["system"]["extruders"]={}
 
         for EXTRUDE in self.extruders.keys():
-
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']

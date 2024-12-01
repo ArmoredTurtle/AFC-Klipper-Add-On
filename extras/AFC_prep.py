@@ -134,9 +134,15 @@ class afcPrep:
                     self.AFC.gcode.respond_raw(logo)
                 else:
                     self.AFC.gcode.respond_raw(logo_error)
+            try:
+                bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+                if bypass.filament_present == True:
+                    self.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
+            except: bypass = None
+
             for EXTRUDE in self.AFC.extruders.keys():
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-                if CUR_EXTRUDER.tool_start_state == True:
+                if CUR_EXTRUDER.tool_start_state == True and bypass != True:
                     if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
                         self.AFC.gcode.respond_info(EXTRUDE + ' loaded with out knowing Lane')
 
