@@ -64,8 +64,9 @@ class afcError:
         self.AFC.gcode.respond_info(message)
         if self.AFC.is_homed() and not self.AFC.is_paused():
             self.AFC.save_pos()
-            self.AFC.gcode.respond_info ('PAUSING')
-            if self.pause: self.pause_print()
+            if self.pause:
+                self.AFC.gcode.respond_info('PAUSING')
+                self.AFC.gcode.run_script_from_command('PAUSE')
 
     def set_error_state(self, state):
         # Only save position on first error state call
@@ -110,17 +111,17 @@ class afcError:
             None
         """
         self.set_error_state(False)
-        self.in_toolchange = False
+        self.AFC.in_toolchange = False
         self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
-        self.restore_pos()
+        self.AFC.restore_pos()
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message, pause=True):
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
-        self.AFC_error(msg, pause)
-        self.afc_led(self.led_fault, CUR_LANE.led_index)
+        self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
+        self.PauseUserIntervention(msg)
 
 def load_config(config):
     return afcError(config)
