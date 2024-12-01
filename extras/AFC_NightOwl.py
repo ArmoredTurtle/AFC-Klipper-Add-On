@@ -67,7 +67,7 @@ class afcNightOwl:
                                 self.AFC.current = CUR_LANE.name
                                 CUR_EXTRUDER.enable_buffer()
                         else:
-                            lane_check=self.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
+                            lane_check=self.AFC.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
                             if not lane_check:
                                 return False
                     else:
@@ -81,7 +81,10 @@ class afcNightOwl:
 
         if self.AFC.lanes[UNIT][LANE]['map'] not in self.AFC.tool_cmds:
             self.AFC.tool_cmds[self.AFC.lanes[UNIT][LANE]['map']]=LANE
-            self.AFC.gcode.register_command(self.AFC.lanes[UNIT][LANE]['map'], self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
+            try:
+                self.AFC.gcode.register_command(self.AFC.lanes[UNIT][LANE]['map'], self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
+            except:
+                self.AFC.ERROR.AFC_error("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=LANE, tool_macro=self.AFC.lanes[UNIT][LANE]['map']), )
         else:
             self.AFC.ERROR.fix('Command {} ALready Taken please re-map {}/{}'.format(self.AFC.lanes[UNIT][LANE]['map'], UNIT,LANE))
         return True
