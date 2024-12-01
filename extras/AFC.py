@@ -498,6 +498,9 @@ class afc:
             if bypass.filament_present == True:
                 return
         except: bypass = None
+
+        self.gcode.respond_info("Loading {}".format(CUR_LANE.name))
+
         self.failure = False
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
@@ -527,9 +530,8 @@ class afc:
                 #callout if filament doesn't go past hub during load
                 if hub_attempts > 20:
                     self.failure = True
-                    self.pause_print()
                     message = (' PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
-                    self.handle_lane_failure(CUR_LANE, message)
+                    self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return
             CUR_LANE.move( CUR_HUB.afc_bowden_length, self.long_moves_speed, self.long_moves_accel, True)
             tool_attempts = 0
@@ -569,11 +571,10 @@ class afc:
             # Setting hub loaded outside of failure check since this could be true
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = True
             self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
-            self.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+            self.SPOOL.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars() # Always save variables even if a failure happens
             if self.failure == True:
-                self.pause_print()
                 self.afc_led(self.led_fault, CUR_LANE.led_index)
         else:
             #callout if hub is triggered when trying to load
@@ -628,6 +629,9 @@ class afc:
         """
         if CUR_LANE == None:
             return
+
+        self.gcode.respond_info("Unloading {}".format(CUR_LANE.name))
+
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         pos = self.toolhead.get_position()
@@ -732,19 +736,24 @@ class afc:
         Returns:
             None
         """
+        if not self.is_homed():
+            self.ERROR.AFC_error("Please home printer before doing a toolchange")
+            return
+
         cmd = gcmd.get_commandline()
         lane=self.tool_cmds[cmd]
         # Try to get bypass filament sensor, if lookup fails default to None
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present == True:
+                self.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
                 return
         except: bypass = None
 
         if lane != self.current:
             # Create save state
             self.save_pos()
-            # Set in_toolchange flag so if there is a failure it doesnt overwrite the saved position
+            # Set in_toolchange flag so if there is a failure it doesn't overwrite the saved position
             self.in_toolchange = True
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             if CUR_LANE._afc_prep_done == True:
@@ -757,10 +766,10 @@ class afc:
                         self.ERROR.fix(msg)  #send to error handling
                         return
                 CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-                #CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 self.TOOL_LOAD(CUR_LANE)
                 # Restore state
             if self.failure == False:
+                self.gcode.respond_info("{} is now loaded in toolhead".format(lane))
                 self.restore_pos()
                 self.in_toolchange = False
 
