@@ -591,7 +591,6 @@ class afc:
                 CUR_LANE.extruder_stepper.sync_to_extruder(None)
                 load_checks = 0
                 while CUR_EXTRUDER.tool_start_state == True:
-                    CUR_LANE.extruder_stepper.sync_to_extruder(None)
                     CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
                     load_checks += 1
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
