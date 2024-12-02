@@ -163,27 +163,23 @@ class AFCtrigger:
     def advance_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
-            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-            if CUR_EXTRUDER.tool_start_state:
-                if self.AFC.current != None and state:
-                    CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
-                    self.reactor.pause(self.reactor.monotonic() + 1)
-                    CUR_LANE.assist(0)
-                    self.set_multiplier( self.multiplier_low )
-                    if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
+            if self.AFC.current != None and state:
+                CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
+                self.reactor.pause(self.reactor.monotonic() + 1)
+                CUR_LANE.assist(0)
+                self.set_multiplier( self.multiplier_low )
+                if self.debug: self.gcode.respond_info("Buffer Triggered State: Advanced")
         self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, eventime, state):
         if self.printer.state_message == 'Printer is ready' and self.enable:
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
-            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-            if CUR_EXTRUDER.tool_start_state:
-                if self.AFC.current != None and state:
-                    CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
-                    self.reactor.pause(self.reactor.monotonic() + 1)
-                    CUR_LANE.assist(0)
-                    self.set_multiplier( self.multiplier_high )
-                    if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
+            if self.AFC.current != None and state:
+                CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
+                self.reactor.pause(self.reactor.monotonic() + 1)
+                CUR_LANE.assist(0)
+                self.set_multiplier( self.multiplier_high )
+                if self.debug: self.gcode.respond_info("Buffer Triggered State: Trailing")
         self.last_state = TRAILING_STATE_NAME
 
     def buffer_status(self):
