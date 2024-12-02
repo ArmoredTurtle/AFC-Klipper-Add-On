@@ -576,7 +576,6 @@ class afc:
                         return False
 
             # Synchronize lane's extruder stepper and finalize tool loading.
-            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             CUR_LANE.status = 'Tooled'
 
             # Adjust tool position for loading.
@@ -585,7 +584,9 @@ class afc:
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
             self.toolhead.wait_moves()
 
-            # Update tool and lane status.
+            # Check if ramming is enabled, if it is go through ram load sequence.
+            # Lane will load until Advance sensor is True
+            # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
             if CUR_EXTRUDER.tool_start == "buffer":
                 CUR_LANE.extruder_stepper.sync_to_extruder(None)
                 load_checks = 0
@@ -601,6 +602,7 @@ class afc:
                         self.gcode.respond_info("<span class=warning--text>{}</span>".format(msg))
                         break
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+            # Update tool and lane status.
             self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
             self.current = CUR_LANE.name
