@@ -135,12 +135,15 @@ class afcSpool:
             SpoolID = gcmd.get('SPOOL_ID', '')
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             if SpoolID !='':
-                url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + SpoolID
-                result = json.load(urlopen(url))
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
+                try:
+                    url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + SpoolID
+                    result = json.load(urlopen(url))
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
+                except:
+                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID))
             else:
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''

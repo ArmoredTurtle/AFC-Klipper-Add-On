@@ -32,7 +32,7 @@ class afcError:
         else:
             self.PauseUserIntervention(problem)
         if not error_handled:
-            self.AFC.afc_led(self.led_fault, CUR_LANE.led_index)
+            self.AFC.afc_led(self.AFC.led_fault, LANE.led_index)
 
         return error_handled
 
@@ -63,7 +63,7 @@ class afcError:
 
     def PauseUserIntervention(self,message):
         #pause for user intervention
-        self.AFC.gcode.respond_info(message)
+        self.AFC.gcode._respond_error(message)
         if self.AFC.is_homed() and not self.AFC.is_paused():
             self.AFC.save_pos()
             if self.pause:
@@ -136,7 +136,7 @@ class afcError:
         CUR_LANE.status = 'Error'
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
         self.AFC_error(msg, pause)
-        self.AFC.afc_led(self.led_fault, CUR_LANE.led_index)
+        self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
 
 def load_config(config):
     return afcError(config)

@@ -661,7 +661,7 @@ class afc:
             # If no lane is provided, exit the function early with a failure.
             return False
 
-		self.gcode.respond_info("Unloading {}".format(CUR_LANE.name))
+        self.gcode.respond_info("Unloading {}".format(CUR_LANE.name))
         # Lookup current extruder and hub objects using the lane's information.
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
@@ -833,7 +833,7 @@ class afc:
             # Check if the lane has completed the preparation process required for tool changes.
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
-                self.gcode.respond_info("Tool Change - {} -> {}".format(self.current, lane)
+                self.gcode.respond_info("Tool Change - {} -> {}".format(self.current, lane))
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
@@ -857,7 +857,7 @@ class afc:
         if LANE.prep_state:
             if LANE.load_state:
                 if self.extruders[LANE.extruder_name]['lane_loaded'] == LANE.name:
-                    return 'In Tool:' + self.led_tool_loaded
+                    return 'In Tool:' + self.HexConvert(self.led_tool_loaded)
                 return "Ready:" + self.HexConvert(self.led_ready)
             return 'Prep:' + self.HexConvert(self.led_prep_loaded)
         return 'Not Ready:' + self.HexConvert(self.led_not_ready)
