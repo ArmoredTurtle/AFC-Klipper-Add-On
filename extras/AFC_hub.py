@@ -1,17 +1,12 @@
-from . import AFC
 
 from configparser import Error as error
 
 class afc_hub:
     def __init__(self, config):
-        self.AFC = AFC.afc
         self.printer = config.get_printer()
-        self.name = config.get_name().split()[-1]
-        self.AFC = self.printer.lookup_object('AFC')
-        self.gcode = self.printer.lookup_object('gcode')
-        self.reactor = self.printer.get_reactor()
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
-        self.AFC = self.printer.lookup_object('AFC')
+        self.name = config.get_name().split()[-1]
         self.type = config.get('type', None)
 
         try:
@@ -40,6 +35,17 @@ class afc_hub:
         if self.switch_pin is not None:
             self.state = False
             buttons.register_buttons([self.switch_pin], self.switch_pin_callback)
+
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC = self.printer.lookup_object('AFC')
+        self.gcode = self.AFC.gcode
+        self.reactor = self.AFC.reactor
+
 
     def switch_pin_callback(self, eventtime, state):
         self.state = state

@@ -8,14 +8,7 @@ except:
 class afcSpool:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-
-        self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
-        self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
-        self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
-        self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
 
     def handle_connect(self):
         """
@@ -24,7 +17,15 @@ class afcSpool:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
-        self.ERROR = self.printer.lookup_object('AFC_error')
+        self.ERROR = self.AFC.ERROR
+        self.reactor = self.AFC.reactor
+        self.gcode = self.AFC.gcode
+
+        self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
+        self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
+        self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
+        self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
+
 
     cmd_SET_MAP_help = "change filaments color"
     def cmd_SET_MAP(self, gcmd):

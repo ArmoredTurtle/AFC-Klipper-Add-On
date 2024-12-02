@@ -13,15 +13,17 @@ class AFCtrigger:
 
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
+        self.AFC = self.printer.lookup_object('AFC')
+        self.reactor = self.AFC.reactor
+        self.gcode = self.AFC.gcode
+
         self.name = config.get_name().split(' ')[-1]
         self.turtleneck = False
         self.belay = False
         self.last_state = False
         self.enable = False
         self.current = ''
-        self.AFC = self.printer.lookup_object('AFC')
+
         self.debug = config.getboolean("debug", False)
         self.buttons = self.printer.load_object(config, "buttons")
 
@@ -79,6 +81,7 @@ class AFCtrigger:
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
             self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTIPLIER, desc=self.cmd_SET_MULTIPLIER_help)
+    
 
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
