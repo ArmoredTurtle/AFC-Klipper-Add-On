@@ -746,7 +746,7 @@ class afc:
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
                 if num_tries > self.tool_max_unload_attempts:
                     msg = ''
-                    msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts) 
+                    msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
                     msg += "Increasing 'tool_max_unload_attempts' may improve loading reliablity"
                     self.gcode.respond_info("<span class=warning--text>{}</span>".format(msg))
                     break
