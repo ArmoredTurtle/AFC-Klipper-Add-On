@@ -778,7 +778,7 @@ class afc:
         if LANE.prep_state:
             if LANE.load_state:
                 if self.extruders[LANE.extruder_name]['lane_loaded'] == LANE.name:
-                    return 'In Tool:' + self.led_tool_loaded
+                    return 'In Tool:' + self.HexConvert(self.led_tool_loaded)
                 return "Ready:" + self.HexConvert(self.led_ready)
             return 'Prep:' + self.HexConvert(self.led_prep_loaded)
         return 'Not Ready:' + self.HexConvert(self.led_not_ready)
