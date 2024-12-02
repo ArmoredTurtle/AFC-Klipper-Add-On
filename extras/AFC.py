@@ -365,7 +365,7 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.AFC_error('Must select LANE', False)
+            self.ERROR.AFC_error('Must select LANE', False)
             return
         self.gcode.respond_info('TEST ROUTINE')
         try:
