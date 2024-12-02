@@ -31,15 +31,15 @@ class afc:
         self.change_tool_pos = None
         self.in_toolchange = False
         self.tool_start = None
-		
-		# Save/resume pos variables
+
+        # Save/resume pos variables
         self.base_position = [0.0, 0.0, 0.0, 0.0]
         self.last_gcode_position = [0.0, 0.0, 0.0, 0.0]
         self.last_toolhead_position = [0.0, 0.0, 0.0, 0.0]
         self.homing_position = [0.0, 0.0, 0.0, 0.0]
         self.speed = 25.
         self.absolute_coord = True
-		
+
         # SPOOLMAN
         self.spoolman_ip = config.get('spoolman_ip', None)
         self.spoolman_port = config.get('spoolman_port', None)
@@ -276,12 +276,12 @@ class afc:
 
     def restore_pos(self):
         """
-        restore_pos function restores the previous saved position, speed and coord type. The resume uses 
+        restore_pos function restores the previous saved position, speed and coord type. The resume uses
         the z_hop value to lift, move to previous x,y coords, then lower to saved z position.
         """
         newpos = self.toolhead.get_position()
         newpos[2] = self.last_gcode_position[2] + self.z_hop
-        
+
         # Restore absolute coords
         self.gcode_move.absolute_coord = self.absolute_coord
 
@@ -518,7 +518,7 @@ class afc:
 
         self.gcode.respond_info("Loading {}".format(CUR_LANE.name))
 
-		# Lookup extruder and hub objects associated with the lane.
+        # Lookup extruder and hub objects associated with the lane.
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         # Prepare extruder and heater.
