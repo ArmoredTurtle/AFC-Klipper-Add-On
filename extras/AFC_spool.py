@@ -24,7 +24,7 @@ class afcSpool:
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
         self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
         self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
-        self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
+        self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_MAP, desc=self.cmd_SET_MAP_help)
 
 
     cmd_SET_MAP_help = "change filaments color"
@@ -49,23 +49,23 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         map_cmd = gcmd.get('MAP', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.map = map_cmd
-        for UNIT_SERACH in self.AFC.lanes.keys():
-            if lane in self.AFC.lanes[UNIT_SERACH]:
-                UNIT = UNIT_SERACH
-
         lane_switch=self.AFC.tool_cmds[map_cmd]
+        self.gcode.respond_info("lane to switch is " + lane_switch)
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        for UNIT_SERACH in self.AFC.lanes.keys():
+            self.gcode.respond_info("looking for "+lane+" in " + UNIT_SERACH)
+            if lane in self.AFC.lanes[UNIT_SERACH]:
+                self.AFC.tool_cmds[map_cmd]=lane
+                map_switch=self.AFC.lanes[UNIT_SERACH][CUR_LANE.name]['map']
+                self.AFC.lanes[UNIT_SERACH][CUR_LANE.name]['map']=map_cmd
+                CUR_LANE.map=map_cmd
+
         for UNIT_SERACH in self.AFC.lanes.keys():
             if lane_switch in self.AFC.lanes[UNIT_SERACH]:
-                UNIT_switch = UNIT_SERACH
-
-        self.AFC.tool_cmds[map_cmd]=lane_switch
-        self.AFC.lanes[UNIT_switch][lane_switch]['map'] = self.AFC.lanes[UNIT][CUR_LANE]['map']
-
-        self.AFC.tool_cmds[map_cmd]=lane
-        self.AFC.lanes[UNIT][CUR_LANE]['map']
-
+                SW_LANE = self.printer.lookup_object('AFC_stepper ' + lane_switch)
+                self.AFC.tool_cmds[map_switch]=lane_switch
+                self.AFC.lanes[UNIT_SERACH][lane_switch]['map']=map_switch
+                SW_LANE.map=map_switch
         self.AFC.save_vars()
 
     cmd_SET_COLOR_help = "change filaments color"
@@ -135,12 +135,15 @@ class afcSpool:
             SpoolID = gcmd.get('SPOOL_ID', '')
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             if SpoolID !='':
-                url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + SpoolID
-                result = json.load(urlopen(url))
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
+                try:
+                    url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + SpoolID
+                    result = json.load(urlopen(url))
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
+                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
+                except:
+                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID))
             else:
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
@@ -167,15 +170,14 @@ class afcSpool:
         Returns:
             None
         """
-        if self.AFC.spoolman_ip !=None:
-            lane = gcmd.get('LANE', None)
-            if lane == None:
-                self.gcode.respond_info("No LANE Defined")
-                return
-            runout = gcmd.get('RUNOUT', '')
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-            self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['runout_lane'] = runout
-            self.AFC.save_vars()
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        runout = gcmd.get('RUNOUT', '')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['runout_lane'] = runout
+        self.AFC.save_vars()
 
 def load_config(config):
     return afcSpool(config)

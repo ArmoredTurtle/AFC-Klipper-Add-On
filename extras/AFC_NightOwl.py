@@ -88,7 +88,7 @@ class afcNightOwl:
             except:
                 self.AFC.ERROR.AFC_error("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=LANE, tool_macro=self.AFC.lanes[UNIT][LANE]['map']), )
         else:
-            self.AFC.ERROR.fix('Command {} ALready Taken please re-map {}/{}'.format(self.AFC.lanes[UNIT][LANE]['map'], UNIT,LANE))
+            self.AFC.ERROR.fix('Command {} Already Taken please re-map {}/{}'.format(self.AFC.lanes[UNIT][LANE]['map'], UNIT, LANE), CUR_LANE)
         return True
 
 def load_config(config):
