@@ -68,7 +68,6 @@ class AFCtrigger:
             raise error( msg )
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-
         self.gcode.register_mux_command("QUERY_BUFFER", "BUFFER", self.name, self.cmd_QUERY_BUFFER, desc=self.cmd_QUERY_BUFFER_help)
 
         # Belay Buffer
