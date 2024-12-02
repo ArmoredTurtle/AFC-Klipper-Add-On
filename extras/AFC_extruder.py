@@ -7,7 +7,8 @@
 class AFCextruder:
     def __init__(self, config):
       self.printer = config.get_printer()
-      self.reactor = self.printer.get_reactor()
+      self.printer.register_event_handler("klippy:connect", self.handle_connect)
+
       self.name = config.get_name().split(' ')[-1]
       self.tool_stn = config.getfloat("tool_stn", 72)
       self.tool_stn_unload = config.getfloat("tool_stn_unload", 100)
@@ -17,7 +18,6 @@ class AFCextruder:
       # BUFFER
       self.buffer_name = config.get('buffer', None)
       self.buffer = None
-      self.printer.register_event_handler("klippy:connect", self._handle_ready)
 
       buttons = self.printer.load_object(config, "buttons")
       self.tool_start = config.get('pin_tool_start', None)
@@ -29,10 +29,16 @@ class AFCextruder:
         self.tool_end_state = False
         buttons.register_buttons([self.tool_end], self.tool_end_callback)
 
-    def tool_start_callback(self, eventtime, state):
-        self.tool_start_state = state
-    def tool_end_callback(self, eventtime, state):
-        self.tool_end_state = state
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC = self.printer.lookup_object('AFC')
+        self.reactor = self.AFC.reactor
+
+        self.get_buffer()
 
     def get_buffer(self):
       """
@@ -43,8 +49,10 @@ class AFCextruder:
       if self.buffer_name is not None:
           self.buffer = self.printer.lookup_object('AFC_buffer ' + self.buffer_name)
 
-    def _handle_ready(self):
-      self.get_buffer()
+    def tool_start_callback(self, eventtime, state):
+        self.tool_start_state = state
+    def tool_end_callback(self, eventtime, state):
+        self.tool_end_state = state
 
     def enable_buffer(self):
       """

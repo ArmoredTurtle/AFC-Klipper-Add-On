@@ -46,8 +46,9 @@ def calc_move_time(dist, speed, accel):
 
 class AFCExtruderStepper:
     def __init__(self, config):
-        self.config = config
         self.printer = config.get_printer()
+        self.AFC = self.printer.lookup_object('AFC')
+        self.gcode = self.printer.lookup_object('gcode')
         self.name = config.get_name().split()[-1]
         self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
@@ -103,8 +104,6 @@ class AFCExtruderStepper:
             self.afc_motor_fwd = AFC_assist.AFCassistMotor(config, 'fwd')
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
-        self.AFC = self.printer.lookup_object('AFC')
-        self.gcode = self.printer.lookup_object('gcode')
 
         self.filament_diameter = config.getfloat("filament_diameter", 1.75)
         self.filament_density = config.getfloat("filament_density", 1.24)
