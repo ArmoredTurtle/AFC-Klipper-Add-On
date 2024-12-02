@@ -45,5 +45,5 @@ Under `[AFC_extruder extruder]` section:
 
 ## Tuning
 
-- `afc_bowden_length` so be set so that on unload the filament comes just short of the hub sensor
+- `afc_bowden_length` should be set so that on unload the filament comes just short of the hub sensor
 - `tool_unload_stn` should be set so that on unload the filament clears the extruder
