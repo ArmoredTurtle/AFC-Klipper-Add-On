@@ -751,7 +751,7 @@ class afc:
                     break
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             pos = self.toolhead.get_position()
-            pos[3] += CUR_EXTRUDER.tool_stn_unload * -1
+            pos[3] -= CUR_EXTRUDER.tool_stn_unload
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
         else:
