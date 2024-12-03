@@ -577,6 +577,7 @@ class afc:
 
             # Synchronize lane's extruder stepper and finalize tool loading.
             CUR_LANE.status = 'Tooled'
+            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
 
             # Adjust tool position for loading.
             pos = self.toolhead.get_position()
@@ -705,9 +706,6 @@ class afc:
         # Activate LED indicator for unloading.
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
 
-        # Synchronize the extruder stepper with the lane.
-        CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-
         # Check and set the extruder temperature if below the minimum.
         wait = True
         pheaters = self.printer.lookup_object('heaters')
@@ -738,9 +736,9 @@ class afc:
         num_tries = 0
         if CUR_EXTRUDER.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
+            CUR_LANE.extruder_stepper.sync_to_extruder(None)
             while CUR_EXTRUDER.buffer_trailing == False:
                 # attempt to return buffer to trailng pin
-                CUR_LANE.extruder_stepper.sync_to_extruder(None)
                 CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
