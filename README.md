@@ -182,9 +182,11 @@ Debug information about the respooler system can be found by visiting the follow
 
 `{ip address}/printer/objects/query?AFC`
 
+### LEDs not displaying correct color
 If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
   - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
 
+### Filament pulling past extruder during unloads
 During unloads if your filament retracts too much and goes past the lanes extruder then decrease your `afc_bowden_length` value in `~/printer_data/config/AFC/AFC.cfg` file
 
 ## Removing Plugin
