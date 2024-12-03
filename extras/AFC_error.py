@@ -31,6 +31,8 @@ class afcError:
             error_handled = self.ToolHeadFix(LANE)
         else:
             self.PauseUserIntervention(problem)
+        if not error_handled:
+            self.AFC.afc_led(self.AFC.led_fault, LANE.led_index)
 
         return error_handled
 
@@ -61,22 +63,31 @@ class afcError:
 
     def PauseUserIntervention(self,message):
         #pause for user intervention
-        self.AFC.gcode.respond_info(message)
+        self.AFC.gcode._respond_error(message)
         if self.AFC.is_homed() and not self.AFC.is_paused():
             self.AFC.save_pos()
             if self.pause:
-                self.AFC.gcode.respond_info('PAUSING')
-                self.AFC.gcode.run_script_from_command('PAUSE')
+                self.pause_print()
+
+    def pause_print(self):
+        """
+        pause_print function verifies that the printer is homed and not currently paused before calling
+        the base pause command
+        """
+        self.gcode.respond_info ('PAUSING')
+        self.gcode.run_script_from_command('PAUSE')
 
     def set_error_state(self, state):
         # Only save position on first error state call
-        if state == True and self.AFC.failure == False:
+        if state == True and self.AFC.error_state == False:
             self.AFC.save_pos()
-        self.AFC.failure = state
+        self.AFC.error_state = state
 
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
         self.AFC.gcode._respond_error( msg )
+        self.set_error_state(True)
+        if pause: self.pause_print()
 
 
     cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
@@ -110,18 +121,22 @@ class afcError:
         Returns:
             None
         """
-        self.set_error_state(False)
         self.AFC.in_toolchange = False
         self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
-        self.AFC.restore_pos()
+
+        #The only time our resume should restore position is if there was an error that caused the pause
+        if self.error_state:
+            self.set_error_state(False)
+            self.restore_pos()
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message, pause=True):
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
+        CUR_LANE.status = 'Error'
         msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
+        self.AFC_error(msg, pause)
         self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
-        self.PauseUserIntervention(msg)
 
 def load_config(config):
     return afcError(config)
