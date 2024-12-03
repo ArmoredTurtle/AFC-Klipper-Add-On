@@ -57,10 +57,12 @@ class afcNightOwl:
                 msg +="<span class=success--text> AND LOADED</span>"
 
                 if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
-                    if CUR_EXTRUDER.tool_start_state == True:
+                    if CUR_EXTRUDER.tool_start_state == True or CUR_EXTRUDER.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                             msg +="\n in ToolHead"
+                            if CUR_EXTRUDER.tool_start == "buffer":
+                                msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
                             self.AFC.SPOOL.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
                             self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                             if len(self.AFC.extruders) == 1:

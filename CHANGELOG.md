@@ -201,3 +201,16 @@ gcode:
 
 ### Fixed
 - Fixed erroring out if a buffer in not configured
+
+## [2024-12-02]
+
+### Added
+
+- Buffer_Ram_Sensor
+  - Enabling the buffer to be used as a ram sensor for loading and unloading filament
+  - see Buffer_Ram_Sensor doc for more information
+
+### Changed
+
+- Adjusted load and unload to account for ram sensor
+- Adjusted Prep to accound for ram sensor

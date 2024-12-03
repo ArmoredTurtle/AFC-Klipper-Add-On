@@ -84,6 +84,7 @@ class afc:
         self.short_moves_accel = config.getfloat("short_moves_accel", 400)
         self.short_move_dis = config.getfloat("short_move_dis", 10)
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
+        self.tool_max_load_checks = config.getint('tool_max_load_checks', 4)
         self.z_hop =config.getfloat("z_hop", 0)
         self.xy_resume =config.getboolean("xy_resume", False)
         self.resume_speed =config.getfloat("resume_speed", 0)
@@ -575,7 +576,6 @@ class afc:
                         return False
 
             # Synchronize lane's extruder stepper and finalize tool loading.
-            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             CUR_LANE.status = 'Tooled'
 
             # Adjust tool position for loading.
@@ -584,6 +584,23 @@ class afc:
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
             self.toolhead.wait_moves()
 
+            # Check if ramming is enabled, if it is go through ram load sequence.
+            # Lane will load until Advance sensor is True
+            # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
+            if CUR_EXTRUDER.tool_start == "buffer":
+                CUR_LANE.extruder_stepper.sync_to_extruder(None)
+                load_checks = 0
+                while CUR_EXTRUDER.tool_start_state == True:
+                    CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
+                    load_checks += 1
+                    self.reactor.pause(self.reactor.monotonic() + 0.1)
+                    if load_checks > self.tool_max_load_checks:
+                        msg = ''
+                        msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_load_checks)
+                        msg += "Tool may not be loaded"
+                        self.gcode.respond_info("<span class=warning--text>{}</span>".format(msg))
+                        break
+                CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             # Update tool and lane status.
             self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
@@ -719,17 +736,37 @@ class afc:
 
         # Attempt to unload the filament from the extruder, retrying if needed.
         num_tries = 0
-        while CUR_EXTRUDER.tool_start_state:
-            num_tries += 1
-            if num_tries > self.tool_max_unload_attempts:
-                # Handle failure if the filament cannot be unloaded.
-                message = ('FAILED TO UNLOAD ' + CUR_LANE.name.upper() + '. FILAMENT STUCK IN TOOLHEAD.')
-                self.ERROR.handle_lane_failure(CUR_LANE, message)
-                return False
+        if CUR_EXTRUDER.tool_start == "buffer":
+            # if ramming is enabled, AFC will retract to collapse buffer before unloading
+            while CUR_EXTRUDER.buffer_trailing == False:
+                # attempt to return buffer to trailng pin
+                CUR_LANE.extruder_stepper.sync_to_extruder(None)
+                CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
+                num_tries += 1
+                self.reactor.pause(self.reactor.monotonic() + 0.1)
+                if num_tries > self.tool_max_unload_attempts:
+                    msg = ''
+                    msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
+                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliablity"
+                    self.gcode.respond_info("<span class=warning--text>{}</span>".format(msg))
+                    break
+            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             pos = self.toolhead.get_position()
             pos[3] -= CUR_EXTRUDER.tool_stn_unload
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
+        else:
+            while CUR_EXTRUDER.tool_start_state:
+                num_tries += 1
+                if num_tries > self.tool_max_unload_attempts:
+                    # Handle failure if the filament cannot be unloaded.
+                    message = ('FAILED TO UNLOAD {}. FILAMENT STUCK IN TOOLHEAD.'.format(CUR_LANE.name.upper()))
+                    self.ERROR.handle_lane_failure(CUR_LANE, message)
+                    return False
+                pos = self.toolhead.get_position()
+                pos[3] -= CUR_EXTRUDER.tool_stn_unload
+                self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
+                self.toolhead.wait_moves()
 
         # Move filament past the sensor after the extruder, if applicable.
         if CUR_EXTRUDER.tool_sensor_after_extruder > 0:
