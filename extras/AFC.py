@@ -577,6 +577,7 @@ class afc:
 
             # Synchronize lane's extruder stepper and finalize tool loading.
             CUR_LANE.status = 'Tooled'
+            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
 
             # Adjust tool position for loading.
             pos = self.toolhead.get_position()
