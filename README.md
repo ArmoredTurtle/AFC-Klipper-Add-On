@@ -185,6 +185,8 @@ Debug information about the respooler system can be found by visiting the follow
 If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
   - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
 
+During unloads if your filament retracts too much and goes past the lanes extruder then decrease your `afc_bowden_length` value in `~/printer_data/config/AFC/AFC.cfg` file
+
 ## Removing Plugin
 
 To remove the plugin, you can use the following commands:
