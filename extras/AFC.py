@@ -763,6 +763,7 @@ class afc:
                     message = ('FAILED TO UNLOAD {}. FILAMENT STUCK IN TOOLHEAD.'.format(CUR_LANE.name.upper()))
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
+                CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                 pos = self.toolhead.get_position()
                 pos[3] -= CUR_EXTRUDER.tool_stn_unload
                 self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
