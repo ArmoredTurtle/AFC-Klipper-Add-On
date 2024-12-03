@@ -706,6 +706,10 @@ class afc:
         # Activate LED indicator for unloading.
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
 
+        if self.toolhead.motion_queue != CUR_LANE.extruder_name:
+            # Synchronize the extruder stepper with the lane.
+            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+
         # Check and set the extruder temperature if below the minimum.
         wait = True
         pheaters = self.printer.lookup_object('heaters')
