@@ -77,10 +77,10 @@ class afcNightOwl:
                             if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                                 msg +="\n<span class=error--text> error in ToolHead. Extruder loaded with no lane identified</span>"
 
-        CUR_LANE.do_enable(False)
-        self.AFC.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg)
-        CUR_LANE.set_afc_prep_done()
         self.AFC.TcmdAssign(CUR_LANE)
+        CUR_LANE.do_enable(False)
+        self.AFC.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg + ' ' + CUR_LANE.map)
+        CUR_LANE.set_afc_prep_done()
         return True
 
 def load_config(config):

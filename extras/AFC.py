@@ -1009,7 +1009,6 @@ class afc:
                 if cmd not in self.tool_cmds:
                     self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'] = 'T'+str(x)
                     CUR_LANE.map = 'T'+str(x)
-                    self.gcode.respond_info(CUR_LANE.name + ' Mapped to ' + 'T'+str(x))
                     break
         self.tool_cmds[self.lanes[CUR_LANE.unit][CUR_LANE.name]['map']]=CUR_LANE.name
         try:
