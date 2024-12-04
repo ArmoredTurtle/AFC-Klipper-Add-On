@@ -97,8 +97,10 @@ class afcPrep:
                 if 'runout_lane' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']='NONE'
                 if 'map' not in self.AFC.lanes[LANE.unit][LANE.name]:
                    self.AFC.lanes[LANE.unit][LANE.name]['map'] = 'NONE'
-                   LANE.map = 'NONE'
-                elif LANE.map != 'NONE':
+                else:
+                   LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
+                if LANE.map != 'NONE':
+                   self.AFC.lanes[LANE.unit][LANE.name]['map'] = LANE.map
                    self.AFC.tool_cmds[LANE.map] = LANE.name
 
                 if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
