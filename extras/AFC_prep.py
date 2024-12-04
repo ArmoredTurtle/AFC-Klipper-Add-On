@@ -68,6 +68,7 @@ class afcPrep:
         else:
             self.AFC.extruders={}
         temp=[]
+        self.AFC.tool_cmds={}
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
@@ -94,7 +95,11 @@ class afcPrep:
                 if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
                 if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
                 if 'runout_lane' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']='NONE'
-                if 'map' not in self.AFC.lanes[LANE.unit][LANE.name] or self.AFC.lanes[LANE.unit][LANE.name]['map'] is None: self.AFC.lanes[LANE.unit][LANE.name]['map'] = LANE.map
+                if 'map' not in self.AFC.lanes[LANE.unit][LANE.name]:
+                   self.AFC.lanes[LANE.unit][LANE.name]['map'] = 'NONE'
+                   LANE.map = 'NONE'
+                elif LANE.map != 'NONE':
+                   self.AFC.tool_cmds[LANE.map] = LANE.name
 
                 if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False

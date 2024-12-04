@@ -1002,5 +1002,21 @@ class afc:
             self.gcode.respond_info( error_string)
         led.led_change(int(idx.split(':')[1]), status)
 
+    def TcmdAssign(self, CUR_LANE):
+        if CUR_LANE.map == 'NONE' :
+            for x in range(99):
+                cmd = 'T'+str(x)
+                if cmd not in self.tool_cmds:
+                    self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'] = 'T'+str(x)
+                    CUR_LANE.map = 'T'+str(x)
+                    self.gcode.respond_info(CUR_LANE.name + ' Mapped to ' + 'T'+str(x))
+                    break
+        self.tool_cmds[self.lanes[CUR_LANE.unit][CUR_LANE.name]['map']]=CUR_LANE.name
+        try:
+            self.gcode.register_command(self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'], self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+        except:
+            self.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=self.lanes[CUR_LANE.unit][CUR_LANE.name]['map']), )
+        self.save_vars()
+
 def load_config(config):
     return afc(config)
