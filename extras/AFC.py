@@ -1007,8 +1007,8 @@ class afc:
             for x in range(99):
                 cmd = 'T'+str(x)
                 if cmd not in self.tool_cmds:
-                    self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'] = 'T'+str(x)
-                    CUR_LANE.map = 'T'+str(x)
+                    self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'] = cmd
+                    CUR_LANE.map = cmd
                     break
         self.tool_cmds[self.lanes[CUR_LANE.unit][CUR_LANE.name]['map']]=CUR_LANE.name
         try:
