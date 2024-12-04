@@ -128,6 +128,7 @@ query_tn_pins() {
 
   print_msg INFO "  \n  Please enter the pin numbers for the TurtleNeck buffer '$buffer_name':"
   print_msg INFO "  (Leave blank to use the default values)"
+  print_msg INFO "  Ensure you use a pull-up '^' if you are using a AFC end stop pin."
   print_msg INFO "  (Example: turtleneck:ADVANCE)"
   print_msg INFO "  (Example: turtleneck:TRAILING)"
 
