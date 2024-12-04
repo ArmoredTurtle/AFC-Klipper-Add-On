@@ -285,8 +285,8 @@ class afc:
         newpos = self.toolhead.get_position()
         newpos[2] = self.last_gcode_position[2] + self.z_hop
 
-        speed = self.resume_speed * 60 if self.resume_speed > 0 else self.speed
-        speedz = self.resume_z_speed * 60 if self.resume_z_speed > 0 else self.speed
+        speed = self.resume_speed if self.resume_speed > 0 else self.speed
+        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.speed
         # Update GCODE STATE variables
         self.gcode_move.base_position = self.base_position
         self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
