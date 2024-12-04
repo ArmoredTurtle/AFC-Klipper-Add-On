@@ -125,3 +125,25 @@ check_unzip() {
     exit 1
   fi
 }
+
+check_for_jq() {
+  if ! command -v jq &> /dev/null; then
+    print_msg INFO "  jq is not installed. Installing jq..."
+    sudo apt-get update &> /dev/null
+    sudo apt-get install -y jq &> /dev/null
+  fi
+}
+
+query_printer_status() {
+  local response
+  local state
+
+  response=$(curl -s http://localhost/printer/objects/query?idle_timeout)
+  state=$(echo "$response" | jq -r '.result.status.idle_timeout.state')
+
+  if [ "$state" == "Ready" ]; then
+    return 0
+  else
+    return 1
+  fi
+}

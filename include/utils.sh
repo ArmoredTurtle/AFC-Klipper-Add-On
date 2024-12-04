@@ -160,3 +160,12 @@ exclude_from_klipper_git() {
     fi
   done
 }
+
+restart_klipper() {
+  if query_printer_status; then
+    print_msg INFO "  Restarting Klipper..."
+    restart_service klipper
+  else
+    print_msg ERROR "  Printer is not ready, most likely printing. Ensure you restart Klippers when the printer is idle."
+  fi
+}

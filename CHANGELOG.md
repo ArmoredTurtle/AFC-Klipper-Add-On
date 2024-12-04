@@ -213,4 +213,11 @@ gcode:
 ### Changed
 
 - Adjusted load and unload to account for ram sensor
-- Adjusted Prep to accound for ram sensor
+- Adjusted Prep to account for ram sensor
+
+## [2024-12-03]
+
+### Added
+
+- The `install-afc.sh` script will now query the printer upon exit to see if it is actively printing. If it is not
+  printing, it will restart the `klipper` service.
