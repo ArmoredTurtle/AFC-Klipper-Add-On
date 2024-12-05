@@ -97,7 +97,7 @@ class afc:
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
-    
+
     def _update_trsync(self, config):
         # Logic to update trsync values
         update_trsync = config.getboolean("trsync_update", False)
