@@ -12,12 +12,12 @@ append_buffer_config() {
   local hardware_config_path="${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
   local buffer_config=""
   local buffer_name=""
-  local tn_advance_pin=$2
-  local tn_trailing_pin=$3
+  tn_advance_pin=$2
+  tn_trailing_pin=$3
 
   case "$buffer_system" in
     "TurtleNeck")
-      buffer_config=$(cat <<'EOF'
+      buffer_config=$(cat <<EOF
 [AFC_buffer TN]
 advance_pin: ${tn_advance_pin}    # set advance pin
 trailing_pin: ${tn_trailing_pin}  # set trailing pin
@@ -122,14 +122,15 @@ query_tn_pins() {
   # Arguments:
   #   $1: buffer_name - The name of the buffer to be added.
   local buffer_name="$1"
-  local tn_advance_pin="UNKNOWN"
-  local tn_trailing_pin="UNKNOWN"
   local input
+  tn_advance_pin="^AFC:TN_ADV"
+  tn_trailing_pin="^AFC:TN_TRL"
 
   print_msg INFO "  \n  Please enter the pin numbers for the TurtleNeck buffer '$buffer_name':"
   print_msg INFO "  (Leave blank to use the default values)"
-  print_msg INFO "  (Example: turtleneck:ADVANCE)"
-  print_msg INFO "  (Example: turtleneck:TRAILING)"
+  print_msg INFO "  Ensure you use a pull-up '^' if you are using a AFC end stop pin."
+  print_msg INFO "  (Example: ^AFC:TN_ADV)"
+  print_msg INFO "  (Example: ^AFC:TN_TRL)"
 
   read -p "  Enter the advance pin (default: $tn_advance_pin): " -r input
   if [ -n "$input" ]; then

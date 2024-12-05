@@ -289,7 +289,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   # Update buffer configuration
   if [ "$BUFFER_SYSTEM" == "TurtleNeck" ]; then
     query_tn_pins "TN"
-    append_buffer_config "TurtleNeck"
+    append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
     add_buffer_to_extruder "${AFC_CONFIG_PATH}/AFC_Hardware.cfg" "TN"
   elif [ "$BUFFER_SYSTEM" == "TurtleNeckV2" ]; then
     append_buffer_config "TurtleNeckV2"
