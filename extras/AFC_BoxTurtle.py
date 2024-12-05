@@ -46,10 +46,11 @@ class afcBoxTurtle:
                 self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
                 msg += 'EMPTY READY FOR SPOOL'
             else:
+                self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
                 CUR_LANE.status = None
                 msg +="<span class=error--text> NOT READY</span>"
                 CUR_LANE.do_enable(False)
-                msg = '<span class=secondary--text>CHECK FILAMENT Prep: False - Load: True</span>'
+                msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
 
         else:
             CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
@@ -57,6 +58,7 @@ class afcBoxTurtle:
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:
                 msg +="<span class=error--text> NOT LOADED</span>"
+                self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
             else:
                 CUR_LANE.status = 'Loaded'
                 msg +="<span class=success--text> AND LOADED</span>"
@@ -65,7 +67,7 @@ class afcBoxTurtle:
                     if CUR_EXTRUDER.tool_start_state == True or CUR_EXTRUDER.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
-                            msg +="\n in ToolHead"
+                            msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_EXTRUDER.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
                             self.AFC.SPOOL.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
