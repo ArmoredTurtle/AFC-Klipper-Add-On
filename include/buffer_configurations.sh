@@ -124,13 +124,13 @@ query_tn_pins() {
   local buffer_name="$1"
   local input
   tn_advance_pin="^AFC:TN_ADV"
-  tn_trailing_pin="^AFC:TN_TRAIL"
+  tn_trailing_pin="^AFC:TN_TRL"
 
   print_msg INFO "  \n  Please enter the pin numbers for the TurtleNeck buffer '$buffer_name':"
   print_msg INFO "  (Leave blank to use the default values)"
   print_msg INFO "  Ensure you use a pull-up '^' if you are using a AFC end stop pin."
   print_msg INFO "  (Example: ^AFC:TN_ADV)"
-  print_msg INFO "  (Example: ^AFC:TN_TRAIL)"
+  print_msg INFO "  (Example: ^AFC:TN_TRL)"
 
   read -p "  Enter the advance pin (default: $tn_advance_pin): " -r input
   if [ -n "$input" ]; then
