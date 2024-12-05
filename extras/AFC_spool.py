@@ -178,6 +178,7 @@ class afcSpool:
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['runout_lane'] = runout
         self.AFC.save_vars()
+        self.gcode.respond_info("This is a feature WIP. Not functioning yet")
 
 def load_config(config):
     return afcSpool(config)
