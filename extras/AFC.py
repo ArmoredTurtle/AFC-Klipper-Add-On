@@ -106,8 +106,10 @@ class afc:
                 import mcu
                 trsync_value = config.getfloat("trsync_timeout", 0.05)
                 trsync_single_value = config.getfloat("trsync_single_timeout", 0.5)
+
                 if( hasattr(mcu, "TRSYNC_TIMEOUT")): mcu.TRSYNC_TIMEOUT = max(mcu.TRSYNC_TIMEOUT, trsync_value)
                 else : self.gcode.respond_info("TRSYNC_TIMEOUT does not exist in mcu file, not updating")
+
                 if( hasattr(mcu, "TRSYNC_SINGLE_MCU_TIMEOUT")): mcu.TRSYNC_SINGLE_MCU_TIMEOUT = max(mcu.TRSYNC_SINGLE_MCU_TIMEOUT, trsync_single_value)
                 else : self.gcode.respond_info("TRSYNC_SINGLE_MCU_TIMEOUT does not exist in mcu file, not updating")
             except Exception as e:
