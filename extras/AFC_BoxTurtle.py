@@ -24,10 +24,11 @@ class afcBoxTurtle:
         self.logo_error+='R |         \____\n'
         self.logo_error+='O |              \ \n'
         self.logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
-        self.logo_error+='! \_________/ |___|</error>\n'
+        self.logo_error+='! \_________/ |___|</span>\n'
 
     def system_Test(self, UNIT, LANE, delay):
         msg = ''
+        succeeded = True
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
@@ -51,6 +52,7 @@ class afcBoxTurtle:
                 msg +="<span class=error--text> NOT READY</span>"
                 CUR_LANE.do_enable(False)
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
+                succeeded = False
 
         else:
             CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
@@ -59,6 +61,7 @@ class afcBoxTurtle:
             if CUR_LANE.load_state == False:
                 msg +="<span class=error--text> NOT LOADED</span>"
                 self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
+                succeeded = False
             else:
                 CUR_LANE.status = 'Loaded'
                 msg +="<span class=success--text> AND LOADED</span>"
@@ -76,19 +79,20 @@ class afcBoxTurtle:
                                 self.AFC.current = CUR_LANE.name
                                 CUR_EXTRUDER.enable_buffer()
                         else:
-                            lane_check=self.AFC.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
-                            if not lane_check:
-                                return False
+                            if CUR_EXTRUDER.tool_start_state == True:
+                                if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
+                                    msg +="<span class=error--text> error in ToolHead. Extruder loaded with no lane identified in AFC.vars.tool file</span>"
+                                    succeeded = False
                     else:
-                        if CUR_EXTRUDER.tool_start_state == True:
-                            if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                                msg +="\n<span class=error--text> error in ToolHead. Extruder loaded with no lane identified</span>"
+                        lane_check=self.AFC.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
+                        if not lane_check:
+                            return False
         self.AFC.TcmdAssign(CUR_LANE)
         CUR_LANE.do_enable(False)
-        self.AFC.gcode.respond_info(CUR_LANE.name.upper() + ' ' + msg + ' ' + CUR_LANE.map)
+        self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name.upper(), tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()
         
-        return True
+        return succeeded
 
 def load_config(config):
     return afcBoxTurtle(config)
