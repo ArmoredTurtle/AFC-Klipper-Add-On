@@ -221,3 +221,7 @@ gcode:
 
 - The `install-afc.sh` script will now query the printer upon exit to see if it is actively printing. If it is not
   printing, it will restart the `klipper` service.
+## [2024-12-04]
+
+### Fixed
+- Fixed issue with Turtleneck buffer pins not being assigned correctly when prompted during install
