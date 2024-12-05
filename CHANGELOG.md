@@ -201,3 +201,8 @@ gcode:
 
 ### Fixed
 - Fixed erroring out if a buffer in not configured
+
+## [2024-12-04]
+
+### Fixed
+- Fixed issue with Turtleneck buffer pins not being assigned correctly when prompted during install
