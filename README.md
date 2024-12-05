@@ -31,6 +31,8 @@ Additionally, review the following files for any changes that may be required:
   1) `~/printer_data/config/AFC/AFC.cfg`
   2) `~/printer_data/config/AFC/AFC_Macro_Vars.cfg`
 
+Review information in [mandatory configuration changes](README.md#mandatory-configuration-changes-all) section
+
 ## Installation & Configuration (Manual)
 
 To manually install and configure the plugin, you can use the following commands:
@@ -121,12 +123,39 @@ Prior to operation, the following checks / updates **MUST** be made to your syst
 
 1) Update the following values in the `~/printer_data/config/AFC/AFC.cfg` file:
 
-   - tool_stn
-   - tool_stn_unload
-   - afc_bowden_length
+   - tool_stn: This value is the length from your toolhead sensor to nozzle
+   - tool_stn_unload: This value is the amount to unload from extruder when doing a filament change.
+   - afc_bowden_length: This value is the length from your hub to your toolhead sensor
 
-2) If you are using any of the built-in macros, the variables in the `~/printer_data/config/AFC/AFC_Macro_Vars.cfg` file
-must also be modified to match your configuration for your system. 
+2) Verify that `pin_tool_start` is set to the correct pin for your toolhead sensor. If you are using an existing filament sensor as your toolhead sensor make sure you comment out the filament sensor section in your `printer.cfg` file.
+
+3) If you are using any of the built-in macros, the variables in the `~/printer_data/config/AFC/AFC_Macro_Vars.cfg` file
+must also be modified to match your configuration for your system.
+
+    Required variables to verify and update if necessary for the following default macros
+    - tool_cut:
+      - variable_retract_length
+      - variable_cut_direction
+      - variable_pin_loc_xy
+      - variable_pin_park_dist
+      - variable_cut_move_dist
+    - park:
+      - variable_park_loc_xy
+    - poop: 
+      - variable_purge_loc_xy
+    - kick:
+      - variable_kick_start_loc
+      - variable_kick_direction
+    - wipe
+      - variable_brush_loc
+      - variable_y_brush
+    - form_tip
+      Variables to update for tip forming are in `~/printer_data/config/AFC/AFC.cfg`
+      - cooling_tube_position
+      - cooling_tube_length
+
+4) If you would like to use your own macro instead of the provided macros, make sure to update the command with your custom macro in `~/printer_data/config/AFC/AFC.cfg`  
+	  ex. If using custom park macro, change `park_cmd` from `AFC_PARK` to your macro name
 
 **Failure to update these values can result in damage to your system**
 
@@ -140,12 +169,25 @@ led_buffer_trailing: 0,1,0,0
 led_buffer_disable: 0,0,0,0.25
 ```
 
+If using a hub that is not located in the box turtle the following value needs to be updated for each stepper  
+  - dist_hub: This value the the length between the lanes extruder and the hub, this does not have to be exact and is better to figure the length and then minus about 40mm
+  
+If using snappy hub cutter update the following values:
+  - cut: change to True
+  - cut_dist: update to the value that you would like to cut off the end, this may take some tuning to get right
+
 ## Troubleshooting
 
 Debug information about the respooler system can be found by visiting the following URL in your browser:
 
 `{ip address}/printer/objects/query?AFC`
 
+### LEDs not displaying correct color
+If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
+  - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
+
+### Filament pulling past extruder during unloads
+During unloads if your filament retracts too much and goes past the lanes extruder then decrease your `afc_bowden_length` value in `~/printer_data/config/AFC/AFC.cfg` file
 
 ## Removing Plugin
 

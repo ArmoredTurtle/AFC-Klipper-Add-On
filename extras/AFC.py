@@ -90,11 +90,31 @@ class afc:
         self.resume_speed =config.getfloat("resume_speed", 0)
         self.resume_z_speed = config.getfloat("resume_z_speed", 0)
 
+        self._update_trsync(config)
+
         self.VarFile = config.get('VarFile')
 
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
         self.debug = False
+
+    def _update_trsync(self, config):
+        # Logic to update trsync values
+        update_trsync = config.getboolean("trsync_update", False)
+        if update_trsync:
+            try:
+                import mcu
+                trsync_value = config.getfloat("trsync_timeout", 0.05)
+                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5)
+
+                # Making sure value exists as danker klipper does not have TRSYNC_TIMEOUT value
+                if( hasattr(mcu, "TRSYNC_TIMEOUT")): mcu.TRSYNC_TIMEOUT = max(mcu.TRSYNC_TIMEOUT, trsync_value)
+                else : self.gcode.respond_info("TRSYNC_TIMEOUT does not exist in mcu file, not updating")
+
+                if( hasattr(mcu, "TRSYNC_SINGLE_MCU_TIMEOUT")): mcu.TRSYNC_SINGLE_MCU_TIMEOUT = max(mcu.TRSYNC_SINGLE_MCU_TIMEOUT, trsync_single_value)
+                else : self.gcode.respond_info("TRSYNC_SINGLE_MCU_TIMEOUT does not exist in mcu file, not updating")
+            except Exception as e:
+                self.gcode.respond_info("Unable to update TRSYNC_TIMEOUT: {}".format(e))
 
     def handle_connect(self):
         """
@@ -706,8 +726,9 @@ class afc:
         # Activate LED indicator for unloading.
         self.afc_led(self.led_unloading, CUR_LANE.led_index)
 
-        # Synchronize the extruder stepper with the lane.
-        CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+        if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
+            # Synchronize the extruder stepper with the lane.
+            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
 
         # Check and set the extruder temperature if below the minimum.
         wait = True
@@ -739,9 +760,9 @@ class afc:
         num_tries = 0
         if CUR_EXTRUDER.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
+            CUR_LANE.extruder_stepper.sync_to_extruder(None)
             while CUR_EXTRUDER.buffer_trailing == False:
                 # attempt to return buffer to trailng pin
-                CUR_LANE.extruder_stepper.sync_to_extruder(None)
                 CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)

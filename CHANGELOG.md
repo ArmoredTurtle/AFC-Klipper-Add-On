@@ -213,4 +213,22 @@ gcode:
 ### Changed
 
 - Adjusted load and unload to account for ram sensor
-- Adjusted Prep to accound for ram sensor
+- Adjusted Prep to account for ram sensor
+
+## [2024-12-03]
+
+### Added
+
+- The `install-afc.sh` script will now query the printer upon exit to see if it is actively printing. If it is not
+  printing, it will restart the `klipper` service.
+## [2024-12-04]
+
+### Fixed
+- Fixed issue with Turtleneck buffer pins not being assigned correctly when prompted during install
+- Fixed issue with LEDs not showing the right color when error happened during PREP
+- Changed error message when AFC.vars.unit lane showed loaded but AFC.vars.tool file didn't match
+- Added logic so that user could change trsync value. To set value add the following into `[AFC]` section in AFC.cfg file:  
+`trsync_update: True`  
+Optional:  
+`trsync_timeout: 0.05`  
+`TRSYNC_SINGLE_MCU_TIMEOUT: 0.5` 

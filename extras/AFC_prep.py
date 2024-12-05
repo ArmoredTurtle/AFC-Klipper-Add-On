@@ -67,6 +67,7 @@ class afcPrep:
             self.AFC.extruders=json.load(open(self.AFC.VarFile + '.tool'))
         else:
             self.AFC.extruders={}
+
         temp=[]
         self.AFC.tool_cmds={}
         for PO in self.printer.objects:
@@ -137,8 +138,10 @@ class afcPrep:
                 logo_error=CUR_HUB.unit.logo_error
                 logo_error+='  ' + UNIT + '\n'
 
+                LaneCheck = True
                 for LANE in self.AFC.lanes[UNIT].keys():
-                    LaneCheck=CUR_HUB.unit.system_Test(UNIT,LANE, self.delay)
+                    if not CUR_HUB.unit.system_Test(UNIT,LANE, self.delay):
+                        LaneCheck = False
 
                 if LaneCheck:
                     self.AFC.gcode.respond_raw(logo)
@@ -154,7 +157,7 @@ class afcPrep:
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
                 if CUR_EXTRUDER.tool_start_state == True and bypass != True:
                     if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
-                        self.AFC.gcode.respond_info(EXTRUDE + ' loaded with out knowing Lane')
+                        self.AFC.gcode.respond_info("<span class=error--text>{} loaded with out identifying lane in AFC.vars.tool file<span>".format(EXTRUDE))
 
 def load_config(config):
     return afcPrep(config)
