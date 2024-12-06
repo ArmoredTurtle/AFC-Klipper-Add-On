@@ -19,6 +19,7 @@ class afcPrep:
         self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
         self.enable = config.getboolean("enable", False)
 
+
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
 
@@ -30,6 +31,7 @@ class afcPrep:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
+        
 
     def _rename_resume(self):
         """
@@ -69,6 +71,7 @@ class afcPrep:
             self.AFC.extruders={}
 
         temp=[]
+        
         self.AFC.tool_cmds={}
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
@@ -110,6 +113,7 @@ class afcPrep:
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
 
         tmp=[]
+        self.AFC.gcode.respond_info('Printers state is: ' + self.AFC.SATUS)
         for UNIT in self.AFC.lanes.keys():
             if UNIT !='system':
                 for LANE in self.AFC.lanes[UNIT].keys():
