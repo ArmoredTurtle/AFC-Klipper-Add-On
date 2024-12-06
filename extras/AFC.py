@@ -6,7 +6,6 @@
 
 
 import json
-from . import idle_timeout
 from configparser import Error as error
 
 class afc:
