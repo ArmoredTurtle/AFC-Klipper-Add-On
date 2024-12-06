@@ -113,7 +113,6 @@ class afcPrep:
                 if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
 
         tmp=[]
-        self.AFC.gcode.respond_info('Printers state is: ' + self.AFC.SATUS)
         for UNIT in self.AFC.lanes.keys():
             if UNIT !='system':
                 for LANE in self.AFC.lanes[UNIT].keys():
