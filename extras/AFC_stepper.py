@@ -246,6 +246,9 @@ class AFCExtruderStepper:
                 change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
                 self.gcode.run_script_from_command(change_LANE.map)
                 self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
+            else:
+                self.status = None
+                self.AFC.afc_led(self.AFC.led_not_ready, led)
                 
     def do_enable(self, enable):
         self.sync_print_time()
