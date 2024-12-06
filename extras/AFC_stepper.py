@@ -238,7 +238,7 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, led)
-            elif self.name == self.AFC.current and self.AFC.STATUS == 'Printing' and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
+            elif self.name == self.AFC.current and self.IDLE.state == 'Printing' and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
                 self.AFC.gcode.respond_info("Infinete Spool triggered")
