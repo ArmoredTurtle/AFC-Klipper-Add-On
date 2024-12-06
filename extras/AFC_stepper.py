@@ -238,10 +238,18 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, led)
+            elif self.name == self.AFC.current and self.IDLE.state == 'Printing' and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
+                self.status = None
+                self.AFC.afc_led(self.AFC.led_not_ready, led)
+                self.AFC.gcode.respond_info("Infinete Spool triggered")
+                empty_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+                change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
+                self.gcode.run_script_from_command(change_LANE.map)
+                self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
-
+                
     def do_enable(self, enable):
         self.sync_print_time()
         stepper_enable = self.printer.lookup_object('stepper_enable')

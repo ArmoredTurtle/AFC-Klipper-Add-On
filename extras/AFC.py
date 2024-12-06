@@ -6,7 +6,6 @@
 
 
 import json
-
 from configparser import Error as error
 
 class afc:
@@ -16,7 +15,9 @@ class afc:
         self.printer.register_event_handler("klippy:connect",self.handle_connect)
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
+        self.IDLE = self.printer.load_object(config,'idle_timeout')
         self.gcode = self.printer.lookup_object('gcode')
+        self.STATUS= self.IDLE.state
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
