@@ -153,7 +153,7 @@ class afcPrep:
             try:
                 bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
                 if bypass.filament_present == True:
-                    self.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
+                    self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
             except: bypass = None
 
             for EXTRUDE in self.AFC.extruders.keys():

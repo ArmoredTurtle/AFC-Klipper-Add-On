@@ -66,7 +66,6 @@ class AFCExtruderStepper:
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
         self.assist_activate=False
-        self.gcode = self.printer.lookup_object('gcode')
         # Units
         unit = config.get('unit', None)
         if unit != None:
@@ -241,7 +240,7 @@ class AFCExtruderStepper:
             elif self.name == self.AFC.current and self.IDLE.state == 'Printing' and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
-                self.AFC.gcode.respond_info("Infinete Spool triggered")
+                self.AFC.gcode.respond_info("Infinite Spool triggered")
                 empty_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
                 change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
                 self.gcode.run_script_from_command(change_LANE.map)
