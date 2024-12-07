@@ -107,6 +107,7 @@ class afc:
                 import mcu
                 trsync_value = config.getfloat("trsync_timeout", 0.05)
                 trsync_single_value = config.getfloat("trsync_single_timeout", 0.5)
+                self.gcode.respond_info("Applying TRSYNC update")
 
                 # Making sure value exists as kalico(danger klipper) does not have TRSYNC_TIMEOUT value
                 if( hasattr(mcu, "TRSYNC_TIMEOUT")): mcu.TRSYNC_TIMEOUT = max(mcu.TRSYNC_TIMEOUT, trsync_value)
