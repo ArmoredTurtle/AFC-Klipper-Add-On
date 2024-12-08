@@ -107,8 +107,9 @@ class afc:
                 import mcu
                 trsync_value = config.getfloat("trsync_timeout", 0.05)
                 trsync_single_value = config.getfloat("trsync_single_timeout", 0.5)
+                self.gcode.respond_info("Applying TRSYNC update")
 
-                # Making sure value exists as danker klipper does not have TRSYNC_TIMEOUT value
+                # Making sure value exists as kalico(danger klipper) does not have TRSYNC_TIMEOUT value
                 if( hasattr(mcu, "TRSYNC_TIMEOUT")): mcu.TRSYNC_TIMEOUT = max(mcu.TRSYNC_TIMEOUT, trsync_value)
                 else : self.gcode.respond_info("TRSYNC_TIMEOUT does not exist in mcu file, not updating")
 
@@ -283,7 +284,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
 
     def save_pos(self):
         # Only save previous location on the first toolchange call to keep an error state from overwriting the location
@@ -486,6 +487,10 @@ class afc:
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.save_vars()
             CUR_LANE.status = None
+
+            # Removing spool from vars since it was ejected
+            self.SPOOL.set_spoolID( CUR_LANE, "")
+
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
@@ -682,6 +687,9 @@ class afc:
             return
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         self.TOOL_UNLOAD(CUR_LANE)
+
+        # User manually unloaded spool from toolhead, remove spool from active status
+        self.SPOOL.set_active_spool( None )
 
     def TOOL_UNLOAD(self, CUR_LANE):
         """

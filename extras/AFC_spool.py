@@ -26,6 +26,8 @@ class afcSpool:
         self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
         self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_MAP, desc=self.cmd_SET_MAP_help)
 
+        self.URL = 'http://{}:{}/api/v1/spool/'.format(self.AFC.spoolman_ip, self.AFC.spoolman_port)
+
 
     cmd_SET_MAP_help = "change filaments color"
     def cmd_SET_MAP(self, gcmd):
@@ -99,14 +101,16 @@ class afcSpool:
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
         if self.AFC.spoolman_ip != None:
-            if ID:
-                args = {'spool_id' : int(ID)}
-                try:
-                    webhooks.call_remote_method("spoolman_set_active_spool", **args)
-                except self.printer.command_error:
-                    self.gcode._respond_error("Error trying to set active spool")
+            if ID and ID is not None:
+                id = int(ID)
             else:
-                self.gcode.respond_info("Spool ID not set, cannot update spoolman with active spool")
+                id = None
+
+            args = {'spool_id' : id }
+            try:
+                webhooks.call_remote_method("spoolman_set_active_spool", **args)
+            except self.printer.command_error as e:
+                self.gcode._respond_error("Error trying to set active spool \n{}".format(e))
 
     cmd_SET_SPOOLID_help = "change filaments ID"
     def cmd_SET_SPOOLID(self, gcmd):
@@ -134,14 +138,18 @@ class afcSpool:
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            self.set_spoolID(CUR_LANE, SpoolID)
+
+    def set_spoolID(self, CUR_LANE, SpoolID):
+        if self.AFC.spoolman_ip !=None:
             if SpoolID !='':
                 try:
-                    url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + SpoolID
+                    url =  "{}{}".format(self.URL, SpoolID)
                     result = json.load(urlopen(url))
                     self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
                     self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
                     self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
-                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
+                    if 'remaining_weight' in result: self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
                 except:
                     self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID))
             else:
