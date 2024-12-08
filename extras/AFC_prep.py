@@ -31,7 +31,6 @@ class afcPrep:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
-        
 
     def _rename_resume(self):
         """
@@ -71,7 +70,7 @@ class afcPrep:
             self.AFC.extruders={}
 
         temp=[]
-        
+
         self.AFC.tool_cmds={}
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:

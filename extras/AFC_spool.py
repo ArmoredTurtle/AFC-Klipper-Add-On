@@ -138,7 +138,7 @@ class afcSpool:
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-            self.set_spoolID(CURLANE, SpoolID)
+            self.set_spoolID(CUR_LANE, SpoolID)
 
     def set_spoolID(self, CUR_LANE, SpoolID):
         if self.AFC.spoolman_ip !=None:
