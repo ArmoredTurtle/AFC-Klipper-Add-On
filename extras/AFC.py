@@ -284,7 +284,7 @@ class afc:
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel)
+        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
 
     def save_pos(self):
         # Only save previous location on the first toolchange call to keep an error state from overwriting the location
