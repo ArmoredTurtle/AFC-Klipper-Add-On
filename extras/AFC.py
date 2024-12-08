@@ -487,6 +487,10 @@ class afc:
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.save_vars()
             CUR_LANE.status = None
+
+            # Removing spool from vars since it was ejected
+            self.SPOOL.set_spoolID( CUR_LANE, "")
+
         else:
             self.gcode.respond_info('LANE ' + CUR_LANE.name + ' IS TOOL LOADED')
 
@@ -683,6 +687,9 @@ class afc:
             return
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         self.TOOL_UNLOAD(CUR_LANE)
+
+        # User manually unloaded spool from toolhead, remove spool from active status
+        self.SPOOL.set_active_spool( None )
 
     def TOOL_UNLOAD(self, CUR_LANE):
         """

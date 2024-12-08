@@ -162,6 +162,10 @@ class afcPrep:
                     if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
                         self.AFC.gcode.respond_info("<span class=error--text>{} loaded with out identifying lane in AFC.vars.tool file<span>".format(EXTRUDE))
 
+        # Defaulting to no active spool, putting at end so endpoint has time to register
+        if self.AFC.current is None:
+            self.AFC.SPOOL.set_active_spool( None )
+
 def load_config(config):
     return afcPrep(config)
 

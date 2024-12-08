@@ -12,7 +12,7 @@ class afcNightOwl:
         self.AFC = self.printer.lookup_object('AFC')
 
         self.logo = '<span class=success--text>Night Owl Ready</span>'
-        self.logo ='R  ,     ,\n'
+        self.logo ='<span class=success--text>R  ,     ,\n'
         self.logo+='E  )\___/(\n'
         self.logo+='A {(@)v(@)}\n'
         self.logo+='D  {|~~~|}\n'
