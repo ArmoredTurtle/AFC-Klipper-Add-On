@@ -31,7 +31,6 @@ class afcPrep:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
-        
 
     def _rename_resume(self):
         """
@@ -71,7 +70,7 @@ class afcPrep:
             self.AFC.extruders={}
 
         temp=[]
-        
+
         self.AFC.tool_cmds={}
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
@@ -153,7 +152,7 @@ class afcPrep:
             try:
                 bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
                 if bypass.filament_present == True:
-                    self.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
+                    self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
             except: bypass = None
 
             for EXTRUDE in self.AFC.extruders.keys():
@@ -161,6 +160,10 @@ class afcPrep:
                 if CUR_EXTRUDER.tool_start_state == True and bypass != True:
                     if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
                         self.AFC.gcode.respond_info("<span class=error--text>{} loaded with out identifying lane in AFC.vars.tool file<span>".format(EXTRUDE))
+
+        # Defaulting to no active spool, putting at end so endpoint has time to register
+        if self.AFC.current is None:
+            self.AFC.SPOOL.set_active_spool( None )
 
 def load_config(config):
     return afcPrep(config)

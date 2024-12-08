@@ -189,6 +189,10 @@ If your leds are not displaying the correct color update the following value und
 ### Filament pulling past extruder during unloads
 During unloads if your filament retracts too much and goes past the lanes extruder then decrease your `afc_bowden_length` value in `~/printer_data/config/AFC/AFC.cfg` file
 
+### Timer too close (TTC) error
+If you keep getting TTC errors start by adding the following to `AFC/AFC.cfg` file under `[AFC]` section  
+- `trsync_update: True`
+
 ## Removing Plugin
 
 To remove the plugin, you can use the following commands:

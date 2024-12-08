@@ -232,3 +232,13 @@ gcode:
 Optional:  
 `trsync_timeout: 0.05`  
 `TRSYNC_SINGLE_MCU_TIMEOUT: 0.5` 
+
+## [2024-12-07]
+
+### Updated
+- When BT_TOOL_UNLOAD us used, spoolman active spool is set to None
+- When spool is ejected from Box Turtle spoolman spool is removed from variables
+- Activated espooler when user calls LANE_MOVE
+
+### Fixed
+- Fixed places where gcode was not referencing AFC and would cause crashes
