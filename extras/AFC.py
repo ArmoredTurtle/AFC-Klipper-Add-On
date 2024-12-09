@@ -17,7 +17,6 @@ class afc:
         self.ERROR = self.printer.load_object(config,'AFC_error')
         self.IDLE = self.printer.load_object(config,'idle_timeout')
         self.gcode = self.printer.lookup_object('gcode')
-        self.STATUS= self.IDLE.state
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile')
@@ -875,7 +874,7 @@ class afc:
             None
         """
         if not self.is_homed():
-            self.ERROR.AFC_error("Please home printer before doing a toolchange")
+            self.ERROR.AFC_error("Please home printer before doing a toolchange", False)
             return
 
         cmd = gcmd.get_commandline()
