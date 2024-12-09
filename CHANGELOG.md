@@ -236,9 +236,16 @@ Optional:
 ## [2024-12-07]
 
 ### Updated
-- When BT_TOOL_UNLOAD us used, spoolman active spool is set to None
+- When BT_TOOL_UNLOAD is used, spoolman active spool is set to None
 - When spool is ejected from Box Turtle spoolman spool is removed from variables
 - Activated espooler when user calls LANE_MOVE
 
 ### Fixed
 - Fixed places where gcode was not referencing AFC and would cause crashes
+
+## [2024-12-08]
+
+### Added
+- When updating the AFC software, the `install-afc.sh` script will now remove any instances of `[gcode_macro T#]` found in the `AFC_Macros.cfg`
+file as the code now generates them automatically.
+

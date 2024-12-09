@@ -181,7 +181,7 @@ fi
 clone_repo
 check_existing_install
 check_old_config_version
-check_for_jq
+check_for_prereqs
 set_install_version_if_missing
 if [ "$FORCE_UPDATE_NO_VERSION" == "False" ]; then
   check_version_and_set_force_update
@@ -304,6 +304,7 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   # Any additional configuration can be added here.
   check_and_append_prep "${AFC_CONFIG_PATH}/AFC.cfg"
   exclude_from_klipper_git
+  remove_t_macros
 
   # Update moonraker config
   update_moonraker_config
