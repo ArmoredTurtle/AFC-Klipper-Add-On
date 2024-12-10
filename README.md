@@ -179,14 +179,18 @@ If using snappy hub cutter update the following values:
 ## Calibration
 
 The function `CALIBRATE_AFC` can be called in the console to calibrate distances.
+
 _distances will be calibrated to have ~1 short move after the move distance_
 
 ### Definitions
+
 - `dist_hub` for each lane is the distance from the load switch at the extruder to the hub
 - `afc_bowden_length` is the distance from the hub to the toolhead sensor
 
 ### Usage
+
 `CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
+
 _`DISTANCE` and `TOLERANCE` are optional. default distance 25mm, default tolerance 5mm_
 
 - To calibrate all lanes and the bowden length all at once:
