@@ -283,7 +283,7 @@ class afcBoxTurtle:
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present:
-                self.gcode.respond_info("Filament loaded in bypass, not doing tool load")
+                self.AFC.gcode.respond_info("Filament loaded in bypass, not doing tool load")
                 return False
         except:
             bypass = None
