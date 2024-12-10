@@ -255,4 +255,14 @@ Optional:
 - When updating the AFC software, the `install-afc.sh` script will now remove any instances of `[gcode_macro T#]` found in the `AFC_Macros.cfg`
 file as the code now generates them automatically.
 
+## [Unreleased]
+
+### Added
+- **New Command: CALIBRATE_AFC**  
+    Allows calibration of the hub position and Bowden length in the Automated Filament Changer (AFC) system.  
+    Supports calibration for a specific lane or all lanes (LANES parameter).  
+    Provides options for distance and tolerance during calibration:
+    - `DISTANCE=<distance>`: Optional distance parameter for lane movement during calibration (default is 25mm).
+    - `TOLERANCE=<tolerance>`: Optional tolerance for fine-tuning adjustments during calibration (default is 5mm).  
+    - Bowden Calibration: Added functionality to calibrate Bowden length for individual lanes using the `BOWDEN` parameter.
 
