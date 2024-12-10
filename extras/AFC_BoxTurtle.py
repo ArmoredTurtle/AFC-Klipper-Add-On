@@ -102,22 +102,19 @@ class afcBoxTurtle:
         This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
         (Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
         steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
-        user-provided input.
-
-        If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
+        user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
 
-        Usage:
-            `CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance>`
-            
+        Usage:`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANES=all` (Calibrates all lanes)
+            - `CALIBRATE_AFC LANES=all Bowden=leg1`
             - `CALIBRATE_AFC LANES=leg1 DISTANCE=30 TOLERANCE=3` (Calibrates lane 'leg1' with specific parameters)
             - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
-                - LANES: Specifies the lane to calibrate. If not provided, calibrates all lanes.
+                Parameters:
+                - LANES: Specifies the lane to calibrate. If not provided, calibrates no lanes.
                 - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
                 - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
                 - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
@@ -202,6 +199,8 @@ class afcBoxTurtle:
                 if CUR_HUB.state:
                     CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                 cal_msg += '\n{} dist_hub: {}'.format(CUR_LANE.name.upper(), (hub_pos - short_dis))
+                CUR_LANE.hub_load = True
+                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             else:
                 # Calibrate all lanes if no specific lane is provided
                 for UNIT in self.AFC.lanes.keys():
@@ -223,6 +222,8 @@ class afcBoxTurtle:
                         if CUR_HUB.state:
                             CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                         cal_msg += '\n{} dist_hub: {}'.format(CUR_LANE.name.upper(), (hub_pos - short_dis))
+                        CUR_LANE.hub_load = True
+                        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
 
@@ -256,6 +257,7 @@ class afcBoxTurtle:
             else:
                 self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
+        self.AFC.save_vars()
         self.AFC.gcode.respond_info(cal_msg)
 
 def load_config(config):
