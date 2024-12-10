@@ -126,11 +126,16 @@ check_unzip() {
   fi
 }
 
-check_for_jq() {
+check_for_prereqs() {
   if ! command -v jq &> /dev/null; then
     print_msg INFO "  jq is not installed. Installing jq..."
     sudo apt-get update &> /dev/null
     sudo apt-get install -y jq &> /dev/null
+  fi
+  if ! command -v crudini &> /dev/null; then
+    print_msg INFO "  crudini is not installed. Installing crudini..."
+    sudo apt-get update &> /dev/null
+    sudo apt-get install -y crudini &> /dev/null
   fi
 }
 
