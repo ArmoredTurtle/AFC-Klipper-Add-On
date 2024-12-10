@@ -151,7 +151,7 @@ class afcSpool:
                     self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
                     if 'remaining_weight' in result: self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
                 except:
-                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID))
+                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID), False)
             else:
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''

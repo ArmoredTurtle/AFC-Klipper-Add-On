@@ -23,7 +23,6 @@ class afcError:
     def fix(self, problem, LANE=None):
         self.pause= True
         self.AFC = self.printer.lookup_object('AFC')
-        self.set_error_state(True)
         error_handled = False
         if problem == None:
             self.PauseUserIntervention('Paused for unknown error')
@@ -56,6 +55,7 @@ class afcError:
                 self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
                 self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded']= ''
                 self.AFC.save_vars()
+                self.pause = False
                 return True
 
             else:
@@ -74,6 +74,7 @@ class afcError:
         pause_print function verifies that the printer is homed and not currently paused before calling
         the base pause command
         """
+        self.set_error_state( True )
         self.AFC.gcode.respond_info ('PAUSING')
         self.AFC.gcode.run_script_from_command('PAUSE')
 
@@ -86,7 +87,6 @@ class afcError:
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
         self.AFC.gcode._respond_error( msg )
-        self.set_error_state(True)
         if pause: self.pause_print()
 
 
@@ -105,6 +105,7 @@ class afcError:
             None
         """
         self.set_error_state(False)
+        self.pause = False
 
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
@@ -125,9 +126,10 @@ class afcError:
         self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
 
         #The only time our resume should restore position is if there was an error that caused the pause
-        if self.error_state:
+        if self.AFC.error_state:
             self.set_error_state(False)
-            self.restore_pos()
+            self.AFC.restore_pos()
+            self.pause = False
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message, pause=True):

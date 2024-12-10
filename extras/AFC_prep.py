@@ -72,15 +72,6 @@ class afcPrep:
         temp=[]
 
         self.AFC.tool_cmds={}
-        try:
-            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-            if bypass.filament_present == True:
-                self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
-                self.AFC.bypass = True
-            else:
-                self.AFC.bypass = False
-        except: self.AFC.bypass = False
-
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
@@ -101,7 +92,7 @@ class afcPrep:
                             self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
                             if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
                         except:
-                            self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']))
+                            self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']), False)
 
                 if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
                 if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
@@ -125,17 +116,9 @@ class afcPrep:
             if UNIT !='system':
                 for LANE in self.AFC.lanes[UNIT].keys():
                     if LANE !='system':
-                        if LANE not in temp: tmp.append(UNIT+':' + LANE)
-        
+                        if LANE not in temp: tmp.append(LANE)
         for erase in tmp:
-            rem = erase.split(':')
-            del self.AFC.lanes[rem[0]][rem[1]]
-        tmp=[]
-        for UNIT in self.AFC.lanes.keys():
-            if len(self.AFC.lanes[UNIT].keys()) == 0: tmp.append(UNIT)
-        for erase in tmp:
-            del self.AFC.lanes[erase]
-
+            del self.AFC.lanes[UNIT][erase]
         self.AFC.save_vars()
 
         if self.enable == False:
@@ -145,8 +128,13 @@ class afcPrep:
             for UNIT in self.AFC.lanes.keys():
                 logo=''
                 logo_error = ''
-                CUR_HUB = self.AFC.get_hub(UNIT)
+                try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
+                except:
+                    error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
+                    self.AFC.AFC_error(error_string, False)
+                    return
                 self.AFC.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
+
                 logo=CUR_HUB.unit.logo
                 logo+='  ' + UNIT + '\n'
                 logo_error=CUR_HUB.unit.logo_error
@@ -161,6 +149,11 @@ class afcPrep:
                     self.AFC.gcode.respond_raw(logo)
                 else:
                     self.AFC.gcode.respond_raw(logo_error)
+            try:
+                bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+                if bypass.filament_present == True:
+                    self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
+            except: bypass = None
 
             for EXTRUDE in self.AFC.extruders.keys():
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
