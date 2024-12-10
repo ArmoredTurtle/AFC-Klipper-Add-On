@@ -242,3 +242,8 @@ Optional:
 
 ### Fixed
 - Fixed places where gcode was not referencing AFC and would cause crashes
+
+## [2024-12-09]
+
+### Added
+- Added logic to pause print when filament goes past prep sensor. Verify that PAUSE macro move's toolhead off print when it's called.
