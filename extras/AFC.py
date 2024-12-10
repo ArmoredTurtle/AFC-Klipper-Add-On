@@ -127,14 +127,12 @@ class afc:
         self.toolhead = self.printer.lookup_object('toolhead')
 
         # GCODE REGISTERS
-        self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
         self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
         self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
         self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
         self.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
-        self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
 
@@ -333,31 +331,6 @@ class afc:
         with open(self.VarFile+ '.tool', 'w') as f:
             f.write(json.dumps(self.extruders, indent=4))
 
-    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
-    def cmd_HUB_CUT_TEST(self, gcmd):
-        """
-        This function tests the cutting sequence of the hub cutter for a specified lane.
-        It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
-        and responds with the status of the operation.
-
-        Usage: `HUB_CUT_TEST LANE=<lane>`
-        Example: `HUB_CUT_TEST LANE=leg1`
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be tested.
-
-        Returns:
-            None
-        """
-        lane = gcmd.get('LANE', None)
-        self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
-        CUR_HUB.hub_cut(CUR_LANE)
-        self.gcode.respond_info('Hub cut Done!')
-
     cmd_TEST_help = "Test Assist Motors"
     def cmd_TEST(self, gcmd):
         """
@@ -408,44 +381,7 @@ class afc:
     def cmd_SPOOL_ID(self, gcmd):
         return
 
-    # HUB COMMANDS
-    cmd_HUB_LOAD_help = "Load lane into hub"
-    def cmd_HUB_LOAD(self, gcmd):
-        """
-        This function handles the loading of a specified lane into the hub. It performs
-        several checks and movements to ensure the lane is properly loaded.
-
-        Usage: `HUB_LOAD LANE=<lane>`
-        Example: `HUB_LOAD LANE=leg1`
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-
-        Returns:
-            None
-        """
-        lane = gcmd.get('LANE', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
-        if CUR_LANE.prep_state == False: return
-
-        if CUR_LANE.load_state == False:
-            CUR_LANE.do_enable(True)
-            while CUR_LANE.load_state == False:
-                CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
-        if CUR_LANE.hub_load == False:
-            CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
-        while CUR_HUB.state == False:
-            CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
-        while CUR_HUB.state == True:
-            CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-        CUR_LANE.status = 'Hubed'
-        CUR_LANE.do_enable(False)
-        CUR_LANE.hub_load = True
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
-        self.save_vars()
+    
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
