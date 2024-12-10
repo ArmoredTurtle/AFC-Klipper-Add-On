@@ -258,7 +258,7 @@ file as the code now generates them automatically.
 ## [Unreleased]
 
 ### Added
-- **New Command: CALIBRATE_AFC**  
+- **New Command: `CALIBRATE_AFC`**  
     Allows calibration of the hub position and Bowden length in the Automated Filament Changer (AFC) system.  
     Supports calibration for a specific lane or all lanes (LANES parameter).  
     Provides options for distance and tolerance during calibration:
