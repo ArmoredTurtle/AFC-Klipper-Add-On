@@ -162,7 +162,7 @@ class afc:
             status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
 
             # Create a dynamic format string that adjusts based on lane name length
-            header_format = '{:<{}} | Prep | Load | Hub | Tool |\n'
+            header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
             for LANE in self.lanes[UNIT].keys():
@@ -186,27 +186,20 @@ class afc:
                 else:
                     lane_msg += '|  <span class=error--text>xx</span>  |'
                 if CUR_LANE.load_state == True:
-                    lane_msg += ' <span class=success--text><--></span> |'
+                    lane_msg += ' <span class=success--text><--></span> |\n'
                 else:
-                    lane_msg += '  <span class=error--text>xx</span>  |'
-
-                if self.current != None:
-                    if self.current == CUR_LANE.name:
-                        if CUR_HUB.state == True:
-                            lane_msg += ' <span class=success--text><-></span> |'
-                        else:
-                            lane_msg += '  <span class=error--text>xx</span>  |'
-                        if CUR_EXTRUDER.tool_start_state == True:
-                            lane_msg += ' <span class=success--text><--></span> |\n'
-                        else:
-                            lane_msg += '  <span class=error--text>xx</span>  |\n'
-                    else:
-                        lane_msg += '  <span class=error--text>x</span>  |'
-                        lane_msg += '  <span class=error--text>xx</span>  |\n'
-                else:
-                    lane_msg += '  <span class=error--text>x</span>  |'
                     lane_msg += '  <span class=error--text>xx</span>  |\n'
                 status_msg += lane_msg
+            if CUR_HUB.state == True:
+                status_msg += 'HUB: <span class=success--text><-></span>'
+            else:
+                status_msg += 'HUB: <span class=error--text>x</span>'
+            if CUR_EXTRUDER.tool_start_state == True:
+                status_msg += '  Tool: <span class=success--text><-></span>'
+            else:
+                status_msg += '  Tool: <span class=error--text>x</span>'
+            if CUR_EXTRUDER.tool_start == 'buffer':
+                status_msg += '\n<span class=info--text>Ram sensor enabled</span>'
         self.gcode.respond_raw(status_msg)
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"

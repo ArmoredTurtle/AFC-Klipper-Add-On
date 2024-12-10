@@ -79,6 +79,15 @@ current lane and loading the new lane.
 Usage: ``CHANGE_TOOL LANE=<lane>``  
 Example: ``CHANGE_TOOL LANE=leg1``  
 
+### CALIBRATE_AFC
+_Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
+(Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
+steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
+user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
+the option to calibrate the Bowden length for a particular lane, if specified.
+Usage: ``CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
+Example: `CALIBRATE_AFC LANES=all Bowden=leg1`  
+
 ### SET_MULTIPLIER
 _Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
 It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
