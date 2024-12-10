@@ -174,13 +174,11 @@ class afcBoxTurtle:
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
             cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             if lanes != 'all':
-                units = [unit for unit in self.AFC.lanes.keys()]
                 lane_to_calibrate = None
                 # Search for the lane within the units
-                for UNIT in units:
+                for UNIT in self.AFC.lanes.keys():
                     if lanes in self.AFC.lanes[UNIT]:
                         lane_to_calibrate = lanes
-                        unit = UNIT
                         break
                 if lane_to_calibrate is None:
                     self.AFC.gcode.respond_info('{} not found in any unit.'.format(lanes))
