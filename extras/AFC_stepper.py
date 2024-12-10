@@ -228,7 +228,7 @@ class AFCExtruderStepper:
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if x> 40:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
-                        self.AFC.AFC_error(msg)
+                        self.AFC.AFC_error(msg, False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
                         self.status=''
                         break
@@ -237,14 +237,20 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, led)
-            elif self.name == self.AFC.current and self.IDLE.state == 'Printing' and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
-                self.status = None
-                self.AFC.afc_led(self.AFC.led_not_ready, led)
-                self.AFC.gcode.respond_info("Infinite Spool triggered")
-                empty_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
-                change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
-                self.gcode.run_script_from_command(change_LANE.map)
-                self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
+            elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing':
+                # Checking to make sure runout_lane is set and does not equal 'NONE'
+                if self.AFC.lanes[self.unit][self.name]['runout_lane'] and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
+                    self.status = None
+                    self.AFC.afc_led(self.AFC.led_not_ready, led)
+                    self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
+                    empty_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+                    change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
+                    self.gcode.run_script_from_command(change_LANE.map)
+                    self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
+                else:
+                    # Pause print
+                    self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
+                    self.AFC.ERROR.pause_print()
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)

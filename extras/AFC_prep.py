@@ -92,7 +92,7 @@ class afcPrep:
                             self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
                             if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
                         except:
-                            self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']))
+                            self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']), False)
 
                 if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
                 if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
