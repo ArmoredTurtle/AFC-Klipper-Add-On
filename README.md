@@ -197,6 +197,8 @@ _`DISTANCE` and `TOLERANCE` are optional. default distance 25mm, default toleran
   - `CALIBRATE_AFC LANES=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 - To calibrate individual lanes
   - `CALIBRATE_AFC LANES=<lane>` input the lane you would like to calibrate
+- To calibrate just the bowden length:
+  - `CALIBRATE_AFC BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 
 __Values must be updated in AFC_Hardware.cfg after calibration__
 
