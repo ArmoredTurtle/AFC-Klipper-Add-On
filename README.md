@@ -179,7 +179,6 @@ If using snappy hub cutter update the following values:
 ## Calibration
 
 The function `CALIBRATE_AFC` can be called in the console to calibrate distances.
-
 _distances will be calibrated to have ~1 short move after the move distance_
 
 ### Definitions
@@ -190,13 +189,14 @@ _distances will be calibrated to have ~1 short move after the move distance_
 ### Usage
 
 `CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
-
 _`DISTANCE` and `TOLERANCE` are optional. default distance 25mm, default tolerance 5mm_
 
 - To calibrate all lanes and the bowden length all at once:
   - `CALIBRATE_AFC LANES=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 - To calibrate individual lanes
   - `CALIBRATE_AFC LANES=<lane>` input the lane you would like to calibrate
+
+__Values must be updated in AFC_Hardware.cfg after calibration__
 
 ## Troubleshooting
 
