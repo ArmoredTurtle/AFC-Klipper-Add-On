@@ -84,7 +84,7 @@ _Description_: This function performs the calibration of the hub and Bowden leng
 (Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
 steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
 user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
-the option to calibrate the Bowden length for a particular lane, if specified.
+the option to calibrate the Bowden length for a particular lane, if specified.  
 Usage: ``CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
 Example: `CALIBRATE_AFC LANES=all Bowden=leg1`  
 

@@ -176,6 +176,32 @@ If using snappy hub cutter update the following values:
   - cut: change to True
   - cut_dist: update to the value that you would like to cut off the end, this may take some tuning to get right
 
+## Calibration
+
+The function `CALIBRATE_AFC` can be called in the console to calibrate distances.
+
+_distances will be calibrated to have ~1 short move after the move distance_
+
+### Definitions
+
+- `dist_hub` for each lane is the distance from the load switch at the extruder to the hub
+- `afc_bowden_length` is the distance from the hub to the toolhead sensor
+
+### Usage
+
+`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
+
+_`DISTANCE` and `TOLERANCE` are optional. default distance 25mm, default tolerance 5mm_
+
+- To calibrate all lanes and the bowden length all at once:
+  - `CALIBRATE_AFC LANES=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
+- To calibrate individual lanes
+  - `CALIBRATE_AFC LANES=<lane>` input the lane you would like to calibrate
+- To calibrate just the bowden length:
+  - `CALIBRATE_AFC BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
+
+__Values must be updated in AFC_Hardware.cfg after calibration__
+
 ## Troubleshooting
 
 Debug information about the respooler system can be found by visiting the following URL in your browser:
