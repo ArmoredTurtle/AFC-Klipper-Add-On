@@ -230,7 +230,8 @@ class afcBoxTurtle:
         if afc_bl is not None:
             if lanes is None:
                 self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
-                cal_msg += 'AFC Calibration distances +/-{}mm\nUpdate values in AFC_Hardware.cfg'.format(tol)
+                cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
+                cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             lane = afc_bl
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
