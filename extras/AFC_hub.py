@@ -47,8 +47,10 @@ class afc_hub:
         self.gcode = self.AFC.gcode
         self.reactor = self.AFC.reactor
 
-        #self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
-        #self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
+        try: self.AFC.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
+        except: nothing=0
+        try: self.AFC.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
+        except: nothing=0
 
 
     def switch_pin_callback(self, eventtime, state):
