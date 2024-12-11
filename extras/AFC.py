@@ -468,6 +468,10 @@ class afc:
         CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         if CUR_LANE.name != self.current:
+            # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
+            # extruder motors are still running it does not trigger infinite spool or pause logic
+            # once user removes filament lanes status will go to None
+            CUR_LANE.status = 'ejecting'
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
@@ -478,7 +482,6 @@ class afc:
             CUR_LANE.do_enable(False)
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             self.save_vars()
-            CUR_LANE.status = None
 
             # Removing spool from vars since it was ejected
             self.SPOOL.set_spoolID( CUR_LANE, "")
