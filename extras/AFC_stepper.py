@@ -237,7 +237,7 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, led)
-            elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing':
+            elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing' and self.load_state and self.status != 'ejecting':
                 # Checking to make sure runout_lane is set and does not equal 'NONE'
                 if self.AFC.lanes[self.unit][self.name]['runout_lane'] and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
                     self.status = None
