@@ -873,8 +873,23 @@ class afc:
             self.ERROR.AFC_error("Please home printer before doing a toolchange", False)
             return
 
-        cmd = gcmd.get_commandline()
-        lane=self.tool_cmds[cmd]
+        tmp = gcmd.get_commandline()
+        cmd = tmp.upper()
+        Tcmd = ''
+        if 'LANE' in cmd:
+            lane = gcmd.get('LANE', None)
+            for key in self.tool_cmds.keys():
+                if self.tool_cmds[key].upper() == lane.upper():
+                    Tcmd = key
+                    break
+        else:
+            Tcmd = cmd
+
+        if Tcmd == '':
+            self.gcode.respond_info("I did not understand the change -- " +cmd)
+            return
+
+        lane=self.tool_cmds[Tcmd]
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
