@@ -173,6 +173,7 @@ if [ "$UNINSTALL" = "True" ]; then
   print_msg INFO " 1. Review your printer.cfg to ensure the AFC configuration is removed."
   print_msg INFO " 2. Remove any AFC configuration from your moonraker config."
   print_msg INFO " 3. Restart your Klipper service."
+  restart_klipper
   exit 0
 fi
 
@@ -180,6 +181,7 @@ fi
 clone_repo
 check_existing_install
 check_old_config_version
+check_for_prereqs
 set_install_version_if_missing
 if [ "$FORCE_UPDATE_NO_VERSION" == "False" ]; then
   check_version_and_set_force_update
@@ -211,7 +213,7 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$FORCE_UPDATE" = False ]; then
       UPDATE_CONFIG=True
     else
       print_msg INFO "  Skipping configuration update."
-      exit 0
+      exit_afc_install
     fi
   fi
 fi
@@ -222,8 +224,7 @@ if [ "$PRIOR_INSTALLATION" = "True" ] && [ "$AUTO_UPDATE_CONFIG" = True ]; then
   print_msg INFO "  Auto updating configuration files..."
   print_msg INFO "  Please review your configuration files for accuracy."
   auto_update
-  echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
-  exit 0
+  exit_afc_install
 fi
 
 # If an existing installation is found, and we want to force run configuration changes.
@@ -303,15 +304,13 @@ if [ "$PRIOR_INSTALLATION" = "False" ] || [ "$UPDATE_CONFIG" = "True" ]; then
   # Any additional configuration can be added here.
   check_and_append_prep "${AFC_CONFIG_PATH}/AFC.cfg"
   exclude_from_klipper_git
+  remove_t_macros
 
   # Update moonraker config
   update_moonraker_config
 
   print_msg INFO "  Prior to starting Klipper, please review all files in the AFC directory to ensure they are correct."
   print_msg WARNING "  This includes especially the AFC_Macro_Vars.cfg file and the pins in AFC_Hardware.cfg"
-  print_msg INFO "  Once you have reviewed the files, restart Klipper to apply the changes."
+  exit_afc_install
 
 fi
-
-# Set the installed-version to the latest version run
-echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"

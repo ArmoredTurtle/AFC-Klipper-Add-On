@@ -202,7 +202,67 @@ gcode:
 ### Fixed
 - Fixed erroring out if a buffer in not configured
 
+## [2024-12-02]
+
+### Added
+
+- Buffer_Ram_Sensor
+  - Enabling the buffer to be used as a ram sensor for loading and unloading filament
+  - see Buffer_Ram_Sensor doc for more information
+
+### Changed
+
+- Adjusted load and unload to account for ram sensor
+- Adjusted Prep to account for ram sensor
+
+## [2024-12-03]
+
+### Added
+
+- The `install-afc.sh` script will now query the printer upon exit to see if it is actively printing. If it is not
+  printing, it will restart the `klipper` service.
 ## [2024-12-04]
 
 ### Fixed
 - Fixed issue with Turtleneck buffer pins not being assigned correctly when prompted during install
+- Fixed issue with LEDs not showing the right color when error happened during PREP
+- Changed error message when AFC.vars.unit lane showed loaded but AFC.vars.tool file didn't match
+- Added logic so that user could change trsync value. To set value add the following into `[AFC]` section in AFC.cfg file:  
+`trsync_update: True`  
+Optional:  
+`trsync_timeout: 0.05`  
+`TRSYNC_SINGLE_MCU_TIMEOUT: 0.5` 
+
+## [2024-12-07]
+
+### Updated
+- When BT_TOOL_UNLOAD is used, spoolman active spool is set to None
+- When spool is ejected from Box Turtle spoolman spool is removed from variables
+- Activated espooler when user calls LANE_MOVE
+
+### Fixed
+- Fixed places where gcode was not referencing AFC and would cause crashes
+
+
+## [2024-12-09]
+
+### Added
+- Added logic to pause print when filament goes past prep sensor. Verify that PAUSE macro move's toolhead off print when it's called.
+=======
+## [2024-12-08]
+
+### Added
+- When updating the AFC software, the `install-afc.sh` script will now remove any instances of `[gcode_macro T#]` found in the `AFC_Macros.cfg`
+file as the code now generates them automatically.
+
+## [2024-12-09]
+
+### Added
+- **New Command: `CALIBRATE_AFC`**  
+    Allows calibration of the hub position and Bowden length in the Automated Filament Changer (AFC) system.  
+    Supports calibration for a specific lane or all lanes (`LANES` parameter).  
+    Provides options for distance and tolerance during calibration:
+    - `DISTANCE=<distance>`: Optional distance parameter for lane movement during calibration (default is 25mm).
+    - `TOLERANCE=<tolerance>`: Optional tolerance for fine-tuning adjustments during calibration (default is 5mm).  
+    - Bowden Calibration: Added functionality to calibrate Bowden length for individual lanes using the `BOWDEN` parameter.
+

@@ -206,3 +206,15 @@ replace_varfile_path() {
     sed -i "s|$old_path|$new_path|" "$file_path"
   fi
 }
+
+remove_t_macros() {
+  # Function to remove the T macros from the configuration file.
+  local t_macro
+  local t_macros
+
+  t_macros=$(grep -o -E 'T[0-9]+' "${AFC_CONFIG_PATH}/macros/AFC_macros.cfg")
+
+  for t_macro in $t_macros; do
+    crudini --del "${AFC_CONFIG_PATH}"/macros/AFC_macros.cfg "gcode_macro $t_macro"
+  done
+}
