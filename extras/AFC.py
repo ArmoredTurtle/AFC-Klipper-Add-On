@@ -974,6 +974,7 @@ class afc:
                 str[UNIT][NAME]['map'] = LANE.map
                 str[UNIT][NAME]['load'] = bool(LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
+                str[UNIT][NAME]["tool_loaded"] = self.lanes[UNIT][NAME]['tool_loaded']
                 str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
                 str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
                 str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
