@@ -73,12 +73,14 @@ prompt_boolean() {
 }
 
 confirm_continue() {
-  # Function to prompt the user to press Y or y to continue.
-  # Exits the script if the user does not press Y or y.
+  # Function to prompt the user to press Y, y, or Enter to continue.
+  # Exits the script if the user does not press Y, y, or Enter.
 
-  read -p "  Do you want to continue? (Y/y to continue): " -n 1 -r
+  read -p "  Do you want to continue? (Y/n): " -n 1 -r
   echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  if [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]; then
+    return
+  else
     print_msg ERROR "  Operation aborted."
     exit 1
   fi
