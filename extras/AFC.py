@@ -386,7 +386,7 @@ class afc:
         try:
             CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
         except error:
-            self.ERROR.fix('could not find stepper ' + lane)  #send to error handling
+            self.ERROR.fix( 'could not find stepper {}'.format(lane), CUR_LANE )  #send to error handling
             return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
@@ -920,7 +920,7 @@ class afc:
                     if not self.TOOL_UNLOAD(CUR_LANE):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
-                        self.ERROR.fix(msg)  #send to error handling
+                        self.ERROR.fix(msg, CUR_LANE)  #send to error handling
                         return
 
                 # Switch to the new lane for loading.
