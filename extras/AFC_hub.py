@@ -28,7 +28,7 @@ class afc_hub:
         self.cut_confirm = config.getboolean("cut_confirm", 0)
 
         self.move_dis = config.getfloat("move_dis", 50)
-        self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 10)
+        self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
         buttons = self.printer.load_object(config, "buttons")

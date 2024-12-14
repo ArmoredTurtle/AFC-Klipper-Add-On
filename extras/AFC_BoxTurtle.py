@@ -107,8 +107,7 @@ class afcBoxTurtle:
 
         Usage:`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANES=all Bowden=leg1`
-            - `CALIBRATE_AFC LANES=leg1 DISTANCE=30 TOLERANCE=3` (Calibrates lane 'leg1' with specific parameters)
+            - `CALIBRATE_AFC LANES=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
             - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
 
         Args:
@@ -165,6 +164,28 @@ class afcBoxTurtle:
                 pos += tolerance
             return pos
 
+        def calibrate_lane(LANE):
+            CUR_LANE = self.printer.lookup_object('AFC_stepper {}'.format(LANE))
+            CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))
+            if CUR_HUB.state:
+                self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
+                return False, ""
+            if not CUR_LANE.load_state:
+                self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
+                return True, ""
+
+            self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
+            # reset to extruder
+            calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, short_dis, tol)
+            hub_pos = calibrate_hub(CUR_LANE, CUR_HUB)
+            if CUR_HUB.state:
+                CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+            CUR_LANE.hub_load = True
+            self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+            CUR_LANE.do_enable(False)
+            cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
+            return True, cal_msg
+
         # Determine if a specific lane is provided
         if lanes is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
@@ -182,48 +203,18 @@ class afcBoxTurtle:
                     return
 
                 # Calibrate the specific lane
-                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane_to_calibrate)
-                CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
-
-                if CUR_HUB.state:
-                    self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
-                    return
-                if not CUR_LANE.load_state:
-                    self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
-                    return
-
-                self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
-                # reset to extruder
-                calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, short_dis, tol)
-                hub_pos = calibrate_hub(CUR_LANE, CUR_HUB)
-                if CUR_HUB.state:
-                    CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                cal_msg += '\n{} dist_hub: {}'.format(CUR_LANE.name.upper(), (hub_pos - short_dis))
-                CUR_LANE.hub_load = True
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+                checked, msg = calibrate_lane(lanes)
+                if(not checked): return
+                cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
                 for UNIT in self.AFC.lanes.keys():
                     for LANE in self.AFC.lanes[UNIT].keys():
-                        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
-                        CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
+                        # Calibrate the specific lane
+                        checked, msg = calibrate_lane(LANE)
+                        if(not checked): return
+                        cal_msg += msg
 
-                        if CUR_HUB.state:
-                            self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
-                            return
-                        if not CUR_LANE.load_state:
-                            self.AFC.gcode.respond_info('{} not loaded, skipping calibration'.format(CUR_LANE.name.upper()))
-                            continue
-
-                        self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
-                        # reset to extruder
-                        calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, short_dis, tol)
-                        hub_pos = calibrate_hub(CUR_LANE, CUR_HUB)
-                        if CUR_HUB.state:
-                            CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                        cal_msg += '\n{} dist_hub: {}'.format(CUR_LANE.name.upper(), (hub_pos - short_dis))
-                        CUR_LANE.hub_load = True
-                        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
 
@@ -255,6 +246,7 @@ class afcBoxTurtle:
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (short_dis * 2))
                 else:
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - short_dis)
+                CUR_LANE.do_enable(False)
             else:
                 self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
