@@ -20,7 +20,7 @@ class afcError:
         self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_RESET_FAILURE, desc=self.cmd_RESET_FAILURE_help)
         self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
 
-    def fix(self, problem, LANE=None):
+    def fix(self, problem, LANE):
         self.pause= True
         self.AFC = self.printer.lookup_object('AFC')
         error_handled = False
