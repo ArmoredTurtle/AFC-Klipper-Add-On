@@ -1010,7 +1010,7 @@ class afc:
             else:
                 str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = None
             str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
-            str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer_status())
+            str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer_status()
         return str
 
     def is_homed(self):

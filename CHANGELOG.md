@@ -266,3 +266,8 @@ file as the code now generates them automatically.
     - `TOLERANCE=<tolerance>`: Optional tolerance for fine-tuning adjustments during calibration (default is 5mm).  
     - Bowden Calibration: Added functionality to calibrate Bowden length for individual lanes using the `BOWDEN` parameter.
 
+## [2024-12-13]
+
+### Updated
+- Updated Cut.cfg macro to have the ability to up stepper current when doing filament cutting, 
+  see layer shift troubleshooting section on what values need to be set

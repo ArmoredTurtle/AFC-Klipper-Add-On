@@ -219,6 +219,15 @@ During unloads if your filament retracts too much and goes past the lanes extrud
 If you keep getting TTC errors start by adding the following to `AFC/AFC.cfg` file under `[AFC]` section  
 - `trsync_update: True`
 
+### Layer shift when using cut macro
+If you notice a layer shift occurs while using the cut macro, setting a higher stepper current while cutting has shown to help with this.
+Update and uncomment the following values in `AFC/AFC_Macr_Vars.cfg` file
+- variable_cut_current_stepper_x - start with ~1.7-1.8A
+- variable_cut_current_stepper_y - start with ~1.7-1.8A
+- Only needed if cutting action is along the z - variable_cut_current_stepper_z
+
+Make sure your stepper names are updated for variables: `variable_cut_current_stepper_x, variable_cut_current_stepper_y, variable_cut_current_stepper_z`
+
 ## Removing Plugin
 
 To remove the plugin, you can use the following commands:
