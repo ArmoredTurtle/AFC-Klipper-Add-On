@@ -221,7 +221,7 @@ If you keep getting TTC errors start by adding the following to `AFC/AFC.cfg` fi
 
 ### Layer shift when using cut macro
 If you notice a layer shift occurs while using the cut macro, setting a higher stepper current while cutting has shown to help with this.
-Update the following values in `AFC/AFC_Macr_Vars.cfg` file
+Update and uncomment the following values in `AFC/AFC_Macr_Vars.cfg` file
 - variable_cut_current_stepper_x - start with ~1.7-1.8A
 - variable_cut_current_stepper_y - start with ~1.7-1.8A
 - Only needed if cutting action is along the z - variable_cut_current_stepper_z
