@@ -163,7 +163,7 @@ class afcBoxTurtle:
                 lane.move(tolerance, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
                 pos += tolerance
             return pos
-        
+
         def calibrate_lane(LANE):
             CUR_LANE = self.printer.lookup_object('AFC_stepper {}'.format(LANE))
             CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))
