@@ -46,13 +46,14 @@ def calc_move_time(dist, speed, accel):
 
 class AFCExtruderStepper:
     def __init__(self, config):
-        self.config = config
         self.printer = config.get_printer()
+        self.AFC = self.printer.lookup_object('AFC')
+        self.gcode = self.printer.lookup_object('gcode')
         self.name = config.get_name().split()[-1]
         self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
         self.extruder_name = config.get('extruder')
-        self.gcode_cmd = config.get('cmd',None)
+        self.map = config.get('cmd','NONE')
 
         self.motion_queue = None
         self.status = None
@@ -65,7 +66,6 @@ class AFCExtruderStepper:
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
         self.assist_activate=False
-        self.gcode = self.printer.lookup_object('gcode')
         # Units
         unit = config.get('unit', None)
         if unit != None:
@@ -103,8 +103,6 @@ class AFCExtruderStepper:
             self.afc_motor_fwd = AFC_assist.AFCassistMotor(config, 'fwd')
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
-        self.AFC = self.printer.lookup_object('AFC')
-        self.gcode = self.printer.lookup_object('gcode')
 
         self.filament_diameter = config.getfloat("filament_diameter", 1.75)
         self.filament_density = config.getfloat("filament_density", 1.24)
@@ -230,7 +228,7 @@ class AFCExtruderStepper:
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if x> 40:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
-                        self.AFC.AFC_error(msg)
+                        self.AFC.AFC_error(msg, False)
                         self.AFC.afc_led(self.AFC.led_fault, led)
                         self.status=''
                         break
@@ -239,6 +237,20 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, led)
+            elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing' and self.load_state and self.status != 'ejecting':
+                # Checking to make sure runout_lane is set and does not equal 'NONE'
+                if self.AFC.lanes[self.unit][self.name]['runout_lane'] and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
+                    self.status = None
+                    self.AFC.afc_led(self.AFC.led_not_ready, led)
+                    self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
+                    empty_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
+                    change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
+                    self.gcode.run_script_from_command(change_LANE.map)
+                    self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
+                else:
+                    # Pause print
+                    self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
+                    self.AFC.ERROR.pause_print()
             else:
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
