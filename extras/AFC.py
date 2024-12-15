@@ -1004,7 +1004,13 @@ class afc:
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
-            str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            if CUR_EXTRUDER.tool_start == "buffer":
+                if self.extruders[LANE.extruder_name]['lane_loaded'] == None:
+                    str ["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = False
+                else:
+                    str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True
+            else:
+                str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
             if CUR_EXTRUDER.tool_end is not None:
                 str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
             else:
