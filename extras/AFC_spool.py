@@ -22,6 +22,8 @@ class afcSpool:
         self.gcode = self.AFC.gcode
 
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
+        self.gcode.register_mux_command('SET_WEIGHT',None,None, self.cmd_SET_WEIGHT, desc=self.cmd_SET_WEIGHT_help)
+        self.gcode.register_mux_command('SET_MATERIAL',None,None, self.cmd_SET_MATERIAL, desc=self.cmd_SET_MATERIAL_help)
         self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
         self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
         self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_MAP, desc=self.cmd_SET_MAP_help)
@@ -98,6 +100,64 @@ class afcSpool:
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.AFC.save_vars()
 
+    cmd_SET_WEIGHT_help = "change filaments color"
+    def cmd_SET_WEIGHT(self, gcmd):
+        """
+        This function handles changing the material of a specified lane. It retrieves the lane
+        specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
+
+        Usage: SET_WEIGHT LANE=<lane> WEIGHT=<weight>
+        Example: SET_WEIGHT LANE=leg1 WEIGHT=850
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  
+                    LANE: The name of the lane whose weight is to be changed.
+                    WEIGHT: The new weight (optional, defaults to '').
+
+        Returns:
+            None
+        """
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        weight = gcmd.get('WEIGHT', '')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.weight = weight
+        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = weight
+        self.AFC.save_vars()
+
+    cmd_SET_MATERIAL_help = "change filaments color"
+    def cmd_SET_MATERIAL(self, gcmd):
+        """
+        This function handles changing the material of a specified lane. It retrieves the lane
+        specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
+
+        Usage: SET_MATERIAL LANE=<lane> MATERIAL=<material>
+        Example: SET_MATERIAL LANE=leg1 MATERIAL=ABS
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  
+                      LANE: The name of the lane whose material is to be changed.
+                      MATERIAL: The new material (optional, defaults to '').
+
+        Returns:
+            None
+        """
+        lane = gcmd.get('LANE', None)
+        if lane == None:
+            self.gcode.respond_info("No LANE Defined")
+            return
+        material = gcmd.get('MATERIAL', '')
+        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        CUR_LANE.material = material
+        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = material
+        self.AFC.save_vars()
+        
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
         if self.AFC.spoolman_ip != None:
