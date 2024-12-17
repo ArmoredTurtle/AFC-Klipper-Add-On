@@ -112,7 +112,7 @@ class afcSpool:
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameters:
-                  
+
                     LANE: The name of the lane whose weight is to be changed.
                     WEIGHT: The new weight (optional, defaults to '').
 
@@ -141,7 +141,7 @@ class afcSpool:
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameters:
-                  
+
                       LANE: The name of the lane whose material is to be changed.
                       MATERIAL: The new material (optional, defaults to '').
 
@@ -157,7 +157,7 @@ class afcSpool:
         CUR_LANE.material = material
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = material
         self.AFC.save_vars()
-        
+
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
         if self.AFC.spoolman_ip != None:
