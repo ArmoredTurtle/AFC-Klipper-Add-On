@@ -106,14 +106,15 @@ class afcSpool:
         This function handles changing the material of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
 
-        Usage: `SET_WEIGHT LANE=<lane> WEIGHT=<weight>`
-        Example: `SET_WEIGHT LANE=leg1 WEIGHT=850`
+        Usage: SET_WEIGHT LANE=<lane> WEIGHT=<weight>
+        Example: SET_WEIGHT LANE=leg1 WEIGHT=850
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameters:
-                  - LANE: The name of the lane whose color is to be changed.
-                  - WEIGHT: The new weight (optional, defaults to '').
+                  
+                    LANE: The name of the lane whose weight is to be changed.
+                    WEIGHT: The new weight (optional, defaults to '').
 
         Returns:
             None
@@ -134,14 +135,15 @@ class afcSpool:
         This function handles changing the material of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
 
-        Usage: `SET_MATERIAL LANE=<lane> MATERIAL=<material>`
-        Example: `SET_MATERIAL LANE=leg1 MATERIAL=ABS`
+        Usage: SET_MATERIAL LANE=<lane> MATERIAL=<material>
+        Example: SET_MATERIAL LANE=leg1 MATERIAL=ABS
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameters:
-                  - LANE: The name of the lane whose color is to be changed.
-                  - MATERIAL: The new material (optional, defaults to '').
+                  
+                      LANE: The name of the lane whose material is to be changed.
+                      MATERIAL: The new material (optional, defaults to '').
 
         Returns:
             None
@@ -155,7 +157,7 @@ class afcSpool:
         CUR_LANE.material = material
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = material
         self.AFC.save_vars()
-
+        
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
         if self.AFC.spoolman_ip != None:
