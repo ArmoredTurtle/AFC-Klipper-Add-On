@@ -386,7 +386,7 @@ class afc:
         try:
             CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
         except error:
-            self.ERROR.fix('could not find stepper ' + lane)  #send to error handling
+            self.ERROR.fix( 'could not find stepper {}'.format(lane), CUR_LANE )  #send to error handling
             return
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
@@ -920,7 +920,7 @@ class afc:
                     if not self.TOOL_UNLOAD(CUR_LANE):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
-                        self.ERROR.fix(msg)  #send to error handling
+                        self.ERROR.fix(msg, CUR_LANE)  #send to error handling
                         return
 
                 # Switch to the new lane for loading.
@@ -1004,7 +1004,13 @@ class afc:
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
             str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
-            str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            if CUR_EXTRUDER.tool_start == "buffer":
+                if self.extruders[LANE.extruder_name]['lane_loaded'] == '':
+                    str ["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = False
+                else:
+                    str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True
+            else:
+                str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
             if CUR_EXTRUDER.tool_end is not None:
                 str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
             else:
