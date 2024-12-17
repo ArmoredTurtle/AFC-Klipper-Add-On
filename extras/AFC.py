@@ -27,6 +27,8 @@ class afc:
         self.tool_cmds={}
         self.afc_monitoring = False
 
+        self.desired_order_list = config.get('Vdesired_order_list','')
+
         # tool position when tool change was requested
         self.change_tool_pos = None
         self.in_toolchange = False
