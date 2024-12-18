@@ -3,6 +3,15 @@
 This Klipper plugin is for use on the Box Turtle Filament Changer. The Box Turtle is currently in an open beta.
 More information can be found [here](https://github.com/ArmoredTurtle/BoxTurtle)
 
+Further information to include command references can be found in the [docs](./docs) folder.
+
+## Usage
+
+Usage instructions for the `install-afc.sh` script can be shown by running:
+```bash
+./install-afc.sh -h
+```
+
 ## Installation
 
 To install this plugin, you should have the following pre-requisites installed:
@@ -19,6 +28,21 @@ git clone https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
 cd AFC-Klipper-Add-On
 ./install-afc.sh
 ```
+
+## Updates
+
+To update the AFC plugin software, you can simply run the following command:
+```bash
+./install-afc.sh
+```
+The update process should be non-destructive and will not overwrite any existing configuration files without your permission.
+If you run into an issue due to a specific configuration, you may need to comment out the AFC plugin software and re-run the `install-afc.sh` script.
+
+This can be accomplished by commenting out the following lines in your `printer.cfg` file:
+```cfg
+[include AFC/*.cfg]
+```
+Once the plugin is updated, please uncomment the lines in your `printer.cfg` file (if applicable).
 
 ## Configuration (Automated)
 
@@ -110,12 +134,7 @@ Buffer_Name: TN2
 
 Additional information about the buffer configuration and operation can be found in the [AFC_buffer.md](./docs/AFC_buffer.md) file.
 
-## Usage
 
-Usage instructions for the `install-afc.sh` script can be shown by running:
-```bash
-~/AFC-Klipper-Add-On/install-afc.sh -h
-```
 
 ## Mandatory Configuration Changes (All)
 
@@ -176,7 +195,7 @@ If using snappy hub cutter update the following values:
   - cut: change to True
   - cut_dist: update to the value that you would like to cut off the end, this may take some tuning to get right
 
-## Calibration
+## Automatic Calibration
 
 The function `CALIBRATE_AFC` can be called in the console to calibrate distances.  
 _distances will be calibrated to have ~1 short move after the move distance_
@@ -207,18 +226,25 @@ Debug information about the respooler system can be found by visiting the follow
 
 `{ip address}/printer/objects/query?AFC`
 
-### LEDs not displaying correct color
+<details>
+<summary>LEDs not displaying correct color</summary>
 If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
   - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
+</details>
 
-### Filament pulling past extruder during unloads
+<details>
+<summary>Filament pulling past extruder during unloads</summary>
 During unloads if your filament retracts too much and goes past the lanes extruder then decrease your `afc_bowden_length` value in `~/printer_data/config/AFC/AFC.cfg` file
+</details>
 
-### Timer too close (TTC) error
+<details>
+<summary>Timer too close (TTC) error</summary>
 If you keep getting TTC errors start by adding the following to `AFC/AFC.cfg` file under `[AFC]` section  
 - `trsync_update: True`
+</details>
 
-### Layer shift when using cut macro
+<details>
+<summary>Layer shift when using cut macro</summary>
 If you notice a layer shift occurs while using the cut macro, setting a higher stepper current while cutting has shown to help with this.
 Update and uncomment the following values in `AFC/AFC_Macr_Vars.cfg` file
 - variable_cut_current_stepper_x - start with ~1.7-1.8A
@@ -226,6 +252,7 @@ Update and uncomment the following values in `AFC/AFC_Macr_Vars.cfg` file
 - Only needed if cutting action is along the z - variable_cut_current_stepper_z
 
 Make sure your stepper names are updated for variables: `variable_cut_current_stepper_x, variable_cut_current_stepper_y, variable_cut_current_stepper_z`
+</details>
 
 ## Removing Plugin
 
