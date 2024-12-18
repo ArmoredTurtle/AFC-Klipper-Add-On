@@ -31,7 +31,7 @@ class afcSpool:
         self.URL = 'http://{}:{}/api/v1/spool/'.format(self.AFC.spoolman_ip, self.AFC.spoolman_port)
 
 
-    cmd_SET_MAP_help = "change filaments color"
+    cmd_SET_MAP_help = "change filaments map"
     def cmd_SET_MAP(self, gcmd):
         """
         This function handles changing the GCODE tool change command for a Lane.
@@ -42,7 +42,7 @@ class afcSpool:
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameters:
-                  - LANE: The name of the lane whose color is to be changed.
+                  - LANE: The name of the lane whose map is to be changed.
                   - MAP: The new tool change gcode for lane (optional, defaults to None).
 
         Returns:
