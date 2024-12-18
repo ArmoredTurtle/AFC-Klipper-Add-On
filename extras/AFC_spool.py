@@ -55,7 +55,10 @@ class afcSpool:
         map_cmd = gcmd.get('MAP', None)
         lane_switch=self.AFC.tool_cmds[map_cmd]
         self.gcode.respond_info("lane to switch is " + lane_switch)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(lane + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[lane.name]
         for UNIT_SERACH in self.AFC.lanes.keys():
             self.gcode.respond_info("looking for "+lane+" in " + UNIT_SERACH)
             if lane in self.AFC.lanes[UNIT_SERACH]:
@@ -95,7 +98,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         color = gcmd.get('COLOR', '#000000')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(lane + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.color = '#' + color
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.AFC.save_vars()
@@ -124,7 +130,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         weight = gcmd.get('WEIGHT', '')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(lane + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.weight = weight
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = weight
         self.AFC.save_vars()
@@ -153,7 +162,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         material = gcmd.get('MATERIAL', '')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(lane + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.material = material
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = material
         self.AFC.save_vars()
@@ -197,7 +209,10 @@ class afcSpool:
                 self.gcode.respond_info("No LANE Defined")
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+            CUR_LANE = self.AFC.stepper[lane.name]
             self.set_spoolID(CUR_LANE, SpoolID)
 
     def set_spoolID(self, CUR_LANE, SpoolID):
@@ -243,7 +258,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         runout = gcmd.get('RUNOUT', '')
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(lane + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[lane.name]
         self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['runout_lane'] = runout
         self.AFC.save_vars()
         self.gcode.respond_info("This is a feature WIP. Not functioning yet")

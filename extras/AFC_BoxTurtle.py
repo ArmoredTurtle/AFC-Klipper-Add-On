@@ -31,7 +31,10 @@ class afcBoxTurtle:
     def system_Test(self, UNIT, LANE, delay):
         msg = ''
         succeeded = True
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
+        if LANE not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(LANE + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[LANE.name] 
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
@@ -165,7 +168,10 @@ class afcBoxTurtle:
             return pos
 
         def calibrate_lane(LANE):
-            CUR_LANE = self.printer.lookup_object('AFC_stepper {}'.format(LANE))
+            if LANE not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(LANE + ' Unknown')
+                return
+            CUR_LANE = self.AFC.stepper[LANE.name]
             CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))
             if CUR_HUB.state:
                 self.AFC.gcode.respond_info('Hub is not clear, check before calibration')

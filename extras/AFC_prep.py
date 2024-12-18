@@ -19,7 +19,6 @@ class afcPrep:
         self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
         self.enable = config.getboolean("enable", False)
 
-
         # Flag to set once resume rename as occured for the first time
         self.rename_occured = False
 
@@ -75,6 +74,7 @@ class afcPrep:
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
+                self.AFC.stepper[LANE.name]=LANE
                 temp.append(LANE.name)
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}

@@ -24,6 +24,7 @@ class afc:
         self.error_state = False
         self.lanes = {}
         self.extruders = {}
+        self.stepper = {}
         self.tool_cmds={}
         self.afc_monitoring = False
 
@@ -169,7 +170,7 @@ class afc:
 
             for LANE in self.lanes[UNIT].keys():
                 lane_msg = ''
-                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
+                CUR_LANE = self.AFC.stepper[LANE]
                 CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 if self.current != None:
@@ -229,7 +230,7 @@ class afc:
 
         # If hub is not passed in try and get hub if a lane is currently loaded
         if hub is None and self.current is not None:
-            CUR_LANE= self.printer.lookup_object('AFC_stepper ' + self.current)
+            CUR_LANE = self.AFC.stepper[self.current]
             hub     = CUR_LANE.unit
         elif hub is None and self.current is None:
             self.gcode.respond_info("A lane is not loaded please specify hub to adjust bowden length")
@@ -277,7 +278,10 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
 
     def save_pos(self):
@@ -355,7 +359,10 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
         CUR_HUB.hub_cut(CUR_LANE)
         self.gcode.respond_info('Hub cut Done!')
@@ -385,11 +392,10 @@ class afc:
             self.ERROR.AFC_error('Must select LANE', False)
             return
         self.gcode.respond_info('TEST ROUTINE')
-        try:
-            CUR_LANE = self.printer.lookup_object('AFC_stepper '+lane)
-        except error:
-            self.ERROR.fix( 'could not find stepper {}'.format(lane), CUR_LANE )  #send to error handling
-            return
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
         self.reactor.pause(self.reactor.monotonic() + 1)
@@ -429,7 +435,10 @@ class afc:
             None
         """
         lane = gcmd.get('LANE', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         if CUR_LANE.prep_state == False: return
 
@@ -469,7 +478,10 @@ class afc:
             None
         """
         lane = gcmd.get('LANE', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         if CUR_LANE.name != self.current:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
@@ -516,7 +528,10 @@ class afc:
             None
         """
         lane = gcmd.get('LANE', None)
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         self.TOOL_LOAD(CUR_LANE)
 
     def TOOL_LOAD(self, CUR_LANE):
@@ -636,7 +651,7 @@ class afc:
                         break
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             # Update tool and lane status.
-            self.printer.lookup_object('AFC_stepper ' + CUR_LANE.name).status = 'tool'
+            CUR_LANE.status = 'tool'
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
             self.current = CUR_LANE.name
             CUR_EXTRUDER.enable_buffer()
@@ -692,7 +707,10 @@ class afc:
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
-        CUR_LANE = self.printer.lookup_object('AFC_stepper '+ lane)
+        if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+        CUR_LANE = self.AFC.stepper[lane.name]
         self.TOOL_UNLOAD(CUR_LANE)
 
         # User manually unloaded spool from toolhead, remove spool from active status
@@ -923,7 +941,10 @@ class afc:
             self.in_toolchange = True
 
             # Lookup the lane object for the requested lane.
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            if lane not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(lane + ' Unknown')
+                return
+            CUR_LANE = self.AFC.stepper[lane.name]
             # Check if the lane has completed the preparation process required for tool changes.
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
@@ -931,7 +952,10 @@ class afc:
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
-                    CUR_LANE = self.printer.lookup_object('AFC_stepper ' + self.current)
+                    if self.current not in self.AFC.stepper:
+                        self.AFC.gcode.respond_info(self.current + ' Unknown')
+                        return
+                    CUR_LANE = self.AFC.stepper[self.current]
                     if not self.TOOL_UNLOAD(CUR_LANE):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
@@ -939,8 +963,10 @@ class afc:
                         return
 
                 # Switch to the new lane for loading.
-                CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-
+                if lane not in self.AFC.stepper:
+                    self.AFC.gcode.respond_info(lane + ' Unknown')
+                    return
+                CUR_LANE = self.AFC.stepper[lane.name]
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(CUR_LANE) and not self.error_state:
                 self.gcode.respond_info("{} is now loaded in toolhead".format(lane))
@@ -983,7 +1009,7 @@ class afc:
                 screen_mac = 'None'
             str[UNIT]={}
             for NAME in self.lanes[UNIT].keys():
-                LANE=self.printer.lookup_object('AFC_stepper '+ NAME)
+                LANE=self.AFC.stepper[NAME]
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = LANE.index
                 str[UNIT][NAME]['map'] = LANE.map
