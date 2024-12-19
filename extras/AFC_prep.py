@@ -75,8 +75,10 @@ class afcPrep:
                 self.AFC.stepper[LANE.name]=LANE
                 temp.append(LANE.name)
                 if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
-                if LANE.unit not in self.AFC.units: self.AFC.units[LANE.unit]={}
+                if LANE.unit not in self.AFC.units: self.AFC.units[LANE.unit] = {}
+                if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit] = {}
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
+                if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name] = {}
                 if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] 
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
                     try:

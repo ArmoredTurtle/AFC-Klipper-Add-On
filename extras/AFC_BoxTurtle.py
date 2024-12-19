@@ -34,7 +34,7 @@ class afcBoxTurtle:
         if LANE not in self.AFC.stepper:
             self.AFC.gcode.respond_info(LANE + ' Unknown')
             return
-        CUR_LANE = self.AFC.stepper[LANE.name] 
+        CUR_LANE = self.AFC.stepper[LANE] 
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
@@ -70,7 +70,7 @@ class afcBoxTurtle:
                 CUR_LANE.status = 'Loaded'
                 msg +="<span class=success--text> AND LOADED</span>"
 
-                if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
+                if CUR_LANE.tool_loaded:
                     if CUR_EXTRUDER.tool_start_state == True or CUR_EXTRUDER.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
@@ -186,7 +186,6 @@ class afcBoxTurtle:
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
             CUR_LANE.hub_load = True
-            self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             CUR_LANE.do_enable(False)
             cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
             return True, cal_msg

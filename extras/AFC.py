@@ -22,6 +22,7 @@ class afc:
         self.VarFile = config.get('VarFile')
         self.current = None
         self.error_state = False
+        self.units = {}
         self.lanes = {}
         self.extruders = {}
         self.stepper = {}
@@ -335,7 +336,8 @@ class afc:
                   make it more readable for users
         """
         with open(self.VarFile+ '.unit', 'w') as f:
-            f.write(json.dumps(self.get_status, indent=4))
+            status = self.get_status(0)
+            f.write(json.dumps(status, indent=4))
         with open(self.VarFile+ '.tool', 'w') as f:
             f.write(json.dumps(self.extruders, indent=4))
 
@@ -999,14 +1001,14 @@ class afc:
                 screen_mac = 'None'
             str[UNIT]={}
             for NAME in self.units[UNIT].keys():
-                CUR_LANE=self.AFC.stepper[NAME]
+                CUR_LANE=self.stepper[NAME]
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = CUR_LANE.index
                 str[UNIT][NAME]['map'] = CUR_LANE.map
                 str[UNIT][NAME]['load'] = bool(CUR_LANE.load_state)
                 str[UNIT][NAME]["prep"] =bool(CUR_LANE.prep_state)
                 str[UNIT][NAME]["tool_loaded"] = CUR_LANE.tool_loaded
-                str[UNIT][NAME]["loaded_to_hub"] = CUR_LANE.hub_loaded
+                str[UNIT][NAME]["loaded_to_hub"] = CUR_LANE.loaded_to_hub
                 str[UNIT][NAME]["material"]=CUR_LANE.material
                 str[UNIT][NAME]["spool_id"]=CUR_LANE.spool_id
                 str[UNIT][NAME]["color"]=CUR_LANE.color
@@ -1025,7 +1027,7 @@ class afc:
 
         str["system"]={}
         str["system"]['current_load']= self.current
-        str["system"]['num_units'] = len(self.unites)
+        str["system"]['num_units'] = len(self.units)
         str["system"]['num_lanes'] = numoflanes
         str["system"]['num_extruders'] = len(self.extruders)
         str["system"]["extruders"]={}
