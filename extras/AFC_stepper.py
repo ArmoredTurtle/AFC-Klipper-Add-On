@@ -49,11 +49,30 @@ class AFCExtruderStepper:
         self.printer = config.get_printer()
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
-        self.name = config.get_name().split()[-1]
         self.reactor = self.printer.get_reactor()
         self.extruder_stepper = extruder.ExtruderStepper(config)
+
+        #stored status variables
+        self.name = config.get_name().split()[-1]
         self.extruder_name = config.get('extruder')
+
         self.map = config.get('cmd','NONE')
+        self.tool_loaded = False
+        self.loaded_to_hub = False
+        self.spool_id = None
+        self.material = None
+        self.color = None
+        self.weight = None
+        self.runout_lane = None
+        self.status = None
+        unit = config.get('unit', None)
+        if unit != None:
+            self.unit = unit.split(':')[0]
+            self.index = int(unit.split(':')[1])
+        else:
+            self.unit = 'Unknown'
+            self.index = 0
+        self.hub= ''
 
         self.motion_queue = None
         self.status = None
@@ -66,15 +85,7 @@ class AFCExtruderStepper:
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
         self.assist_activate=False
-        # Units
-        unit = config.get('unit', None)
-        if unit != None:
-            self.unit = unit.split(':')[0]
-            self.index = int(unit.split(':')[1])
-        else:
-            self.unit = 'Unknown'
-            self.index = 0
-        self.hub= ''
+          
         self.hub_dist = config.getfloat('hub_dist',20)
         self.dist_hub = config.getfloat('dist_hub', 60)
         # distance to retract filament from the hub

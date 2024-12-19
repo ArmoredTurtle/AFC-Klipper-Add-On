@@ -77,56 +77,40 @@ class afcPrep:
                 self.AFC.stepper[LANE.name]=LANE
                 temp.append(LANE.name)
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
+                self.AFC.units[LANE.unit]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
+                self.AFC.units[LANE.unit][LANE.name]
                 if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
-                if 'lane_loaded' not in self.AFC.extruders[LANE.extruder_name]: self.AFC.extruders[LANE.extruder_name]['lane_loaded']=''
-
-                if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]:
-                    self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
+                LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] 
+                if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
+                    try:
+                        url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
+                        result = json.load(urlopen(url))
+                        LANE.material = result['filament']['material']
+                        LANE.color = '#' + result['filament']['color_hex']
+                        if 'remaining_weight' in result: LANE.weight =  result['remaining_weight']
+                    except:
+                        self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']), False)
                 else:
-                    if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
-                        try:
-                            url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
-                            result = json.load(urlopen(url))
-                            self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
-                            self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
-                            if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
-                        except:
-                            self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']), False)
+                    if 'material' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.material = self.AFC.lanes[LANE.unit][LANE.name]['material']
+                    if 'color' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.color = self.AFC.lanes[LANE.unit][LANE.name]['color']
+                    if 'weight' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.weight=self.AFC.lanes[LANE.unit][LANE.name]['weight']
 
-                if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
-                if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
-                if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
-                if 'runout_lane' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']='NONE'
-                if 'map' not in self.AFC.lanes[LANE.unit][LANE.name] or self.AFC.lanes[LANE.unit][LANE.name]['map'] is None:
-                   self.AFC.lanes[LANE.unit][LANE.name]['map'] = 'NONE'
-                else:
-                   LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
+                if 'runout_lane' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.runout_lane = self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']
+                if 'map' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
                 if LANE.map != 'NONE':
-                   self.AFC.lanes[LANE.unit][LANE.name]['map'] = LANE.map
                    self.AFC.tool_cmds[LANE.map] = LANE.name
 
-                if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
-                if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                if 'hub_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
-                if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                if 'status' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['status'] = ''
-
-        tmp=[]
-        for UNIT in self.AFC.lanes.keys():
-            if UNIT !='system':
-                for LANE in self.AFC.lanes[UNIT].keys():
-                    if LANE !='system':
-                        if LANE not in temp: tmp.append(LANE)
-        for erase in tmp:
-            del self.AFC.lanes[UNIT][erase]
+                if 'hub_loaded' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.hub_loaded = self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded']
+                if 'tool_loaded' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.tool_loaded = self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded']
+                if 'status' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.status = self.AFC.lanes[LANE.unit][LANE.name]['status']
+        self.AFC.lanes={}
         self.AFC.save_vars()
-
         if self.enable == False:
             self.AFC.gcode.respond_info('Prep Checks Disabled')
             return
         elif len(self.AFC.lanes) >0:
-            for UNIT in self.AFC.lanes.keys():
+            for UNIT in self.AFC.units.keys():
                 logo=''
                 logo_error = ''
                 try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
@@ -142,7 +126,7 @@ class afcPrep:
                 logo_error+='  ' + UNIT + '\n'
 
                 LaneCheck = True
-                for LANE in self.AFC.lanes[UNIT].keys():
+                for LANE in self.AFC.units[UNIT].keys():
                     if not CUR_HUB.unit.system_Test(UNIT,LANE, self.delay):
                         LaneCheck = False
 

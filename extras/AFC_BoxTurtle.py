@@ -60,7 +60,6 @@ class afcBoxTurtle:
                 succeeded = False
 
         else:
-            CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
             self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:
@@ -78,7 +77,7 @@ class afcBoxTurtle:
                             msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_EXTRUDER.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
-                            self.AFC.SPOOL.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+                            self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
                             self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                             if len(self.AFC.extruders) == 1:
                                 self.AFC.current = CUR_LANE.name
@@ -200,8 +199,8 @@ class afcBoxTurtle:
             if lanes != 'all':
                 lane_to_calibrate = None
                 # Search for the lane within the units
-                for UNIT in self.AFC.lanes.keys():
-                    if lanes in self.AFC.lanes[UNIT]:
+                for UNIT in self.AFC.units.keys():
+                    if lanes in self.AFC.units[UNIT]:
                         lane_to_calibrate = lanes
                         break
                 if lane_to_calibrate is None:
@@ -214,8 +213,8 @@ class afcBoxTurtle:
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
-                for UNIT in self.AFC.lanes.keys():
-                    for LANE in self.AFC.lanes[UNIT].keys():
+                for UNIT in self.AFC.units.keys():
+                    for LANE in self.AFC.units[UNIT].keys():
                         # Calibrate the specific lane
                         checked, msg = calibrate_lane(LANE)
                         if(not checked): return
