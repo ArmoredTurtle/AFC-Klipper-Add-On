@@ -33,6 +33,7 @@ cd AFC-Klipper-Add-On
 
 To update the AFC plugin software, you can simply run the following command:
 ```bash
+cd AFC-Klipper-Add-On
 ./install-afc.sh
 ```
 The update process should be non-destructive and will not overwrite any existing configuration files without your permission.
