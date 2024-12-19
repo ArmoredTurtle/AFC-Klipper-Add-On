@@ -226,25 +226,21 @@ Debug information about the respooler system can be found by visiting the follow
 
 `{ip address}/printer/objects/query?AFC`
 
-<details>
-<summary>LEDs not displaying correct color</summary>
+## LEDs not displaying correct color
 If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
   - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
-</details>
 
-<details>
-<summary>Filament pulling past extruder during unloads</summary>
+
+## Filament pulling past extruder during unloads
 During unloads if your filament retracts too much and goes past the lanes extruder then decrease your `afc_bowden_length` value in `~/printer_data/config/AFC/AFC.cfg` file
-</details>
 
-<details>
-<summary>Timer too close (TTC) error</summary>
+
+## Timer too close (TTC) error
 If you keep getting TTC errors start by adding the following to `AFC/AFC.cfg` file under `[AFC]` section  
 - `trsync_update: True`
-</details>
 
-<details>
-<summary>Layer shift when using cut macro</summary>
+
+## Layer shift when using cut macro
 If you notice a layer shift occurs while using the cut macro, setting a higher stepper current while cutting has shown to help with this.
 Update and uncomment the following values in `AFC/AFC_Macr_Vars.cfg` file
 - variable_cut_current_stepper_x - start with ~1.7-1.8A
@@ -252,7 +248,7 @@ Update and uncomment the following values in `AFC/AFC_Macr_Vars.cfg` file
 - Only needed if cutting action is along the z - variable_cut_current_stepper_z
 
 Make sure your stepper names are updated for variables: `variable_cut_current_stepper_x, variable_cut_current_stepper_y, variable_cut_current_stepper_z`
-</details>
+
 
 ## Removing Plugin
 
