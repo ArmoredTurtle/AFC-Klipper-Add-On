@@ -27,6 +27,8 @@ class afc:
         self.tool_cmds={}
         self.afc_monitoring = False
 
+        self.desired_order_list = config.get('Vdesired_order_list','')
+
         # tool position when tool change was requested
         self.change_tool_pos = None
         self.in_toolchange = False
@@ -441,7 +443,9 @@ class afc:
             CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
         while CUR_HUB.state == True:
             CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-        CUR_LANE.status = 'Hubed'
+        CUR_LANE.status = ''
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
+        self.save_vars()
         CUR_LANE.do_enable(False)
         CUR_LANE.hub_load = True
         self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
@@ -472,6 +476,8 @@ class afc:
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
             CUR_LANE.status = 'ejecting'
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
+            self.save_vars()
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
@@ -481,6 +487,8 @@ class afc:
             CUR_LANE.move( CUR_HUB.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
             self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+            CUR_LANE.status = ''
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
             self.save_vars()
 
             # Removing spool from vars since it was ejected
@@ -549,6 +557,8 @@ class afc:
 
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'loading'
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
+        self.save_vars()
         self.afc_led(self.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
@@ -598,6 +608,8 @@ class afc:
 
             # Synchronize lane's extruder stepper and finalize tool loading.
             CUR_LANE.status = 'Tooled'
+            self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
+            self.save_vars()
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
 
             # Adjust tool position for loading.
@@ -723,7 +735,8 @@ class afc:
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
         CUR_LANE.status = 'unloading'
-
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
+        self.save_vars()
         # Disable the buffer if it's active.
         CUR_EXTRUDER.disable_buffer()
 
@@ -846,6 +859,8 @@ class afc:
         CUR_LANE.hub_load = True
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
+        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
+        self.save_vars()
         self.current = None
         CUR_LANE.do_enable(False)
 
@@ -983,9 +998,8 @@ class afc:
                 str[UNIT][NAME]["runout_lane"]=self.lanes[LANE.unit][LANE.name]['runout_lane']
                 filiment_stat=self.get_filament_status(LANE).split(':')
                 str[UNIT][NAME]['filament_status']=filiment_stat[0]
-                self.lanes[UNIT][NAME]['filament_status']=filiment_stat[0]
                 str[UNIT][NAME]['filament_status_led']=filiment_stat[1]
-                self.lanes[UNIT][NAME]['filament_status_led']=filiment_stat[1]
+                str[UNIT][NAME]['status'] = LANE.status if LANE.status is not None else ''
                 numoflanes +=1
             str[UNIT]['system']={}
             str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
