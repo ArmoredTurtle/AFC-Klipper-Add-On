@@ -49,8 +49,8 @@ class afcNightOwl:
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
                 succeeded = False
 
-        else:
-            CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
+        else: 
+            
             self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:

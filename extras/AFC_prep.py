@@ -60,8 +60,6 @@ class afcPrep:
         ## load Unit variables
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
             self.AFC.lanes=json.load(open(self.AFC.VarFile + '.unit'))
-        else:
-            self.AFC.lanes={}
         ## load Toolhead variables
         if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
             self.AFC.extruders=json.load(open(self.AFC.VarFile + '.tool'))
@@ -76,12 +74,10 @@ class afcPrep:
                 LANE=self.printer.lookup_object(PO)
                 self.AFC.stepper[LANE.name]=LANE
                 temp.append(LANE.name)
-                if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
-                self.AFC.units[LANE.unit]={}
-                if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
-                self.AFC.units[LANE.unit][LANE.name]
                 if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
-                LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] 
+                if LANE.unit not in self.AFC.units: self.AFC.units[LANE.unit]={}
+                if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
+                if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] 
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
                     try:
                         url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
@@ -109,7 +105,7 @@ class afcPrep:
         if self.enable == False:
             self.AFC.gcode.respond_info('Prep Checks Disabled')
             return
-        elif len(self.AFC.lanes) >0:
+        elif len(self.AFC.units) >0:
             for UNIT in self.AFC.units.keys():
                 logo=''
                 logo_error = ''
