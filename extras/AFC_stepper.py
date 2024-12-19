@@ -250,12 +250,12 @@ class AFCExtruderStepper:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing' and self.load_state and self.status != 'ejecting':
                 # Checking to make sure runout_lane is set and does not equal 'NONE'
-                if self.AFC.lanes[self.unit][self.name]['runout_lane'] and self.AFC.lanes[self.unit][self.name]['runout_lane'] != 'NONE':
+                if self.runout_lane and self.runout_lane != 'NONE':
                     self.status = None
                     self.AFC.afc_led(self.AFC.led_not_ready, led)
                     self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
-                    empty_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.current)
-                    change_LANE = self.printer.lookup_object('AFC_stepper ' + self.AFC.lanes[self.unit][self.name]['runout_lane'])
+                    empty_LANE = self.AFC.stepper(self.AFC.current)
+                    change_LANE = self.AFC.stepper(self.runout_lane)
                     self.gcode.run_script_from_command(change_LANE.map)
                     self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
                 else:

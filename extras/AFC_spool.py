@@ -59,19 +59,18 @@ class afcSpool:
             self.AFC.gcode.respond_info(lane + ' Unknown')
             return
         CUR_LANE = self.AFC.stepper[lane.name]
-        for UNIT_SERACH in self.AFC.lanes.keys():
+        for UNIT_SERACH in self.AFC.units.keys():
             self.gcode.respond_info("looking for "+lane+" in " + UNIT_SERACH)
-            if lane in self.AFC.lanes[UNIT_SERACH]:
+            if lane in self.AFC.units[UNIT_SERACH]:
                 self.AFC.tool_cmds[map_cmd]=lane
-                map_switch=self.AFC.lanes[UNIT_SERACH][CUR_LANE.name]['map']
-                self.AFC.lanes[UNIT_SERACH][CUR_LANE.name]['map']=map_cmd
+                map_switch=CUR_LANE.map
                 CUR_LANE.map=map_cmd
 
-        for UNIT_SERACH in self.AFC.lanes.keys():
-            if lane_switch in self.AFC.lanes[UNIT_SERACH]:
-                SW_LANE = self.printer.lookup_object('AFC_stepper ' + lane_switch)
+        for UNIT_SERACH in self.AFC.units.keys():
+            if lane_switch in self.AFC.units[UNIT_SERACH]:
+                SW_LANE = self.AFC.stepper(lane_switch)
                 self.AFC.tool_cmds[map_switch]=lane_switch
-                self.AFC.lanes[UNIT_SERACH][lane_switch]['map']=map_switch
+                SW_LANE.map = map_switch
                 SW_LANE.map=map_switch
         self.AFC.save_vars()
 
@@ -103,7 +102,6 @@ class afcSpool:
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.color = '#' + color
-        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] ='#'+ color
         self.AFC.save_vars()
 
     cmd_SET_WEIGHT_help = "change filaments color"
@@ -135,7 +133,6 @@ class afcSpool:
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.weight = weight
-        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = weight
         self.AFC.save_vars()
 
     cmd_SET_MATERIAL_help = "change filaments color"
@@ -167,7 +164,6 @@ class afcSpool:
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.material = material
-        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = material
         self.AFC.save_vars()
 
     def set_active_spool(self, ID):
@@ -221,17 +217,17 @@ class afcSpool:
                 try:
                     url =  "{}{}".format(self.URL, SpoolID)
                     result = json.load(urlopen(url))
-                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = SpoolID
-                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = result['filament']['material']
-                    self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = '#' + result['filament']['color_hex']
-                    if 'remaining_weight' in result: self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] =  result['remaining_weight']
+                    CUR_LANE.spool_id = SpoolID
+                    CUR_LANE.material = result['filament']['material']
+                    CUR_LANE.color = '#' + result['filament']['color_hex']
+                    if 'remaining_weight' in result: CUR_LANE.weight =  result['remaining_weight']
                 except:
                     self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID), False)
             else:
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'] = ''
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['material'] = ''
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['color'] = ''
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['weight'] = ''
+                CUR_LANE.spool_id = ''
+                CUR_LANE.material = ''
+                CUR_LANE.color = ''
+                CUR_LANE.weight = ''
             self.AFC.save_vars()
 
     cmd_SET_RUNOUT_help = "change filaments ID"
@@ -262,7 +258,7 @@ class afcSpool:
             self.AFC.gcode.respond_info(lane + ' Unknown')
             return
         CUR_LANE = self.AFC.stepper[lane.name]
-        self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['runout_lane'] = runout
+        CUR_LANE.runout_lane = runout
         self.AFC.save_vars()
         self.gcode.respond_info("This is a feature WIP. Not functioning yet")
 

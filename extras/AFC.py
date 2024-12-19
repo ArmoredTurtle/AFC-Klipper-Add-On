@@ -158,9 +158,9 @@ class afc:
         """
         status_msg = ''
 
-        for UNIT in self.lanes.keys():
+        for UNIT in self.units.keys():
             # Find the maximum length of lane names to determine the column width
-            max_lane_length = max(len(lane) for lane in self.lanes[UNIT].keys())
+            max_lane_length = max(len(lane) for lane in self.units[UNIT].keys())
 
             status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
 
@@ -168,7 +168,7 @@ class afc:
             header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
-            for LANE in self.lanes[UNIT].keys():
+            for LANE in self.units[UNIT].keys():
                 lane_msg = ''
                 CUR_LANE = self.AFC.stepper[LANE]
                 CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
@@ -335,7 +335,7 @@ class afc:
                   make it more readable for users
         """
         with open(self.VarFile+ '.unit', 'w') as f:
-            f.write(json.dumps(self.lanes, indent=4))
+            f.write(json.dumps(self.get_status, indent=4))
         with open(self.VarFile+ '.tool', 'w') as f:
             f.write(json.dumps(self.extruders, indent=4))
 
@@ -453,11 +453,9 @@ class afc:
         while CUR_HUB.state == True:
             CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
         CUR_LANE.status = ''
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
         self.save_vars()
         CUR_LANE.do_enable(False)
         CUR_LANE.hub_load = True
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
         self.save_vars()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
@@ -488,7 +486,6 @@ class afc:
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
             CUR_LANE.status = 'ejecting'
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
             self.save_vars()
             CUR_LANE.do_enable(True)
             if CUR_LANE.hub_load:
@@ -498,9 +495,7 @@ class afc:
                CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             CUR_LANE.move( CUR_HUB.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
             CUR_LANE.do_enable(False)
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             CUR_LANE.status = ''
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
             self.save_vars()
 
             # Removing spool from vars since it was ejected
@@ -572,7 +567,6 @@ class afc:
 
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'loading'
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
         self.save_vars()
         self.afc_led(self.led_loading, CUR_LANE.led_index)
 
@@ -623,7 +617,6 @@ class afc:
 
             # Synchronize lane's extruder stepper and finalize tool loading.
             CUR_LANE.status = 'Tooled'
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
             self.save_vars()
             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
 
@@ -652,7 +645,7 @@ class afc:
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             # Update tool and lane status.
             CUR_LANE.status = 'tool'
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = True
+            CUR_LANE.tool_loaded = True
             self.current = CUR_LANE.name
             CUR_EXTRUDER.enable_buffer()
 
@@ -668,9 +661,9 @@ class afc:
                 self.gcode.run_script_from_command(self.wipe_cmd)
 
             # Update lane and extruder state for tracking.
-            self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = True
+            CUR_LANE.hub_loaded = True
             self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
-            self.SPOOL.set_active_spool(self.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+            self.SPOOL.set_active_spool(CUR_LANE.spool_id)
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
         else:
@@ -753,7 +746,6 @@ class afc:
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
         CUR_LANE.status = 'unloading'
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
         self.save_vars()
         # Disable the buffer if it's active.
         CUR_EXTRUDER.disable_buffer()
@@ -838,8 +830,7 @@ class afc:
         CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
 
         # Clear toolhead's loaded state for easier error handling later.
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
+        CUR_LANE.tool_loaded = False
         self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = ''
         self.save_vars()
 
@@ -877,7 +868,6 @@ class afc:
         CUR_LANE.hub_load = True
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
-        self.lanes[CUR_LANE.unit][CUR_LANE.name]['status']=CUR_LANE.status
         self.save_vars()
         self.current = None
         CUR_LANE.do_enable(False)
@@ -1002,30 +992,30 @@ class afc:
     def get_status(self, eventtime):
         str = {}
         numoflanes = 0
-        for UNIT in self.lanes.keys():
+        for UNIT in self.units.keys():
             try:
                 screen_mac = self.printer.lookup_object('AFC_screen ' + UNIT).mac
             except error:
                 screen_mac = 'None'
             str[UNIT]={}
-            for NAME in self.lanes[UNIT].keys():
-                LANE=self.AFC.stepper[NAME]
+            for NAME in self.units[UNIT].keys():
+                CUR_LANE=self.AFC.stepper[NAME]
                 str[UNIT][NAME]={}
-                str[UNIT][NAME]['LANE'] = LANE.index
-                str[UNIT][NAME]['map'] = LANE.map
-                str[UNIT][NAME]['load'] = bool(LANE.load_state)
-                str[UNIT][NAME]["prep"] =bool(LANE.prep_state)
-                str[UNIT][NAME]["tool_loaded"] = self.lanes[UNIT][NAME]['tool_loaded']
-                str[UNIT][NAME]["loaded_to_hub"] = self.lanes[UNIT][NAME]['hub_loaded']
-                str[UNIT][NAME]["material"]=self.lanes[UNIT][NAME]['material']
-                str[UNIT][NAME]["spool_id"]=self.lanes[UNIT][NAME]['spool_id']
-                str[UNIT][NAME]["color"]=self.lanes[UNIT][NAME]['color']
-                str[UNIT][NAME]["weight"]=self.lanes[UNIT][NAME]['weight']
-                str[UNIT][NAME]["runout_lane"]=self.lanes[LANE.unit][LANE.name]['runout_lane']
-                filiment_stat=self.get_filament_status(LANE).split(':')
+                str[UNIT][NAME]['LANE'] = CUR_LANE.index
+                str[UNIT][NAME]['map'] = CUR_LANE.map
+                str[UNIT][NAME]['load'] = bool(CUR_LANE.load_state)
+                str[UNIT][NAME]["prep"] =bool(CUR_LANE.prep_state)
+                str[UNIT][NAME]["tool_loaded"] = CUR_LANE.tool_loaded
+                str[UNIT][NAME]["loaded_to_hub"] = CUR_LANE.hub_loaded
+                str[UNIT][NAME]["material"]=CUR_LANE.material
+                str[UNIT][NAME]["spool_id"]=CUR_LANE.spool_id
+                str[UNIT][NAME]["color"]=CUR_LANE.color
+                str[UNIT][NAME]["weight"]=CUR_LANE.weight
+                str[UNIT][NAME]["runout_lane"]=CUR_LANE.runout_lane
+                filiment_stat=self.get_filament_status(CUR_LANE).split(':')
                 str[UNIT][NAME]['filament_status']=filiment_stat[0]
                 str[UNIT][NAME]['filament_status_led']=filiment_stat[1]
-                str[UNIT][NAME]['status'] = LANE.status if LANE.status is not None else ''
+                str[UNIT][NAME]['status'] = CUR_LANE.status if CUR_LANE.status is not None else ''
                 numoflanes +=1
             str[UNIT]['system']={}
             str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
@@ -1035,7 +1025,7 @@ class afc:
 
         str["system"]={}
         str["system"]['current_load']= self.current
-        str["system"]['num_units'] = len(self.lanes)
+        str["system"]['num_units'] = len(self.unites)
         str["system"]['num_lanes'] = numoflanes
         str["system"]['num_extruders'] = len(self.extruders)
         str["system"]["extruders"]={}
@@ -1043,9 +1033,9 @@ class afc:
         for EXTRUDE in self.extruders.keys():
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[LANE.extruder_name]['lane_loaded']
+            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[CUR_LANE.extruder_name]['lane_loaded']
             if CUR_EXTRUDER.tool_start == "buffer":
-                if self.extruders[LANE.extruder_name]['lane_loaded'] == '':
+                if self.extruders[CUR_LANE.extruder_name]['lane_loaded'] == '':
                     str ["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = False
                 else:
                     str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True
@@ -1096,14 +1086,13 @@ class afc:
             for x in range(99):
                 cmd = 'T'+str(x)
                 if cmd not in self.tool_cmds:
-                    self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'] = cmd
                     CUR_LANE.map = cmd
                     break
-        self.tool_cmds[self.lanes[CUR_LANE.unit][CUR_LANE.name]['map']]=CUR_LANE.name
+        self.tool_cmds[CUR_LANE.map]=CUR_LANE.name
         try:
-            self.gcode.register_command(self.lanes[CUR_LANE.unit][CUR_LANE.name]['map'], self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+            self.gcode.register_command(CUR_LANE.map, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
         except:
-            self.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=self.lanes[CUR_LANE.unit][CUR_LANE.name]['map']), )
+            self.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=CUR_LANE.map), )
         self.save_vars()
 
 def load_config(config):
