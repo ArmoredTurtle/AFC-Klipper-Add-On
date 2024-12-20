@@ -24,7 +24,10 @@ class afcNightOwl:
     def system_Test(self, UNIT, LANE, delay):
         msg = ''
         succeeded = True
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
+        if LANE not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(LANE + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[LANE] 
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
@@ -61,14 +64,14 @@ class afcNightOwl:
                 CUR_LANE.status = 'Loaded'
                 msg +="<span class=success--text> AND LOADED</span>"
 
-                if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
+                if CUR_LANE.tool_loaded:
                     if CUR_EXTRUDER.tool_start_state == True or CUR_EXTRUDER.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                             msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_EXTRUDER.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
-                            self.AFC.SPOOL.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+                            self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
                             self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                             if len(self.AFC.extruders) == 1:
                                 self.AFC.current = CUR_LANE.name
