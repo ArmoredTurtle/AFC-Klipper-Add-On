@@ -136,7 +136,7 @@ class afcError:
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         CUR_LANE.status = 'Error'
-        msg = (CUR_LANE.name.upper() + message)
+        msg = "{} {}".format(CUR_LANE.name.upper(), message)
         self.AFC_error(msg, pause)
         self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
 

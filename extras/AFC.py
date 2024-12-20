@@ -625,7 +625,7 @@ class afc:
                     tool_attempts += 1
                     CUR_LANE.move(self.short_move_dis, CUR_EXTRUDER.tool_load_speed, self.long_moves_accel)
                     if tool_attempts > 20:
-                        message = ('FAILED TO LOAD {} TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'.format(CUR_LANE.name.upper()))
+                        message = ('FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
 
@@ -683,11 +683,11 @@ class afc:
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
             if CUR_HUB.state:
-                message = ('HUB NOT CLEAR WHEN TRYING TO LOAD {}\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL'.format(CUR_LANE.name.upper()))
+                message = ('HUB NOT CLEAR WHEN TRYING TO LOAD\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
             if not CUR_LANE.load_state:
-                message = ('{} NOT READY, LOAD TRIGGER NOT TRIGGERED\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL'.format(CUR_LANE.name.upper()))
+                message = ('NOT READY, LOAD TRIGGER NOT TRIGGERED\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
 
