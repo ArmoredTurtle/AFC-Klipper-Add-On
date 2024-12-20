@@ -27,7 +27,7 @@ class afcNightOwl:
         if LANE not in self.AFC.stepper:
             self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
             return
-        CUR_LANE = self.AFC.stepper[LANE] 
+        CUR_LANE = self.AFC.stepper[LANE]
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
@@ -52,8 +52,8 @@ class afcNightOwl:
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
                 succeeded = False
 
-        else: 
-            
+        else:
+
             self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:

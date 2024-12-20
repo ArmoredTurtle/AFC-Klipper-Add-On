@@ -79,7 +79,7 @@ class afcPrep:
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit] = {}
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name] = {}
-                if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] 
+                if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
 
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
                     self.AFC.SPOOL.set_spoolID(LANE, LANE.spool_id)

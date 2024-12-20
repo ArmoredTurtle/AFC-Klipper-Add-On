@@ -532,7 +532,7 @@ class afc:
         if lane not in self.stepper:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        
+
         if self.current is not None:
             self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane.upper(), self.current.upper()), pause=False)
             return
