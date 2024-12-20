@@ -38,7 +38,7 @@ class afcBoxTurtle:
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
-            self.AFC.AFC_error(error_string, False)
+            self.AFC.ERROR.AFC_error(error_string, False)
             return False
 
         # Run test reverse/forward on each lane

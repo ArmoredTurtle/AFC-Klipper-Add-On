@@ -113,7 +113,7 @@ class afcPrep:
                 try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
                 except:
                     error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
-                    self.AFC.AFC_error(error_string, False)
+                    self.AFC.ERROR.AFC_error(error_string, False)
                     return
                 self.AFC.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
 
