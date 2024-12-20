@@ -31,7 +31,10 @@ class afcBoxTurtle:
     def system_Test(self, UNIT, LANE, delay):
         msg = ''
         succeeded = True
-        CUR_LANE = self.printer.lookup_object('AFC_stepper ' + LANE)
+        if LANE not in self.AFC.stepper:
+            self.AFC.gcode.respond_info(LANE + ' Unknown')
+            return
+        CUR_LANE = self.AFC.stepper[LANE] 
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
@@ -57,7 +60,6 @@ class afcBoxTurtle:
                 succeeded = False
 
         else:
-            CUR_LANE.hub_load = self.AFC.lanes[UNIT][LANE]['hub_loaded'] # Setting hub load state so it can be retained between restarts
             self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:
@@ -68,14 +70,14 @@ class afcBoxTurtle:
                 CUR_LANE.status = 'Loaded'
                 msg +="<span class=success--text> AND LOADED</span>"
 
-                if self.AFC.lanes[UNIT][CUR_LANE.name]['tool_loaded']:
+                if CUR_LANE.tool_loaded:
                     if CUR_EXTRUDER.tool_start_state == True or CUR_EXTRUDER.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                             msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_EXTRUDER.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
-                            self.AFC.SPOOL.set_active_spool(self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['spool_id'])
+                            self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
                             self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
                             if len(self.AFC.extruders) == 1:
                                 self.AFC.current = CUR_LANE.name
@@ -181,7 +183,10 @@ class afcBoxTurtle:
             return pos
 
         def calibrate_lane(LANE):
-            CUR_LANE = self.printer.lookup_object('AFC_stepper {}'.format(LANE))
+            if LANE not in self.AFC.stepper:
+                self.AFC.gcode.respond_info(LANE + ' Unknown')
+                return
+            CUR_LANE = self.AFC.stepper[LANE.name]
             CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))
             if CUR_HUB.state:
                 self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
@@ -197,7 +202,6 @@ class afcBoxTurtle:
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
             CUR_LANE.hub_load = True
-            self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['hub_loaded'] = CUR_LANE.hub_load
             CUR_LANE.do_enable(False)
             cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
             return True, cal_msg
@@ -209,18 +213,16 @@ class afcBoxTurtle:
             cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             if lanes != 'all':
                 lane_to_calibrate = find_lane_to_calibrate(lanes)
-
                 if lane_to_calibrate is None:
                     return
-
                 # Calibrate the specific lane
                 checked, msg = calibrate_lane(lane_to_calibrate)
                 if(not checked): return
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
-                for UNIT in self.AFC.lanes.keys():
-                    for LANE in self.AFC.lanes[UNIT].keys():
+                for UNIT in self.AFC.units.keys():
+                    for LANE in self.AFC.units[UNIT].keys():
                         # Calibrate the specific lane
                         checked, msg = calibrate_lane(LANE)
                         if(not checked): return
