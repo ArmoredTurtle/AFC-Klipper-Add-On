@@ -266,3 +266,11 @@ file as the code now generates them automatically.
 ### Updated
 - Updated Cut.cfg macro to have the ability to up stepper current when doing filament cutting, 
   see layer shift troubleshooting section on what values need to be set
+
+## [2024-12-20]
+
+### Added
+- More error printouts to aid users
+
+### Fixes
+- Misc error fixes
