@@ -850,6 +850,9 @@ class afc:
         # Clear toolhead's loaded state for easier error handling later.
         CUR_LANE.tool_loaded = False
         self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = ''
+        CUR_LANE.status = None
+        self.current = None
+
         self.save_vars()
 
         # Ensure filament is fully cleared from the hub.
@@ -873,14 +876,15 @@ class afc:
             else:
                 self.gcode.run_script_from_command(CUR_HUB.cut_cmd)
 
-        # Confirm the hub is clear after the cut.
-        while CUR_HUB.state:
-            CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
-            num_tries += 1
-            if num_tries > (CUR_HUB.afc_bowden_length / self.short_move_dis):
-                message = 'HUB NOT CLEARING'
-                self.ERROR.handle_lane_failure(CUR_LANE, message)
-                return False
+            # Confirm the hub is clear after the cut.
+            while CUR_HUB.state:
+                CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                num_tries += 1
+                # TODO: Figure out max number of tries
+                if num_tries > (CUR_HUB.afc_bowden_length / self.short_move_dis):
+                    message = 'HUB NOT CLEARING after hub cut\n'
+                    self.ERROR.handle_lane_failure(CUR_LANE, message)
+                    return False
 
         # Finalize unloading and reset lane state.
         CUR_LANE.hub_load = True
