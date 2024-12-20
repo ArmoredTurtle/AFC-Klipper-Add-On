@@ -220,8 +220,14 @@ class afcSpool:
                     CUR_LANE.material = result['filament']['material']
                     CUR_LANE.color = '#' + result['filament']['color_hex']
                     if 'remaining_weight' in result: CUR_LANE.weight =  result['remaining_weight']
-                except:
-                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID), False)
+                    # Check to see if filament is defined as multi color and take the first color for now
+                    # Once support for multicolor is added this needs to be updated
+                    if "multi_color_hexes" in result['filament']:
+                        CUR_LANE.color = '#' + result['filament']['multi_color_hexes'].split(",")[0]
+                    else:
+                        CUR_LANE.color = '#' + result['filament']['color_hex']
+                except Exception as e:
+                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}, Error: {}".format(SpoolID, e), False)
             else:
                 CUR_LANE.spool_id = ''
                 CUR_LANE.material = ''

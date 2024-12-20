@@ -80,15 +80,9 @@ class afcPrep:
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
                 if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name] = {}
                 if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] 
+
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
-                    try:
-                        url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
-                        result = json.load(urlopen(url))
-                        LANE.material = result['filament']['material']
-                        LANE.color = '#' + result['filament']['color_hex']
-                        if 'remaining_weight' in result: LANE.weight =  result['remaining_weight']
-                    except:
-                        self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']), False)
+                    self.AFC.SPOOL.set_spoolID(LANE, LANE.spool_id)
                 else:
                     if 'material' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.material = self.AFC.lanes[LANE.unit][LANE.name]['material']
                     if 'color' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.color = self.AFC.lanes[LANE.unit][LANE.name]['color']
