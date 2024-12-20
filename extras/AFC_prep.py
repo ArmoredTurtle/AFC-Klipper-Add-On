@@ -78,7 +78,6 @@ class afcPrep:
                 if LANE.unit not in self.AFC.units: self.AFC.units[LANE.unit] = {}
                 if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit] = {}
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
-                if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name] = {}
                 if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
 
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
@@ -89,6 +88,7 @@ class afcPrep:
                     if 'weight' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.weight=self.AFC.lanes[LANE.unit][LANE.name]['weight']
 
                 if 'runout_lane' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.runout_lane = self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']
+                if LANE.runout_lane == '': LANE.runout_lane='NONE'
                 if 'map' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
                 if LANE.map != 'NONE':
                    self.AFC.tool_cmds[LANE.map] = LANE.name
