@@ -32,7 +32,7 @@ class afcBoxTurtle:
         msg = ''
         succeeded = True
         if LANE not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(LANE + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
             return
         CUR_LANE = self.AFC.stepper[LANE] 
         try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
@@ -184,7 +184,7 @@ class afcBoxTurtle:
 
         def calibrate_lane(LANE):
             if LANE not in self.AFC.stepper:
-                self.AFC.gcode.respond_info(LANE + ' Unknown')
+                self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
                 return
             CUR_LANE = self.AFC.stepper[LANE.name]
             CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))

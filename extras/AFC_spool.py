@@ -56,7 +56,7 @@ class afcSpool:
         lane_switch=self.AFC.tool_cmds[map_cmd]
         self.gcode.respond_info("lane to switch is " + lane_switch)
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         for UNIT_SERACH in self.AFC.units.keys():
@@ -98,7 +98,7 @@ class afcSpool:
             return
         color = gcmd.get('COLOR', '#000000')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.color = '#' + color
@@ -129,7 +129,7 @@ class afcSpool:
             return
         weight = gcmd.get('WEIGHT', '')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.weight = weight
@@ -160,7 +160,7 @@ class afcSpool:
             return
         material = gcmd.get('MATERIAL', '')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.material = material
@@ -205,7 +205,7 @@ class afcSpool:
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
             if lane not in self.AFC.stepper:
-                self.AFC.gcode.respond_info(lane + ' Unknown')
+                self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
                 return
             CUR_LANE = self.AFC.stepper[lane.name]
             self.set_spoolID(CUR_LANE, SpoolID)
@@ -238,7 +238,7 @@ class afcSpool:
     cmd_SET_RUNOUT_help = "change filaments ID"
     def cmd_SET_RUNOUT(self, gcmd):
         """
-        This function handles setting the runout lane (infanet spool) for a specified lane. It retrieves the lane
+        This function handles setting the runout lane (infinite spool) for a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and updates its the lane to use if filament is empty
         based on the information retrieved from the Spoolman API.
 
@@ -260,7 +260,7 @@ class afcSpool:
             return
         runout = gcmd.get('RUNOUT', '')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.runout_lane = runout

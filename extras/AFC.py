@@ -961,7 +961,7 @@ class afc:
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
                     if self.current not in self.stepper:
-                        self.gcode.respond_info(self.current + ' Unknown')
+                        self.gcode.respond_info('{} Unknown'.format(self.current.upper()))
                         return
                     CUR_LANE = self.stepper[self.current]
                     if not self.TOOL_UNLOAD(CUR_LANE):
