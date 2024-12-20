@@ -135,6 +135,22 @@ class afcBoxTurtle:
 
         cal_msg = ''
 
+        def find_lane_to_calibrate(lane_name):
+            """
+            Search for the given lane across all units in the AFC system.
+
+            Args: lane_name: The name of the lane to search for
+
+            Returns: The lane name if found, otherwise None
+            """
+            for UNIT in self.AFC.lanes.keys():
+                if lane_name in self.AFC.lanes[UNIT]:
+                    return lane_name
+
+            # If the lane was not found
+            self.AFC.gcode.respond_info('{} not found in any unit.'.format(lane_name))
+            return None
+
         # Helper functions for movement and calibration
         def calibrate_hub(CUR_LANE, CUR_HUB):
             hub_pos = 0
@@ -196,18 +212,11 @@ class afcBoxTurtle:
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
             cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             if lanes != 'all':
-                lane_to_calibrate = None
-                # Search for the lane within the units
-                for UNIT in self.AFC.units.keys():
-                    if lanes in self.AFC.units[UNIT]:
-                        lane_to_calibrate = lanes
-                        break
+                lane_to_calibrate = find_lane_to_calibrate(lanes)
                 if lane_to_calibrate is None:
-                    self.AFC.gcode.respond_info('{} not found in any unit.'.format(lanes))
                     return
-
                 # Calibrate the specific lane
-                checked, msg = calibrate_lane(lanes)
+                checked, msg = calibrate_lane(lane_to_calibrate)
                 if(not checked): return
                 cal_msg += msg
             else:
@@ -227,7 +236,13 @@ class afcBoxTurtle:
                 self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
                 cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
                 cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
-            lane = afc_bl
+
+            lane_to_calibrate = find_lane_to_calibrate(afc_bl)
+
+            if lane_to_calibrate is None:
+                return
+
+            lane = lane_to_calibrate
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)

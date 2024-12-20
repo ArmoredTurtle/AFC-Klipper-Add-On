@@ -98,7 +98,6 @@ class afcPrep:
                 if 'map' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
                 if LANE.map != 'NONE':
                    self.AFC.tool_cmds[LANE.map] = LANE.name
-
                 if 'hub_loaded' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.hub_loaded = self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded']
                 if 'tool_loaded' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.tool_loaded = self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded']
                 if 'status' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.status = self.AFC.lanes[LANE.unit][LANE.name]['status']

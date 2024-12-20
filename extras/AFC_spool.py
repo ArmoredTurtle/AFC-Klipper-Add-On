@@ -165,7 +165,6 @@ class afcSpool:
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.material = material
         self.AFC.save_vars()
-
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
         if self.AFC.spoolman_ip != None:
