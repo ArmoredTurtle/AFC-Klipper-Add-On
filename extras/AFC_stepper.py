@@ -63,7 +63,7 @@ class AFCExtruderStepper:
         self.material = None
         self.color = None
         self.weight = None
-        self.runout_lane = None
+        self.runout_lane = 'NONE'
         self.status = None
         unit = config.get('unit', None)
         if unit != None:
@@ -250,7 +250,7 @@ class AFCExtruderStepper:
                     self.AFC.afc_led(self.AFC.led_ready, led)
             elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing' and self.load_state and self.status != 'ejecting':
                 # Checking to make sure runout_lane is set and does not equal 'NONE'
-                if self.runout_lane and self.runout_lane != 'NONE':
+                if  self.runout_lane != 'NONE':
                     self.status = None
                     self.AFC.afc_led(self.AFC.led_not_ready, led)
                     self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
@@ -258,6 +258,7 @@ class AFCExtruderStepper:
                     change_LANE = self.AFC.stepper(self.runout_lane)
                     self.gcode.run_script_from_command(change_LANE.map)
                     self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
+                    self.gcode.run_script_from_command('LANE_UNLOAD LANE=' + empty_LANE.name)
             else:
                 # Pause print
                 self.status = None
