@@ -259,12 +259,15 @@ class AFCExtruderStepper:
                     self.gcode.run_script_from_command(change_LANE.map)
                     self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
                     self.gcode.run_script_from_command('LANE_UNLOAD LANE=' + empty_LANE.name)
+                else:
+                    # Pause print
+                    self.status = None
+                    self.AFC.afc_led(self.AFC.led_not_ready, led)
+                    self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
+                    self.AFC.ERROR.pause_print()
             else:
-                # Pause print
                 self.status = None
                 self.AFC.afc_led(self.AFC.led_not_ready, led)
-                self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
-                self.AFC.ERROR.pause_print()
 
     def do_enable(self, enable):
         self.sync_print_time()
