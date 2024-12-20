@@ -56,7 +56,7 @@ class afcSpool:
         lane_switch=self.AFC.tool_cmds[map_cmd]
         self.gcode.respond_info("lane to switch is " + lane_switch)
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         for UNIT_SERACH in self.AFC.units.keys():
@@ -98,7 +98,7 @@ class afcSpool:
             return
         color = gcmd.get('COLOR', '#000000')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.color = '#' + color
@@ -129,7 +129,7 @@ class afcSpool:
             return
         weight = gcmd.get('WEIGHT', '')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.weight = weight
@@ -160,7 +160,7 @@ class afcSpool:
             return
         material = gcmd.get('MATERIAL', '')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.material = material
@@ -205,7 +205,7 @@ class afcSpool:
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
             if lane not in self.AFC.stepper:
-                self.AFC.gcode.respond_info(lane + ' Unknown')
+                self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
                 return
             CUR_LANE = self.AFC.stepper[lane.name]
             self.set_spoolID(CUR_LANE, SpoolID)
@@ -220,8 +220,14 @@ class afcSpool:
                     CUR_LANE.material = result['filament']['material']
                     CUR_LANE.color = '#' + result['filament']['color_hex']
                     if 'remaining_weight' in result: CUR_LANE.weight =  result['remaining_weight']
-                except:
-                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(SpoolID), False)
+                    # Check to see if filament is defined as multi color and take the first color for now
+                    # Once support for multicolor is added this needs to be updated
+                    if "multi_color_hexes" in result['filament']:
+                        CUR_LANE.color = '#' + result['filament']['multi_color_hexes'].split(",")[0]
+                    else:
+                        CUR_LANE.color = '#' + result['filament']['color_hex']
+                except Exception as e:
+                    self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}, Error: {}".format(SpoolID, e), False)
             else:
                 CUR_LANE.spool_id = ''
                 CUR_LANE.material = ''
@@ -232,7 +238,7 @@ class afcSpool:
     cmd_SET_RUNOUT_help = "change filaments ID"
     def cmd_SET_RUNOUT(self, gcmd):
         """
-        This function handles setting the runout lane (infanet spool) for a specified lane. It retrieves the lane
+        This function handles setting the runout lane (infinite spool) for a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and updates its the lane to use if filament is empty
         based on the information retrieved from the Spoolman API.
 
@@ -254,7 +260,7 @@ class afcSpool:
             return
         runout = gcmd.get('RUNOUT', '')
         if lane not in self.AFC.stepper:
-            self.AFC.gcode.respond_info(lane + ' Unknown')
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane.name]
         CUR_LANE.runout_lane = runout

@@ -243,17 +243,12 @@ Optional:
 ### Fixed
 - Fixed places where gcode was not referencing AFC and would cause crashes
 
-
-## [2024-12-09]
-
-### Added
-- Added logic to pause print when filament goes past prep sensor. Verify that PAUSE macro move's toolhead off print when it's called.
-=======
 ## [2024-12-08]
 
 ### Added
 - When updating the AFC software, the `install-afc.sh` script will now remove any instances of `[gcode_macro T#]` found in the `AFC_Macros.cfg`
 file as the code now generates them automatically.
+- Added logic to pause print when filament goes past prep sensor. Verify that PAUSE macro move's toolhead off print when it's called.
 
 ## [2024-12-09]
 
@@ -271,3 +266,11 @@ file as the code now generates them automatically.
 ### Updated
 - Updated Cut.cfg macro to have the ability to up stepper current when doing filament cutting, 
   see layer shift troubleshooting section on what values need to be set
+
+## [2024-12-20]
+
+### Added
+- More error printouts to aid users
+
+### Fixes
+- Misc error fixes
