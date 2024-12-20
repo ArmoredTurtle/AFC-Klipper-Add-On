@@ -6,11 +6,6 @@
 
 import os
 import json
-try:
-    from urllib.request import urlopen
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
 
 class afcPrep:
     def __init__(self, config):
