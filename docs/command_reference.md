@@ -79,15 +79,6 @@ current lane and loading the new lane.
 Usage: ``CHANGE_TOOL LANE=<lane>``  
 Example: ``CHANGE_TOOL LANE=leg1``  
 
-### CALIBRATE_AFC
-_Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
-(Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
-steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
-user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
-the option to calibrate the Bowden length for a particular lane, if specified.  
-Usage: ``CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
-Example: `CALIBRATE_AFC LANES=all Bowden=leg1`  
-
 ### SET_MULTIPLIER
 _Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
 It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
@@ -119,19 +110,40 @@ specified by the 'LANE' parameter and sets its color to the value provided by th
 Usage: ``SET_COLOR LANE=<lane> COLOR=<color>``  
 Example: ``SET_COLOR LANE=leg1 COLOR=FF0000``  
 
-### SET_SPOOLID
+### SET_WEIGHT
+_Description_: This function handles changing the material of a specified lane. It retrieves the lane
+specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.  
+Usage: `SET_WEIGHT LANE=<lane> WEIGHT=<weight>`  
+Example: `SET_WEIGHT LANE=leg1 WEIGHT=850`  
+
+### SET_MATERIAL
+_Description_: This function handles changing the material of a specified lane. It retrieves the lane
+specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.  
+Usage: `SET_MATERIAL LANE=<lane> MATERIAL=<material>`  
+Example: `SET_MATERIAL LANE=leg1 MATERIAL=ABS`  
+
+### SET_SPOOL_ID
 _Description_: This function handles setting the spool ID for a specified lane. It retrieves the lane
 specified by the 'LANE' parameter and updates its spool ID, material, color, and weight
 based on the information retrieved from the Spoolman API.  
-Usage: ``SET_SPOOLID LANE=<lane> SPOOL_ID=<spool_id>``  
-Example: ``SET_SPOOLID LANE=leg1 SPOOL_ID=12345``  
+Usage: ``SET_SPOOL_ID LANE=<lane> SPOOL_ID=<spool_id>``  
+Example: ``SET_SPOOL_IDD LANE=leg1 SPOOL_ID=12345``  
 
 ### SET_RUNOUT
-_Description_: This function handles setting the runout lane (infanet spool) for a specified lane. It retrieves the lane
+_Description_: This function handles setting the runout lane (infinite spool) for a specified lane. It retrieves the lane
 specified by the 'LANE' parameter and updates its the lane to use if filament is empty
 based on the information retrieved from the Spoolman API.  
 Usage: ``SET_RUNOUT LANE=<lane> RUNOUT=<lane>``  
 Example: ``SET_RUNOUT LANE=lane1 RUNOUT=lane4``  
+
+### CALIBRATE_AFC
+_Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
+(Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
+steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
+user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
+the option to calibrate the Bowden length for a particular lane, if specified.  
+Usage: ``CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
+Example: `CALIBRATE_AFC LANE=leg1`  
 
 ## AFC Macros
 
@@ -151,11 +163,3 @@ _Description_: Move the specified lane the specified amount
 _Description_: Resume the print after an error
 ### BT_PREP
 _Description_: Run the AFC PREP sequence
-### T0
-_Description_: Change to tool 0
-### T1
-_Description_: Change to tool 1
-### T2
-_Description_: Change to tool 2
-### T3
-_Description_: Change to tool 3
