@@ -68,7 +68,7 @@ class afcSpool:
 
         for UNIT_SERACH in self.AFC.units.keys():
             if lane_switch in self.AFC.units[UNIT_SERACH]:
-                SW_LANE = self.AFC.stepper(lane_switch)
+                SW_LANE = self.AFC.stepper[lane_switch]
                 self.AFC.tool_cmds[map_switch]=lane_switch
                 SW_LANE.map = map_switch
                 SW_LANE.map=map_switch
