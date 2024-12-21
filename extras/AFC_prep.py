@@ -70,10 +70,10 @@ class afcPrep:
 
                 if LANE.extruder_name not in extruders: self.AFC.extruders[LANE.extruder_name]={}
                 else: self.AFC.extruders[LANE.extruder_name] = extruders[LANE.extruder_name]
-
-                if LANE.unit not in units: self.AFC.units[LANE.unit] = {}
-                else:
-                    if LANE.unit not in self.AFC.units:
+                
+                if LANE.unit not in self.AFC.units: 
+                    if LANE.unit not in units: self.AFC.units[LANE.unit] = {}
+                    else:
                         self.AFC.units[LANE.unit] = units[LANE.unit]
                         self.AFC.units[LANE.unit].pop("system", None)
                 

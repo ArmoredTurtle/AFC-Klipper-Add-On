@@ -55,7 +55,7 @@ class afcError:
                 
                 CUR_LANE.tool_load = False
                 CUR_LANE.loaded_to_hub = False
-                self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded']= ''
+                CUR_LANE.extruder_obj.lane_loaded = ''
                 self.AFC.save_vars()
                 self.pause = False
                 return True

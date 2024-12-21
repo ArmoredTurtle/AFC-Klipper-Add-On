@@ -682,7 +682,7 @@ class afc:
                 self.gcode.run_script_from_command(self.wipe_cmd)
 
             # Update lane and extruder state for tracking.
-            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
+            CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
@@ -855,7 +855,7 @@ class afc:
 
         # Clear toolhead's loaded state for easier error handling later.
         CUR_LANE.tool_loaded = False
-        self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = ''
+        CUR_EXTRUDER.lane_loaded = ''
         CUR_LANE.status = None
         self.current = None
 
@@ -996,7 +996,7 @@ class afc:
     def get_filament_status(self, LANE):
         if LANE.prep_state:
             if LANE.load_state:
-                if self.extruders[LANE.extruder_name]['lane_loaded'] == LANE.name:
+                if LANE.extruder_obj is not None and LANE.extruder_obj.lane_loaded == LANE.name:
                     return 'In Tool:' + self.HexConvert(self.led_tool_loaded)
                 return "Ready:" + self.HexConvert(self.led_ready)
             return 'Prep:' + self.HexConvert(self.led_prep_loaded)
@@ -1029,7 +1029,6 @@ class afc:
                 screen_mac = 'None'
             str[UNIT]={}
             for NAME in self.units[UNIT].keys():
-                if NAME == "system": continue
                 CUR_LANE=self.stepper[NAME]
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = CUR_LANE.index
@@ -1064,9 +1063,9 @@ class afc:
         for EXTRUDE in self.extruders.keys():
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[CUR_EXTRUDER.name]['lane_loaded']
+            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
             if CUR_EXTRUDER.tool_start == "buffer":
-                if self.extruders[CUR_EXTRUDER.name]['lane_loaded'] == '':
+                if CUR_EXTRUDER.lane_loaded == '':
                     str ["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = False
                 else:
                     str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True
