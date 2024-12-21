@@ -23,7 +23,6 @@ class afc:
         self.current = None
         self.error_state = False
         self.units = {}
-        self.lanes = {}
         self.extruders = {}
         self.stepper = {}
         self.tool_cmds={}
@@ -448,7 +447,7 @@ class afc:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
                 CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
-        if CUR_LANE.hub_load == False:
+        if CUR_LANE.loaded_to_hub == False:
             CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
         while CUR_HUB.state == False:
             CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -457,7 +456,7 @@ class afc:
         CUR_LANE.status = ''
         self.save_vars()
         CUR_LANE.do_enable(False)
-        CUR_LANE.hub_load = True
+        CUR_LANE.loaded_to_hub = True
         self.save_vars()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
@@ -477,10 +476,6 @@ class afc:
         Returns:
             None
         """
-        if not self.is_homed():
-            self.ERROR.AFC_error("Please home printer before doing a tool unload", False)
-            return False
-
         lane = gcmd.get('LANE', None)
         if lane not in self.stepper:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
@@ -494,9 +489,9 @@ class afc:
             CUR_LANE.status = 'ejecting'
             self.save_vars()
             CUR_LANE.do_enable(True)
-            if CUR_LANE.hub_load:
+            if CUR_LANE.loaded_to_hub:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
-            CUR_LANE.hub_load = False
+            CUR_LANE.loaded_to_hub = False
             while CUR_LANE.load_state == True:
                CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             CUR_LANE.move( CUR_HUB.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
@@ -597,10 +592,10 @@ class afc:
             CUR_LANE.do_enable(True)
 
             # Move filament to the hub if it's not already loaded there.
-            if not CUR_LANE.hub_load:
+            if not CUR_LANE.loaded_to_hub:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, CUR_LANE.dist_hub > 200)
 
-            CUR_LANE.hub_load = True
+            CUR_LANE.loaded_to_hub = True
             hub_attempts = 0
 
             # Ensure filament moves past the hub.
@@ -658,7 +653,7 @@ class afc:
                         break
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             # Update tool and lane status.
-            CUR_LANE.status = 'tool'
+            CUR_LANE.status = 'Tooled'
             CUR_LANE.tool_loaded = True
             self.current = CUR_LANE.name
             CUR_EXTRUDER.enable_buffer()
@@ -675,7 +670,6 @@ class afc:
                 self.gcode.run_script_from_command(self.wipe_cmd)
 
             # Update lane and extruder state for tracking.
-            CUR_LANE.hub_loaded = True
             self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
@@ -887,7 +881,7 @@ class afc:
                     return False
 
         # Finalize unloading and reset lane state.
-        CUR_LANE.hub_load = True
+        CUR_LANE.loaded_to_hub = True
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.save_vars()
@@ -1023,6 +1017,7 @@ class afc:
                 screen_mac = 'None'
             str[UNIT]={}
             for NAME in self.units[UNIT].keys():
+                if NAME == "system": continue
                 CUR_LANE=self.stepper[NAME]
                 str[UNIT][NAME]={}
                 str[UNIT][NAME]['LANE'] = CUR_LANE.index
@@ -1057,9 +1052,9 @@ class afc:
         for EXTRUDE in self.extruders.keys():
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[CUR_LANE.extruder_name]['lane_loaded']
+            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[CUR_EXTRUDER.name]['lane_loaded']
             if CUR_EXTRUDER.tool_start == "buffer":
-                if self.extruders[CUR_LANE.extruder_name]['lane_loaded'] == '':
+                if self.extruders[CUR_EXTRUDER.name]['lane_loaded'] == '':
                     str ["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = False
                 else:
                     str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True

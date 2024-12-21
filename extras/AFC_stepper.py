@@ -64,7 +64,7 @@ class AFCExtruderStepper:
         self.color = None
         self.weight = None
         self.runout_lane = 'NONE'
-        self.status = None
+        self.status = 'Not Loaded'
         unit = config.get('unit', None)
         if unit != None:
             self.unit = unit.split(':')[0]
@@ -75,8 +75,6 @@ class AFCExtruderStepper:
         self.hub= ''
 
         self.motion_queue = None
-        self.status = None
-        self.hub_load = False
         self.next_cmd_time = 0.
         ffi_main, ffi_lib = chelper.get_ffi()
         self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)

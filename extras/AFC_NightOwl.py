@@ -46,7 +46,6 @@ class afcNightOwl:
                 msg += 'EMPTY READY FOR SPOOL'
             else:
                 self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
-                CUR_LANE.status = None
                 msg +="<span class=error--text> NOT READY</span>"
                 CUR_LANE.do_enable(False)
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
@@ -73,6 +72,7 @@ class afcNightOwl:
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
                             self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
                             self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
+                            CUR_LANE.status = 'Tooled'
                             if len(self.AFC.extruders) == 1:
                                 self.AFC.current = CUR_LANE.name
                                 CUR_EXTRUDER.enable_buffer()
