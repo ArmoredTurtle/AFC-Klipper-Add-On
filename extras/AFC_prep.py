@@ -68,15 +68,20 @@ class afcPrep:
                 LANE=self.printer.lookup_object(PO)
                 self.AFC.stepper[LANE.name]=LANE
 
+                # If extruder section exists in vars file add currently stored data to AFC.extruders array
                 if LANE.extruder_name not in extruders: self.AFC.extruders[LANE.extruder_name]={}
                 else: self.AFC.extruders[LANE.extruder_name] = extruders[LANE.extruder_name]
-                
+
+                # If units section exists in vars file add currently stored data to AFC.units array
                 if LANE.unit not in self.AFC.units: 
+                    # Only adding unit to array if it does not already exist
                     if LANE.unit not in units: self.AFC.units[LANE.unit] = {}
                     else:
                         self.AFC.units[LANE.unit] = units[LANE.unit]
+                        # Removing system as this causes problems with AFC.get_status function
                         self.AFC.units[LANE.unit].pop("system", None)
                 
+                # If lane section exists in vars file add currently stored data to AFC.units array
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
                 else: self.AFC.units[LANE.unit][LANE.name] = units[LANE.unit][LANE.name]
                 
