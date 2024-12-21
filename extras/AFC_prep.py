@@ -51,7 +51,7 @@ class afcPrep:
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
 
         self._rename_resume()
-
+        self.AFC.print_version()
         extruders={}
         units={}
         ## load Unit variables

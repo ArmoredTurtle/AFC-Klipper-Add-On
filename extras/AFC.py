@@ -8,6 +8,8 @@
 import json
 from configparser import Error as error
 
+AFC_VERSION="1.0.0"
+
 class afc:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -101,6 +103,9 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
+        # Printing here will not display in console but it will go to klippy.log
+        self.print_version()
+
     def _update_trsync(self, config):
         # Logic to update trsync values
         update_trsync = config.getboolean("trsync_update", False)
@@ -140,6 +145,13 @@ class afc:
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
+    
+    def print_version(self):
+        import subprocess, os
+        afc_dir  = os.path.dirname(os.path.realpath(__file__))
+        git_hash = subprocess.check_output(['git', '-C', '{}'.format(afc_dir), 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+        git_commit_num = subprocess.check_output(['git', '-C', '{}'.format(afc_dir), 'rev-list', 'HEAD', '--count']).decode('ascii').strip()
+        self.gcode.respond_info("AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash))
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
