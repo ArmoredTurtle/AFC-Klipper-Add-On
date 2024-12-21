@@ -28,7 +28,7 @@ class afcNightOwl:
             self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
             return
         CUR_LANE = self.AFC.stepper[LANE]
-        try: 
+        try:
             CUR_LANE.extruder_obj = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'

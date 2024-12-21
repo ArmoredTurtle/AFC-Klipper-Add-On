@@ -59,10 +59,10 @@ class afcPrep:
             units=json.load(open(self.AFC.VarFile + '.unit'))
         ## load Toolhead variables
         if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
-            extruders=json.load(open(self.AFC.VarFile + '.tool'))           
+            extruders=json.load(open(self.AFC.VarFile + '.tool'))
 
         self.AFC.tool_cmds={}
-        
+
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
@@ -73,18 +73,18 @@ class afcPrep:
                 else: self.AFC.extruders[LANE.extruder_name] = extruders[LANE.extruder_name]
 
                 # If units section exists in vars file add currently stored data to AFC.units array
-                if LANE.unit not in self.AFC.units: 
+                if LANE.unit not in self.AFC.units:
                     # Only adding unit to array if it does not already exist
                     if LANE.unit not in units: self.AFC.units[LANE.unit] = {}
                     else:
                         self.AFC.units[LANE.unit] = units[LANE.unit]
                         # Removing system as this causes problems with AFC.get_status function
                         self.AFC.units[LANE.unit].pop("system", None)
-                
+
                 # If lane section exists in vars file add currently stored data to AFC.units array
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
                 else: self.AFC.units[LANE.unit][LANE.name] = units[LANE.unit][LANE.name]
-                
+
                 if 'spool_id' in self.AFC.units[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.units[LANE.unit][LANE.name]['spool_id']
 
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
