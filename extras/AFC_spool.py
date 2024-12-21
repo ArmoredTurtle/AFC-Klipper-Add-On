@@ -24,7 +24,7 @@ class afcSpool:
         self.gcode.register_mux_command('SET_COLOR',None,None, self.cmd_SET_COLOR, desc=self.cmd_SET_COLOR_help)
         self.gcode.register_mux_command('SET_WEIGHT',None,None, self.cmd_SET_WEIGHT, desc=self.cmd_SET_WEIGHT_help)
         self.gcode.register_mux_command('SET_MATERIAL',None,None, self.cmd_SET_MATERIAL, desc=self.cmd_SET_MATERIAL_help)
-        self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOLID, desc=self.cmd_SET_SPOOLID_help)
+        self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOL_ID, desc=self.cmd_SET_SPOOL_ID_help)
         self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
         self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_MAP, desc=self.cmd_SET_MAP_help)
 
@@ -179,15 +179,15 @@ class afcSpool:
             except self.printer.command_error as e:
                 self.gcode._respond_error("Error trying to set active spool \n{}".format(e))
 
-    cmd_SET_SPOOLID_help = "change filaments ID"
-    def cmd_SET_SPOOLID(self, gcmd):
+    cmd_SET_SPOOL_ID_help = "change filaments ID"
+    def cmd_SET_SPOOL_ID(self, gcmd):
         """
         This function handles setting the spool ID for a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and updates its spool ID, material, color, and weight
         based on the information retrieved from the Spoolman API.
 
-        Usage: `SET_SPOOLID LANE=<lane> SPOOL_ID=<spool_id>`
-        Example: `SET_SPOOLID LANE=leg1 SPOOL_ID=12345`
+        Usage: `SET_SPOOL_ID LANE=<lane> SPOOL_ID=<spool_id>`
+        Example: `SET_SPOOL_IDD LANE=leg1 SPOOL_ID=12345`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
