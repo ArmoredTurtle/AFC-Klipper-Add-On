@@ -58,7 +58,7 @@ class afcSpool:
         if lane not in self.AFC.stepper:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane.name]
+        CUR_LANE = self.AFC.stepper[lane]
         for UNIT_SERACH in self.AFC.units.keys():
             self.gcode.respond_info("looking for "+lane+" in " + UNIT_SERACH)
             if lane in self.AFC.units[UNIT_SERACH]:
@@ -100,7 +100,7 @@ class afcSpool:
         if lane not in self.AFC.stepper:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane.name]
+        CUR_LANE = self.AFC.stepper[lane]
         CUR_LANE.color = '#' + color
         self.AFC.save_vars()
 
@@ -131,7 +131,7 @@ class afcSpool:
         if lane not in self.AFC.stepper:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane.name]
+        CUR_LANE = self.AFC.stepper[lane]
         CUR_LANE.weight = weight
         self.AFC.save_vars()
 
@@ -162,7 +162,7 @@ class afcSpool:
         if lane not in self.AFC.stepper:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane.name]
+        CUR_LANE = self.AFC.stepper[lane]
         CUR_LANE.material = material
         self.AFC.save_vars()
     def set_active_spool(self, ID):
@@ -207,10 +207,10 @@ class afcSpool:
             if lane not in self.AFC.stepper:
                 self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
                 return
-            CUR_LANE = self.AFC.stepper[lane.name]
+            CUR_LANE = self.AFC.stepper[lane]
             self.set_spoolID(CUR_LANE, SpoolID)
 
-    def set_spoolID(self, CUR_LANE, SpoolID):
+    def set_spoolID(self, CUR_LANE, SpoolID, save_vars=True):
         if self.AFC.spoolman_ip !=None:
             if SpoolID !='':
                 try:
@@ -233,7 +233,7 @@ class afcSpool:
                 CUR_LANE.material = ''
                 CUR_LANE.color = ''
                 CUR_LANE.weight = ''
-            self.AFC.save_vars()
+            if save_vars: self.AFC.save_vars()
 
     cmd_SET_RUNOUT_help = "change filaments ID"
     def cmd_SET_RUNOUT(self, gcmd):
@@ -262,7 +262,7 @@ class afcSpool:
         if lane not in self.AFC.stepper:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane.name]
+        CUR_LANE = self.AFC.stepper[lane]
         CUR_LANE.runout_lane = runout
         self.AFC.save_vars()
         self.gcode.respond_info("This is a feature WIP. Not functioning yet")
