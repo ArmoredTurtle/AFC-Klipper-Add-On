@@ -6,7 +6,9 @@
 
 
 import json
+import sys
 from configparser import Error as error
+sys.path.append('./AFC_Units/')
 
 AFC_VERSION="1.0.0"
 
@@ -30,7 +32,7 @@ class afc:
         self.tool_cmds={}
         self.afc_monitoring = False
 
-        self.desired_order_list = config.get('Vdesired_order_list','')
+        self.unit_order_list = config.get('unit_order_list','')
 
         # tool position when tool change was requested
         self.change_tool_pos = None
@@ -1076,8 +1078,18 @@ class afc:
                 str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
             else:
                 str["system"]["extruders"][EXTRUDE]['tool_end_sensor']   = None
-            str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
-            str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer_status()
+            if self.current != None:
+                CUR_LANE=self.stepper[self.current]
+                if CUR_LANE.extruder == EXTRUDE:
+                    CUR_EXTRUDER.buffer_name = CUR_LANE.buffer
+                    str["system"]["extruders"][EXTRUDE]['buffer']   = CUR_EXTRUDER.buffer_name
+                    str["system"]["extruders"][EXTRUDE]['buffer_status']   = CUR_EXTRUDER.buffer_status()
+                else:
+                    str["system"]["extruders"][EXTRUDE]['buffer']   = 'Not In Use'
+                    str["system"]["extruders"][EXTRUDE]['buffer_status']   = 'NONE'
+            else:
+                str["system"]["extruders"][EXTRUDE]['buffer']   = 'Not In Use '
+                str["system"]["extruders"][EXTRUDE]['buffer_status']   = ' NONE'
         return str
 
     def is_homed(self):

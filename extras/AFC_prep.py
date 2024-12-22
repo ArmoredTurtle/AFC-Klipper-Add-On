@@ -62,12 +62,18 @@ class afcPrep:
             extruders=json.load(open(self.AFC.VarFile + '.tool'))
 
         self.AFC.tool_cmds={}
+        self.buffer = {}
+        for PO in self.printer.objects:
+            if 'AFC_buffer' in PO:
+                tmpBUFFER = self.printer.lookup_object(PO)
+                self.buffer[tmpBUFFER.name] = tmpBUFFER
 
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 self.AFC.stepper[LANE.name]=LANE
-
+                if LANE.buffer == None:
+                    LANE.buffer = list(self.buffer.keys())[0]
                 # If extruder section exists in vars file add currently stored data to AFC.extruders array
                 if LANE.extruder_name not in extruders: self.AFC.extruders[LANE.extruder_name]={}
                 else: self.AFC.extruders[LANE.extruder_name] = extruders[LANE.extruder_name]
@@ -121,9 +127,9 @@ class afcPrep:
                     return
                 self.AFC.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
 
-                logo=CUR_HUB.unit.logo
-                logo+='  ' + UNIT + '\n'
-                logo_error=CUR_HUB.unit.logo_error
+                logo = CUR_HUB.unit.logo
+                logo += '  ' + UNIT + '\n'
+                logo_error = CUR_HUB.unit.logo_error
                 logo_error+='  ' + UNIT + '\n'
 
                 LaneCheck = True
