@@ -8,7 +8,8 @@
 import json
 import sys
 from configparser import Error as error
-sys.path.append('./AFC_Units/')
+sys.path.append('./AFC-Klipper-Add-On/extras/')
+sys.path.append('./AFC-Klipper-Add-On/extras/AFC_Units')
 
 AFC_VERSION="1.0.0"
 
@@ -23,7 +24,7 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
-        self.VarFile = config.get('VarFile')
+        self.VarFile = config.get('VarFile','../printer_data/config/AFC/')
         self.current = None
         self.error_state = False
         self.units = {}
@@ -50,20 +51,6 @@ class afc:
         # SPOOLMAN
         self.spoolman_ip = config.get('spoolman_ip', None)
         self.spoolman_port = config.get('spoolman_port', None)
-
-        #LED SETTINGS
-        self.ind_lights = None
-        self.led_name = config.get('led_name')
-        self.led_fault =config.get('led_fault','1,0,0,0')
-        self.led_ready = config.get('led_ready','1,1,1,1')
-        self.led_not_ready = config.get('led_not_ready','1,1,0,0')
-        self.led_loading = config.get('led_loading','1,0,0,0')
-        self.led_prep_loaded = config.get('led_loading','1,1,0,0')
-        self.led_unloading = config.get('led_unloading','1,1,.5,0')
-        self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
-        self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')
-        self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')
-        self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')
 
         # TOOL Cutting Settings
         self.tool = ''
@@ -98,8 +85,6 @@ class afc:
         self.resume_z_speed = config.getfloat("resume_z_speed", 0)
 
         self._update_trsync(config)
-
-        self.VarFile = config.get('VarFile')
 
         # Get debug and cast to boolean
         #self.debug = True == config.get('debug', 0)
@@ -592,7 +577,7 @@ class afc:
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'loading'
         self.save_vars()
-        self.afc_led(self.led_loading, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
         if CUR_LANE.load_state and not CUR_HUB.state:
@@ -674,7 +659,7 @@ class afc:
             CUR_EXTRUDER.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
+            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
                 self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
@@ -687,7 +672,7 @@ class afc:
             # Update lane and extruder state for tracking.
             CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
-            self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
+            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -778,7 +763,7 @@ class afc:
         CUR_EXTRUDER.disable_buffer()
 
         # Activate LED indicator for unloading.
-        self.afc_led(self.led_unloading, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
 
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
@@ -897,7 +882,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         CUR_LANE.loaded_to_hub = True
-        self.afc_led(self.led_ready, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.save_vars()
         self.current = None
@@ -996,14 +981,14 @@ class afc:
         else:
             self.gcode.respond_info("{} already loaded".format(lane))
 
-    def get_filament_status(self, LANE):
-        if LANE.prep_state:
-            if LANE.load_state:
-                if LANE.extruder_obj is not None and LANE.extruder_obj.lane_loaded == LANE.name:
-                    return 'In Tool:' + self.HexConvert(self.led_tool_loaded)
-                return "Ready:" + self.HexConvert(self.led_ready)
-            return 'Prep:' + self.HexConvert(self.led_prep_loaded)
-        return 'Not Ready:' + self.HexConvert(self.led_not_ready)
+    def get_filament_status(self, CUR_LANE):
+        if CUR_LANE.prep_state:
+            if CUR_LANE.load_state:
+                if CUR_LANE.extruder_obj is not None and CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
+                    return 'In Tool:' + self.HexConvert(CUR_LANE.led_tool_loaded)
+                return "Ready:" + self.HexConvert(CUR_LANE.led_ready)
+            return 'Prep:' + self.HexConvert(CUR_LANE.led_prep_loaded)
+        return 'Not Ready:' + self.HexConvert(CUR_LANE.led_not_ready)
 
     def HexConvert(self,tmp):
         led=tmp.split(',')

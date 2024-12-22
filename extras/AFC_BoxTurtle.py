@@ -50,21 +50,21 @@ class afcBoxTurtle:
 
         if CUR_LANE.prep_state == False:
             if CUR_LANE.load_state == False:
-                self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
+                self.AFC.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
                 msg += 'EMPTY READY FOR SPOOL'
             else:
-                self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
+                self.AFC.afc_led(CUR_LANE.led_fault, CUR_LANE.led_index)
                 msg +="<span class=error--text> NOT READY</span>"
                 CUR_LANE.do_enable(False)
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
                 succeeded = False
 
         else:
-            self.AFC.afc_led(self.AFC.led_ready, CUR_LANE.led_index)
+            self.AFC.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:
                 msg +="<span class=error--text> NOT LOADED</span>"
-                self.AFC.afc_led(self.AFC.led_not_ready, CUR_LANE.led_index)
+                self.AFC.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
                 succeeded = False
             else:
                 CUR_LANE.status = 'Loaded'
@@ -78,7 +78,7 @@ class afcBoxTurtle:
                             if CUR_LANE.extruder_obj.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
                             self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
-                            self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
+                            self.AFC.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
                             CUR_LANE.status = 'Tooled'
                             if len(self.AFC.extruders) == 1:
                                 self.AFC.current = CUR_LANE.name
