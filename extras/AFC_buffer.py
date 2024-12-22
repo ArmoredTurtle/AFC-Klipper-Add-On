@@ -303,12 +303,12 @@ class AFCtrigger:
                 state_info += ("\n{} Rotation distance: {}".format(LANE.name.upper(), rotation_dist))
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
-    
+
     cmd_SET_BUFFER_VELOCITY_help = "Set buffer velocity realtime for forward assist"
     def cmd_SET_BUFFER_VELOCITY(self, gcmd):
         """
         Allows users to tweak buffer velocity setting while printing. This setting is not
-        saved in configuration. Please update your configuration file once you find a velocity that 
+        saved in configuration. Please update your configuration file once you find a velocity that
         works for your setup.
 
         Usage: SET_BUFFER_VELOCITY BUFFER=<buffer_name> VELOCITY=<value>
@@ -322,7 +322,7 @@ class AFCtrigger:
         old_velocity = self.velocity
         self.velocity = gcmd.get_float('VELOCITY', 0.0)
         self.gcode.respond_info("VELOCITY for {} was updated from {} to {}".format(self.name, old_velocity, self.velocity))
-        
+
 
 def load_config_prefix(config):
     return AFCtrigger(config)
