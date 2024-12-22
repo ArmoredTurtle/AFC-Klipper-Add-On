@@ -69,7 +69,7 @@ class afc_tip_form:
                 wait = False
             else:
                 wait =  True
-            extruder = self.toolhead.get_extruder()
+            extruder = self.AFC.toolhead.get_extruder()
             pheaters = self.printer.lookup_object('heaters')
             pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
         step +=1
