@@ -1,4 +1,3 @@
-
 from configparser import Error as error
 
 class afc_hub:

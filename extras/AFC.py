@@ -6,10 +6,7 @@
 
 
 import json
-import sys
 from configparser import Error as error
-sys.path.append('./AFC-Klipper-Add-On/extras/')
-sys.path.append('./AFC-Klipper-Add-On/extras/AFC_Units')
 
 AFC_VERSION="1.0.0"
 
