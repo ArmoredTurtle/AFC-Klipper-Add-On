@@ -16,6 +16,11 @@ runs the resume script, and restores the toolhead position to the last saved pos
 Usage: ``AFC_RESUME``  
 Example: ``AFC_RESUME``  
 
+### TEST_AFC_TIP_FORMING
+_Description_: Gives ability to test AFC tip forming without doing a tool change  
+Usage: `TEST_AFC_TIP_FORMING LANE=<lane>`  
+Example: `TEST_AFC_TIP_FORMING LANE=leg1`  
+
 ### AFC_STATUS
 _Description_: This function generates a status message for each unit and lane, indicating the preparation,
 loading, hub, and tool states. The status message is formatted with HTML tags for display.  
