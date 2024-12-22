@@ -28,7 +28,8 @@ class afcNightOwl:
             self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
             return
         CUR_LANE = self.AFC.stepper[LANE]
-        try: CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+        try:
+            CUR_LANE.extruder_obj = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
         except:
             error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
             self.AFC.ERROR.AFC_error(error_string, False)
@@ -46,7 +47,6 @@ class afcNightOwl:
                 msg += 'EMPTY READY FOR SPOOL'
             else:
                 self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
-                CUR_LANE.status = None
                 msg +="<span class=error--text> NOT READY</span>"
                 CUR_LANE.do_enable(False)
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
@@ -65,19 +65,21 @@ class afcNightOwl:
                 msg +="<span class=success--text> AND LOADED</span>"
 
                 if CUR_LANE.tool_loaded:
-                    if CUR_EXTRUDER.tool_start_state == True or CUR_EXTRUDER.tool_start == "buffer":
+                    if CUR_LANE.extruder_obj.tool_start_state == True or CUR_LANE.extruder_obj.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
                             CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
                             msg +="<span class=primary--text> in ToolHead</span>"
-                            if CUR_EXTRUDER.tool_start == "buffer":
+                            if CUR_LANE.extruder_obj.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
                             self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
                             self.AFC.afc_led(self.AFC.led_tool_loaded, CUR_LANE.led_index)
+                            CUR_LANE.status = 'Tooled'
                             if len(self.AFC.extruders) == 1:
                                 self.AFC.current = CUR_LANE.name
-                                CUR_EXTRUDER.enable_buffer()
+                                CUR_LANE.extruder_obj.enable_buffer()
+                                CUR_LANE.extruder_obj.lane_loaded = CUR_LANE.name
                         else:
-                            if CUR_EXTRUDER.tool_start_state == True:
+                            if CUR_LANE.extruder_obj.tool_start_state == True:
                                 msg +="<span class=error--text> error in ToolHead. \nLane identified as loaded in AFC.vars.unit file\n but not identified as loaded in AFC.var.tool file</span>"
                                 succeeded = False
                     else:

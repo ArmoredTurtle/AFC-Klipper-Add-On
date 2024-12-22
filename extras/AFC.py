@@ -8,6 +8,8 @@
 import json
 from configparser import Error as error
 
+AFC_VERSION="1.0.0"
+
 class afc:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -23,7 +25,6 @@ class afc:
         self.current = None
         self.error_state = False
         self.units = {}
-        self.lanes = {}
         self.extruders = {}
         self.stepper = {}
         self.tool_cmds={}
@@ -102,6 +103,9 @@ class afc:
         #self.debug = True == config.get('debug', 0)
         self.debug = False
 
+        # Printing here will not display in console but it will go to klippy.log
+        self.print_version()
+
     def _update_trsync(self, config):
         # Logic to update trsync values
         update_trsync = config.getboolean("trsync_update", False)
@@ -141,6 +145,14 @@ class afc:
         self.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
+
+    def print_version(self):
+        import subprocess
+        import os
+        afc_dir  = os.path.dirname(os.path.realpath(__file__))
+        git_hash = subprocess.check_output(['git', '-C', '{}'.format(afc_dir), 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+        git_commit_num = subprocess.check_output(['git', '-C', '{}'.format(afc_dir), 'rev-list', 'HEAD', '--count']).decode('ascii').strip()
+        self.gcode.respond_info("AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash))
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
@@ -448,7 +460,7 @@ class afc:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
                 CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
-        if CUR_LANE.hub_load == False:
+        if CUR_LANE.loaded_to_hub == False:
             CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
         while CUR_HUB.state == False:
             CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
@@ -457,7 +469,7 @@ class afc:
         CUR_LANE.status = ''
         self.save_vars()
         CUR_LANE.do_enable(False)
-        CUR_LANE.hub_load = True
+        CUR_LANE.loaded_to_hub = True
         self.save_vars()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
@@ -477,10 +489,6 @@ class afc:
         Returns:
             None
         """
-        if not self.is_homed():
-            self.ERROR.AFC_error("Please home printer before doing a tool unload", False)
-            return False
-
         lane = gcmd.get('LANE', None)
         if lane not in self.stepper:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
@@ -494,9 +502,9 @@ class afc:
             CUR_LANE.status = 'ejecting'
             self.save_vars()
             CUR_LANE.do_enable(True)
-            if CUR_LANE.hub_load:
+            if CUR_LANE.loaded_to_hub:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
-            CUR_LANE.hub_load = False
+            CUR_LANE.loaded_to_hub = False
             while CUR_LANE.load_state == True:
                CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
             CUR_LANE.move( CUR_HUB.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
@@ -597,10 +605,10 @@ class afc:
             CUR_LANE.do_enable(True)
 
             # Move filament to the hub if it's not already loaded there.
-            if not CUR_LANE.hub_load:
+            if not CUR_LANE.loaded_to_hub:
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, CUR_LANE.dist_hub > 200)
 
-            CUR_LANE.hub_load = True
+            CUR_LANE.loaded_to_hub = True
             hub_attempts = 0
 
             # Ensure filament moves past the hub.
@@ -658,7 +666,7 @@ class afc:
                         break
                 CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
             # Update tool and lane status.
-            CUR_LANE.status = 'tool'
+            CUR_LANE.status = 'Tooled'
             CUR_LANE.tool_loaded = True
             self.current = CUR_LANE.name
             CUR_EXTRUDER.enable_buffer()
@@ -675,8 +683,7 @@ class afc:
                 self.gcode.run_script_from_command(self.wipe_cmd)
 
             # Update lane and extruder state for tracking.
-            CUR_LANE.hub_loaded = True
-            self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = CUR_LANE.name
+            CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
             self.afc_led(self.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
@@ -849,7 +856,7 @@ class afc:
 
         # Clear toolhead's loaded state for easier error handling later.
         CUR_LANE.tool_loaded = False
-        self.extruders[CUR_LANE.extruder_name]['lane_loaded'] = ''
+        CUR_EXTRUDER.lane_loaded = ''
         CUR_LANE.status = None
         self.current = None
 
@@ -887,7 +894,7 @@ class afc:
                     return False
 
         # Finalize unloading and reset lane state.
-        CUR_LANE.hub_load = True
+        CUR_LANE.loaded_to_hub = True
         self.afc_led(self.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.save_vars()
@@ -990,7 +997,7 @@ class afc:
     def get_filament_status(self, LANE):
         if LANE.prep_state:
             if LANE.load_state:
-                if self.extruders[LANE.extruder_name]['lane_loaded'] == LANE.name:
+                if LANE.extruder_obj is not None and LANE.extruder_obj.lane_loaded == LANE.name:
                     return 'In Tool:' + self.HexConvert(self.led_tool_loaded)
                 return "Ready:" + self.HexConvert(self.led_ready)
             return 'Prep:' + self.HexConvert(self.led_prep_loaded)
@@ -1057,9 +1064,9 @@ class afc:
         for EXTRUDE in self.extruders.keys():
             str["system"]["extruders"][EXTRUDE]={}
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = self.extruders[CUR_LANE.extruder_name]['lane_loaded']
+            str["system"]["extruders"][EXTRUDE]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
             if CUR_EXTRUDER.tool_start == "buffer":
-                if self.extruders[CUR_LANE.extruder_name]['lane_loaded'] == '':
+                if CUR_EXTRUDER.lane_loaded == '':
                     str ["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = False
                 else:
                     str["system"]["extruders"][EXTRUDE]['tool_start_sensor'] = True

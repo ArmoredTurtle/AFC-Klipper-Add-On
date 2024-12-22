@@ -52,8 +52,10 @@ class afcError:
                     CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                 while CUR_LANE.load_state == False:  # reload lane extruder
                     CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
-                self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded']= ''
+
+                CUR_LANE.tool_load = False
+                CUR_LANE.loaded_to_hub = False
+                CUR_LANE.extruder_obj.lane_loaded = ''
                 self.AFC.save_vars()
                 self.pause = False
                 return True

@@ -51,46 +51,61 @@ class afcPrep:
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
 
         self._rename_resume()
-
+        self.AFC.print_version()
+        extruders={}
+        units={}
         ## load Unit variables
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
-            self.AFC.lanes=json.load(open(self.AFC.VarFile + '.unit'))
+            units=json.load(open(self.AFC.VarFile + '.unit'))
         ## load Toolhead variables
         if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
-            self.AFC.extruders=json.load(open(self.AFC.VarFile + '.tool'))
-        else:
-            self.AFC.extruders={}
-
-        temp=[]
+            extruders=json.load(open(self.AFC.VarFile + '.tool'))
 
         self.AFC.tool_cmds={}
+
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
                 self.AFC.stepper[LANE.name]=LANE
-                temp.append(LANE.name)
-                if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
-                if LANE.unit not in self.AFC.units: self.AFC.units[LANE.unit] = {}
-                if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit] = {}
+
+                # If extruder section exists in vars file add currently stored data to AFC.extruders array
+                if LANE.extruder_name not in extruders: self.AFC.extruders[LANE.extruder_name]={}
+                else: self.AFC.extruders[LANE.extruder_name] = extruders[LANE.extruder_name]
+
+                # If units section exists in vars file add currently stored data to AFC.units array
+                if LANE.unit not in self.AFC.units:
+                    # Only adding unit to array if it does not already exist
+                    if LANE.unit not in units: self.AFC.units[LANE.unit] = {}
+                    else:
+                        self.AFC.units[LANE.unit] = units[LANE.unit]
+                        # Removing system as this causes problems with AFC.get_status function
+                        self.AFC.units[LANE.unit].pop("system", None)
+
+                # If lane section exists in vars file add currently stored data to AFC.units array
                 if LANE.name not in self.AFC.units[LANE.unit]: self.AFC.units[LANE.unit][LANE.name]={}
-                if 'spool_id' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
+                else: self.AFC.units[LANE.unit][LANE.name] = units[LANE.unit][LANE.name]
+
+                if 'spool_id' in self.AFC.units[LANE.unit][LANE.name]: LANE.spool_id = self.AFC.units[LANE.unit][LANE.name]['spool_id']
 
                 if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
-                    self.AFC.SPOOL.set_spoolID(LANE, LANE.spool_id)
+                    self.AFC.SPOOL.set_spoolID(LANE, LANE.spool_id, save_vars=False)
                 else:
-                    if 'material' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.material = self.AFC.lanes[LANE.unit][LANE.name]['material']
-                    if 'color' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.color = self.AFC.lanes[LANE.unit][LANE.name]['color']
-                    if 'weight' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.weight=self.AFC.lanes[LANE.unit][LANE.name]['weight']
+                    if 'material' in self.AFC.units[LANE.unit][LANE.name]: LANE.material = self.AFC.units[LANE.unit][LANE.name]['material']
+                    if 'color' in self.AFC.units[LANE.unit][LANE.name]: LANE.color = self.AFC.units[LANE.unit][LANE.name]['color']
+                    if 'weight' in self.AFC.units[LANE.unit][LANE.name]: LANE.weight=self.AFC.units[LANE.unit][LANE.name]['weight']
 
-                if 'runout_lane' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.runout_lane = self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']
+                if 'runout_lane' in self.AFC.units[LANE.unit][LANE.name]: LANE.runout_lane = self.AFC.units[LANE.unit][LANE.name]['runout_lane']
                 if LANE.runout_lane == '': LANE.runout_lane='NONE'
-                if 'map' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
+                if 'map' in self.AFC.units[LANE.unit][LANE.name]: LANE.map = self.AFC.units[LANE.unit][LANE.name]['map']
                 if LANE.map != 'NONE':
                    self.AFC.tool_cmds[LANE.map] = LANE.name
-                if 'hub_loaded' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.hub_loaded = self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded']
-                if 'tool_loaded' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.tool_loaded = self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded']
-                if 'status' in self.AFC.lanes[LANE.unit][LANE.name]: LANE.status = self.AFC.lanes[LANE.unit][LANE.name]['status']
-        self.AFC.lanes={}
+                # Check first for hub_loaded as this was the old name in software with version <= 1030
+                if 'hub_loaded' in self.AFC.units[LANE.unit][LANE.name]: LANE.loaded_to_hub = self.AFC.units[LANE.unit][LANE.name]['hub_loaded']
+                # Check for loaded_to_hub as this is how its being saved version > 1030
+                if 'loaded_to_hub' in self.AFC.units[LANE.unit][LANE.name]: LANE.loaded_to_hub = self.AFC.units[LANE.unit][LANE.name]['loaded_to_hub']
+                if 'tool_loaded' in self.AFC.units[LANE.unit][LANE.name]: LANE.tool_loaded = self.AFC.units[LANE.unit][LANE.name]['tool_loaded']
+                if 'status' in self.AFC.units[LANE.unit][LANE.name]: LANE.status = self.AFC.units[LANE.unit][LANE.name]['status']
+
         self.AFC.save_vars()
         if self.enable == False:
             self.AFC.gcode.respond_info('Prep Checks Disabled')

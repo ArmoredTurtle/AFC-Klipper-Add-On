@@ -55,6 +55,7 @@ class AFCExtruderStepper:
         #stored status variables
         self.name = config.get_name().split()[-1]
         self.extruder_name = config.get('extruder')
+        self.extruder_obj = None
 
         self.map = config.get('cmd','NONE')
         self.tool_loaded = False
@@ -64,7 +65,7 @@ class AFCExtruderStepper:
         self.color = None
         self.weight = None
         self.runout_lane = 'NONE'
-        self.status = None
+        self.status = 'Not Loaded'
         unit = config.get('unit', None)
         if unit != None:
             self.unit = unit.split(':')[0]
@@ -75,8 +76,6 @@ class AFCExtruderStepper:
         self.hub= ''
 
         self.motion_queue = None
-        self.status = None
-        self.hub_load = False
         self.next_cmd_time = 0.
         ffi_main, ffi_lib = chelper.get_ffi()
         self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
@@ -254,8 +253,8 @@ class AFCExtruderStepper:
                     self.status = None
                     self.AFC.afc_led(self.AFC.led_not_ready, led)
                     self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
-                    empty_LANE = self.AFC.stepper(self.AFC.current)
-                    change_LANE = self.AFC.stepper(self.runout_lane)
+                    empty_LANE = self.AFC.stepper[self.AFC.current]
+                    change_LANE = self.AFC.stepper[self.runout_lane]
                     self.gcode.run_script_from_command(change_LANE.map)
                     self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
                     self.gcode.run_script_from_command('LANE_UNLOAD LANE=' + empty_LANE.name)
