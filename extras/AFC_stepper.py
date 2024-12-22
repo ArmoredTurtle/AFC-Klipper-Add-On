@@ -55,7 +55,7 @@ class AFCExtruderStepper:
         #stored status variables
         self.name = config.get_name().split()[-1]
         self.extruder_name = config.get('extruder')
-        self.buffer_name = config.get('buffer',None)
+        self.buffer = config.get('buffer',None)
         self.extruder_obj = None
 
         self.buffer = config.get('buffer',None)
