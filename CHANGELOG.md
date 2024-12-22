@@ -284,5 +284,8 @@ file as the code now generates them automatically.
 - **New Command: `TEST_AFC_TIP_FORMING`**
     Gives ability to test AFC tip forming without doing a tool change
 
+- **New Command: `RESET_AFC_MAPPING`**
+    Resets all tool lane mapping to the order that is setup in configuration
+
 ### Fixed
 - Fixed error in tip forming when `toolchange_temp` value is not zero
