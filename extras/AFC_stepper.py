@@ -68,7 +68,7 @@ class AFCExtruderStepper:
         self.weight = None
         self.runout_lane = 'NONE'
         self.status = 'Not Loaded'
-        unit = config.get('unit', None)
+        unit = config.get('unit', None)                                                             # Unit name(AFC_hub) that this lane belongs to.
         if unit != None:
             self.unit = unit.split(':')[0]
             self.index = int(unit.split(':')[1])
@@ -95,28 +95,26 @@ class AFCExtruderStepper:
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
         self.assist_activate=False
 
-        self.hub_dist = config.getfloat('hub_dist',20)
-        self.dist_hub = config.getfloat('dist_hub', 60)
-        # distance to retract filament from the hub
-        self.park_dist = config.getfloat('park_dist', 10)
-        self.led_index = config.get('led_index', None)
+        self.dist_hub = config.getfloat('dist_hub', 60)                                             # Bowden distance between Boxturtle extruder and hub
+        self.park_dist = config.getfloat('park_dist', 10)                                           # Currently unused
+        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
-        self.prep = config.get('prep', None)
+        self.prep = config.get('prep', None)                                                        # MCU pin for prep trigger
         if self.prep is not None:
             self.prep_state = False
             buttons.register_buttons([self.prep], self.prep_callback)
-        self.load = config.get('load', None)
+        self.load = config.get('load', None)                                                        # MCU pin load trigger
         if self.load is not None:
             self.load_state = False
             buttons.register_buttons([self.load], self.load_callback)
         # Respoolers
-        self.afc_motor_rwd = config.get('afc_motor_rwd', None)
-        self.afc_motor_fwd = config.get('afc_motor_fwd', None)
-        self.afc_motor_enb = config.get('afc_motor_enb', None)
-        self.afc_motor_fwd_pulse = config.getfloat('afc_motor_fwd_pulse', None)
-        self.afc_motor_fwd_gear_ratio = config.get('afc_motor_fwd_gear_ratio', None)
-        self.afc_motor_fwd_drive_diam = config.getfloat('afc_motor_fwd_drive_diam', None)
+        self.afc_motor_rwd = config.get('afc_motor_rwd', None)                                      # Reverse pin on MCU for spoolers
+        self.afc_motor_fwd = config.get('afc_motor_fwd', None)                                      # Forwards pin on MCU for spoolers
+        self.afc_motor_enb = config.get('afc_motor_enb', None)                                      # Enable pin on MCU for spoolers
+        self.afc_motor_fwd_pulse = config.getfloat('afc_motor_fwd_pulse', None)                     # Need description
+        self.afc_motor_fwd_gear_ratio = config.get('afc_motor_fwd_gear_ratio', None)                # Need description
+        self.afc_motor_fwd_drive_diam = config.getfloat('afc_motor_fwd_drive_diam', None)           # Need description
         if self.afc_motor_rwd is not None:
             self.afc_motor_rwd = AFC_assist.AFCassistMotor(config, 'rwd')
         if self.afc_motor_fwd is not None:
@@ -124,15 +122,18 @@ class AFCExtruderStepper:
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
 
-        self.filament_diameter = config.getfloat("filament_diameter", 1.75)
-        self.filament_density = config.getfloat("filament_density", 1.24)
-        self.inner_diameter = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
-        self.outer_diameter = config.getfloat("spool_outer_diameter", 200)  # Outer diameter in mm
-        self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)  # Empty spool weight in g
-        self.remaining_weight = config.getfloat("spool_weight", 1000)  # Remaining spool weight in g
-        self.max_motor_rpm = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
-        self.rwd_speed_multi = config.getfloat("rwd_speed_multiplier", 0.5) # Multiplier to apply to rpm
-        self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5) # Multiplier to apply to rpm
+        self.tmc_print_current = config.getfloat("print_current", self.AFC.global_print_current)    # Current to use while printing, set to a lower current to reduce stepper heat when printing. Defaults to global_print_current, if not specified current is not changed.
+        self._get_tmc_values( config )
+
+        self.filament_diameter = config.getfloat("filament_diameter", 1.75)                         # Diameter of filament being used
+        self.filament_density = config.getfloat("filament_density", 1.24)                           # Density of filament being used
+        self.inner_diameter = config.getfloat("spool_inner_diameter", 100)                          # Inner diameter in mm
+        self.outer_diameter = config.getfloat("spool_outer_diameter", 200)                          # Outer diameter in mm
+        self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)                        # Empty spool weight in g
+        self.remaining_weight = config.getfloat("spool_weight", 1000)                               # Remaining spool weight in g
+        self.max_motor_rpm = config.getfloat("assist_max_motor_rpm", 500)                           # Max motor RPM
+        self.rwd_speed_multi = config.getfloat("rwd_speed_multiplier", 0.5)                         # Multiplier to apply to rpm
+        self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5)                         # Multiplier to apply to rpm
         self.diameter_range = self.outer_diameter - self.inner_diameter  # Range for effective diameter
 
         # Set hub loading speed depending on distance between extruder and hub
@@ -144,6 +145,17 @@ class AFCExtruderStepper:
 
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
+
+    def _get_tmc_values(self, config):
+        """
+        Searches for TMC driver that corresponds to stepper to get run current that is specified in config
+        """
+        try:
+            self.tmc_driver = next(config.getsection(s) for s in config.fileconfig.sections() if 'tmc' in s and config.get_name() in s)
+        except:
+            raise self.gcode.error("Count not find TMC for stepper {}".format(self.name))
+
+        self.tmc_load_current = self.tmc_driver.getfloat('run_current')
 
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
@@ -241,6 +253,11 @@ class AFCExtruderStepper:
             led = self.led_index
             if self.prep_state == True:
                 x = 0
+                # Check to see if the printer is printing or moving as trying to load while printer is doing something will crash klipper
+                if self.AFC.is_printing():
+                    self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
+                    return
+
                 while self.load_state == False and self.prep_state == True:
                     x += 1
                     self.do_enable(True)
@@ -296,6 +313,45 @@ class AFCExtruderStepper:
             toolhead.dwell(self.next_cmd_time - print_time)
         else:
             self.next_cmd_time = print_time
+
+    def sync_to_extruder(self, update_current=True):
+        """
+        Helper function to sync lane to extruder and set print current if specified.
+
+        :param update_current: Sets current to specified print current when True
+        """
+        self.extruder_stepper.sync_to_extruder(self.extruder_name)
+        if update_current: self.set_print_current()
+
+    def unsync_to_extruder(self, update_current=True):
+        """
+        Helper function to un-sync lane to extruder and set load current if specified.
+
+        :param update_current: Sets current to specified load current when True
+        """
+        self.extruder_stepper.sync_to_extruder(None)
+        if update_current: self.set_load_current()
+
+    def _set_current(self, current):
+        """
+        Helper function to update TMC current.
+
+        :param current: Sets TMC current to specified value
+        """
+        if self.tmc_print_current is not None:
+            self.gcode.run_script_from_command("SET_TMC_CURRENT STEPPER='{}' CURRENT={}".format(self.name, current))
+
+    def set_load_current(self):
+        """
+        Helper function to update TMC current to use run current value
+        """
+        self._set_current( self.tmc_load_current )
+
+    def set_print_current(self):
+        """
+        Helper function to update TMC current to use print current value
+        """
+        self._set_current( self.tmc_print_current )
 
     def update_rotation_distance(self, multiplier):
         self.extruder_stepper.stepper.set_rotation_distance( self.base_rotation_dist / multiplier )

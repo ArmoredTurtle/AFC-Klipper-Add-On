@@ -28,7 +28,7 @@ class afcBoxTurtle:
 
         self.AFC.gcode.register_mux_command('CALIBRATE_AFC', None, None, self.cmd_CALIBRATE_AFC, desc=self.cmd_CALIBRATE_AFC_help)
 
-    def system_Test(self, UNIT, LANE, delay):
+    def system_Test(self, UNIT, LANE, delay, assignTcmd):
         msg = ''
         succeeded = True
         if LANE not in self.AFC.stepper:
@@ -43,7 +43,7 @@ class afcBoxTurtle:
             return False
 
         # Run test reverse/forward on each lane
-        CUR_LANE.extruder_stepper.sync_to_extruder(None)
+        CUR_LANE.unsync_to_extruder(False)
         CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + delay)
         CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
@@ -73,7 +73,7 @@ class afcBoxTurtle:
                 if CUR_LANE.tool_loaded:
                     if CUR_LANE.extruder_obj.tool_start_state == True or CUR_LANE.extruder_obj.tool_start == "buffer":
                         if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:
-                            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+                            CUR_LANE.sync_to_extruder()
                             msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_LANE.extruder_obj.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
@@ -93,7 +93,7 @@ class afcBoxTurtle:
                         if not lane_check:
                             return False
 
-        self.AFC.TcmdAssign(CUR_LANE)
+        if assignTcmd: self.AFC.TcmdAssign(CUR_LANE)
         CUR_LANE.do_enable(False)
         self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name.upper(), tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()

@@ -46,40 +46,43 @@ class afc:
         self.absolute_coord = True
 
         # SPOOLMAN
-        self.spoolman_ip = config.get('spoolman_ip', None)
-        self.spoolman_port = config.get('spoolman_port', None)
+        self.spoolman_ip = config.get('spoolman_ip', None)                          # To utilize spoolman enter spoolmans IP address
+        self.spoolman_port = config.get('spoolman_port', None)                      # To utilize spoolman enter spoolmans port
 
         # TOOL Cutting Settings
         self.tool = ''
-        self.tool_cut = config.getboolean("tool_cut", False)
-        self.tool_cut_cmd = config.get('tool_cut_cmd', None)
+        self.tool_cut = config.getboolean("tool_cut", False)                        # Set to True to enable toolhead cutting
+        self.tool_cut_cmd = config.get('tool_cut_cmd', None)                        # Macro to use when doing toolhead cutting. Change macro name if you would like to use your own cutting macro
 
         # CHOICES
-        self.park = config.getboolean("park", False)
-        self.park_cmd = config.get('park_cmd', None)
-        self.kick = config.getboolean("kick", False)
-        self.kick_cmd = config.get('kick_cmd', None)
-        self.wipe = config.getboolean("wipe", False)
-        self.wipe_cmd = config.get('wipe_cmd', None)
-        self.poop = config.getboolean("poop", False)
-        self.poop_cmd = config.get('poop_cmd', None)
+        self.park = config.getboolean("park", False)                                # Set to True to enable parking during unload
+        self.park_cmd = config.get('park_cmd', None)                                # Macro to use when parking. Change macro name if you would like to use your own park macro
+        self.kick = config.getboolean("kick", False)                                # Set to True to enable poop kicking after lane loads
+        self.kick_cmd = config.get('kick_cmd', None)                                # Macro to use when kicking. Change macro name if you would like to use your own kick macro
+        self.wipe = config.getboolean("wipe", False)                                # Set to True to enable nozzle wipeing after lane loads
+        self.wipe_cmd = config.get('wipe_cmd', None)                                # Macro to use when nozzle wipeing. Change macro name if you would like to use your own wipe macro
+        self.poop = config.getboolean("poop", False)                                # Set to True to enable pooping(purging color) after lane loads
+        self.poop_cmd = config.get('poop_cmd', None)                                # Macro to use when pooping. Change macro name if you would like to use your own poop/purge macro
 
-        self.form_tip = config.getboolean("form_tip", False)
-        self.form_tip_cmd = config.get('form_tip_cmd', None)
+        self.form_tip = config.getboolean("form_tip", False)                        # Set to True to tip forming when unloading lanes
+        self.form_tip_cmd = config.get('form_tip_cmd', None)                        # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
 
         # MOVE SETTINGS
-        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)
-        self.long_moves_speed = config.getfloat("long_moves_speed", 100)
-        self.long_moves_accel = config.getfloat("long_moves_accel", 400)
-        self.short_moves_speed = config.getfloat("short_moves_speed", 25)
-        self.short_moves_accel = config.getfloat("short_moves_accel", 400)
-        self.short_move_dis = config.getfloat("short_move_dis", 10)
-        self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)
-        self.tool_max_load_checks = config.getint('tool_max_load_checks', 4)
-        self.z_hop =config.getfloat("z_hop", 0)
-        self.xy_resume =config.getboolean("xy_resume", False)
-        self.resume_speed =config.getfloat("resume_speed", 0)
-        self.resume_z_speed = config.getfloat("resume_z_speed", 0)
+        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0) # Currently unused
+        self.long_moves_speed = config.getfloat("long_moves_speed", 100)            # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel = config.getfloat("long_moves_accel", 400)            # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed = config.getfloat("short_moves_speed", 25)           # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel = config.getfloat("short_moves_accel", 400)          # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis = config.getfloat("short_move_dis", 10)                 # Move distance in mm for failsafe moves.
+        self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)# Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
+        self.tool_max_load_checks = config.getint('tool_max_load_checks', 4)        # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
+
+        self.z_hop =config.getfloat("z_hop", 0)                                     # Height to move up before and after a tool change completes
+        self.xy_resume =config.getboolean("xy_resume", False)                       # Need description or remove as this is currently an unused variable
+        self.resume_speed =config.getfloat("resume_speed", 0)                       # Speed mm/s of resume move. Set to 0 to use gcode speed
+        self.resume_z_speed = config.getfloat("resume_z_speed", 0)                  # Speed mm/s of resume move in Z. Set to 0 to use gcode speed
+
+        self.global_print_current = config.getfloat("global_print_current", None)   # Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly
 
         self._update_trsync(config)
 
@@ -92,12 +95,12 @@ class afc:
 
     def _update_trsync(self, config):
         # Logic to update trsync values
-        update_trsync = config.getboolean("trsync_update", False)
+        update_trsync = config.getboolean("trsync_update", False)                   # Set to true to enable updating trsync value in klipper mcu. Enabling this and updating the timeouts can help with Timer Too Close(TTC) errors
         if update_trsync:
             try:
                 import mcu
-                trsync_value = config.getfloat("trsync_timeout", 0.05)
-                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5)
+                trsync_value = config.getfloat("trsync_timeout", 0.05)              # Timeout value to update in klipper mcu. Klippers default value is 0.025
+                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5) # Single timeout value to update in klipper mcu. Klippers default value is 0.250
                 self.gcode.respond_info("Applying TRSYNC update")
 
                 # Making sure value exists as kalico(danger klipper) does not have TRSYNC_TIMEOUT value
@@ -279,7 +282,10 @@ class afc:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.stepper[lane]
+        CUR_LANE.set_load_current() # Making current is set correctly when doing lane moves
+        CUR_LANE.do_enable(True)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
+        CUR_LANE.do_enable(False)
 
     def save_pos(self):
         # Only save previous location on the first toolchange call to keep an error state from overwriting the location
@@ -335,7 +341,7 @@ class afc:
             status = self.get_status(0)
             f.write(json.dumps(status, indent=4))
         with open(self.VarFile+ '.tool', 'w') as f:
-            f.write(json.dumps(self.extruders, indent=4))
+            f.write(json.dumps(status['system']['extruders'], indent=4))
 
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
     def cmd_HUB_CUT_TEST(self, gcmd):
@@ -624,7 +630,7 @@ class afc:
             # Synchronize lane's extruder stepper and finalize tool loading.
             CUR_LANE.status = 'Tooled'
             self.save_vars()
-            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+            CUR_LANE.sync_to_extruder()
 
             # Adjust tool position for loading.
             pos = self.toolhead.get_position()
@@ -636,7 +642,7 @@ class afc:
             # Lane will load until Advance sensor is True
             # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
             if CUR_EXTRUDER.tool_start == "buffer":
-                CUR_LANE.extruder_stepper.sync_to_extruder(None)
+                CUR_LANE.unsync_to_extruder()
                 load_checks = 0
                 while CUR_EXTRUDER.tool_start_state == True:
                     CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
@@ -648,7 +654,7 @@ class afc:
                         msg += "Tool may not be loaded"
                         self.gcode.respond_info("<span class=warning--text>{}</span>".format(msg))
                         break
-                CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+                CUR_LANE.sync_to_extruder()
             # Update tool and lane status.
             CUR_LANE.status = 'Tooled'
             CUR_LANE.tool_loaded = True
@@ -764,7 +770,7 @@ class afc:
 
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
-            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+            CUR_LANE.sync_to_extruder()
 
         # Check and set the extruder temperature if below the minimum.
         wait = True
@@ -796,7 +802,7 @@ class afc:
         num_tries = 0
         if CUR_EXTRUDER.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
-            CUR_LANE.extruder_stepper.sync_to_extruder(None)
+            CUR_LANE.unsync_to_extruder()
             while CUR_EXTRUDER.buffer_trailing == False:
                 # attempt to return buffer to trailng pin
                 CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
@@ -808,7 +814,7 @@ class afc:
                     msg += "Increasing 'tool_max_unload_attempts' may improve loading reliablity"
                     self.gcode.respond_info("<span class=warning--text>{}</span>".format(msg))
                     break
-            CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+            CUR_LANE.sync_to_extruder(False)
             pos = self.toolhead.get_position()
             pos[3] -= CUR_EXTRUDER.tool_stn_unload
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
@@ -821,7 +827,7 @@ class afc:
                     message = ('FAILED TO UNLOAD. FILAMENT STUCK IN TOOLHEAD.')
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
-                CUR_LANE.extruder_stepper.sync_to_extruder(CUR_LANE.extruder_name)
+                CUR_LANE.sync_to_extruder()
                 pos = self.toolhead.get_position()
                 pos[3] -= CUR_EXTRUDER.tool_stn_unload
                 self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
@@ -835,7 +841,7 @@ class afc:
             self.toolhead.wait_moves()
 
         # Synchronize and move filament out of the hub.
-        CUR_LANE.extruder_stepper.sync_to_extruder(None)
+        CUR_LANE.unsync_to_extruder()
         CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
 
         # Clear toolhead's loaded state for easier error handling later.

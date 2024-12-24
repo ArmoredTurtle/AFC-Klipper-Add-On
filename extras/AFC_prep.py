@@ -11,11 +11,13 @@ class afcPrep:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
-        self.enable = config.getboolean("enable", False)
+        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)                 # Time to delay when moving extruders and spoolers during PREP routine
+        self.enable = config.getboolean("enable", False)                            # Set True to disable PREP checks
 
-        # Flag to set once resume rename as occured for the first time
-        self.rename_occured = False
+        # Flag to set once resume rename as occurred for the first time
+        self.rename_occurred = False
+        # Value gets set to false once prep has been ran for the first time after restarting klipper
+        self.assignTcmd = True
 
     def handle_connect(self):
         """
@@ -33,8 +35,8 @@ class afcPrep:
         """
 
         # Checking to see if rename has already been done, don't want to rename again if prep was already ran
-        if not self.rename_occured:
-            self.rename_occured = True
+        if not self.rename_occurred:
+            self.rename_occurred = True
             # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
             base_resume_name = "RESUME"
             prev_cmd = self.AFC.gcode.register_command(base_resume_name, None)
@@ -134,7 +136,7 @@ class afcPrep:
 
                 LaneCheck = True
                 for LANE in self.AFC.units[UNIT].keys():
-                    if not CUR_HUB.unit.system_Test(UNIT,LANE, self.delay):
+                    if not CUR_HUB.unit.system_Test(UNIT,LANE, self.delay, self.assignTcmd):
                         LaneCheck = False
 
                 if LaneCheck:
@@ -156,6 +158,10 @@ class afcPrep:
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.AFC.current is None:
             self.AFC.SPOOL.set_active_spool( None )
+
+        # Setting value to False so the T commands do try to get reassigned when users manually
+        #   run PREP after it has already be ran once upon boot
+        self.assignTcmd = False
 
 def load_config(config):
     return afcPrep(config)
