@@ -274,3 +274,12 @@ file as the code now generates them automatically.
 
 ### Fixes
 - Misc error fixes
+
+## [2024-12-23]
+### Added
+- Added ability to set lower stepper current when printing to help reduce how hot steppers can get.
+  To enable this feature set `global_print_current` in AFC.cfg or `print_current` for each AFC_stepper
+  During testing it was found that 0.6 was optimal, going lower than this may result in buffer not working as intended
+
+- Added check to make sure printer is not printing or homing when trying to load a spool. Doing so before would
+  result in klipper crashing.
