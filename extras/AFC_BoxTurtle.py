@@ -109,9 +109,9 @@ class afcBoxTurtle:
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
 
-        Usage:`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
+        Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANES=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
+            - `CALIBRATE_AFC LANE=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
             - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
 
         Args:
@@ -129,7 +129,7 @@ class afcBoxTurtle:
         tol = gcmd.get_float('TOLERANCE', 5)
         afc_bl = gcmd.get('BOWDEN', None)
         short_dis = self.AFC.short_move_dis
-        lanes = gcmd.get('LANES', None)
+        lanes = gcmd.get('LANE', None)
 
         if self.AFC.current is not None:
             self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')

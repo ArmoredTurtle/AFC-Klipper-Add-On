@@ -27,6 +27,7 @@ class afc_tip_form:
         self.dip_extraction_speed  = config.getfloat("dip_extraction_speed", 4)
         self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
         self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
+        self.gcode.register_command("TEST_AFC_TIP_FORMING", self.cmd_TEST_AFC_TIP_FORMING, desc=self.cmd_TEST_AFC_TIP_FORMING_help)
 
 
     def afc_extrude(self, distance, speed):
@@ -35,10 +36,20 @@ class afc_tip_form:
         self.AFC.toolhead.manual_move(pos, speed)
         self.AFC.toolhead.wait_moves()
 
+    cmd_TEST_AFC_TIP_FORMING_help = "Gives ability to test AFC tip forming without doing a tool change"
+    def cmd_TEST_AFC_TIP_FORMING(self, gcmd):
+        '''
+        Gives ability to test AFC tip forming without doing a tool change
 
+        USAGE: TEST_AFC_TIP_FORMING
+        '''
+        self.tip_form()
 
     def tip_form(self):
         step = 1
+        extruder = self.AFC.toolhead.get_extruder()
+        pheaters = self.printer.lookup_object('heaters')
+        current_temp = extruder.get_heater().target_temp     # Saving current temp so it can be set back when done if toolchange_temp is not zero
         if self.ramming_volume > 0:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Ramming')
             ratio = self.ramming_volume / 23
@@ -69,8 +80,8 @@ class afc_tip_form:
                 wait = False
             else:
                 wait =  True
-            extruder = self.toolhead.get_extruder()
-            pheaters = self.printer.lookup_object('heaters')
+
+            self.gcode.respond_info("AFC-TIP-FORM: Waiting for temperature to get to {}".format(self.toolchange_temp))
             pheaters.set_temperature(extruder.get_heater(), self.toolchange_temp, wait)
         step +=1
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Cooling Moves')
@@ -86,6 +97,12 @@ class afc_tip_form:
             self.reactor.pause(self.reactor.monotonic() + self.melt_zone_pause)
             self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
             self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
+
+        if extruder.get_heater().target_temp != current_temp:
+            self.gcode.respond_info('AFC-TIP-FORM: Setting temperature back to {}'.format(current_temp))
+            pheaters.set_temperature(extruder.get_heater(), current_temp)
+
+        self.gcode.respond_info('AFC-TIP-FORM: Done')
 
 def load_config(config):
     return afc_tip_form(config)
