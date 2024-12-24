@@ -109,15 +109,15 @@ class afcBoxTurtle:
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
 
-        Usage:`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
+        Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANES=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
+            - `CALIBRATE_AFC LANE=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
             - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                 Parameters:
-                - LANES: Specifies the lane to calibrate. If not provided, calibrates no lanes.
+                - LANE: Specifies the lane to calibrate. If not provided, calibrates no lanes.
                 - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
                 - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
                 - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
@@ -129,7 +129,7 @@ class afcBoxTurtle:
         tol = gcmd.get_float('TOLERANCE', 5)
         afc_bl = gcmd.get('BOWDEN', None)
         short_dis = self.AFC.short_move_dis
-        lanes = gcmd.get('LANES', None)
+        lane = gcmd.get('LANE', None)
 
         if self.AFC.current is not None:
             self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
@@ -145,9 +145,8 @@ class afcBoxTurtle:
 
             Returns: The lane name if found, otherwise None
             """
-            for UNIT in self.AFC.unit.keys():
-                if lane_name in self.AFC.unit[UNIT]:
-                    return lane_name
+            if lane_name in self.AFC.stepper:
+                return self.AFC.stepper[lane_name]
 
             # If the lane was not found
             self.AFC.gcode.respond_info('{} not found in any unit.'.format(lane_name))
@@ -188,7 +187,7 @@ class afcBoxTurtle:
             if LANE not in self.AFC.stepper:
                 self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
                 return
-            CUR_LANE = self.AFC.stepper[LANE.name]
+            CUR_LANE = self.AFC.stepper[LANE]
             CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))
             if CUR_HUB.state:
                 self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
@@ -209,32 +208,28 @@ class afcBoxTurtle:
             return True, cal_msg
 
         # Determine if a specific lane is provided
-        if lanes is not None:
+        if lane is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
             cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
-            if lanes != 'all':
-                lane_to_calibrate = find_lane_to_calibrate(lanes)
-                if lane_to_calibrate is None:
-                    return
+            if lane != 'all':
                 # Calibrate the specific lane
-                checked, msg = calibrate_lane(lane_to_calibrate)
+                checked, msg = calibrate_lane(lane)
                 if(not checked): return
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
-                for UNIT in self.AFC.units.keys():
-                    for LANE in self.AFC.units[UNIT].keys():
-                        # Calibrate the specific lane
-                        checked, msg = calibrate_lane(LANE)
-                        if(not checked): return
-                        cal_msg += msg
+                for lane in self.AFC.stepper.keys():
+                    # Calibrate the specific lane
+                    checked, msg = calibrate_lane(lane)
+                    if(not checked): return
+                    cal_msg += msg
 
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
 
         if afc_bl is not None:
-            if lanes is None:
+            if lane is None:
                 self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
                 cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
                 cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
@@ -244,8 +239,11 @@ class afcBoxTurtle:
             if lane_to_calibrate is None:
                 return
 
-            lane = lane_to_calibrate
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            CUR_LANE = lane_to_calibrate
+            if not CUR_LANE.load_state:
+                self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
+                return True, ""
+
             CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
             CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
             self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name.upper()))
