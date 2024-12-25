@@ -413,5 +413,35 @@ class AFCExtruderStepper:
         if self.remaining_weight < self.empty_spool_weight:
             self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
 
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['name'] = self.name
+        self.response['unit'] = self.unit
+        self.response['lane'] = self.index
+        self.response['map'] = self.map
+        self.response['load'] = bool(self.load_state)
+        self.response["prep"] =bool(self.prep_state)
+        self.response["tool_loaded"] = self.tool_loaded
+        self.response["loaded_to_hub"] = self.loaded_to_hub
+        self.response["material"]=self.material
+        self.response["spool_id"]=self.spool_id
+        self.response["color"]=self.color
+        self.response["weight"]=self.weight
+        self.response["runout_lane"]=self.runout_lane
+        filiment_stat=self.get_filament_status().split(':')
+        self.response['filament_status'] = filiment_stat[0]
+        self.response['filament_status_led'] = filiment_stat[1]
+        self.response['status'] = self.status
+        return self.response
+    
+    def get_filament_status(self):
+        if self.prep_state:
+            if self.load_state:
+                if self.extruder_obj is not None and self.extruder_obj.lane_loaded == self.name:
+                    return 'In Tool:' + self.AFC.HexConvert(self.led_tool_loaded)
+                return "Ready:" + self.AFC.HexConvert(self.led_ready)
+            return 'Prep:' + self.AFC.HexConvert(self.led_prep_loaded)
+        return 'Not Ready:' + self.AFC.HexConvert(self.led_not_ready)
+
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
