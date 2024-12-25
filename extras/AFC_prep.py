@@ -125,21 +125,21 @@ class afcPrep:
             for UNIT in self.AFC.units.keys():
                 logo=''
                 logo_error = ''
-                try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
+                try: CUR_UNIT = self.printer.lookup_object('AFC_unit ' + UNIT)
                 except:
-                    error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
+                    error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
                     self.AFC.ERROR.AFC_error(error_string, False)
                     return
-                self.AFC.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
+                self.AFC.gcode.respond_info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
 
-                logo = CUR_HUB.unit.logo
+                logo = CUR_UNIT.unit.logo
                 logo += '  ' + UNIT + '\n'
-                logo_error = CUR_HUB.unit.logo_error
+                logo_error = CUR_UNIT.unit.logo_error
                 logo_error+='  ' + UNIT + '\n'
 
                 LaneCheck = True
                 for LANE in self.AFC.units[UNIT].keys():
-                    if not CUR_HUB.unit.system_Test(UNIT,LANE, self.delay, self.assignTcmd):
+                    if not CUR_UNIT.unit.system_Test(UNIT,LANE, self.delay, self.assignTcmd):
                         LaneCheck = False
 
                 if LaneCheck:

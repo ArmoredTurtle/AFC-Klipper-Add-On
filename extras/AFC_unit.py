@@ -8,7 +8,12 @@ class AFCunit:
         self.can_cut = False
         self.screen_mac = config.get('screen_mac', None)
         self.lanes=[]
-         
+
+        try:
+            self.unit = self.printer.load_object(config, "AFC_{}".format(self.type.replace("_", "")))
+        except:
+            raise error("{} not supported, please remove or fix correct type for AFC_hub in your configuration".format(self.type))
+ 
         self.led_name =config.get('led_name','')
         self.led_fault =config.get('led_fault','1,0,0,0')
         self.led_ready = config.get('led_ready','1,1,1,1')
@@ -17,6 +22,7 @@ class AFCunit:
         self.led_prep_loaded = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
+
 
 
     def handle_connect(self):

@@ -8,11 +8,6 @@ class afc_hub:
         self.name = config.get_name().split()[-1]
         self.type = config.get('type', None)
 
-        try:
-            self.unit = self.printer.load_object(config, "AFC_{}".format(self.type.replace("_", "")))
-        except:
-            raise error("{} not supported, please remove or fix correct type for AFC_hub in your configuration".format(self.type))
-
         # HUB Cut variables
         # Next two variables are used in AFC
         self.cut = config.getboolean("cut", False)
