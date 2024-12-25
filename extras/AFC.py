@@ -1014,10 +1014,7 @@ class afc:
         str = {}
         numoflanes = 0
         for UNIT in self.units.keys():
-            try:
-                screen_mac = self.printer.lookup_object('AFC_screen ' + UNIT).mac
-            except error:
-                screen_mac = 'None'
+            CUR_UNIT = self.printer.lookup_object('AFC_unit ' + UNIT)
             str[UNIT]={}
             for NAME in self.units[UNIT].keys():
                 CUR_LANE=self.stepper[NAME]
@@ -1039,10 +1036,10 @@ class afc:
                 str[UNIT][NAME]['status'] = CUR_LANE.status if CUR_LANE.status is not None else ''
                 numoflanes +=1
             str[UNIT]['system']={}
-            str[UNIT]['system']['type'] = self.printer.lookup_object('AFC_hub '+ UNIT).type
-            str[UNIT]['system']['hub_loaded']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).state
-            str[UNIT]['system']['can_cut']  = True == self.printer.lookup_object('AFC_hub '+ UNIT).cut
-            str[UNIT]['system']['screen'] = screen_mac
+            str[UNIT]['system']['type'] = CUR_UNIT.type
+            str[UNIT]['system']['hub_loaded']  = True == CUR_UNIT.hub_loaded
+            str[UNIT]['system']['can_cut']  = True == CUR_UNIT.can_cut
+            str[UNIT]['system']['screen'] = CUR_UNIT.screen_mac
 
         str["system"]={}
         str["system"]['current_load']= self.current

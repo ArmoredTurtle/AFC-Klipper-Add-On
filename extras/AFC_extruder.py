@@ -112,5 +112,15 @@ class AFCextruder:
 
        else: return None
 
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['tool_stn'] = self.tool_stn
+        self.response['tool_stn_unload'] = self.tool_stn_unload
+        self.response['tool_sensor_after_extruder'] = self.tool_sensor_after_extruder
+        self.response['tool_unload_speed'] = self.tool_unload_speed 
+        self.response['tool_load_speed'] = self.tool_load_speed
+        self.response['buffer'] = self.buffer_name
+        return self.response
+    
 def load_config_prefix(config):
     return AFCextruder(config)

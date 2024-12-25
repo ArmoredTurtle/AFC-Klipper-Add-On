@@ -73,6 +73,9 @@ class afcPrep:
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
+                UNIT=self.printer.lookup_object('AFC_unit '+LANE.unit)
+                if LANE.name not in UNIT.lanes: UNIT.lanes.append(LANE.name)
+
                 self.AFC.stepper[LANE.name]=LANE
                 if LANE.buffer == None:
                     LANE.buffer = list(self.buffer.keys())[0]
