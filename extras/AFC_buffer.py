@@ -307,5 +307,11 @@ class AFCtrigger:
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['state'] = self.last_state
+        
+        return self.response
+
 def load_config_prefix(config):
     return AFCtrigger(config)

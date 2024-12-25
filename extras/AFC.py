@@ -484,7 +484,7 @@ class afc:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.stepper[lane]
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.hub)
         if CUR_LANE.name != self.current:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
@@ -572,7 +572,7 @@ class afc:
 
         # Lookup extruder and hub objects associated with the lane.
         CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.hub)
         # Prepare extruder and heater.
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
@@ -1037,8 +1037,8 @@ class afc:
                 numoflanes +=1
             str[UNIT]['system']={}
             str[UNIT]['system']['type'] = CUR_UNIT.type
-            str[UNIT]['system']['hub_loaded']  = True == CUR_UNIT.hub_loaded
-            str[UNIT]['system']['can_cut']  = True == CUR_UNIT.can_cut
+            #str[UNIT]['system']['hub_loaded']  = True == CUR_UNIT.hub_loaded
+            #str[UNIT]['system']['can_cut']  = True == CUR_UNIT.can_cut
             str[UNIT]['system']['screen'] = CUR_UNIT.screen_mac
 
         str["system"]={}

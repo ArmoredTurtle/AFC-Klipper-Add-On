@@ -4,13 +4,13 @@ class AFCunit:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.name = config.get_name().split()[-1]
         self.type = config.get('type', None)
-        self.hub_loaded  = False 
-        self.can_cut = False
         self.screen_mac = config.get('screen_mac', None)
         self.lanes=[]
 
         try:
-            self.unit = self.printer.load_object(config, "AFC_{}".format(self.type.replace("_", "")))
+            UnitType = self.type
+            if self.type == 'Night_Owl': UnitType='Box_Turtle'
+            self.unit = self.printer.load_object(config, "AFC_{}".format(UnitType.replace("_", "")))
         except:
             raise error("{} not supported, please remove or fix correct type for AFC_hub in your configuration".format(self.type))
  
@@ -22,8 +22,6 @@ class AFCunit:
         self.led_prep_loaded = config.get('led_loading','1,1,0,0')
         self.led_unloading = config.get('led_unloading','1,1,.5,0')
         self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
-
-
 
     def handle_connect(self):
         """2
@@ -39,7 +37,6 @@ class AFCunit:
         self.response = {}
         self.response['name'] = self.name
         self.response['type'] = self.type
-        self.response['hub_loaded'] = self.hub_loaded
         self.response['screen'] = self.screen_mac
         self.response['lanes'] = self.lanes
         

@@ -78,5 +78,19 @@ class afc_hub:
         # Retract lane by `hub_cut_clear`.
         CUR_LANE.move( -self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
 
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['state'] = self.state
+        self.response['cut'] = self.cut
+        self.response['cut_cmd'] = self.cut_cmd
+        self.response['cut_dist'] = self.cut_dist
+        self.response['cut_clear'] = self.cut_clear
+        self.response['cut_min_length'] = self.cut_min_length
+        self.response['cut_servo_pass_angle'] = self.cut_servo_pass_angle
+        self.response['cut_servo_clip_angle'] = self.cut_servo_clip_angle
+        self.response['cut_servo_prep_angle'] = self.cut_servo_prep_angle
+        
+        return self.response
+
 def load_config_prefix(config):
     return afc_hub(config)
