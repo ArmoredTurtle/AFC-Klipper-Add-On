@@ -75,7 +75,6 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
-        self.hub= ''
 
         self.led_fault =config.get('led_fault','1,0,0,0')
         self.led_ready = config.get('led_ready','1,1,1,1')

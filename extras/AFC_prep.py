@@ -67,6 +67,10 @@ class afcPrep:
             if 'AFC_buffer' in PO:
                 tmpBUFFER = self.printer.lookup_object(PO)
                 self.buffer[tmpBUFFER.name] = tmpBUFFER
+        hub = []
+        for PO in self.printer.objects:
+            if 'AFC_hub' in PO:
+                hub.append(PO.split()[-1])
 
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
@@ -74,6 +78,9 @@ class afcPrep:
                 UNIT=self.printer.lookup_object('AFC_unit '+ LANE.unit)
                 if LANE.name not in UNIT.lanes: UNIT.lanes.append(LANE.name)    #add lanes to units list
                 self.AFC.stepper[LANE.name]=LANE                                #add list of all lanes
+
+                if LANE.hub == None:
+                    LANE.hub = hub[0]
 
                 if LANE.buffer == None:
                     LANE.buffer = list(self.buffer.keys())[0]

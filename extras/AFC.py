@@ -1021,6 +1021,7 @@ class afc:
                     CUR_LANE=self.stepper[NAME]
                     str[CUR_UNIT.name][CUR_LANE.name]={}
                     str[CUR_UNIT.name][CUR_LANE.name]['index'] = CUR_LANE.index
+                    str[CUR_UNIT.name][CUR_LANE.name]['hub'] = CUR_LANE.hub
                     str[CUR_UNIT.name][CUR_LANE.name]['map'] = CUR_LANE.map
                     str[CUR_UNIT.name][CUR_LANE.name]['load'] = bool(CUR_LANE.load_state)
                     str[CUR_UNIT.name][CUR_LANE.name]["prep"] =bool(CUR_LANE.prep_state)
@@ -1034,7 +1035,7 @@ class afc:
                     filiment_stat=self.get_filament_status(CUR_LANE).split(':')
                     str[CUR_UNIT.name][CUR_LANE.name]['filament_status']=filiment_stat[0]
                     str[CUR_UNIT.name][CUR_LANE.name]['filament_status_led']=filiment_stat[1]
-                    str[CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status if CUR_LANE.status is not None else ''
+                    str[CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status 
                     numoflanes +=1
                 str[CUR_UNIT.name]['system']={}
                 str[CUR_UNIT.name]['system']['type'] = CUR_UNIT.type
