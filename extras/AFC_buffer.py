@@ -307,12 +307,6 @@ class AFCtrigger:
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
-    def get_status(self, eventtime=None):
-        self.response = {}
-        self.response['state'] = self.last_state
-        
-        return self.response
-    
     cmd_SET_BUFFER_VELOCITY_help = "Set buffer velocity realtime for forward assist"
     def cmd_SET_BUFFER_VELOCITY(self, gcmd):
         """
@@ -332,5 +326,11 @@ class AFCtrigger:
         self.velocity = gcmd.get_float('VELOCITY', 0.0)
         self.gcode.respond_info("VELOCITY for {} was updated from {} to {}".format(self.name, old_velocity, self.velocity))
 
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['state'] = self.last_state
+        
+        return self.response
+   
 def load_config_prefix(config):
     return AFCtrigger(config)
