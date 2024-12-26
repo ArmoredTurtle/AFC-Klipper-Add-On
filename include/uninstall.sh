@@ -5,8 +5,9 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-exit_afc_install() {
-  echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
+uninstall_afc() {
+  unlink_extensions
+  manage_include "${printer_config_dir}/printer.cfg" "add"
+  backup_afc_config
   restart_klipper
-  exit 0
 }

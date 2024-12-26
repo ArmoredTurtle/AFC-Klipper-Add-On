@@ -11,7 +11,7 @@ check_klipper() {
   # If the service is found, it prints a success message.
   # If the service is not found, it prints an error message and exits with status 1.
 
-  if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "$klipper_service}.service"; then
+  if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "${KLIPPER_SERVICE}.service"; then
     print_msg SUCCESS "  Klipper service found!"
   else
     print_msg ERROR "  Klipper service not found. Install Klipper first."
@@ -36,13 +36,13 @@ check_existing_dirs() {
   # If the Moonraker directory is not found, it prints an error message and exits with status 1.
   # The user can override the default directories using '-k <klipper_dir>' and '-m <moonraker_dir>' options.
 
-  if [ ! -d "${klipper_path}" ]; then
+  if [ ! -d "${KLIPPER_PATH}" ]; then
     print_msg ERROR "  Klipper directory not found. Use '-k <klipper_dir>' to override."
     exit 1
   fi
 
   if [ ! -d "${MOONRAKER_PATH}" ]; then
-    print_msg ERROR "  Moonraker configuration not found. Use '-m <moonraker_dir>' to override."
+    print_msg ERROR "  Moonraker directory not found. Use '-m <moonraker_dir>' to override."
     exit 1
   fi
 }
@@ -54,10 +54,12 @@ check_existing_install() {
   # If an existing installation is found, it sets the PRIOR_INSTALLATION variable to True and breaks the loop.
 
   local extension
-  for extension in "${afc_path}"/extras/*.py; do
+  print_msg INFO "  Checking for prior AFC Klipper installation..."
+  for extension in "${AFC_PATH}"/extras/*.py; do
     extension=$(basename "${extension}")
-    if [ -L "${klipper_path}/klippy/extras/${extension}" ]; then
-      prior_installation=True
+    if [ -L "${KLIPPER_PATH}/klippy/extras/${extension}" ]; then
+      print_msg INFO "  Existing installation found..."
+      PRIOR_INSTALLATION=True
       break
     fi
   done
