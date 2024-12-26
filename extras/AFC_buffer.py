@@ -312,6 +312,25 @@ class AFCtrigger:
         self.response['state'] = self.last_state
         
         return self.response
+    
+    cmd_SET_BUFFER_VELOCITY_help = "Set buffer velocity realtime for forward assist"
+    def cmd_SET_BUFFER_VELOCITY(self, gcmd):
+        """
+        Allows users to tweak buffer velocity setting while printing. This setting is not
+        saved in configuration. Please update your configuration file once you find a velocity that
+        works for your setup.
+
+        Usage: SET_BUFFER_VELOCITY BUFFER=<buffer_name> VELOCITY=<value>
+        Example: SET_BUFFER_VELOCITY BUFFER=TN2 VELOCITY=100
+
+        Behavior:
+            - Updates the value that the espooler use for forward assist during printing.
+            - Setting value to zero disables forward assist during printing.
+            - Velocity is not saved to configuration file, needs to be manually updated.
+        """
+        old_velocity = self.velocity
+        self.velocity = gcmd.get_float('VELOCITY', 0.0)
+        self.gcode.respond_info("VELOCITY for {} was updated from {} to {}".format(self.name, old_velocity, self.velocity))
 
 def load_config_prefix(config):
     return AFCtrigger(config)
