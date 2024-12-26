@@ -127,7 +127,7 @@ restart_klipper() {
 
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
-    echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
+    echo "AFC_INSTALL_VERSION=$current_install_version" > "${afc_config_dir}/.afc-version"
   restart_klipper
   fi
   exit 0
