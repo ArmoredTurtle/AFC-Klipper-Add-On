@@ -7,9 +7,6 @@
 
 append_buffer_config() {
   local buffer_type="$1"
-  local config_path="${afc_config_dir}/AFC_Hardware.cfg"
-  local afc_config_path="${afc_config_dir}/AFC.cfg"
-  local hardware_config_path="${afc_config_dir}/AFC_Hardware.cfg"
   local buffer_config=""
   local buffer_name=""
   tn_advance_pin=$2
@@ -55,15 +52,15 @@ EOF
   esac
 
   # Check if the buffer configuration already exists in the config file
-  if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$config_path"; then
+  if ! grep -qF "$(echo "$buffer_config" | head -n 1)" "$afc_config_dir/AFC_Hardware.cfg"; then
     # Append the buffer configuration to the config file
-    echo -e "\n$buffer_config" >> "$config_path"
+    echo -e "\n$buffer_config" >> "$afc_config_dir/AFC_Hardware.cfg"
   fi
 
   # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
   if [ "$buffer_system" == "TurtleNeckV2" ]; then
-    if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$hardware_config_path"; then
-      awk '/\[include mcu\/.*\]/ {print; print "[include mcu/TurtleNeckv2.cfg]"; next}1' "$hardware_config_path" > temp && mv temp "$hardware_config_path"
+    if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$afc_config_dir/AFC_Hardware.cfg"; then
+      echo -e "\n[include mcu/TurtleNeckv2.cfg]" >> "$afc_config_dir/AFC_Hardware.cfg"
     fi
   fi
 }

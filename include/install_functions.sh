@@ -7,14 +7,14 @@
 
 check_dirs() {
   # Debugging: Check if the directory exists
-  if [ ! -d "${AFC_PATH}/include/" ]; then
-    echo "Directory ${AFC_PATH}/include/ does not exist."
+  if [ ! -d "${afc_path}/include/" ]; then
+    echo "Directory ${afc_path}/include/ does not exist."
     exit 1
   fi
 
   # Debugging: Check if there are any files in the directory
-  if [ -z "$(ls -A "${AFC_PATH}/include/")" ]; then
-    echo "No files found in ${AFC_PATH}/include/"
+  if [ -z "$(ls -A "${afc_path}/include/")" ]; then
+    echo "No files found in ${afc_path}/include/"
     exit 1
   fi
 }
@@ -26,7 +26,7 @@ link_extensions() {
   #   - AFC_PATH: The path to the AFC Klipper Add-On repository.
   local message
 
-  if [ -d "$klipper_dir}/klippy/extras" ]; then
+  if [ -d "${klipper_dir}/klippy/extras" ]; then
     for extension in "${afc_path}"/extras/*.py; do
       ln -sf "${afc_path}/extras/$(basename "${extension}")" "${klipper_dir}/klippy/extras/$(basename "${extension}")"
     done
@@ -40,9 +40,9 @@ unlink_extensions() {
   # Uses the global variables:
   #   - KLIPPER_PATH: The path to the Klipper installation.
   #   - AFC_PATH: The path to the AFC Klipper Add-On repository.
-  if [ -d "${KLIPPER_PATH}/klippy/extras" ]; then
-    for extension in "${AFC_PATH}"/extras/*.py; do
-      rm -f "${KLIPPER_PATH}/klippy/extras/$(basename "${extension}")"
+  if [ -d "${klipper_dir}/klippy/extras" ]; then
+    for extension in "${afc_path}"/extras/*.py; do
+      rm -f "${klipper_dir}/klippy/extras/$(basename "${extension}")"
     done
   else
     print_msg ERROR "AFC Klipper extensions not uninstalled; Klipper extras directory not found."
