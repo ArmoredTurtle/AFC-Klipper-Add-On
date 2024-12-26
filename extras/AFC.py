@@ -51,17 +51,18 @@ class afc:
 
         #LED SETTINGS
         self.ind_lights = None
-        self.led_name = config.get('led_name')
-        self.led_fault =config.get('led_fault','1,0,0,0')
-        self.led_ready = config.get('led_ready','1,1,1,1')
-        self.led_not_ready = config.get('led_not_ready','1,1,0,0')
-        self.led_loading = config.get('led_loading','1,0,0,0')
-        self.led_prep_loaded = config.get('led_loading','1,1,0,0')
-        self.led_unloading = config.get('led_unloading','1,1,.5,0')
-        self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
-        self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')
-        self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')
-        self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')
+        self.led_name = config.get('led_name')                                      # Not used removed?
+        self.led_fault =config.get('led_fault','1,0,0,0')                           # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_ready = config.get('led_ready','1,1,1,1')                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_not_ready = config.get('led_not_ready','1,1,0,0')                  # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_loading = config.get('led_loading','1,0,0,0')                      # LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_prep_loaded = config.get('led_loading','1,1,0,0')                  # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_unloading = config.get('led_unloading','1,1,.5,0')                 # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')              # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')           # LED color to set when buffer is advancing         (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')             # LED color to set when buffer is trailing          (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')   # LED color to set when buffer is disabled          (R,G,B,W) 0 = off, 1 = full brightness.
+
         
         # TOOL Cutting Settings
         self.tool = ''
