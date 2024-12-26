@@ -75,14 +75,16 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
+        UNIT=self.printer.lookup_object('AFC_unit '+ self.unit)
 
-        self.led_fault =config.get('led_fault','1,0,0,0')
-        self.led_ready = config.get('led_ready','1,1,1,1')
-        self.led_not_ready = config.get('led_not_ready','1,1,0,0')
-        self.led_loading = config.get('led_loading','1,0,0,0')
-        self.led_prep_loaded = config.get('led_loading','1,1,0,0')
-        self.led_unloading = config.get('led_unloading','1,1,.5,0')
-        self.led_tool_loaded = config.get('led_tool_loaded','1,1,0,0')
+        self.led_name =config.get('led_name', UNIT.led_name)
+        self.led_fault =config.get('led_fault', UNIT.led_fault)
+        self.led_ready = config.get('led_ready', UNIT.led_ready)
+        self.led_not_ready = config.get('led_not_ready', UNIT.led_not_ready)
+        self.led_loading = config.get('led_loading', UNIT.led_loading)
+        self.led_prep_loaded = config.get('led_loading', UNIT.led_prep_loaded)
+        self.led_unloading = config.get('led_unloading', UNIT.led_unloading)
+        self.led_tool_loaded = config.get('led_tool_loaded', UNIT.led_tool_loaded)
 
         self.motion_queue = None
         self.next_cmd_time = 0.

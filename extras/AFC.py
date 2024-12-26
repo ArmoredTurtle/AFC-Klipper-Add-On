@@ -51,7 +51,7 @@ class afc:
 
         #LED SETTINGS
         self.ind_lights = None
-        self.led_name = config.get('led_name')                                      # Not used removed?
+        self.led_name = config.get('led_name',None)                                      # Not used removed?
         self.led_fault =config.get('led_fault','1,0,0,0')                           # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_ready = config.get('led_ready','1,1,1,1')                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_not_ready = config.get('led_not_ready','1,1,0,0')                  # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness.
