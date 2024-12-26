@@ -260,7 +260,6 @@ class afcSpool:
         CUR_LANE = self.AFC.stepper[lane]
         CUR_LANE.runout_lane = runout
         self.AFC.save_vars()
-        self.gcode.respond_info("This is a feature WIP. Not functioning yet")
 
 def load_config(config):
     return afcSpool(config)
