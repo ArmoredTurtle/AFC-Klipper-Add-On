@@ -59,19 +59,14 @@ class afcSpool:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.AFC.stepper[lane]
-        for UNIT_SERACH in self.AFC.units.keys():
-            self.gcode.respond_info("looking for "+lane+" in " + UNIT_SERACH)
-            if lane in self.AFC.units[UNIT_SERACH]:
-                self.AFC.tool_cmds[map_cmd]=lane
-                map_switch=CUR_LANE.map
-                CUR_LANE.map=map_cmd
+        self.AFC.tool_cmds[map_cmd]=lane
+        map_switch=CUR_LANE.map
+        CUR_LANE.map=map_cmd
 
-        for UNIT_SERACH in self.AFC.units.keys():
-            if lane_switch in self.AFC.units[UNIT_SERACH]:
-                SW_LANE = self.AFC.stepper[lane_switch]
-                self.AFC.tool_cmds[map_switch]=lane_switch
-                SW_LANE.map = map_switch
-                SW_LANE.map=map_switch
+        SW_LANE = self.AFC.stepper[lane_switch]
+        self.AFC.tool_cmds[map_switch]=lane_switch
+        SW_LANE.map = map_switch
+        SW_LANE.map=map_switch
         self.AFC.save_vars()
 
     cmd_SET_COLOR_help = "change filaments color"
