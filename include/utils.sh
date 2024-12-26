@@ -142,7 +142,7 @@ function auto_update() {
 }
 
 check_old_config_version() {
-  local config_file="${AFC_CONFIG_PATH}/AFC.cfg"
+  local config_file="${afc_config_dir}/AFC.cfg"
 
   # Check if the configuration file exists
   if [[ ! -f "$config_file" ]]; then

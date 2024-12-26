@@ -59,6 +59,13 @@ copy_unit_files() {
 }
 
 install_afc() {
+  # Make sure we aren't in the middle of a print, and stop klipper
+  if query_printer_status; then
+    stop_service "${klipper_service}"
+  else
+    print_msg ERROR "It looks like you are in the middle of print. Please retry installation when not printing. Exiting."
+    exit 1
+  fi
   # Link the python extensions
   link_extensions
   copy_config
@@ -80,6 +87,8 @@ install_afc() {
   update_config_value "${afc_file}" "wipe" "${wipe_macro}"
   if [ "$toolhead_sensor" == "Sensor" ]; then
     update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "${toolhead_sensor_pin}"
+  elif [ "$toolhead_sensor" == "Ramming" ]; then
+    update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "buffer"
   fi
   if [ "$buffer_type" == "TurtleNeck" ]; then
     query_tn_pins "TN"
@@ -90,8 +99,6 @@ install_afc() {
     add_buffer_to_extruder "${afc_config_dir}/AFC_Hardware.cfg" "TN2"
   fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
-
-
 
   # Final step should be displaying any messages and exit cleanly.
   message="""
