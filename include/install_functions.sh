@@ -89,6 +89,7 @@ install_afc() {
     append_buffer_config "TurtleNeckV2"
     add_buffer_to_extruder "${afc_config_dir}/AFC_Hardware.cfg" "TN2"
   fi
+  check_and_append_prep "${afc_config_dir}/AFC.cfg"
 
 
 

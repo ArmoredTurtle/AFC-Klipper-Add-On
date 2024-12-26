@@ -101,3 +101,16 @@ manage_include() {
     fi
   fi
 }
+
+check_and_append_prep() {
+  # Function to check for the presence of a specific section in a configuration file and append it if not present.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  local file_path="$1"
+  local section="[AFC_prep]"
+  local content="enable: True"
+
+  if ! grep -qF "$section" "$file_path"; then
+    echo -e "\n$section\n$content" >> "$file_path"
+  fi
+}

@@ -57,8 +57,8 @@ EOF
     echo -e "\n$buffer_config" >> "$afc_config_dir/AFC_Hardware.cfg"
   fi
 
-  # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_system is TurtleNeckV2 and not already present
-  if [ "$buffer_system" == "TurtleNeckV2" ]; then
+  # Add [include mcu/TurtleNeckv2.cfg] to AFC_Hardware.cfg if buffer_type is TurtleNeckV2 and not already present
+  if [ "$buffer_type" == "TurtleNeckV2" ]; then
     if ! grep -qF "[include mcu/TurtleNeckv2.cfg]" "$afc_config_dir/AFC_Hardware.cfg"; then
       echo -e "\n[include mcu/TurtleNeckv2.cfg]" >> "$afc_config_dir/AFC_Hardware.cfg"
     fi
