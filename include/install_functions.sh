@@ -62,6 +62,7 @@ install_afc() {
   # Link the python extensions
   link_extensions
   copy_config
+  copy_unit_files
   # Add our extensions to the klipper gitignore
   exclude_from_klipper_git
   # Include the AFC configuration files if selected
@@ -89,7 +90,7 @@ install_afc() {
     add_buffer_to_extruder "${afc_config_dir}/AFC_Hardware.cfg" "TN2"
   fi
 
-  copy_unit_files
+
 
   # Final step should be displaying any messages and exit cleanly.
   message="""
