@@ -172,7 +172,7 @@ set_install_version_if_missing() {
 
   # Check if 'AFC_INSTALL_VERSION' is missing and add it if necessary
   if ! grep -q 'AFC_INSTALL_VERSION' "$version_file"; then
-    if ! echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "$version_file"; then
+    if ! echo "AFC_INSTALL_VERSION=$current_install_version" > "$version_file"; then
       echo "Error: Failed to write to version file '$version_file'."
       return 1
     fi

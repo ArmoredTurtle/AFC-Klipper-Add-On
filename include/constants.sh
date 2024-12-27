@@ -44,3 +44,16 @@ installation_type="BoxTurtle"
 toolhead_sensor="Sensor"
 toolhead_sensor_pin="Unknown"
 buffer_type="TurtleNeck"
+
+
+# Moonraker Config
+MOONRAKER_UPDATE_CONFIG="""
+[update_manager afc-software]
+type: git_repo
+path: ~/AFC-Klipper-Add-On
+origin: $gitrepo
+managed_services: $klipper_service
+system_dependencies: $afc_path/afc_system_dependencies.json
+info_tags:
+    desc=AFC Klipper Add On
+"""

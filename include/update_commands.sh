@@ -36,6 +36,23 @@ update_config_value() {
   mv "$temp_file" "$file_path"
 }
 
+replace_varfile_path() {
+  # Function to replace the VarFile path in a configuration file.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file.
+  #   $2: old_path - The old VarFile path to be replaced.
+  #   $3: new_path - The new VarFile path to replace with.
+  local file_path="$1"
+  local old_path="VarFile: ../printer_data/config/AFC/AFC.var"
+  local new_path
+
+  new_path="VarFile: ${afc_config_dir}/AFC.var"
+
+  if grep -qF "$old_path" "$file_path"; then
+    sed -i "s|$old_path|$new_path|" "$file_path"
+  fi
+}
+
 update_switch_pin() {
   # Function to update the switch pin value in the filament switch sensor section of a configuration file.
   # Arguments:

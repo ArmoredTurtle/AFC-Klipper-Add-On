@@ -99,6 +99,7 @@ install_afc() {
     add_buffer_to_extruder "${afc_config_dir}/AFC_Hardware.cfg" "TN2"
   fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
+  replace_varfile_path "${afc_config_dir}/AFC.cfg"
 
   # Final step should be displaying any messages and exit cleanly.
   message="""
