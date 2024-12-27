@@ -1,11 +1,4 @@
-# Armored Turtle Automated Filament Changer
-#
-# Copyright (C) 2024 Armored Turtle
-#
-# This file may be distributed under the terms of the GNU GPLv3 license.
-
-
-class afcBoxTurtle:
+class afcNightOwl:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.AFC = self.printer.lookup_object('AFC')
@@ -33,27 +26,24 @@ class afcBoxTurtle:
         self.response['lanes'] = self.lanes
         
         return self.response
-
+    
     def handle_connect(self):
         """
         Handle the connection event.
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
-        secondLeg = firstLeg + '<span class=warning--text>|</span>'
-        self.logo ='<span class=success--text>R  _____     ____\n'
-        self.logo+='E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
-        self.logo+='A |       |/ ___/ \n'
-        self.logo+='D |_________/     \n'
-        self.logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
+        self.AFC = self.printer.lookup_object('AFC')
 
-        self.logo_error ='<span class=error--text>E  _ _   _ _\n'
-        self.logo_error+='R |_|_|_|_|_|\n'
-        self.logo_error+='R |         \____\n'
-        self.logo_error+='O |              \ \n'
-        self.logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
-        self.logo_error+='! \_________/ |___|</span>\n'
+        self.logo = '<span class=success--text>Night Owl Ready</span>'
+        self.logo ='<span class=success--text>R  ,     ,\n'
+        self.logo+='E  )\___/(\n'
+        self.logo+='A {(@)v(@)}\n'
+        self.logo+='D  {|~~~|}\n'
+        self.logo+='Y  {/^^^\}\n'
+        self.logo+='!   `m-m`</span>\n'
+
+        self.logo_error = '<span class=error--text>Night Owl Not Ready</span>\n'
 
     def system_Test(self, UNIT, LANE, delay, assignTcmd):
         msg = ''
@@ -125,7 +115,5 @@ class afcBoxTurtle:
 
         return succeeded
 
-    
-
-def load_config_prefix(config):
-    return afcBoxTurtle(config)
+def load_config(config):
+    return afcNightOwl(config)

@@ -120,6 +120,7 @@ class AFCextruder:
         self.response['tool_unload_speed'] = self.tool_unload_speed 
         self.response['tool_load_speed'] = self.tool_load_speed
         self.response['buffer'] = self.buffer_name
+        self.response['lane_loaded'] = self.lane_loaded
         return self.response
     
 def load_config_prefix(config):
