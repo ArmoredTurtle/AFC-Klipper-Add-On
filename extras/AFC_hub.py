@@ -4,9 +4,7 @@ class afc_hub:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-
         self.name = config.get_name().split()[-1]
-        self.type = config.get('type', None)
 
         # HUB Cut variables
         # Next two variables are used in AFC

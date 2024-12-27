@@ -75,7 +75,7 @@ class afcPrep:
         for PO in self.printer.objects:
             if 'AFC_stepper' in PO and 'tmc' not in PO:
                 LANE=self.printer.lookup_object(PO)
-                UNIT=self.printer.lookup_object('AFC_unit '+ LANE.unit)
+                UNIT=self.printer.lookup_object(self.AFC.units[LANE.unit] + ' ' + LANE.unit)
                 if LANE.name not in UNIT.lanes: UNIT.lanes.append(LANE.name)    #add lanes to units list
                 self.AFC.stepper[LANE.name]=LANE                                #add list of all lanes
 
@@ -111,35 +111,33 @@ class afcPrep:
             self.AFC.gcode.respond_info('Prep Checks Disabled')
             return
         else:
-            for UNIT in self.printer.objects:
-                if 'AFC_unit' in UNIT:
-                    logo=''
-                    logo_error = ''
-                    try: CUR_UNIT = self.printer.lookup_object(UNIT)
-                    except:
-                        error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
-                        self.AFC.ERROR.AFC_error(error_string, False)
-                        return
-                    self.AFC.gcode.respond_info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
+            for UNIT in self.AFC.units.keys():
+                logo=''
+                logo_error = ''
+                try: CUR_UNIT = self.printer.lookup_object(self.AFC.units[UNIT] + ' ' + UNIT)
+                except:
+                    error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
+                    self.AFC.ERROR.AFC_error(error_string, False)
+                    return
+                self.AFC.gcode.respond_info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
 
-                    logo = CUR_UNIT.unit.logo
-                    logo += '  ' + UNIT + '\n'
-                    logo_error = CUR_UNIT.unit.logo_error
-                    logo_error+='  ' + UNIT + '\n'
-
-                    LaneCheck = True
-                    for LANE in CUR_UNIT.lanes:
-                        if not CUR_UNIT.unit.system_Test(UNIT,LANE, self.delay, self.assignTcmd):
-                            LaneCheck = False
-                    if LaneCheck:
-                        self.AFC.gcode.respond_raw(logo)
-                    else:
-                        self.AFC.gcode.respond_raw(logo_error)
-            try:
-                bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-                if bypass.filament_present == True:
-                    self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
-            except: bypass = None
+                logo = CUR_UNIT.logo
+                logo += '  ' + UNIT + '\n'
+                logo_error = CUR_UNIT.logo_error
+                logo_error+='  ' + UNIT + '\n'
+                LaneCheck = True
+                for LANE in CUR_UNIT.lanes:
+                    if not CUR_UNIT.system_Test(UNIT,LANE, self.delay, self.assignTcmd):
+                        LaneCheck = False
+                if LaneCheck:
+                    self.AFC.gcode.respond_raw(logo)
+                else:
+                    self.AFC.gcode.respond_raw(logo_error)
+        try:
+            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+            if bypass.filament_present == True:
+              self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
+        except: bypass = None
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.AFC.current is None:

@@ -75,17 +75,7 @@ class AFCExtruderStepper:
         else:
             self.unit = 'Unknown'
             self.index = 0
-        UNIT=self.printer.lookup_object('AFC_unit '+ self.unit)
-
-        self.led_name =config.get('led_name', UNIT.led_name)
-        self.led_fault =config.get('led_fault', UNIT.led_fault)
-        self.led_ready = config.get('led_ready', UNIT.led_ready)
-        self.led_not_ready = config.get('led_not_ready', UNIT.led_not_ready)
-        self.led_loading = config.get('led_loading', UNIT.led_loading)
-        self.led_prep_loaded = config.get('led_loading', UNIT.led_prep_loaded)
-        self.led_unloading = config.get('led_unloading', UNIT.led_unloading)
-        self.led_tool_loaded = config.get('led_tool_loaded', UNIT.led_tool_loaded)
-
+        
         self.motion_queue = None
         self.next_cmd_time = 0.
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -147,6 +137,18 @@ class AFCExtruderStepper:
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
 
+        UNIT=self.printer.lookup_object(self.AFC.units[self.unit] + ' ' + self.unit)
+
+        self.led_name =config.get('led_name',UNIT.led_name)
+        self.led_fault =config.get('led_fault',UNIT.led_fault)
+        self.led_ready = config.get('led_ready',UNIT.led_ready)
+        self.led_not_ready = config.get('led_not_ready',UNIT.led_not_ready)
+        self.led_loading = config.get('led_loading',UNIT.led_loading)
+        self.led_prep_loaded = config.get('led_loading',UNIT.led_prep_loaded)
+        self.led_unloading = config.get('led_unloading',UNIT.led_unloading)
+        self.led_tool_loaded = config.get('led_tool_loaded',UNIT.led_tool_loaded)
+
+    
     def _get_tmc_values(self, config):
         """
         Searches for TMC driver that corresponds to stepper to get run current that is specified in config
