@@ -1063,35 +1063,34 @@ class afc:
         str["system"]['num_extruders'] = len(self.extruders)
         str["system"]["extruders"]={}
 
-        for EXTRUDE in self.printer.objects:
-            if 'AFC_extruder' in EXTRUDE:
-                CUR_EXTRUDER = self.printer.lookup_object(EXTRUDE)
-                extruderName=EXTRUDE.split()[-1]
-                str["system"]["extruders"][extruderName]={}
-                str["system"]["extruders"][extruderName]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
-                if CUR_EXTRUDER.tool_start == "buffer":
-                    if CUR_EXTRUDER.lane_loaded == '':
-                        str ["system"]["extruders"][extruderName]['tool_start_sensor'] = False
-                    else:
-                        str["system"]["extruders"][extruderName]['tool_start_sensor'] = True
+        for EXTRUDE in self.extruders.keys():
+            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
+            extruderName = CUR_EXTRUDER.name
+            str["system"]["extruders"][extruderName]={}
+            str["system"]["extruders"][extruderName]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
+            if CUR_EXTRUDER.tool_start == "buffer":
+                if CUR_EXTRUDER.lane_loaded == '':
+                    str ["system"]["extruders"][extruderName]['tool_start_sensor'] = False
                 else:
-                    str["system"]["extruders"][extruderName]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
-                if CUR_EXTRUDER.tool_end is not None:
-                    str["system"]["extruders"][extruderName]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
+                    str["system"]["extruders"][extruderName]['tool_start_sensor'] = True
+            else:
+                str["system"]["extruders"][extruderName]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+            if CUR_EXTRUDER.tool_end is not None:
+                str["system"]["extruders"][extruderName]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
+            else:
+                str["system"]["extruders"][extruderName]['tool_end_sensor']   = None
+            if self.current != None:
+                CUR_LANE=self.stepper[self.current]
+                if CUR_LANE.extruder_name == CUR_EXTRUDER.name:
+                    CUR_EXTRUDER.buffer_name = CUR_LANE.buffer
+                    str["system"]["extruders"][extruderName]['buffer']   = CUR_EXTRUDER.buffer_name
+                    str["system"]["extruders"][extruderName]['buffer_status']   = CUR_EXTRUDER.buffer_status()
                 else:
-                    str["system"]["extruders"][extruderName]['tool_end_sensor']   = None
-                if self.current != None:
-                    CUR_LANE=self.stepper[self.current]
-                    if CUR_LANE.extruder == EXTRUDE:
-                        CUR_EXTRUDER.buffer_name = CUR_LANE.buffer
-                        str["system"]["extruders"][extruderName]['buffer']   = CUR_EXTRUDER.buffer_name
-                        str["system"]["extruders"][extruderName]['buffer_status']   = CUR_EXTRUDER.buffer_status()
-                    else:
-                        str["system"]["extruders"][extruderName]['buffer']   = 'Not In Use'
-                        str["system"]["extruders"][extruderName]['buffer_status']   = 'NONE'
-                else:
-                    str["system"]["extruders"][extruderName]['buffer']   = 'Not In Use '
-                    str["system"]["extruders"][extruderName]['buffer_status']   = ' NONE'
+                    str["system"]["extruders"][extruderName]['buffer']   = 'Not In Use'
+                    str["system"]["extruders"][extruderName]['buffer_status']   = 'NONE'
+            else:
+                str["system"]["extruders"][extruderName]['buffer']   = 'Not In Use '
+                str["system"]["extruders"][extruderName]['buffer_status']   = ' NONE'
         return str
 
     def is_homed(self):

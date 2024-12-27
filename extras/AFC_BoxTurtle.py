@@ -100,6 +100,7 @@ class afcBoxTurtle:
                 if CUR_LANE.tool_loaded:
                     if CUR_LANE.extruder_obj.tool_start_state == True or CUR_LANE.extruder_obj.tool_start == "buffer":
                         if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
+                            self.AFC.current = CUR_LANE.name
                             CUR_LANE.sync_to_extruder()
                             msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_LANE.extruder_obj.tool_start == "buffer":
