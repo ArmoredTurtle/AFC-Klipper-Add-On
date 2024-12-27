@@ -47,6 +47,7 @@ class afcBoxTurtle:
         self.logo+='A |       |/ ___/ \n'
         self.logo+='D |_________/     \n'
         self.logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
+        self.logo+= '  ' + self.name + '\n'
 
         self.logo_error ='<span class=error--text>E  _ _   _ _\n'
         self.logo_error+='R |_|_|_|_|_|\n'
@@ -54,6 +55,7 @@ class afcBoxTurtle:
         self.logo_error+='O |              \ \n'
         self.logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
         self.logo_error+='! \_________/ |___|</span>\n'
+        self.logo_error+= '  ' + self.name + '\n'
 
     def system_Test(self, UNIT, LANE, delay, assignTcmd):
         msg = ''
