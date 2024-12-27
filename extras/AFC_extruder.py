@@ -26,7 +26,7 @@ class AFCextruder:
       self.tool_start = config.get('pin_tool_start', None)
       self.tool_end = config.get('pin_tool_end', None)
 
-      self.lane_loaded = ''
+      self.lane_loaded = None
 
       # RAMMING
       # Use buffer sensors for loading and unloading filament

@@ -1079,7 +1079,7 @@ class afc:
                 str["system"]["extruders"][extruderName]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
             else:
                 str["system"]["extruders"][extruderName]['tool_end_sensor']   = None
-            if self.current != None:
+            if self.current is not None:
                 CUR_LANE=self.stepper[self.current]
                 if CUR_LANE.extruder_name == CUR_EXTRUDER.name:
                     CUR_EXTRUDER.buffer_name = CUR_LANE.buffer

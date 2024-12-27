@@ -59,13 +59,16 @@ class afcPrep:
         ## load Toolhead variables
         if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
             extruders=json.load(open(self.AFC.VarFile + '.tool'))
+        else:
+            extruders={}
 
         self.AFC.tool_cmds={}
         for PO in self.printer.objects:
             if 'AFC_extruder' in PO:
                 extruder=self.printer.lookup_object(PO)
                 self.AFC.extruders[extruder.name]=extruder
-                if 'lane_loaded' in extruders[extruder.name]: extruder.lane_loaded = extruders[extruder.name]['lane_loaded']
+                if extruder.name in extruders:
+                    if 'lane_loaded' in extruders[extruder.name]: extruder.lane_loaded = extruders[extruder.name]['lane_loaded']
                 self.AFC.current = extruder.lane_loaded
         self.buffer = {}
         for PO in self.printer.objects:
