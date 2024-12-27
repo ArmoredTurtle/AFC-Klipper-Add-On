@@ -860,7 +860,7 @@ class afc:
 
         # Clear toolhead's loaded state for easier error handling later.
         CUR_LANE.tool_loaded = False
-        CUR_EXTRUDER.lane_loaded = ''
+        CUR_EXTRUDER.lane_loaded = None
         CUR_LANE.status = None
         self.current = None
 
