@@ -27,6 +27,12 @@ class afcBoxTurtle:
         self.led_unloading = config.get('led_unloading',self.AFC.led_unloading)
         self.led_tool_loaded = config.get('led_tool_loaded',self.AFC.led_tool_loaded)
 
+        self.long_moves_speed = config.getfloat("long_moves_speed", self.AFC.long_moves_speed)            # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel = config.getfloat("long_moves_accel", self.AFC.long_moves_accel)            # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed = config.getfloat("short_moves_speed", self.AFC.short_moves_speed)           # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel = config.getfloat("short_moves_accel", self.AFC.short_moves_accel)          # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis = config.getfloat("short_move_dis", self.AFC.short_move_dis)                 # Move distance in mm for failsafe moves.
+
     def get_status(self, eventtime=None):
         self.response = {}
         self.response['name'] = self.name
@@ -68,6 +74,8 @@ class afcBoxTurtle:
             self.buffer = self.AFC.buffer
         self.hub_obj = self.AFC.hubs[self.hub]
         self.buffer_obj = self.AFC.buffers[self.buffer]
+
+
 
     def system_Test(self, LANE, delay, assignTcmd):
         msg = ''

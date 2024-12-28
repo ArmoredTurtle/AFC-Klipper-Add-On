@@ -57,12 +57,6 @@ class AFCExtruderStepper:
         #stored status variables
         self.name = config.get_name().split()[-1]
         self.extruder_name = config.get('extruder')
-
-        try:
-            self.extruder_obj = self.printer.lookup_object('AFC_extruder ' + self.extruder_name)
-        except:
-            error_string = 'Error: No config found for extruder: ' + self.extruder_name + ' in [AFC_stepper ' + self.name + ']. Please make sure [AFC_extruder ' + self.extruder_name + '] config exists in AFC_Hardware.cfg'
-            self.AFC.ERROR.AFC_error(error_string, False)
         
         self.map = config.get('cmd','NONE')
         self.tool_loaded = False
@@ -92,6 +86,13 @@ class AFCExtruderStepper:
         self.led_prep_loaded = config.get('led_loading',self.unit_obj.led_prep_loaded)
         self.led_unloading = config.get('led_unloading',self.unit_obj.led_unloading)
         self.led_tool_loaded = config.get('led_tool_loaded',self.unit_obj.led_tool_loaded)
+
+        self.long_moves_speed = config.getfloat("long_moves_speed", self.unit_obj.long_moves_speed)            # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel = config.getfloat("long_moves_accel", self.unit_obj.long_moves_accel)            # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed = config.getfloat("short_moves_speed", self.unit_obj.short_moves_speed)           # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel = config.getfloat("short_moves_accel", self.unit_obj.short_moves_accel)          # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis = config.getfloat("short_move_dis", self.unit_obj.short_move_dis)                 # Move distance in mm for failsafe moves.
+
         self.hub = config.get('hub',None)
         self.buffer = config.get('buffer',None)
         
@@ -165,6 +166,12 @@ class AFCExtruderStepper:
         self.AFC.lanes[self.name] = self
 
     def _handle_ready(self):
+        try:
+            self.extruder_obj = self.printer.lookup_object('AFC_extruder ' + self.extruder_name)
+        except:
+            error_string = 'Error: No config found for extruder: ' + self.extruder_name + ' in [AFC_stepper ' + self.name + ']. Please make sure [AFC_extruder ' + self.extruder_name + '] config exists in AFC_Hardware.cfg'
+            self.AFC.ERROR.AFC_error(error_string, False)
+
         if self.hub is None:
             self.hub_obj = self.AFC.hubs[self.unit_obj.hub]
             self.hub = self.hub_obj.name
@@ -175,6 +182,7 @@ class AFCExtruderStepper:
             self.buffer = self.buffer_obj.name
         else: 
             self.buffer_obj = self.AFC.buffers[self.buffer]
+
 
     def _get_tmc_values(self, config):
         """

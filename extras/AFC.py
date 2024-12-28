@@ -32,7 +32,7 @@ class afc:
         self.hubs = {}
         self.buffers = {}
         self.tool_cmds={}
-        self.afc_monitoring = False
+        self.monitoring = False
 
         self.unit_order_list = config.get('unit_order_list','')
 
@@ -197,7 +197,7 @@ class afc:
 
             for LANE in self.units[UNIT].keys():
                 lane_msg = ''
-                CUR_LANE = self.stepper[LANE]
+                CUR_LANE = self.lanes[LANE]
                 CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
                 CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                 if self.current != None:
@@ -257,7 +257,7 @@ class afc:
 
         # If hub is not passed in try and get hub if a lane is currently loaded
         if hub is None and self.current is not None:
-            CUR_LANE = self.stepper[self.current]
+            CUR_LANE = self.lanes[self.current]
             hub     = CUR_LANE.unit
         elif hub is None and self.current is None:
             self.gcode.respond_info("A lane is not loaded please specify hub to adjust bowden length")
@@ -305,10 +305,10 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         CUR_LANE.set_load_current() # Making current is set correctly when doing lane moves
         CUR_LANE.do_enable(True)
         CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
@@ -390,10 +390,10 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         self.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
         CUR_HUB.hub_cut(CUR_LANE)
         self.gcode.respond_info('Hub cut Done!')
@@ -423,10 +423,10 @@ class afc:
             self.ERROR.AFC_error('Must select LANE', False)
             return
         self.gcode.respond_info('TEST ROUTINE')
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         self.gcode.respond_info('Testing at full speed')
         CUR_LANE.assist(-1)
         self.reactor.pause(self.reactor.monotonic() + 1)
@@ -466,10 +466,10 @@ class afc:
             None
         """
         lane = gcmd.get('LANE', None)
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
         if CUR_LANE.prep_state == False: return
 
@@ -507,10 +507,10 @@ class afc:
             None
         """
         lane = gcmd.get('LANE', None)
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.hub)
         if CUR_LANE.name != self.current:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
@@ -554,14 +554,14 @@ class afc:
             None
         """
         lane = gcmd.get('LANE', None)
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
 
         if self.current is not None:
             self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane.upper(), self.current.upper()), pause=False)
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         self.TOOL_LOAD(CUR_LANE)
 
     def TOOL_LOAD(self, CUR_LANE):
@@ -607,7 +607,7 @@ class afc:
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'loading'
         self.save_vars()
-        self.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
+        self.led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
         if CUR_LANE.load_state and not CUR_HUB.state:
@@ -689,7 +689,7 @@ class afc:
             CUR_EXTRUDER.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
                 self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
@@ -702,7 +702,7 @@ class afc:
             # Update lane and extruder state for tracking.
             CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
-            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -738,10 +738,10 @@ class afc:
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
-        if lane not in self.stepper:
+        if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.stepper[lane]
+        CUR_LANE = self.lanes[lane]
         self.TOOL_UNLOAD(CUR_LANE)
 
         # User manually unloaded spool from toolhead, remove spool from active status
@@ -793,7 +793,7 @@ class afc:
         CUR_EXTRUDER.disable_buffer()
 
         # Activate LED indicator for unloading.
-        self.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
+        self.led(CUR_LANE.led_unloading, CUR_LANE.led_index)
 
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
@@ -820,8 +820,8 @@ class afc:
             if self.park:
                 self.gcode.run_script_from_command(self.park_cmd)
             if self.form_tip_cmd == "AFC":
-                self.AFC_tip = self.printer.lookup_object('AFC_form_tip')
-                self.AFC_tip.tip_form()
+                self.tip = self.printer.lookup_object('AFC_form_tip')
+                self.tip.tip_form()
             else:
                 self.gcode.run_script_from_command(self.form_tip_cmd)
 
@@ -912,7 +912,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         CUR_LANE.loaded_to_hub = True
-        self.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
+        self.led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.save_vars()
         self.current = None
@@ -977,10 +977,10 @@ class afc:
             self.in_toolchange = True
 
             # Lookup the lane object for the requested lane.
-            if lane not in self.stepper:
+            if lane not in self.lanes:
                 self.gcode.respond_info('{} Unknown'.format(lane.upper()))
                 return
-            CUR_LANE = self.stepper[lane]
+            CUR_LANE = self.lanes[lane]
             # Check if the lane has completed the preparation process required for tool changes.
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
@@ -988,10 +988,10 @@ class afc:
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
-                    if self.current not in self.stepper:
+                    if self.current not in self.lanes:
                         self.gcode.respond_info('{} Unknown'.format(self.current.upper()))
                         return
-                    CUR_LANE = self.stepper[self.current]
+                    CUR_LANE = self.lanes[self.current]
                     if not self.TOOL_UNLOAD(CUR_LANE):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
@@ -999,10 +999,10 @@ class afc:
                         return
 
                 # Switch to the new lane for loading.
-                if lane not in self.stepper:
+                if lane not in self.lanes:
                     self.gcode.respond_info('{} Unknown'.format(lane.upper()))
                     return
-                CUR_LANE = self.stepper[lane]
+                CUR_LANE = self.lanes[lane]
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(CUR_LANE) and not self.error_state:
                 self.gcode.respond_info("{} is now loaded in toolhead".format(lane))
@@ -1101,7 +1101,7 @@ class afc:
             else:
                 str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = None
             if self.current is not None:
-                CUR_LANE=self.stepper[self.current]
+                CUR_LANE=self.lanes[self.current]
                 if CUR_LANE.extruder_name == CUR_EXTRUDER.name:
                     CUR_EXTRUDER.buffer_name = CUR_LANE.buffer
                     str["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = CUR_EXTRUDER.buffer_name
@@ -1169,9 +1169,9 @@ class afc:
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
 
-        Usage:`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
+        Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANES=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
+            - `CALIBRATE_AFC LANE=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
             - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
 
         Args:
@@ -1188,11 +1188,11 @@ class afc:
         dis = gcmd.get_float('DISTANCE', 25)
         tol = gcmd.get_float('TOLERANCE', 5)
         afc_bl = gcmd.get('BOWDEN', None)
-        short_dis = self.AFC.short_move_dis
-        lanes = gcmd.get('LANES', None)
+        short_dis = self.short_move_dis
+        lanes = gcmd.get('LANE', None)
 
-        if self.AFC.current is not None:
-            self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
+        if self.current is not None:
+            self.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
             return
 
         cal_msg = ''
@@ -1205,72 +1205,71 @@ class afc:
 
             Returns: The lane name if found, otherwise None
             """
-            for UNIT in self.AFC.unit.keys():
-                if lane_name in self.AFC.unit[UNIT]:
-                    return lane_name
+            if lane_name in self.lanes:
+                return lane_name
 
             # If the lane was not found
-            self.AFC.gcode.respond_info('{} not found in any unit.'.format(lane_name))
+            self.gcode.respond_info('{} not found in any unit.'.format(lane_name))
             return None
 
         # Helper functions for movement and calibration
-        def calibrate_hub(CUR_LANE, CUR_HUB):
+        def calibrate_hub(CUR_LANE):
             hub_pos = 0
-            hub_pos = move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol, short_dis, hub_pos)
-            tuned_hub_pos = calc_position(CUR_LANE, lambda: CUR_HUB.state, hub_pos, short_dis, tol)
+            hub_pos = move_until_state(CUR_LANE, lambda: CUR_LANE.hub_obj.state, CUR_LANE.hub_obj.move_dis, tol, short_dis, hub_pos)
+            tuned_hub_pos = calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos, short_dis, tol)
             return tuned_hub_pos
 
         def move_until_state(lane, state, move_dis, tolerance, short_move, pos=0):
             while state() == False:
-                lane.move(move_dis, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+                lane.move(move_dis, self.short_moves_speed, self.short_moves_accel)
                 pos += move_dis
-            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+            self.reactor.pause(self.reactor.monotonic() + 0.1)
             while state() == True:
-                lane.move(short_move * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+                lane.move(short_move * -1, self.short_moves_speed, self.short_moves_accel, True)
                 pos -= short_move
-            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+            self.reactor.pause(self.reactor.monotonic() + 0.1)
             while state() == False:
-                lane.move(tolerance, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+                lane.move(tolerance, self.short_moves_speed, self.short_moves_accel)
                 pos += tolerance
             return pos
 
         def calc_position(lane, state, pos, short_move, tolerance):
             while state():
-                lane.move(short_move * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+                lane.move(short_move * -1, self.short_moves_speed, self.short_moves_accel, True)
                 pos -= short_move
-            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+            self.reactor.pause(self.reactor.monotonic() + 0.1)
             while not state():
-                lane.move(tolerance, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+                lane.move(tolerance, self.short_moves_speed, self.short_moves_accel)
                 pos += tolerance
             return pos
 
         def calibrate_lane(LANE):
-            if LANE not in self.AFC.stepper:
-                self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
+            if LANE not in self.lanes:
+                self.gcode.respond_info(LANE + ' Unknown')
                 return
-            CUR_LANE = self.AFC.stepper[LANE.name]
-            CUR_HUB = self.printer.lookup_object('AFC_hub {}'.format(CUR_LANE.unit))
+            CUR_LANE = self.lanes[LANE]
+            CUR_HUB = CUR_LANE.hub_obj
             if CUR_HUB.state:
-                self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
+                self.gcode.respond_info('Hub is not clear, check before calibration')
                 return False, ""
             if not CUR_LANE.load_state:
-                self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
+                self.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
                 return True, ""
 
-            self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
+            self.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
             # reset to extruder
             calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, short_dis, tol)
-            hub_pos = calibrate_hub(CUR_LANE, CUR_HUB)
+            hub_pos = calibrate_hub(CUR_LANE)
             if CUR_HUB.state:
-                CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-            CUR_LANE.loaded_to_hub = True
+                CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            CUR_LANE.hub_load = True
             CUR_LANE.do_enable(False)
             cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
             return True, cal_msg
 
         # Determine if a specific lane is provided
         if lanes is not None:
-            self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
+            self.gcode.respond_info('Starting AFC distance Calibrations')
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
             cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             if lanes != 'all':
@@ -1283,8 +1282,8 @@ class afc:
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
-                for UNIT in self.AFC.units.keys():
-                    for LANE in self.AFC.units[UNIT].keys():
+                for UNIT in self.units.keys():
+                    for LANE in self.units[UNIT].keys():
                         # Calibrate the specific lane
                         checked, msg = calibrate_lane(LANE)
                         if(not checked): return
@@ -1295,7 +1294,7 @@ class afc:
 
         if afc_bl is not None:
             if lanes is None:
-                self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
+                self.gcode.respond_info('Starting AFC distance Calibrations')
                 cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
                 cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
 
@@ -1306,33 +1305,33 @@ class afc:
 
             lane = lane_to_calibrate
             CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
-            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-            CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
-            self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name.upper()))
+            CUR_EXTRUDER = CUR_LANE.extruder_obj
+            CUR_HUB = CUR_LANE.hub_obj
+            self.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name.upper()))
 
             move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol, short_dis)
 
             bow_pos = 0
             if CUR_EXTRUDER.tool_start:
                 while not CUR_EXTRUDER.tool_start_state:
-                    CUR_LANE.move(dis, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+                    CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
                     bow_pos += dis
-                    self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+                    self.reactor.pause(self.reactor.monotonic() + 0.1)
                 bow_pos = calc_position(CUR_LANE, lambda: CUR_EXTRUDER.tool_start_state, bow_pos, short_dis, tol)
-                CUR_LANE.move(bow_pos * -1, self.AFC.long_moves_speed, self.AFC.long_moves_accel, True)
+                CUR_LANE.move(bow_pos * -1, self.long_moves_speed, self.long_moves_accel, True)
                 calibrate_hub(CUR_LANE, CUR_HUB)
                 if CUR_HUB.state:
-                    CUR_LANE.move(CUR_HUB.move_dis * -1, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
+                    CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
                 if CUR_EXTRUDER.tool_start == 'buffer':
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (short_dis * 2))
                 else:
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - short_dis)
                 CUR_LANE.do_enable(False)
             else:
-                self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
+                self.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
-        self.AFC.save_vars()
-        self.AFC.gcode.respond_info(cal_msg)
+        self.save_vars()
+        self.gcode.respond_info(cal_msg)
 
 def load_config(config):
     return afc(config)
