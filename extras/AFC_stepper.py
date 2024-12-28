@@ -55,10 +55,13 @@ class AFCExtruderStepper:
         #stored status variables
         self.name = config.get_name().split()[-1]
         self.extruder_name = config.get('extruder')
-        self.hub = config.get('hub',None)
-        self.buffer = config.get('buffer',None)
-        self.extruder_obj = None
 
+        try:
+            self.extruder_obj = self.printer.lookup_object('AFC_extruder ' + self.extruder_name)
+        except:
+            error_string = 'Error: No config found for extruder: ' + self.extruder_name + ' in [AFC_stepper ' + self.name + ']. Please make sure [AFC_extruder ' + self.extruder_name + '] config exists in AFC_Hardware.cfg'
+            self.AFC.ERROR.AFC_error(error_string, False)
+        
         self.map = config.get('cmd','NONE')
         self.tool_loaded = False
         self.loaded_to_hub = False
@@ -88,7 +91,7 @@ class AFCExtruderStepper:
 
         self.dist_hub = config.getfloat('dist_hub', 60)                                             # Bowden distance between Boxturtle extruder and hub
         self.park_dist = config.getfloat('park_dist', 10)                                           # Currently unused
-        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
+        
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
         self.prep = config.get('prep', None)                                                        # MCU pin for prep trigger
@@ -138,7 +141,7 @@ class AFCExtruderStepper:
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
 
         UNIT=self.printer.lookup_object(self.AFC.units[self.unit] + ' ' + self.unit)
-
+        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
         self.led_name =config.get('led_name',UNIT.led_name)
         self.led_fault =config.get('led_fault',UNIT.led_fault)
         self.led_ready = config.get('led_ready',UNIT.led_ready)
@@ -147,6 +150,8 @@ class AFCExtruderStepper:
         self.led_prep_loaded = config.get('led_loading',UNIT.led_prep_loaded)
         self.led_unloading = config.get('led_unloading',UNIT.led_unloading)
         self.led_tool_loaded = config.get('led_tool_loaded',UNIT.led_tool_loaded)
+        self.hub_name = config.get('hub',None)
+        self.buffer_name = config.get('buffer',None)
 
     
     def _get_tmc_values(self, config):
@@ -420,7 +425,8 @@ class AFCExtruderStepper:
         self.response = {}
         self.response['name'] = self.name
         self.response['unit'] = self.unit
-        self.response['hub'] = self.hub
+        self.response['hub'] = self.hub_name
+        self.response['buffer'] = self.buffer_name
         self.response['lane'] = self.index
         self.response['map'] = self.map
         self.response['load'] = bool(self.load_state)

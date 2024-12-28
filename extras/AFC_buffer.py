@@ -16,13 +16,14 @@ class AFCtrigger:
         self.AFC = self.printer.lookup_object('AFC')
         self.reactor = self.AFC.reactor
         self.gcode = self.AFC.gcode
-
+        
         self.name = config.get_name().split(' ')[-1]
         self.turtleneck = False
         self.belay = False
         self.last_state = False
         self.enable = False
         self.current = ''
+        self.AFC.buffers[self.name]=None
 
         self.debug = config.getboolean("debug", False)
         self.buttons = self.printer.load_object(config, "buttons")

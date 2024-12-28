@@ -86,10 +86,10 @@ class afcPrep:
                 UNIT=self.printer.lookup_object(self.AFC.units[LANE.unit] + ' ' + LANE.unit)
                 if LANE.name not in UNIT.lanes: UNIT.lanes.append(LANE.name)    #add lanes to units list
                 self.AFC.stepper[LANE.name]=LANE                                #add list of all lanes
-                if LANE.hub == None:
-                    LANE.hub = hub[0]
-                if LANE.buffer == None:
-                    LANE.buffer = list(self.buffer.keys())[0]
+                if LANE.hub_name == None:
+                    LANE.hub_name_ = hub[0]
+                if LANE.buffer_name == None:
+                    LANE.buffer_name = list(self.buffer.keys())[0]
                 # If units section exists in vars file add currently stored data to AFC.units array
                 if LANE.unit in units:
                     if LANE.name in units[LANE.unit]:
@@ -117,24 +117,20 @@ class afcPrep:
             return
         else:
             for UNIT in self.AFC.units.keys():
-                logo=''
-                logo_error = ''
                 try: CUR_UNIT = self.printer.lookup_object(self.AFC.units[UNIT] + ' ' + UNIT)
                 except:
                     error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
                     self.AFC.ERROR.AFC_error(error_string, False)
                     return
                 self.AFC.gcode.respond_info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
-                logo = CUR_UNIT.logo
-                logo_error = CUR_UNIT.logo_error
                 LaneCheck = True
                 for LANE in CUR_UNIT.lanes:
-                    if not CUR_UNIT.system_Test(UNIT,LANE, self.delay, self.assignTcmd):
+                    if not CUR_UNIT.system_Test(LANE, self.delay, self.assignTcmd):
                         LaneCheck = False
                 if LaneCheck:
-                    self.AFC.gcode.respond_raw(logo)
+                    self.AFC.gcode.respond_raw(CUR_UNIT.logo)
                 else:
-                    self.AFC.gcode.respond_raw(logo_error)
+                    self.AFC.gcode.respond_raw(CUR_UNIT.logo_error)
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
             if bypass.filament_present == True:

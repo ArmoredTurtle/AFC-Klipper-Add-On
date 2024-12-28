@@ -4,6 +4,7 @@ class afc_hub:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.AFC = self.printer.lookup_object('AFC')
         self.name = config.get_name().split()[-1]
 
         # HUB Cut variables
@@ -18,6 +19,7 @@ class afc_hub:
         self.cut_servo_clip_angle = config.getfloat("cut_servo_clip_angle", 160)
         self.cut_servo_prep_angle = config.getfloat("cut_servo_prep_angle", 75)
         self.cut_confirm = config.getboolean("cut_confirm", 0)
+        self.AFC.hubs[self.name]=None
 
         self.move_dis = config.getfloat("move_dis", 50)
         self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
@@ -35,9 +37,9 @@ class afc_hub:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.AFC.gcode
         self.reactor = self.AFC.reactor
+        self.AFC.hubs[self.name]=self
 
 
     def switch_pin_callback(self, eventtime, state):
