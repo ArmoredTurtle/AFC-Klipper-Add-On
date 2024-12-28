@@ -47,7 +47,7 @@ buffer_type="TurtleNeck"
 
 
 # Moonraker Config
-MOONRAKER_UPDATE_CONFIG="""
+moonraker_update_config="""
 [update_manager afc-software]
 type: git_repo
 path: ~/AFC-Klipper-Add-On

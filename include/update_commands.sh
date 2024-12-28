@@ -131,3 +131,34 @@ check_and_append_prep() {
     echo -e "\n$section\n$content" >> "$file_path"
   fi
 }
+
+remove_t_macros() {
+  # Function to remove the T macros from the configuration file.
+  local t_macro
+  local t_macros
+
+  t_macros=$(grep -o -E 'T[0-9]+' "${afc_config_dir}/macros/AFC_macros.cfg")
+
+  for t_macro in $t_macros; do
+    crudini --del "${afc_config_dir}"/macros/AFC_macros.cfg "gcode_macro $t_macro"
+  done
+}
+
+function update_moonraker_config() {
+  # Function to update the Moonraker configuration with AFC-Klipper-Add-On settings.
+  # Uses the global variables:
+  #   - MOONRAKER_PATH: The path to the Moonraker installation.
+  #   - MOONRAKER_UPDATE_CONFIG: The configuration settings to be added to Moonraker.
+
+  local moonraker_config
+
+  # Check if the AFC-Klipper-Add-On configuration is already present in the Moonraker config file.
+  moonraker_config=$(grep -c '\[update_manager afc-software\]' "${moonraker_config_file}" || true)
+
+  if [ "$moonraker_config" -eq 0 ]; then
+    # If not present, append the configuration settings to the Moonraker config file.
+    echo -e -n "\n${moonraker_update_config}" >>"${moonraker_config_file}"
+    # Restart the Moonraker service to apply the new configuration.
+    restart_service moonraker
+  fi
+}

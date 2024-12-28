@@ -7,7 +7,7 @@
 
 update_afc() {
   link_extensions
-
+  remove_t_macros
   message="""
 AFC Klipper Add-On updated successfully.
 """
