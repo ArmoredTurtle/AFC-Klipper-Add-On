@@ -64,9 +64,9 @@ class afcPrep:
             extruders=json.load(open(self.AFC.VarFile + '.tool'))
 
         # check if Lane is suppose to be loaded in tool head from saved file
-        for EXTRUDER in self.AFC.extruders.keys():
+        for EXTRUDER in self.AFC.tools.keys():
             PrinterObject=self.printer.lookup_object(EXTRUDER)
-            self.AFC.extruders[PrinterObject.name]=PrinterObject
+            self.AFC.tools[PrinterObject.name]=PrinterObject
             if PrinterObject.name in extruders:
                 if 'lane_loaded' in extruders[PrinterObject.name]: PrinterObject.lane_loaded = extruders[PrinterObject.name]['lane_loaded']
             self.AFC.current = PrinterObject.lane_loaded
