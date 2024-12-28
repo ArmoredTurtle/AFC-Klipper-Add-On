@@ -187,19 +187,18 @@ class afc:
 
         for UNIT in self.units.keys():
             # Find the maximum length of lane names to determine the column width
-            max_lane_length = max(len(lane) for lane in self.units[UNIT].keys())
-
+            max_lane_length = max(len(lane) for lane in self.lanes.keys())
             status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
 
             # Create a dynamic format string that adjusts based on lane name length
             header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
-            for LANE in self.units[UNIT].keys():
+            for LANE in self.lanes.keys():
                 lane_msg = ''
                 CUR_LANE = self.lanes[LANE]
-                CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
-                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                CUR_HUB = CUR_LANE.hub_obj
+                CUR_EXTRUDER = CUR_LANE.extruder_obj
                 if self.current != None:
                     if self.current == CUR_LANE.name:
                         if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
@@ -258,12 +257,12 @@ class afc:
         # If hub is not passed in try and get hub if a lane is currently loaded
         if hub is None and self.current is not None:
             CUR_LANE = self.lanes[self.current]
-            hub     = CUR_LANE.unit
+            hub     = CUR_LANE.hub_obj.name
         elif hub is None and self.current is None:
             self.gcode.respond_info("A lane is not loaded please specify hub to adjust bowden length")
             return
 
-        CUR_HUB       = self.printer.lookup_object('AFC_hub '+ hub )
+        CUR_HUB = CUR_LANE.hub_obj
         config_bowden = CUR_HUB.afc_bowden_length
 
         if length_param is None or length_param.strip() == '':
@@ -311,7 +310,7 @@ class afc:
         CUR_LANE = self.lanes[lane]
         CUR_LANE.set_load_current() # Making current is set correctly when doing lane moves
         CUR_LANE.do_enable(True)
-        CUR_LANE.move(distance, self.short_moves_speed, self.short_moves_accel, True)
+        CUR_LANE.move(distance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
         CUR_LANE.do_enable(False)
 
     def save_pos(self):
@@ -394,7 +393,7 @@ class afc:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.lanes[lane]
-        CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
+        CUR_HUB = CUR_LANE.hub_obj
         CUR_HUB.hub_cut(CUR_LANE)
         self.gcode.respond_info('Hub cut Done!')
 
@@ -470,7 +469,7 @@ class afc:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.lanes[lane]
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.unit)
+        CUR_HUB = CUR_LANE.hub_obj
         if CUR_LANE.prep_state == False: return
 
         if CUR_LANE.load_state == False:
@@ -511,7 +510,7 @@ class afc:
             self.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
         CUR_LANE = self.lanes[lane]
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.hub)
+        CUR_HUB = CUR_LANE.hub_obj
         if CUR_LANE.name != self.current:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
@@ -523,8 +522,8 @@ class afc:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
             CUR_LANE.loaded_to_hub = False
             while CUR_LANE.load_state == True:
-               CUR_LANE.move( CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
-            CUR_LANE.move( CUR_HUB.move_dis * -5, self.short_moves_speed, self.short_moves_accel)
+               CUR_LANE.move( CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            CUR_LANE.move( CUR_HUB.move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             CUR_LANE.do_enable(False)
             CUR_LANE.status = ''
             self.save_vars()
@@ -598,8 +597,8 @@ class afc:
         self.gcode.respond_info("Loading {}".format(CUR_LANE.name))
 
         # Lookup extruder and hub objects associated with the lane.
-        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        CUR_HUB = self.printer.lookup_object('AFC_hub '+ CUR_LANE.hub)
+        CUR_HUB = CUR_LANE.hub_obj
+        CUR_EXTRUDER = CUR_LANE.extruder_obj
         # Prepare extruder and heater.
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
@@ -631,9 +630,9 @@ class afc:
             # Ensure filament moves past the hub.
             while not CUR_HUB.state:
                 if hub_attempts == 0:
-                    CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
+                    CUR_LANE.move(CUR_HUB.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 else:
-                    CUR_LANE.move(self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+                    CUR_LANE.move(CUR_LANE.short_move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 hub_attempts += 1
                 if hub_attempts > 20:
                     message = ('PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
@@ -641,14 +640,14 @@ class afc:
                     return False
 
             # Move filament towards the toolhead.
-            CUR_LANE.move(CUR_HUB.afc_bowden_length, self.long_moves_speed, self.long_moves_accel, True)
+            CUR_LANE.move(CUR_HUB.afc_bowden_length, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
             if CUR_EXTRUDER.tool_start:
                 while not CUR_EXTRUDER.tool_start_state:
                     tool_attempts += 1
-                    CUR_LANE.move(self.short_move_dis, CUR_EXTRUDER.tool_load_speed, self.long_moves_accel)
+                    CUR_LANE.move(CUR_LANE.short_move_dis, CUR_EXTRUDER.tool_load_speed, CUR_LANE.long_moves_accel)
                     if tool_attempts > 20:
                         message = ('FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
@@ -770,8 +769,8 @@ class afc:
 
         self.gcode.respond_info("Unloading {}".format(CUR_LANE.name))
         # Lookup current extruder and hub objects using the lane's information.
-        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        CUR_HUB = self.printer.lookup_object('AFC_hub ' + CUR_LANE.unit)
+        CUR_HUB = CUR_LANE.hub_obj
+        CUR_EXTRUDER = CUR_LANE.extruder_obj
 
         # Quick pull to prevent oozing.
         pos = self.toolhead.get_position()
