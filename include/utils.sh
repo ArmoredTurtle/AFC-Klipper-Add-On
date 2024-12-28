@@ -6,15 +6,15 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 pushd() {
-  command pushd "$@" >/dev/null
+  command pushd "$@" >/dev/null || exit
 }
 
 popd() {
-  command popd >/dev/null
+  command popd >/dev/null || exit
 }
 
 function show_help() {
-  echo "Usage: afc-mgmt.sh [options]"
+  echo "Usage: install-afc.sh [options]"
   echo ""
   echo "Options:"
   echo "  -k <path>                   Specify the path to the Klipper directory"
@@ -170,5 +170,31 @@ check_version_and_set_force_update() {
     force_update=True
   else
     force_update=False
+  fi
+}
+
+stop_service() {
+  # Function to restart a given service.
+  # Arguments:
+  #   $1 - The name of the service to restart.
+
+  local service_name=$1
+  if command -v systemctl &> /dev/null; then
+    sudo systemctl stop "${service_name}"
+  else
+    sudo service "${service_name}" stop
+  fi
+}
+
+start_service() {
+  # Function to restart a given service.
+  # Arguments:
+  #   $1 - The name of the service to restart.
+
+  local service_name=$1
+  if command -v systemctl &> /dev/null; then
+    sudo systemctl start "${service_name}"
+  else
+    sudo service "${service_name}" start
   fi
 }
