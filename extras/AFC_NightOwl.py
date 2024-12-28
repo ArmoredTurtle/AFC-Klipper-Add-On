@@ -45,26 +45,26 @@ class afcNightOwl:
 
         self.logo_error = '<span class=error--text>Night Owl Not Ready</span>\n'
 
-    def system_Test(self, UNIT, LANE, delay, assignTcmd):
+    def _handle_ready(self):
+        if self.hub == None:
+            self.hub = self.AFC.hub
+        if self.buffer == None:
+            self.buffer = self.AFC.buffer
+        self.hub_obj = self.AFC.hubs[self.hub]
+        self.buffer_obj = self.AFC.buffers[self.buffer]
+
+    def system_Test(self, LANE, delay, assignTcmd):
         msg = ''
         succeeded = True
-        if LANE not in self.AFC.stepper:
+        if LANE not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
             return
-        CUR_LANE = self.AFC.stepper[LANE]
-        try:
-            CUR_LANE.extruder_obj = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        except:
-            error_string = 'Error: No config found for extruder: ' + CUR_LANE.extruder_name + ' in [AFC_stepper ' + CUR_LANE.name + ']. Please make sure [AFC_extruder ' + CUR_LANE.extruder_name + '] config exists in AFC_Hardware.cfg'
-            self.AFC.ERROR.AFC_error(error_string, False)
-            return False
-
+        CUR_LANE = self.AFC.lanes[LANE]
         # Run test reverse/forward on each lane
         CUR_LANE.unsync_to_extruder(False)
         CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + delay)
         CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-
         if CUR_LANE.prep_state == False:
             if CUR_LANE.load_state == False:
                 self.AFC.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
@@ -75,7 +75,6 @@ class afcNightOwl:
                 CUR_LANE.do_enable(False)
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
                 succeeded = False
-
         else:
             self.AFC.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
@@ -86,10 +85,10 @@ class afcNightOwl:
             else:
                 CUR_LANE.status = 'Loaded'
                 msg +="<span class=success--text> AND LOADED</span>"
-
                 if CUR_LANE.tool_loaded:
                     if CUR_LANE.extruder_obj.tool_start_state == True or CUR_LANE.extruder_obj.tool_start == "buffer":
                         if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
+                            self.AFC.current = CUR_LANE.name
                             CUR_LANE.sync_to_extruder()
                             msg +="<span class=primary--text> in ToolHead</span>"
                             if CUR_LANE.extruder_obj.tool_start == "buffer":
@@ -112,8 +111,7 @@ class afcNightOwl:
         CUR_LANE.do_enable(False)
         self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name.upper(), tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()
-
         return succeeded
-
-def load_config(config):
-    return afcNightOwl(config)
+    
+def load_config_prefix(config):
+    return afcBoxTurtle(config)

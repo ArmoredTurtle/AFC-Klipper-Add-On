@@ -15,9 +15,8 @@ class afcBoxTurtle:
         self.type='Box_Turtle'
         self.screen_mac = config.get('screen_mac', None)
         self.lanes=[]
-        self.hub_name = config.get('hub', None)
+        self.hub = config.get('hub', None)
         self.buffer = config.get('buffer', None)
-        self.hub = None
         self.AFC.units[self.name]=config.get_name().split()[0]
         self.led_name =config.get('led_name',self.AFC.led_name)
         self.led_fault =config.get('led_fault',self.AFC.led_fault)
