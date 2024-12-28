@@ -55,15 +55,15 @@ class afcSpool:
         map_cmd = gcmd.get('MAP', None)
         lane_switch=self.AFC.tool_cmds[map_cmd]
         self.gcode.respond_info("lane to switch is " + lane_switch)
-        if lane not in self.AFC.stepper:
+        if lane not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane]
+        CUR_LANE = self.AFC.lanes[lane]
         self.AFC.tool_cmds[map_cmd]=lane
         map_switch=CUR_LANE.map
         CUR_LANE.map=map_cmd
 
-        SW_LANE = self.AFC.stepper[lane_switch]
+        SW_LANE = self.AFC.lanes[lane_switch]
         self.AFC.tool_cmds[map_switch]=lane_switch
         SW_LANE.map = map_switch
         SW_LANE.map=map_switch
@@ -92,10 +92,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         color = gcmd.get('COLOR', '#000000')
-        if lane not in self.AFC.stepper:
+        if lane not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane]
+        CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.color = '#' + color
         self.AFC.save_vars()
 
@@ -123,10 +123,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         weight = gcmd.get('WEIGHT', '')
-        if lane not in self.AFC.stepper:
+        if lane not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane]
+        CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.weight = weight
         self.AFC.save_vars()
 
@@ -154,10 +154,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         material = gcmd.get('MATERIAL', '')
-        if lane not in self.AFC.stepper:
+        if lane not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane]
+        CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.material = material
         self.AFC.save_vars()
     def set_active_spool(self, ID):
@@ -199,10 +199,10 @@ class afcSpool:
                 self.gcode.respond_info("No LANE Defined")
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
-            if lane not in self.AFC.stepper:
+            if lane not in self.AFC.lanes:
                 self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
                 return
-            CUR_LANE = self.AFC.stepper[lane]
+            CUR_LANE = self.AFC.lanes[lane]
             self.set_spoolID(CUR_LANE, SpoolID)
 
     def set_spoolID(self, CUR_LANE, SpoolID, save_vars=True):
@@ -254,10 +254,10 @@ class afcSpool:
             self.gcode.respond_info("No LANE Defined")
             return
         runout = gcmd.get('RUNOUT', '')
-        if lane not in self.AFC.stepper:
+        if lane not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.AFC.stepper[lane]
+        CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.runout_lane = runout
         self.AFC.save_vars()
 

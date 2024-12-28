@@ -13,6 +13,8 @@ class afc:
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
         self.printer.register_event_handler("klippy:connect",self.handle_connect)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
         self.IDLE = self.printer.load_object(config,'idle_timeout')
@@ -22,9 +24,11 @@ class afc:
         self.VarFile = config.get('VarFile','../printer_data/config/AFC/')
         self.current = None
         self.error_state = False
+        self.hub = None
+        self.buffer=None
         self.units = {}
         self.extruders = {}
-        self.stepper = {}
+        self.lanes = {}
         self.hubs = {}
         self.buffers = {}
         self.tool_cmds={}
@@ -133,7 +137,6 @@ class afc:
         This function is called when the printer connects. It looks up the toolhead object
         and assigns it to the instance variable `self.toolhead`.
         """
-
         self.toolhead = self.printer.lookup_object('toolhead')
 
         # GCODE REGISTERS
@@ -148,6 +151,14 @@ class afc:
         self.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
         self.gcode.register_mux_command('CALIBRATE_AFC', None, None, self.cmd_CALIBRATE_AFC, desc=self.cmd_CALIBRATE_AFC_help)
+    
+    def _handle_ready(self):
+        for HUB in self.hubs.keys():
+            self.hub = HUB
+            break
+        for BUFFER in self.buffers.keys():
+            self.buffer = BUFFER
+            break
 
     def print_version(self):
         import subprocess
@@ -1030,23 +1041,14 @@ class afc:
         str = {}
         numoflanes = 0
         for UNIT in self.units.keys():
-            CUR_UNIT = self.printer.lookup_object(self.units[UNIT] + ' ' + UNIT)
+            CUR_UNIT=self.units[UNIT]
             str[CUR_UNIT.name]={}
             for NAME in CUR_UNIT.lanes:
-                CUR_LANE=self.stepper[NAME]
-                if CUR_LANE.hub_name is None:
-                    CUR_LANE.hub = self.printer.lookup_object('AFC_hub '+list(self.hubs.keys())[0])
-                else:
-                    CUR_LANE.hub = self.printer.lookup_object('AFC_hub ' + CUR_LANE.hub_name)
-                if CUR_LANE.buffer_name is None:
-                    CUR_LANE.buffer = self.printer.lookup_object('AFC_buffer '+list(self.buffers.keys())[0])
-                else:
-                    CUR_LANE.buffer = self.printer.lookup_object('AFC_buffer ' + CUR_LANE.buffer_name)
-
+                CUR_LANE=self.lanes[NAME]
                 str[CUR_UNIT.name][CUR_LANE.name]={}
                 str[CUR_UNIT.name][CUR_LANE.name]['index'] = CUR_LANE.index
-                str[CUR_UNIT.name][CUR_LANE.name]['hub'] = CUR_LANE.hub.name
-                str[CUR_UNIT.name][CUR_LANE.name]['buffer'] = CUR_LANE.buffer.name
+                str[CUR_UNIT.name][CUR_LANE.name]['hub'] = CUR_LANE.hub
+                str[CUR_UNIT.name][CUR_LANE.name]['buffer'] = CUR_LANE.buffer
                 str[CUR_UNIT.name][CUR_LANE.name]['map'] = CUR_LANE.map
                 str[CUR_UNIT.name][CUR_LANE.name]['load'] = bool(CUR_LANE.load_state)
                 str[CUR_UNIT.name][CUR_LANE.name]["prep"] =bool(CUR_LANE.prep_state)
@@ -1067,14 +1069,14 @@ class afc:
             if CUR_UNIT.hub is None:
                 CUR_UNIT.hub = self.printer.lookup_object('AFC_hub '+list(self.hubs.keys())[0])
             else:
-               str[CUR_UNIT.name]['system']['hub'] = CUR_UNIT.hub.name
-               str[UNIT]['system']['hub_loaded']  = CUR_UNIT.hub.state
-               str[UNIT]['system']['Hub_can_cut']  = CUR_UNIT.hub.cut
+               str[CUR_UNIT.name]['system']['hub'] = CUR_UNIT.hub
+               str[UNIT]['system']['hub_loaded']  = CUR_UNIT.hub_obj.state
+               str[UNIT]['system']['Hub_can_cut']  = CUR_UNIT.hub_obj.cut
             if CUR_UNIT.buffer is None:
                 CUR_UNIT.buffer = self.printer.lookup_object('AFC_buffer '+list(self.buffers.keys())[0])
             else:
-                str[CUR_UNIT.name]['system']['buffer'] = CUR_UNIT.buffer.name
-                str[CUR_UNIT.name]['system']['buffer_state'] = CUR_UNIT.buffer.last_state
+                str[CUR_UNIT.name]['system']['buffer'] = CUR_UNIT.buffer
+                str[CUR_UNIT.name]['system']['buffer_state'] = CUR_UNIT.buffer_obj.last_state
             str[CUR_UNIT.name]['system']['screen'] = CUR_UNIT.screen_mac
         str["system"]={}
         str["system"]['current_load']= self.current

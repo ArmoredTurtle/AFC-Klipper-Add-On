@@ -19,8 +19,6 @@ class afc_hub:
         self.cut_servo_clip_angle = config.getfloat("cut_servo_clip_angle", 160)
         self.cut_servo_prep_angle = config.getfloat("cut_servo_prep_angle", 75)
         self.cut_confirm = config.getboolean("cut_confirm", 0)
-        self.AFC.hubs[self.name]=None
-
         self.move_dis = config.getfloat("move_dis", 50)
         self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
@@ -37,6 +35,7 @@ class afc_hub:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
+        self.AFC.hubs[self.name] = self
         self.gcode = self.AFC.gcode
         self.reactor = self.AFC.reactor
         self.AFC.hubs[self.name]=self

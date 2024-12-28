@@ -47,6 +47,8 @@ def calc_move_time(dist, speed, accel):
 class AFCExtruderStepper:
     def __init__(self, config):
         self.printer = config.get_printer()
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
         self.reactor = self.printer.get_reactor()
@@ -70,14 +72,28 @@ class AFCExtruderStepper:
         self.color = None
         self.weight = None
         self.runout_lane = 'NONE'
-        self.status = 'Not Loaded'
-        unit = config.get('unit', None)                                                             # Unit name(AFC_hub) that this lane belongs to.
-        if unit != None:
-            self.unit = unit.split(':')[0]
-            self.index = int(unit.split(':')[1])
-        else:
-            self.unit = 'Unknown'
-            self.index = 0
+        self.status = None
+        unit = config.get('unit')                                                             # Unit name(AFC_hub) that this lane belongs to.
+        self.unit = unit.split(':')[0]
+        self.index = int(unit.split(':')[1])
+
+        try:
+            self.unit_obj=self.printer.lookup_object(self.AFC.units[self.unit] + ' ' + self.unit)
+        except:
+            error_string = 'Error: No config found for unit: ' + self.unit + ' in [' + self.AFC.units[self.unit] + ' ' + self.unit + ']. config exists in AFC_Hardware.cfg'
+            self.AFC.ERROR.AFC_error(error_string, False)
+        
+        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
+        self.led_name =config.get('led_name',self.unit_obj.led_name)
+        self.led_fault =config.get('led_fault',self.unit_obj.led_fault)
+        self.led_ready = config.get('led_ready',self.unit_obj.led_ready)
+        self.led_not_ready = config.get('led_not_ready',self.unit_obj.led_not_ready)
+        self.led_loading = config.get('led_loading',self.unit_obj.led_loading)
+        self.led_prep_loaded = config.get('led_loading',self.unit_obj.led_prep_loaded)
+        self.led_unloading = config.get('led_unloading',self.unit_obj.led_unloading)
+        self.led_tool_loaded = config.get('led_tool_loaded',self.unit_obj.led_tool_loaded)
+        self.hub = config.get('hub',None)
+        self.buffer = config.get('buffer',None)
         
         self.motion_queue = None
         self.next_cmd_time = 0.
@@ -140,20 +156,26 @@ class AFCExtruderStepper:
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
 
-        UNIT=self.printer.lookup_object(self.AFC.units[self.unit] + ' ' + self.unit)
-        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
-        self.led_name =config.get('led_name',UNIT.led_name)
-        self.led_fault =config.get('led_fault',UNIT.led_fault)
-        self.led_ready = config.get('led_ready',UNIT.led_ready)
-        self.led_not_ready = config.get('led_not_ready',UNIT.led_not_ready)
-        self.led_loading = config.get('led_loading',UNIT.led_loading)
-        self.led_prep_loaded = config.get('led_loading',UNIT.led_prep_loaded)
-        self.led_unloading = config.get('led_unloading',UNIT.led_unloading)
-        self.led_tool_loaded = config.get('led_tool_loaded',UNIT.led_tool_loaded)
-        self.hub_name = config.get('hub',None)
-        self.buffer_name = config.get('buffer',None)
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC.lanes[self.name] = self
 
-    
+    def _handle_ready(self):
+        if self.hub is None:
+            self.hub_obj = self.AFC.hubs[self.unit_obj.hub]
+            self.hub = self.hub_obj.name
+        else:
+            self.hub_obj = self.AFC.hubs[self.hub]
+        if self.buffer is None:
+            self.buffer_obj = self.AFC.hubs[self.unit_obj.buffer]
+            self.buffer = self.buffer_obj.name
+        else: 
+            self.buffer_obj = self.AFC.buffers[self.buffer]
+
     def _get_tmc_values(self, config):
         """
         Searches for TMC driver that corresponds to stepper to get run current that is specified in config
@@ -425,8 +447,8 @@ class AFCExtruderStepper:
         self.response = {}
         self.response['name'] = self.name
         self.response['unit'] = self.unit
-        self.response['hub'] = self.hub_name
-        self.response['buffer'] = self.buffer_name
+        self.response['hub'] = self.hub
+        self.response['buffer'] = self.buffer
         self.response['lane'] = self.index
         self.response['map'] = self.map
         self.response['load'] = bool(self.load_state)

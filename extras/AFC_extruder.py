@@ -66,6 +66,7 @@ class AFCextruder:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.reactor = self.AFC.reactor
+        self.AFC.extruders[self.name] = self
 
         self.get_buffer()
 

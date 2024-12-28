@@ -10,6 +10,7 @@ class afcBoxTurtle:
         self.printer = config.get_printer()
         self.AFC = self.printer.lookup_object('AFC')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.name = config.get_name().split()[-1]
         self.type='Box_Turtle'
         self.screen_mac = config.get('screen_mac', None)
@@ -41,6 +42,8 @@ class afcBoxTurtle:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
+        
+        self.AFC.units[self.name] = self
 
         firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
         secondLeg = firstLeg + '<span class=warning--text>|</span>'
@@ -59,13 +62,21 @@ class afcBoxTurtle:
         self.logo_error+='! \_________/ |___|</span>\n'
         self.logo_error+= '  ' + self.name + '\n'
 
+    def _handle_ready(self):
+        if self.hub == None:
+            self.hub = self.AFC.hub
+        if self.buffer == None:
+            self.buffer = self.AFC.buffer
+        self.hub_obj = self.AFC.hubs[self.hub]
+        self.buffer_obj = self.AFC.buffers[self.buffer]
+
     def system_Test(self, LANE, delay, assignTcmd):
         msg = ''
         succeeded = True
-        if LANE not in self.AFC.stepper:
+        if LANE not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(LANE.upper()))
             return
-        CUR_LANE = self.AFC.stepper[LANE]
+        CUR_LANE = self.AFC.lanes[LANE]
         # Run test reverse/forward on each lane
         CUR_LANE.unsync_to_extruder(False)
         CUR_LANE.move( 5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)

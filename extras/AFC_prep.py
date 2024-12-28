@@ -52,72 +52,57 @@ class afcPrep:
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
         self._rename_resume()
         self.AFC.print_version()
-        units={}
+
         ## load Unit variables
+        units={}
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
             units=json.load(open(self.AFC.VarFile + '.unit'))
+
         ## load Toolhead variables
+        extruders={}
         if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
             extruders=json.load(open(self.AFC.VarFile + '.tool'))
-        else:
-            extruders={}
 
-        self.AFC.tool_cmds={}
-        for PO in self.printer.objects:
-            if 'AFC_extruder' in PO:
-                extruder=self.printer.lookup_object(PO)
-                self.AFC.extruders[extruder.name]=extruder
-                if extruder.name in extruders:
-                    if 'lane_loaded' in extruders[extruder.name]: extruder.lane_loaded = extruders[extruder.name]['lane_loaded']
-                self.AFC.current = extruder.lane_loaded
-        self.buffer = {}
-        for PO in self.printer.objects:
-            if 'AFC_buffer' in PO:
-                tmpBUFFER = self.printer.lookup_object(PO)
-                self.buffer[tmpBUFFER.name] = tmpBUFFER
-        hub = []
-        for PO in self.printer.objects:
-            if 'AFC_hub' in PO:
-                hub.append(PO.split()[-1])
+        # check if Lane is suppose to be loaded in tool head from saved file
+        for EXTRUDER in self.AFC.extruders.keys():
+            PrinterObject=self.printer.lookup_object(EXTRUDER)
+            self.AFC.extruders[PrinterObject.name]=PrinterObject
+            if PrinterObject.name in extruders:
+                if 'lane_loaded' in extruders[PrinterObject.name]: PrinterObject.lane_loaded = extruders[PrinterObject.name]['lane_loaded']
+            self.AFC.current = PrinterObject.lane_loaded
 
-        for PO in self.printer.objects:
-            if 'AFC_stepper' in PO and 'tmc' not in PO:
-                LANE=self.printer.lookup_object(PO)
-                UNIT=self.printer.lookup_object(self.AFC.units[LANE.unit] + ' ' + LANE.unit)
-                if LANE.name not in UNIT.lanes: UNIT.lanes.append(LANE.name)    #add lanes to units list
-                self.AFC.stepper[LANE.name]=LANE                                #add list of all lanes
-                if LANE.hub_name == None:
-                    LANE.hub_name_ = hub[0]
-                if LANE.buffer_name == None:
-                    LANE.buffer_name = list(self.buffer.keys())[0]
+        for LANE in self.AFC.lanes.keys():
+                CUR_LANE = self.AFC.lanes[LANE]
+                CUR_LANE.unit_obj = self.AFC.units[CUR_LANE.unit]
+                if CUR_LANE.name not in CUR_LANE.unit_obj.lanes: CUR_LANE.unit_obj.lanes.append(CUR_LANE.name)    #add lanes to units list
                 # If units section exists in vars file add currently stored data to AFC.units array
-                if LANE.unit in units:
-                    if LANE.name in units[LANE.unit]:
-                        if 'spool_id' in units[LANE.unit][LANE.name]: LANE.spool_id = units[LANE.unit][LANE.name]['spool_id']
-                        if self.AFC.spoolman_ip !=None and LANE.spool_id != None:
-                            self.AFC.SPOOL.set_spoolID(LANE, LANE.spool_id, save_vars=False)
+                if CUR_LANE.unit in units:
+                    if CUR_LANE.name in units[CUR_LANE.unit]:
+                        if 'spool_id' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.spool_id = units[CUR_LANE.unit][CUR_LANE.name]['spool_id']
+                        if self.AFC.spoolman_ip !=None and CUR_LANE.spool_id != None:
+                            self.AFC.SPOOL.set_spoolID(CUR_LANE, CUR_LANE.spool_id, save_vars=False)
                         else:
-                            if 'material' in units[LANE.unit][LANE.name]: LANE.material = units[LANE.unit][LANE.name]['material']
-                            if 'color' in units[LANE.unit][LANE.name]: LANE.color = units[LANE.unit][LANE.name]['color']
-                            if 'weight' in units[LANE.unit][LANE.name]: LANE.weight = units[LANE.unit][LANE.name]['weight']
-                        if 'runout_lane' in units[LANE.unit][LANE.name]: LANE.runout_lane = units[LANE.unit][LANE.name]['runout_lane']
-                        if LANE.runout_lane == '': LANE.runout_lane='NONE'
-                        if 'map' in units[LANE.unit][LANE.name]: LANE.map = units[LANE.unit][LANE.name]['map']
-                        if LANE.map != 'NONE':
-                            self.AFC.tool_cmds[LANE.map] = LANE.name
+                            if 'material' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.material = units[CUR_LANE.unit][CUR_LANE.name]['material']
+                            if 'color' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.color = units[CUR_LANE.unit][CUR_LANE.name]['color']
+                            if 'weight' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.weight = units[CUR_LANE.unit][CUR_LANE.name]['weight']
+                        if 'runout_lane' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.runout_lane = units[CUR_LANE.unit][CUR_LANE.name]['runout_lane']
+                        if CUR_LANE.runout_lane == '': CUR_LANE.runout_lane='NONE'
+                        if 'map' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.map = units[CUR_LANE.unit][CUR_LANE.name]['map']
+                        if CUR_LANE.map != 'NONE':
+                            self.AFC.tool_cmds[CUR_LANE.map] = CUR_LANE.name
                         # Check first for hub_loaded as this was the old name in software with version <= 1030
-                        if 'hub_loaded' in units[LANE.unit][LANE.name]: LANE.loaded_to_hub = units[LANE.unit][LANE.name]['hub_loaded']
+                        if 'hub_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['hub_loaded']
                         # Check for loaded_to_hub as this is how its being saved version > 1030
-                        if 'loaded_to_hub' in units[LANE.unit][LANE.name]: LANE.loaded_to_hub = units[LANE.unit][LANE.name]['loaded_to_hub']
-                        if 'tool_loaded' in units[LANE.unit][LANE.name]: LANE.tool_loaded = units[LANE.unit][LANE.name]['tool_loaded']
-                        if 'status' in units[LANE.unit][LANE.name]: LANE.status = units[LANE.unit][LANE.name]['status']
+                        if 'loaded_to_hub' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['loaded_to_hub']
+                        if 'tool_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.tool_loaded = units[CUR_LANE.unit][CUR_LANE.name]['tool_loaded']
+                        if 'status' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.status = units[CUR_LANE.unit][CUR_LANE.name]['status']
         self.AFC.save_vars()
         if self.enable == False:
             self.AFC.gcode.respond_info('Prep Checks Disabled')
             return
         else:
             for UNIT in self.AFC.units.keys():
-                try: CUR_UNIT = self.printer.lookup_object(self.AFC.units[UNIT] + ' ' + UNIT)
+                try: CUR_UNIT = self.AFC.units[UNIT]
                 except:
                     error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
                     self.AFC.ERROR.AFC_error(error_string, False)

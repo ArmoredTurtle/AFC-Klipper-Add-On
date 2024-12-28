@@ -13,6 +13,7 @@ class AFCtrigger:
 
     def __init__(self, config):
         self.printer = config.get_printer()
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.AFC = self.printer.lookup_object('AFC')
         self.reactor = self.AFC.reactor
         self.gcode = self.AFC.gcode
@@ -23,7 +24,7 @@ class AFCtrigger:
         self.last_state = False
         self.enable = False
         self.current = ''
-        self.AFC.buffers[self.name]=None
+        
 
         self.debug = config.getboolean("debug", False)
         self.buttons = self.printer.load_object(config, "buttons")
@@ -85,6 +86,14 @@ class AFCtrigger:
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
             self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTIPLIER, desc=self.cmd_SET_MULTIPLIER_help)
+
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC.buffers[self.name] = self
 
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
