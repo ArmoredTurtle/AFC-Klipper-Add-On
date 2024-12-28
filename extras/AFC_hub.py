@@ -53,11 +53,11 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
         while self.state == False:
-            CUR_LANE.move( self.move_dis, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+            CUR_LANE.move( self.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Go back, to allow the `hub_cut_dist` to be accurate.
-        CUR_LANE.move( -self.move_dis*4, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move( -self.move_dis*4, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Feed the `hub_cut_dist` amount.
-        CUR_LANE.move( self.cut_dist, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move( self.cut_dist, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Have a snooze
         self.reactor.pause(self.reactor.monotonic() + 0.5)
 
@@ -77,7 +77,7 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
 
         # Retract lane by `hub_cut_clear`.
-        CUR_LANE.move( -self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move( -self.cut_clear, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
 
     def get_status(self, eventtime=None):
         self.response = {}

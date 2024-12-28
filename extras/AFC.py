@@ -1260,7 +1260,7 @@ class afc:
             calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, short_dis, tol)
             hub_pos = calibrate_hub(CUR_LANE)
             if CUR_HUB.state:
-                CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             CUR_LANE.hub_load = True
             CUR_LANE.do_enable(False)
             cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
