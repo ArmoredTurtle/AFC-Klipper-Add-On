@@ -1,14 +1,23 @@
-class afcNightOwl:
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
+
+class afcERCF:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.AFC = self.printer.lookup_object('AFC')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.name = config.get_name().split()[-1]
-        self.type='Box_Turtle'
+        self.type='ERCF'
         self.screen_mac = config.get('screen_mac', None)
         self.lanes=[]
+        self.hub = config.get('hub', None)
+        self.buffer = config.get('buffer', None)
         self.AFC.units[self.name]=config.get_name().split()[0]
- 
         self.led_name =config.get('led_name',self.AFC.led_name)
         self.led_fault =config.get('led_fault',self.AFC.led_fault)
         self.led_ready = config.get('led_ready',self.AFC.led_ready)
@@ -18,32 +27,45 @@ class afcNightOwl:
         self.led_unloading = config.get('led_unloading',self.AFC.led_unloading)
         self.led_tool_loaded = config.get('led_tool_loaded',self.AFC.led_tool_loaded)
 
+        self.long_moves_speed = config.getfloat("long_moves_speed", self.AFC.long_moves_speed)            # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel = config.getfloat("long_moves_accel", self.AFC.long_moves_accel)            # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed = config.getfloat("short_moves_speed", self.AFC.short_moves_speed)           # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel = config.getfloat("short_moves_accel", self.AFC.short_moves_accel)          # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis = config.getfloat("short_move_dis", self.AFC.short_move_dis)                 # Move distance in mm for failsafe moves.
+
     def get_status(self, eventtime=None):
         self.response = {}
         self.response['name'] = self.name
         self.response['type'] = self.type
         self.response['screen'] = self.screen_mac
         self.response['lanes'] = self.lanes
-        
         return self.response
-    
+
     def handle_connect(self):
         """
         Handle the connection event.
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.AFC = self.printer.lookup_object('AFC')
+        
+        self.AFC.units[self.name] = self
 
-        self.logo = '<span class=success--text>Night Owl Ready</span>'
-        self.logo ='<span class=success--text>R  ,     ,\n'
-        self.logo+='E  )\___/(\n'
-        self.logo+='A {(@)v(@)}\n'
-        self.logo+='D  {|~~~|}\n'
-        self.logo+='Y  {/^^^\}\n'
-        self.logo+='!   `m-m`</span>\n'
+        firstLeg = '<span class=warning--text>|</span><span class=error--text>_</span>'
+        secondLeg = firstLeg + '<span class=warning--text>|</span>'
+        self.logo ='<span class=success--text>R  _____     ____\n'
+        self.logo+='E /      \  |  </span><span class=info--text>o</span><span class=success--text> | \n'
+        self.logo+='A |       |/ ___/ \n'
+        self.logo+='D |_________/     \n'
+        self.logo+='Y {first}{second} {first}{second}\n'.format(first=firstLeg, second=secondLeg)
+        self.logo+= '  ' + self.name + '\n'
 
-        self.logo_error = '<span class=error--text>Night Owl Not Ready</span>\n'
+        self.logo_error ='<span class=error--text>E  _ _   _ _\n'
+        self.logo_error+='R |_|_|_|_|_|\n'
+        self.logo_error+='R |         \____\n'
+        self.logo_error+='O |              \ \n'
+        self.logo_error+='R |          |\ <span class=secondary--text>X</span> |\n'
+        self.logo_error+='! \_________/ |___|</span>\n'
+        self.logo_error+= '  ' + self.name + '\n'
 
     def _handle_ready(self):
         if self.hub == None:
@@ -52,6 +74,8 @@ class afcNightOwl:
             self.buffer = self.AFC.buffer
         self.hub_obj = self.AFC.hubs[self.hub]
         self.buffer_obj = self.AFC.buffers[self.buffer]
+
+
 
     def system_Test(self, LANE, delay, assignTcmd):
         msg = ''
@@ -114,4 +138,4 @@ class afcNightOwl:
         return succeeded
     
 def load_config_prefix(config):
-    return afcBoxTurtle(config)
+    return afcERCF(config)

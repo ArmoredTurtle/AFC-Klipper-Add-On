@@ -13,16 +13,18 @@ class AFCtrigger:
 
     def __init__(self, config):
         self.printer = config.get_printer()
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.AFC = self.printer.lookup_object('AFC')
         self.reactor = self.AFC.reactor
         self.gcode = self.AFC.gcode
-
+        
         self.name = config.get_name().split(' ')[-1]
         self.turtleneck = False
         self.belay = False
         self.last_state = False
         self.enable = False
         self.current = ''
+        
 
         self.debug = config.getboolean("debug", False)
         self.buttons = self.printer.load_object(config, "buttons")
@@ -30,6 +32,10 @@ class AFCtrigger:
         # LED SETTINGS
         self.led_index = config.get('led_index', None)
         self.led = False
+        self.led_advancing = config.get('led_buffer_advancing','0,0,1,0')
+        self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')
+        self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')
+
         if self.led_index is not None:
             self.led = True
             self.led_index = config.get('led_index')
@@ -82,6 +88,14 @@ class AFCtrigger:
             self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
             self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTIPLIER, desc=self.cmd_SET_MULTIPLIER_help)
 
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC.buffers[self.name] = self
+
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
 
@@ -109,7 +123,7 @@ class AFCtrigger:
 
     def enable_buffer(self):
         if self.led:
-            self.AFC.afc_led(self.AFC.led_buffer_disabled, self.led_index)
+            self.AFC.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.enable = True
             multiplier = 1.0
@@ -128,7 +142,7 @@ class AFCtrigger:
         self.enable = False
         if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
         if self.led:
-            self.AFC.afc_led(self.AFC.led_buffer_disabled, self.led_index)
+            self.AFC.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
         self.last_state = False
@@ -143,11 +157,11 @@ class AFCtrigger:
         if multiplier > 1:
             self.last_state = TRAILING_STATE_NAME
             if self.led:
-                self.AFC.afc_led(self.AFC.led_trailing, self.led_index)
+                self.AFC.afc_led(self.led_trailing, self.led_index)
         elif multiplier < 1:
             self.last_state = ADVANCE_STATE_NAME
             if self.led:
-                self.AFC.afc_led(self.AFC.led_advancing, self.led_index)
+                self.AFC.afc_led(self.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
             self.gcode.respond_info("New rotation distance after applying factor: {}".format(stepper.get_rotation_distance()[0]))
@@ -323,6 +337,10 @@ class AFCtrigger:
         self.velocity = gcmd.get_float('VELOCITY', 0.0)
         self.gcode.respond_info("VELOCITY for {} was updated from {} to {}".format(self.name, old_velocity, self.velocity))
 
-
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['state'] = self.last_state
+        return self.response
+   
 def load_config_prefix(config):
     return AFCtrigger(config)

@@ -47,6 +47,8 @@ def calc_move_time(dist, speed, accel):
 class AFCExtruderStepper:
     def __init__(self, config):
         self.printer = config.get_printer()
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.AFC = self.printer.lookup_object('AFC')
         self.gcode = self.printer.lookup_object('gcode')
         self.reactor = self.printer.get_reactor()
@@ -54,10 +56,9 @@ class AFCExtruderStepper:
 
         #stored status variables
         self.name = config.get_name().split()[-1]
-        self.extruder_name = config.get('extruder')                                                 # AFC_extruder name in config file
-        self.extruder_obj = None
-
-        self.map = config.get('cmd','NONE')                                                         # Need description
+        self.extruder_name = config.get('extruder')
+        
+        self.map = config.get('cmd','NONE')
         self.tool_loaded = False
         self.loaded_to_hub = False
         self.spool_id = None
@@ -65,16 +66,36 @@ class AFCExtruderStepper:
         self.color = None
         self.weight = None
         self.runout_lane = 'NONE'
-        self.status = 'Not Loaded'
-        unit = config.get('unit', None)                                                             # Unit name(AFC_hub) that this lane belongs to.
-        if unit != None:
-            self.unit = unit.split(':')[0]
-            self.index = int(unit.split(':')[1])
-        else:
-            self.unit = 'Unknown'
-            self.index = 0
-        self.hub= ''
+        self.status = None
+        unit = config.get('unit')                                                             # Unit name(AFC_hub) that this lane belongs to.
+        self.unit = unit.split(':')[0]
+        self.index = int(unit.split(':')[1])
 
+        try:
+            self.unit_obj=self.printer.lookup_object(self.AFC.units[self.unit] + ' ' + self.unit)
+        except:
+            error_string = 'Error: No config found for unit: ' + self.unit + ' in [' + self.AFC.units[self.unit] + ' ' + self.unit + ']. config exists in AFC_Hardware.cfg'
+            self.AFC.ERROR.AFC_error(error_string, False)
+        
+        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
+        self.led_name =config.get('led_name',self.unit_obj.led_name)
+        self.led_fault =config.get('led_fault',self.unit_obj.led_fault)
+        self.led_ready = config.get('led_ready',self.unit_obj.led_ready)
+        self.led_not_ready = config.get('led_not_ready',self.unit_obj.led_not_ready)
+        self.led_loading = config.get('led_loading',self.unit_obj.led_loading)
+        self.led_prep_loaded = config.get('led_loading',self.unit_obj.led_prep_loaded)
+        self.led_unloading = config.get('led_unloading',self.unit_obj.led_unloading)
+        self.led_tool_loaded = config.get('led_tool_loaded',self.unit_obj.led_tool_loaded)
+
+        self.long_moves_speed = config.getfloat("long_moves_speed", self.unit_obj.long_moves_speed)            # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel = config.getfloat("long_moves_accel", self.unit_obj.long_moves_accel)            # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed = config.getfloat("short_moves_speed", self.unit_obj.short_moves_speed)           # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel = config.getfloat("short_moves_accel", self.unit_obj.short_moves_accel)          # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis = config.getfloat("short_move_dis", self.unit_obj.short_move_dis)                 # Move distance in mm for failsafe moves.
+
+        self.hub = config.get('hub',None)
+        self.buffer = config.get('buffer',None)
+        
         self.motion_queue = None
         self.next_cmd_time = 0.
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -87,7 +108,7 @@ class AFCExtruderStepper:
 
         self.dist_hub = config.getfloat('dist_hub', 60)                                             # Bowden distance between Boxturtle extruder and hub
         self.park_dist = config.getfloat('park_dist', 10)                                           # Currently unused
-        self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
+        
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
         self.prep = config.get('prep', None)                                                        # MCU pin for prep trigger
@@ -135,6 +156,33 @@ class AFCExtruderStepper:
 
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
+
+    def handle_connect(self):
+        """
+        Handle the connection event.
+        This function is called when the printer connects. It looks up AFC info
+        and assigns it to the instance variable `self.AFC`.
+        """
+        self.AFC.lanes[self.name] = self
+
+    def _handle_ready(self):
+        try:
+            self.extruder_obj = self.printer.lookup_object('AFC_extruder ' + self.extruder_name)
+        except:
+            error_string = 'Error: No config found for extruder: ' + self.extruder_name + ' in [AFC_stepper ' + self.name + ']. Please make sure [AFC_extruder ' + self.extruder_name + '] config exists in AFC_Hardware.cfg'
+            self.AFC.ERROR.AFC_error(error_string, False)
+
+        if self.hub is None:
+            self.hub_obj = self.AFC.hubs[self.unit_obj.hub]
+            self.hub = self.hub_obj.name
+        else:
+            self.hub_obj = self.AFC.hubs[self.hub]
+        if self.buffer is None:
+            self.buffer_obj = self.AFC.hubs[self.unit_obj.buffer]
+            self.buffer = self.buffer_obj.name
+        else: 
+            self.buffer_obj = self.AFC.buffers[self.buffer]
+
 
     def _get_tmc_values(self, config):
         """
@@ -402,6 +450,38 @@ class AFCExtruderStepper:
 
         if self.remaining_weight < self.empty_spool_weight:
             self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
+
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['name'] = self.name
+        self.response['unit'] = self.unit
+        self.response['hub'] = self.hub
+        self.response['buffer'] = self.buffer
+        self.response['lane'] = self.index
+        self.response['map'] = self.map
+        self.response['load'] = bool(self.load_state)
+        self.response["prep"] =bool(self.prep_state)
+        self.response["tool_loaded"] = self.tool_loaded
+        self.response["loaded_to_hub"] = self.loaded_to_hub
+        self.response["material"]=self.material
+        self.response["spool_id"]=self.spool_id
+        self.response["color"]=self.color
+        self.response["weight"]=self.weight
+        self.response["runout_lane"]=self.runout_lane
+        filiment_stat=self.get_filament_status().split(':')
+        self.response['filament_status'] = filiment_stat[0]
+        self.response['filament_status_led'] = filiment_stat[1]
+        self.response['status'] = self.status
+        return self.response
+    
+    def get_filament_status(self):
+        if self.prep_state:
+            if self.load_state:
+                if self.extruder_obj is not None and self.extruder_obj.lane_loaded == self.name:
+                    return 'In Tool:' + self.AFC.HexConvert(self.led_tool_loaded)
+                return "Ready:" + self.AFC.HexConvert(self.led_ready)
+            return 'Prep:' + self.AFC.HexConvert(self.led_prep_loaded)
+        return 'Not Ready:' + self.AFC.HexConvert(self.led_not_ready)
 
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
