@@ -100,6 +100,7 @@ install_afc() {
   fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
+  update_moonraker_config
 
   # Final step should be displaying any messages and exit cleanly.
   message="""
