@@ -60,12 +60,12 @@ copy_unit_files() {
 
 install_afc() {
   # Make sure we aren't in the middle of a print, and stop klipper
-  if query_printer_status; then
-    stop_service "${klipper_service}"
-  else
-    print_msg ERROR "It looks like you are in the middle of print. Please retry installation when not printing. Exiting."
-    exit 1
-  fi
+#  if query_printer_status; then
+#    stop_service "${klipper_service}"
+#  else
+#    print_msg ERROR "It looks like you are in the middle of print. Please retry installation when not printing. Exiting."
+#    exit 1
+#  fi
   # Link the python extensions
   link_extensions
   copy_config
