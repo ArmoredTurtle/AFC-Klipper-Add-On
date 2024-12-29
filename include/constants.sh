@@ -53,6 +53,8 @@ type: git_repo
 path: ~/AFC-Klipper-Add-On
 origin: $gitrepo
 managed_services: $klipper_service
+primary_branch: main
+is_system_service: False
 system_dependencies: $afc_path/afc_system_dependencies.json
 info_tags:
     desc=AFC Klipper Add On
