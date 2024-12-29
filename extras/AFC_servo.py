@@ -3,7 +3,7 @@ import logging, time
 SERVO_SIGNAL_PERIOD = 0.020
 PIN_MIN_TIME = 0.100
 
-class MmuServo:
+class AFCServo:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.min_width = config.getfloat('minimum_pulse_width', .001, above=0., below=SERVO_SIGNAL_PERIOD)
@@ -97,4 +97,4 @@ class MmuServo:
             toolhead.register_lookahead_callback((lambda pt: self._set_pwm(pt, value, duration)))
 
 def load_config_prefix(config):
-    return MmuServo(config)
+    return AFCServo(config)
