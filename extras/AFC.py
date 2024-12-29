@@ -1028,7 +1028,7 @@ class afc:
 
         return '#{:02x}{:02x}{:02x}'.format(*led)
 
-    def get_status(self, eventtime):   ## will be removed in near future  all status will be from indvdual objects
+    def get_status(self, eventtime):   #   will be removed near future  do not use for future coding
         str = {}
         numoflanes = 0
         for UNIT in self.units.keys():
