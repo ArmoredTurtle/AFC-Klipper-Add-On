@@ -442,10 +442,6 @@ class afc:
         self.gcode.respond_info('Test routine complete')
         CUR_LANE.assist(0)
 
-    cmd_SPOOL_ID_help = "LINK SPOOL into hub"
-    def cmd_SPOOL_ID(self, gcmd):
-        return
-
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
     def cmd_HUB_LOAD(self, gcmd):
@@ -471,19 +467,18 @@ class afc:
         CUR_LANE = self.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
         if CUR_LANE.prep_state == False: return
-
+        CUR_LANE.status = 'HUB Loading'
         if CUR_LANE.load_state == False:
             CUR_LANE.do_enable(True)
             while CUR_LANE.load_state == False:
-                CUR_LANE.move( CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move( CUR_HUB.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         if CUR_LANE.loaded_to_hub == False:
             CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
         while CUR_HUB.state == False:
-            CUR_LANE.move(CUR_HUB.move_dis, self.short_moves_speed, self.short_moves_accel)
+            CUR_LANE.move(CUR_HUB.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         while CUR_HUB.state == True:
-            CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel)
-        CUR_LANE.status = ''
-        self.save_vars()
+            CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+        CUR_LANE.status = None
         CUR_LANE.do_enable(False)
         CUR_LANE.loaded_to_hub = True
         self.save_vars()
@@ -525,7 +520,7 @@ class afc:
                CUR_LANE.move( CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             CUR_LANE.move( CUR_HUB.move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             CUR_LANE.do_enable(False)
-            CUR_LANE.status = ''
+            CUR_LANE.status = None
             self.save_vars()
 
             # Removing spool from vars since it was ejected
@@ -604,7 +599,7 @@ class afc:
         self.heater = extruder.get_heater()
 
         # Set the lane status to 'loading' and activate the loading LED.
-        CUR_LANE.status = 'loading'
+        CUR_LANE.status = 'Tool Loading'
         self.save_vars()
         self.led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
@@ -654,7 +649,7 @@ class afc:
                         return False
 
             # Synchronize lane's extruder stepper and finalize tool loading.
-            CUR_LANE.status = 'Tooled'
+            CUR_LANE.status = 'Tool Loaded'
             self.save_vars()
             CUR_LANE.sync_to_extruder()
 
@@ -682,7 +677,6 @@ class afc:
                         break
                 CUR_LANE.sync_to_extruder()
             # Update tool and lane status.
-            CUR_LANE.status = 'Tooled'
             CUR_LANE.tool_loaded = True
             self.current = CUR_LANE.name
             CUR_EXTRUDER.enable_buffer()
@@ -713,7 +707,6 @@ class afc:
                 message = ('NOT READY, LOAD TRIGGER NOT TRIGGERED\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
-
         return True
 
     cmd_TOOL_UNLOAD_help = "Unload from tool head"
@@ -786,8 +779,6 @@ class afc:
         # Prepare the extruder and heater for unloading.
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
-        CUR_LANE.status = 'unloading'
-        self.save_vars()
         # Disable the buffer if it's active.
         CUR_EXTRUDER.disable_buffer()
 
@@ -865,32 +856,32 @@ class afc:
             pos[3] -= CUR_EXTRUDER.tool_sensor_after_extruder
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
-
+        CUR_LANE.status = 'Tool Unloading'
+        self.save_vars()
         # Synchronize and move filament out of the hub.
         CUR_LANE.unsync_to_extruder()
-        CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+        CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
         # Clear toolhead's loaded state for easier error handling later.
         CUR_LANE.tool_loaded = False
         CUR_EXTRUDER.lane_loaded = None
         CUR_LANE.status = None
         self.current = None
-
         self.save_vars()
 
         # Ensure filament is fully cleared from the hub.
         num_tries = 0
         while CUR_HUB.state:
-            CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            CUR_LANE.move(CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             num_tries += 1
-            if num_tries > (CUR_HUB.afc_bowden_length / self.short_move_dis):
+            if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
                 # Handle failure if the filament doesn't clear the hub.
                 message = 'HUB NOT CLEARING\n'
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
 
         #Move to make sure hub path is clear based on the move_clear_dis var
-        CUR_LANE.move( CUR_HUB.hub_clear_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+        CUR_LANE.move( CUR_HUB.hub_clear_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
 
         # Cut filament at the hub, if configured.
         if CUR_HUB.cut:
@@ -901,10 +892,10 @@ class afc:
 
             # Confirm the hub is clear after the cut.
             while CUR_HUB.state:
-                CUR_LANE.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                CUR_LANE.move(CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                 num_tries += 1
                 # TODO: Figure out max number of tries
-                if num_tries > (CUR_HUB.afc_bowden_length / self.short_move_dis):
+                if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
                     message = 'HUB NOT CLEARING after hub cut\n'
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
@@ -913,10 +904,9 @@ class afc:
         CUR_LANE.loaded_to_hub = True
         self.led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
-        self.save_vars()
         self.current = None
         CUR_LANE.do_enable(False)
-
+        self.save_vars()
         return True
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"

@@ -53,12 +53,12 @@ class afcPrep:
         self._rename_resume()
         self.AFC.print_version()
 
-        ## load Unit variables
+        ## load Unit stored variables
         units={}
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
             units=json.load(open(self.AFC.VarFile + '.unit'))
 
-        ## load Toolhead variables
+        ## load Toolhead stored variables
         extruders={}
         if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
             extruders=json.load(open(self.AFC.VarFile + '.tool'))
