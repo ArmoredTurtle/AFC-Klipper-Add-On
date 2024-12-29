@@ -28,6 +28,8 @@ class afc_tip_form:
         self.melt_zone_pause  = config.getfloat("melt_zone_pause", 4)
         self.cooling_zone_pause  = config.getfloat("cooling_zone_pause", 4)
         self.gcode.register_command("TEST_AFC_TIP_FORMING", self.cmd_TEST_AFC_TIP_FORMING, desc=self.cmd_TEST_AFC_TIP_FORMING_help)
+        self.gcode.register_command("GET_TIP_FORMING", self.cmd_GET_TIP_FORMING, desc=self.cmd_GET_TIP_FORMING_help)
+        self.gcode.register_command("SET_TIP_FORMING", self.cmd_SET_TIP_FORMING, desc=self.cmd_SET_TIP_FORMING_help)
 
 
     def afc_extrude(self, distance, speed):
@@ -41,9 +43,69 @@ class afc_tip_form:
         '''
         Gives ability to test AFC tip forming without doing a tool change
 
-        USAGE: TEST_AFC_TIP_FORMING
+        Usage: TEST_AFC_TIP_FORMING
         '''
         self.tip_form()
+
+
+    cmd_GET_TIP_FORMING_help = "Shows the tip forming configuration"
+    def cmd_GET_TIP_FORMING(self, gcmd):
+        '''
+        Shows the tip forming configuration
+
+        Usage: GET_TIP_FORMING
+        '''
+        status_msg = "Tip Forming Configuration:\n"
+        status_msg += "ramming_volume:        {}\n".format(self.ramming_volume)
+        status_msg += "toolchange_temp:       {}\n".format(self.toolchange_temp)
+        status_msg += "unloading_speed_start: {}\n".format(self.unloading_speed_start)
+        status_msg += "unloading_speed:       {}\n".format(self.unloading_speed)
+        status_msg += "cooling_tube_position: {}\n".format(self.cooling_tube_position)
+        status_msg += "cooling_tube_length:   {}\n".format(self.cooling_tube_length)
+        status_msg += "initial_cooling_speed: {}\n".format(self.initial_cooling_speed)
+        status_msg += "final_cooling_speed:   {}\n".format(self.final_cooling_speed)
+        status_msg += "cooling_moves:         {}\n".format(self.cooling_moves)
+        status_msg += "use_skinnydip:         {}\n".format(self.use_skinnydip)
+        status_msg += "skinnydip_distance:    {}\n".format(self.skinnydip_distance)
+        status_msg += "dip_insertion_speed:   {}\n".format(self.dip_insertion_speed)
+        status_msg += "dip_extraction_speed:  {}\n".format(self.dip_extraction_speed)
+        status_msg += "melt_zone_pause:       {}\n".format(self.melt_zone_pause)
+        status_msg += "cooling_zone_pause:    {}\n".format(self.cooling_zone_pause)
+
+        self.gcode.respond_raw(status_msg)
+
+
+    cmd_SET_TIP_FORMING_help = "Sets tip forming configuration"
+    def cmd_SET_TIP_FORMING(self, gcmd):
+        '''
+        Sets the tip forming configuration
+
+        Unspecified ones are left unchanged. True boolean values (use_skinnydip) are specified as "true"
+        (case insensitive); every other values is considered as "false".
+
+        Note: this will not update the configuration file. To make settings permanent, update the configuration file
+        manually.
+
+        Usage: SET_TIP_FORMING PARAMETER=VALUE ...
+        Example: SET_TIP_FORMING ramming_volume=20 toolchange_temp=220
+        '''
+
+        self.ramming_volume = gcmd.get_float("RAMMING_VOLUME", self.ramming_volume)
+        self.toolchange_temp = gcmd.get_float("TOOLCHANGE_TEMP", self.toolchange_temp)
+        self.unloading_speed_start = gcmd.get_float("UNLOADING_SPEED_START", self.unloading_speed_start)
+        self.unloading_speed = gcmd.get_float("UNLOADING_SPEED", self.unloading_speed)
+        self.cooling_tube_position = gcmd.get_float("COOLING_TUBE_POSITION", self.cooling_tube_position)
+        self.cooling_tube_length = gcmd.get_float("COOLING_TUBE_LENGTH", self.cooling_tube_length)
+        self.initial_cooling_speed = gcmd.get_float("INITIAL_COOLING_SPEED", self.initial_cooling_speed)
+        self.final_cooling_speed = gcmd.get_float("FINAL_COOLING_SPEED", self.final_cooling_speed)
+        self.cooling_moves = gcmd.get_int("COOLING_MOVES", self.cooling_moves)
+        self.use_skinnydip = gcmd.get("USE_SKINNYDIP", str(self.use_skinnydip)).lower() == "true"
+        self.skinnydip_distance = gcmd.get_float("SKINNYDIP_DISTANCE", self.skinnydip_distance)
+        self.dip_insertion_speed = gcmd.get_float("DIP_INSERTION_SPEED", self.dip_insertion_speed)
+        self.dip_extraction_speed = gcmd.get_float("DIP_EXTRACTION_SPEED", self.dip_extraction_speed)
+        self.melt_zone_pause = gcmd.get_float("MELT_ZONE_PAUSE", self.melt_zone_pause)
+        self.cooling_zone_pause = gcmd.get_float("COOLING_ZONE_PAUSE", self.cooling_zone_pause)
+
 
     def tip_form(self):
         step = 1
