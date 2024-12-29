@@ -27,6 +27,7 @@ class afcSpool:
         self.gcode.register_mux_command('SET_SPOOL_ID',None,None, self.cmd_SET_SPOOL_ID, desc=self.cmd_SET_SPOOL_ID_help)
         self.gcode.register_mux_command('SET_RUNOUT',None,None, self.cmd_SET_RUNOUT, desc=self.cmd_SET_RUNOUT_help)
         self.gcode.register_mux_command('SET_MAP',None,None, self.cmd_SET_MAP, desc=self.cmd_SET_MAP_help)
+        self.gcode.register_command("RESET_AFC_MAPPING", self.cmd_RESET_AFC_MAPPING, desc=self.cmd_RESET_AFC_MAPPING_help)
 
         self.URL = 'http://{}:{}/api/v1/spool/'.format(self.AFC.spoolman_ip, self.AFC.spoolman_port)
 
@@ -260,6 +261,26 @@ class afcSpool:
         CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.runout_lane = runout
         self.AFC.save_vars()
+
+    cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
+    def cmd_RESET_AFC_MAPPING(self, gcmd):
+        """
+        This commands resets all tool lane mapping to the order that is setup in configuration.
+
+        Useful to put in your PRINT_END macro to reset mapping
+
+        USAGE: RESET_AFC_MAPPING
+        """
+        t_index = 0
+        for key, unit in self.AFC.units.items():
+            for lane in unit:
+                map_cmd = "T{}".format(t_index)
+                self.AFC.tool_cmds[map_cmd] = lane
+                self.AFC.stepper[lane].map = map_cmd
+                t_index += 1
+
+        self.AFC.save_vars()
+        self.AFC.gcode.respond_info("Tool mappings reset")
 
 def load_config(config):
     return afcSpool(config)

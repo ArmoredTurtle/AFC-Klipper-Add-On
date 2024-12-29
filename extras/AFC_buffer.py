@@ -75,6 +75,7 @@ class AFCtrigger:
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.gcode.register_mux_command("QUERY_BUFFER", "BUFFER", self.name, self.cmd_QUERY_BUFFER, desc=self.cmd_QUERY_BUFFER_help)
+        self.gcode.register_mux_command("SET_BUFFER_VELOCITY", "BUFFER", self.name, self.cmd_SET_BUFFER_VELOCITY, desc=self.cmd_SET_BUFFER_VELOCITY_help)
 
         # Belay Buffer
         if self.belay:
@@ -339,7 +340,6 @@ class AFCtrigger:
     def get_status(self, eventtime=None):
         self.response = {}
         self.response['state'] = self.last_state
-        
         return self.response
    
 def load_config_prefix(config):
