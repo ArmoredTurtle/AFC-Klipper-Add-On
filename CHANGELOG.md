@@ -289,3 +289,15 @@ file as the code now generates them automatically.
 
 ### Fixed
 - Fixed error in tip forming when `toolchange_temp` value is not zero
+
+## [2024-12-29]
+
+### Added
+- **New Command: `GET_TIP_FORMING`**
+  Shows the current tip forming configuration. Mostly interesting together with
+  SET_TIP_FORMING.
+
+- **New Command: `SET_TIP_FORMING`**
+  Allows to update tip forming configuration at runtime.
+
+  See command_reference doc for more info
