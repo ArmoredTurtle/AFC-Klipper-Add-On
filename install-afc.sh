@@ -47,6 +47,7 @@ clear
 # Make sure necessary directories exist
 check_root
 check_for_hh
+check_for_prereqs
 clone_repo
 check_existing_install
 check_old_config_version

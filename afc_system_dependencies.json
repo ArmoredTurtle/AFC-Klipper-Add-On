@@ -1,7 +1,0 @@
-{
-  "debian" : [
-    "crudini",
-    "jq",
-    "curl"
-  ]
-}

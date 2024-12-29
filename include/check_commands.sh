@@ -173,3 +173,14 @@ check_old_config_version() {
     fi
   done
 }
+
+check_for_prereqs() {
+  if ! command -v jq &> /dev/null; then
+    sudo apt-get update &> /dev/null
+    sudo apt-get install -y jq &> /dev/null
+  fi
+  if ! command -v crudini &> /dev/null; then
+    sudo apt-get update &> /dev/null
+    sudo apt-get install -y crudini &> /dev/null
+  fi
+}
