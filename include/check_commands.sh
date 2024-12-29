@@ -150,3 +150,24 @@ query_printer_status() {
     return 1
   fi
 }
+
+check_old_config_version() {
+  local config_file="${afc_config_dir}/AFC.cfg"
+
+  # Check if the configuration file exists
+  if [[ ! -f "$config_file" ]]; then
+    force_update=False
+    force_update_no_version=False
+    return
+  fi
+
+  # Check if 'Type: Box_Turtle' is found in the first 15 lines of the file
+  if head -n 15 "$config_file" | grep -v '^\s*#' | grep -q 'Type: Box_Turtle'; then
+    force_update=True
+    # Since we have software without an AFC_INSTALL_VERSION in it, we need a way to designate this as a version that needs to be updated.
+    force_update_no_version=True
+  else
+    force_update=False
+    force_update_no_version=False
+  fi
+}
