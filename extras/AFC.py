@@ -1271,13 +1271,11 @@ class afc:
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
-                for UNIT in self.units.keys():
-                    for LANE in self.units[UNIT].keys():
-                        # Calibrate the specific lane
-                        checked, msg = calibrate_lane(LANE)
-                        if(not checked): return
-                        cal_msg += msg
-
+                for LANE in self.lanes.keys():
+                    # Calibrate the specific lane
+                    checked, msg = calibrate_lane(LANE)
+                    if(not checked): return
+                    cal_msg += msg
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
 
@@ -1293,7 +1291,7 @@ class afc:
                 return
 
             lane = lane_to_calibrate
-            CUR_LANE = self.printer.lookup_object('AFC_stepper ' + lane)
+            CUR_LANE = self.lanes[lane]
             CUR_EXTRUDER = CUR_LANE.extruder_obj
             CUR_HUB = CUR_LANE.hub_obj
             self.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name.upper()))
