@@ -525,6 +525,7 @@ class afc:
 
             # Removing spool from vars since it was ejected
             self.SPOOL.set_spoolID( CUR_LANE, "")
+            self.gcode.respond_info("LANE {} eject done".format(CUR_LANE.name))
 
         else:
             self.gcode.respond_info("LANE {} is loaded in toolhead, can't unload.".format(CUR_LANE.name))
@@ -907,6 +908,7 @@ class afc:
         self.current = None
         CUR_LANE.do_enable(False)
         self.save_vars()
+        self.gcode.respond_info("LANE {} unload done".format(CUR_LANE.name))
         return True
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"

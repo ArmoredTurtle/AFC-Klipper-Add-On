@@ -16,6 +16,11 @@ runs the resume script, and restores the toolhead position to the last saved pos
 Usage: ``AFC_RESUME``  
 Example: ``AFC_RESUME``  
 
+### TEST_AFC_TIP_FORMING
+_Description_: Gives ability to test AFC tip forming without doing a tool change  
+Usage: `TEST_AFC_TIP_FORMING LANE=<lane>`  
+Example: `TEST_AFC_TIP_FORMING LANE=leg1`  
+
 ### AFC_STATUS
 _Description_: This function generates a status message for each unit and lane, indicating the preparation,
 loading, hub, and tool states. The status message is formatted with HTML tags for display.  
@@ -99,6 +104,13 @@ distance of the current AFC stepper motor.
 Usage: `QUERY_BUFFER BUFFER=<buffer_name>`  
 Example: `QUERY_BUFFER BUFFER=TN2`  
 
+### SET_BUFFER_VELOCITY
+_Description_: Allows users to tweak buffer velocity setting while printing. This setting is not
+saved in configuration. Please update your configuration file once you find a velocity that
+works for your setup.  
+Usage: `SET_BUFFER_VELOCITY BUFFER=<buffer_name> VELOCITY=<value>`  
+Example: `SET_BUFFER_VELOCITY BUFFER=TN2 VELOCITY=100`  
+
 ### SET_MAP
 _Description_: This function handles changing the GCODE tool change command for a Lane.  
 Usage: ``SET_MAP LANE=<lane> MAP=<cmd>``  
@@ -136,13 +148,18 @@ based on the information retrieved from the Spoolman API.
 Usage: ``SET_RUNOUT LANE=<lane> RUNOUT=<lane>``  
 Example: ``SET_RUNOUT LANE=lane1 RUNOUT=lane4``  
 
+### RESET_AFC_MAPPING
+_Description_: This commands resets all tool lane mapping to the order that is setup in configuration.  
+Usage: `RESET_AFC_MAPPING LANE=<lane>`  
+Example: `RESET_AFC_MAPPING LANE=leg1`  
+
 ### CALIBRATE_AFC
 _Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
 (Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
 steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
 user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
 the option to calibrate the Bowden length for a particular lane, if specified.  
-Usage: ``CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
+Usage: ``CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
 Example: `CALIBRATE_AFC LANE=leg1`  
 
 ## AFC Macros
