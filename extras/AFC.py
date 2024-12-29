@@ -1208,27 +1208,27 @@ class afc:
             tuned_hub_pos = calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos, short_dis, tol)
             return tuned_hub_pos
 
-        def move_until_state(lane, state, move_dis, tolerance, short_move, pos=0):
+        def move_until_state(CUR_LANE, state, move_dis, tolerance, short_move, pos=0):
             while state() == False:
-                lane.move(move_dis, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move(move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 pos += move_dis
             self.reactor.pause(self.reactor.monotonic() + 0.1)
             while state() == True:
-                lane.move(short_move * -1, self.short_moves_speed, self.short_moves_accel, True)
+                CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                 pos -= short_move
             self.reactor.pause(self.reactor.monotonic() + 0.1)
             while state() == False:
-                lane.move(tolerance, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 pos += tolerance
             return pos
 
-        def calc_position(lane, state, pos, short_move, tolerance):
+        def calc_position(CUR_LANE, state, pos, short_move, tolerance):
             while state():
-                lane.move(short_move * -1, self.short_moves_speed, self.short_moves_accel, True)
+                CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                 pos -= short_move
             self.reactor.pause(self.reactor.monotonic() + 0.1)
             while not state():
-                lane.move(tolerance, self.short_moves_speed, self.short_moves_accel)
+                CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 pos += tolerance
             return pos
 
@@ -1305,10 +1305,10 @@ class afc:
                     bow_pos += dis
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                 bow_pos = calc_position(CUR_LANE, lambda: CUR_EXTRUDER.tool_start_state, bow_pos, short_dis, tol)
-                CUR_LANE.move(bow_pos * -1, self.long_moves_speed, self.long_moves_accel, True)
+                CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
                 calibrate_hub(CUR_LANE, CUR_HUB)
                 if CUR_HUB.state:
-                    CUR_LANE.move(CUR_HUB.move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                    CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                 if CUR_EXTRUDER.tool_start == 'buffer':
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (short_dis * 2))
                 else:
