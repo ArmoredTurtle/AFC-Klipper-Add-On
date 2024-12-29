@@ -7,7 +7,11 @@
 
 uninstall_afc() {
   unlink_extensions
-  manage_include "${printer_config_dir}/printer.cfg" "add"
+  manage_include "${printer_config_dir}/printer.cfg" "remove"
   backup_afc_config
   restart_klipper
+  message="""
+  AFC has been uninstalled successfully.
+  """
+  export message
 }
