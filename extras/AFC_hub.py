@@ -1,18 +1,11 @@
-
 from configparser import Error as error
 
 class afc_hub:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-
+        self.AFC = self.printer.lookup_object('AFC')
         self.name = config.get_name().split()[-1]
-        self.type = config.get('type', None)
-
-        try:
-            self.unit = self.printer.load_object(config, "AFC_{}".format(self.type.replace("_", "")))
-        except:
-            raise error("{} not supported, please remove or fix correct type for AFC_hub in your configuration".format(self.type))
 
         # HUB Cut variables
         # Next two variables are used in AFC
@@ -28,6 +21,7 @@ class afc_hub:
         self.cut_confirm = config.getboolean("cut_confirm", 0)
 
         self.move_dis = config.getfloat("move_dis", 50)
+        
         self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
@@ -43,9 +37,10 @@ class afc_hub:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.AFC = self.printer.lookup_object('AFC')
+        self.AFC.hubs[self.name] = self
         self.gcode = self.AFC.gcode
         self.reactor = self.AFC.reactor
+        self.AFC.hubs[self.name]=self
 
 
     def switch_pin_callback(self, eventtime, state):
@@ -58,11 +53,11 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
         while self.state == False:
-            CUR_LANE.move( self.move_dis, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+            CUR_LANE.move( self.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Go back, to allow the `hub_cut_dist` to be accurate.
-        CUR_LANE.move( -self.move_dis*4, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move( -self.move_dis*4, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Feed the `hub_cut_dist` amount.
-        CUR_LANE.move( self.cut_dist, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move( self.cut_dist, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Have a snooze
         self.reactor.pause(self.reactor.monotonic() + 0.5)
 
@@ -82,7 +77,21 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
 
         # Retract lane by `hub_cut_clear`.
-        CUR_LANE.move( -self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move( -self.cut_clear, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['state'] = self.state
+        self.response['cut'] = self.cut
+        self.response['cut_cmd'] = self.cut_cmd
+        self.response['cut_dist'] = self.cut_dist
+        self.response['cut_clear'] = self.cut_clear
+        self.response['cut_min_length'] = self.cut_min_length
+        self.response['cut_servo_pass_angle'] = self.cut_servo_pass_angle
+        self.response['cut_servo_clip_angle'] = self.cut_servo_clip_angle
+        self.response['cut_servo_prep_angle'] = self.cut_servo_prep_angle
+        
+        return self.response
 
 def load_config_prefix(config):
     return afc_hub(config)
