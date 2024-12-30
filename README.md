@@ -208,17 +208,17 @@ _distances will be calibrated to have ~1 short move after the move distance_
 
 ### Usage
 
-`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`  
+`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`  
 _`DISTANCE` and `TOLERANCE` are optional. default distance 25mm, default tolerance 5mm_
 
 - To calibrate all lanes and the bowden length all at once:
-  - `CALIBRATE_AFC LANES=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
+  - `CALIBRATE_AFC LANE=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 - To calibrate individual lanes
-  - `CALIBRATE_AFC LANES=<lane>` input the lane you would like to calibrate
+  - `CALIBRATE_AFC LANE=<lane>` input the lane you would like to calibrate
 - To calibrate just the bowden length:
   - `CALIBRATE_AFC BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 
-If using a hub different than the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.  
+If using a hub different from the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.  
 **All values must be updated in AFC_Hardware.cfg after calibration**
 
 ## Troubleshooting
