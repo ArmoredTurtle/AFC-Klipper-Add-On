@@ -15,25 +15,25 @@ append_buffer_config() {
   case "$buffer_type" in
     "TurtleNeck")
       buffer_config=$(cat <<EOF
-[AFC_buffer TN]
+[AFC_buffer Turtle_1]
 advance_pin: ${tn_advance_pin}    # set advance pin
 trailing_pin: ${tn_trailing_pin}  # set trailing pin
 multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 EOF
 )
-      buffer_name="TN"
+      buffer_name="Turtle_1"
       ;;
     "TurtleNeckV2")
       buffer_config=$(cat <<'EOF'
-[AFC_buffer TN2]
+[AFC_buffer Turtle_1]
 advance_pin: !turtleneck:ADVANCE
 trailing_pin: !turtleneck:TRAILING
 multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
 
-[AFC_led Buffer_Indicator]
+[AFC_led Turtle_1_Buffer_Indicator]
 pin: turtleneck:RGB
 chain_count: 1
 color_order: GRBW
@@ -43,7 +43,7 @@ initial_BLUE: 0.0
 initial_WHITE: 0.0
 EOF
 )
-      buffer_name="TN2"
+      buffer_name="Turtle_1"
       ;;
     *)
       echo "Invalid BUFFER_SYSTEM: $buffer_type"

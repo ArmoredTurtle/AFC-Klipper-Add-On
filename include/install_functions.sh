@@ -54,7 +54,9 @@ copy_unit_files() {
   # If we are installing a BoxTurtle, then copy these files over.
   if [ "$installation_type" == "BoxTurtle" ]; then
     cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
-    cp "${afc_path}/templates/Turtle_1.cfg" "${afc_config_dir}/Turtle_1.cfg"
+    cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_Turtle_1.cfg"
+    mkdir -p "${afc_config_dir}/mcu"
+    cp "${afc_path}/templates/mcu/TurtleNeckv2.cfg" "${afc_config_dir}/mcu/TurtleNeckv2.cfg"
   fi
 }
 
@@ -108,7 +110,7 @@ install_afc() {
 
 - AFC-Klipper-Add-On python extensions installed to ${klipper_dir}/klippy/extras/
 
-- Ensure you enter either your canbus or serial information in the ${afc_config_dir}/Turtle_1.cfg file
+- Ensure you enter either your canbus or serial information in the ${afc_config_dir}/AFC_Turtle1.cfg file
 """
 if [ "$buffer_type" == "TurtleNeckV2" ]; then
   message+="""
