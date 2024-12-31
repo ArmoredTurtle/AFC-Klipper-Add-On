@@ -65,7 +65,7 @@ class afcPrep:
 
         # check if Lane is suppose to be loaded in tool head from saved file
         for EXTRUDER in self.AFC.tools.keys():
-            PrinterObject=self.printer.lookup_object(EXTRUDER)
+            PrinterObject=self.AFC.tools[EXTRUDER]
             self.AFC.tools[PrinterObject.name]=PrinterObject
             if PrinterObject.name in extruders:
                 if 'lane_loaded' in extruders[PrinterObject.name]: PrinterObject.lane_loaded = extruders[PrinterObject.name]['lane_loaded']

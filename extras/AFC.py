@@ -1077,7 +1077,7 @@ class afc:
         str["system"]["extruders"]={}
 
         for EXTRUDE in self.tools.keys():
-            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
+            CUR_EXTRUDER = self.tools[EXTRUDE]
             str["system"]["extruders"][CUR_EXTRUDER.name]={}
             str["system"]["extruders"][CUR_EXTRUDER.name]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
             if CUR_EXTRUDER.tool_start == "buffer":
