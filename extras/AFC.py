@@ -25,7 +25,7 @@ class afc:
         self.current = None
         self.error_state = False
         self.hub = None
-        self.buffer=None
+        self.buffer = None
         self.units = {}
         self.tools = {}
         self.lanes = {}
@@ -157,7 +157,7 @@ class afc:
             self.hub = HUB
             break
         for BUFFER in self.buffers.keys():
-            self.buffer = BUFFER
+            self.buffer_obj = self.buffers[BUFFER]
             break
 
     def print_version(self):
@@ -1063,9 +1063,7 @@ class afc:
                str[CUR_UNIT.name]['system']['hub'] = CUR_UNIT.hub
                str[UNIT]['system']['hub_loaded']  = CUR_UNIT.hub_obj.state
                str[UNIT]['system']['Hub_can_cut']  = CUR_UNIT.hub_obj.cut
-            if CUR_UNIT.buffer is None:
-                CUR_UNIT.buffer = self.printer.lookup_object('AFC_buffer '+list(self.buffers.keys())[0])
-            else:
+            if CUR_UNIT.buffer is not None:
                 str[CUR_UNIT.name]['system']['buffer'] = CUR_UNIT.buffer
                 str[CUR_UNIT.name]['system']['buffer_state'] = CUR_UNIT.buffer_obj.last_state
             str[CUR_UNIT.name]['system']['screen'] = CUR_UNIT.screen_mac
@@ -1102,7 +1100,7 @@ class afc:
                     str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
             else:
                 str["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = 'Not In Use '
-                str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = ' NONE'
+                str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
         return str
 
     def is_homed(self):

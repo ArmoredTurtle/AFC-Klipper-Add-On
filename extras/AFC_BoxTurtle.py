@@ -10,6 +10,7 @@ class afcBoxTurtle:
         self.screen_mac = config.get('screen_mac', None)
         self.hub = config.get('hub', None)
         self.buffer = config.get('buffer', None)
+        self.buffer_obj = None
         
         self.led_name =config.get('led_name', None)
         self.led_fault =config.get('led_fault', None)
@@ -42,7 +43,8 @@ class afcBoxTurtle:
 
         self.AFC.units[self.name] = self
         self.hub_obj = self.AFC.hubs[self.hub]
-        self.buffer_obj = self.AFC.buffers[self.buffer]
+        
+        if self.buffer is not None: self.buffer_obj = self.AFC.buffers[self.buffer]
 
         if self.led_name is None: self.led_name = self.AFC.led_name
         if self.led_fault is None: self.led_fault = self.AFC.led_fault

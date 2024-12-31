@@ -19,6 +19,7 @@ class AFCextruder:
         self.tool_load_speed = config.getfloat("tool_load_speed", 25)
         self.tool_start = config.get('pin_tool_start', None)
         self.tool_end = config.get('pin_tool_end', None)
+        self.tool_start_state =None
         self.lane_loaded = None
         self.buffer_name = config.get('buffer', None)
         self.buffer = None
