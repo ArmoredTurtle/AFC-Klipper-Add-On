@@ -602,7 +602,7 @@ class afc:
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'Tool Loading'
         self.save_vars()
-        self.led(CUR_LANE.led_loading, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
         if CUR_LANE.load_state and not CUR_HUB.state:
@@ -683,7 +683,7 @@ class afc:
             CUR_EXTRUDER.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
                 self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
@@ -696,7 +696,7 @@ class afc:
             # Update lane and extruder state for tracking.
             CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
-            self.led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -784,7 +784,7 @@ class afc:
         CUR_EXTRUDER.disable_buffer()
 
         # Activate LED indicator for unloading.
-        self.led(CUR_LANE.led_unloading, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
 
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
@@ -903,7 +903,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         CUR_LANE.loaded_to_hub = True
-        self.led(CUR_LANE.led_ready, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.current = None
         CUR_LANE.do_enable(False)

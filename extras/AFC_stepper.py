@@ -168,7 +168,6 @@ class AFCExtruderStepper:
         
         self.hub_obj = self.AFC.hubs[self.hub]
         self.buffer_obj = self.AFC.hubs[self.unit_obj.buffer]
-            
 
         if self.led_name is None: self.led_name = self.unit_obj.led_name
         if self.led_fault is None: self.led_fault = self.unit_obj.led_fault
