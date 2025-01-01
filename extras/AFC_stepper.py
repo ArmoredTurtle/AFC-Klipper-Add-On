@@ -71,27 +71,21 @@ class AFCExtruderStepper:
         self.unit = unit.split(':')[0]
         self.index = int(unit.split(':')[1])
 
-        try:
-            self.unit_obj=self.printer.lookup_object(self.AFC.units[self.unit] + ' ' + self.unit)
-        except:
-            error_string = 'Error: No config found for unit: ' + self.unit + ' in [' + self.AFC.units[self.unit] + ' ' + self.unit + ']. config exists in AFC_Hardware.cfg'
-            self.AFC.ERROR.AFC_error(error_string, False)
-        
         self.led_index = config.get('led_index', None)                                              # LED index of lane in chain of lane LEDs
-        self.led_name =config.get('led_name',self.unit_obj.led_name)
-        self.led_fault =config.get('led_fault',self.unit_obj.led_fault)
-        self.led_ready = config.get('led_ready',self.unit_obj.led_ready)
-        self.led_not_ready = config.get('led_not_ready',self.unit_obj.led_not_ready)
-        self.led_loading = config.get('led_loading',self.unit_obj.led_loading)
-        self.led_prep_loaded = config.get('led_loading',self.unit_obj.led_prep_loaded)
-        self.led_unloading = config.get('led_unloading',self.unit_obj.led_unloading)
-        self.led_tool_loaded = config.get('led_tool_loaded',self.unit_obj.led_tool_loaded)
+        self.led_name =config.get('led_name',None)
+        self.led_fault =config.get('led_fault',None)
+        self.led_ready = config.get('led_ready',None)
+        self.led_not_ready = config.get('led_not_ready',None)
+        self.led_loading = config.get('led_loading',None)
+        self.led_prep_loaded = config.get('led_loading',None)
+        self.led_unloading = config.get('led_unloading',None)
+        self.led_tool_loaded = config.get('led_tool_loaded',None)
 
-        self.long_moves_speed = config.getfloat("long_moves_speed", self.unit_obj.long_moves_speed)            # Speed in mm/s to move filament when doing long moves
-        self.long_moves_accel = config.getfloat("long_moves_accel", self.unit_obj.long_moves_accel)            # Acceleration in mm/s squared when doing long moves
-        self.short_moves_speed = config.getfloat("short_moves_speed", self.unit_obj.short_moves_speed)           # Speed in mm/s to move filament when doing short moves
-        self.short_moves_accel = config.getfloat("short_moves_accel", self.unit_obj.short_moves_accel)          # Acceleration in mm/s squared when doing short moves
-        self.short_move_dis = config.getfloat("short_move_dis", self.unit_obj.short_move_dis)                 # Move distance in mm for failsafe moves.
+        self.long_moves_speed = config.getfloat("long_moves_speed", None)            # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel = config.getfloat("long_moves_accel", None)            # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed = config.getfloat("short_moves_speed", None)           # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel = config.getfloat("short_moves_accel", None)          # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis = config.getfloat("short_move_dis", None)                 # Move distance in mm for failsafe moves.
 
         self.hub = config.get('hub',None)
         self.buffer = config.get('buffer',None)
@@ -166,23 +160,28 @@ class AFCExtruderStepper:
         self.AFC.lanes[self.name] = self
 
     def _handle_ready(self):
-        try:
-            self.extruder_obj = self.printer.lookup_object('AFC_extruder ' + self.extruder_name)
-        except:
-            error_string = 'Error: No config found for extruder: ' + self.extruder_name + ' in [AFC_stepper ' + self.name + ']. Please make sure [AFC_extruder ' + self.extruder_name + '] config exists in AFC_Hardware.cfg'
-            self.AFC.ERROR.AFC_error(error_string, False)
+        self.unit_obj=self.AFC.units[self.unit]
+        self.extruder_obj = self.AFC.tools[self.extruder_name] 
+        if self.hub is None: self.hub = self.unit_obj.hub_obj.name
 
-        if self.hub is None:
-            self.hub_obj = self.AFC.hubs[self.unit_obj.hub]
-            self.hub = self.hub_obj.name
-        else:
-            self.hub_obj = self.AFC.hubs[self.hub]
-        if self.buffer is None:
-            self.buffer_obj = self.AFC.hubs[self.unit_obj.buffer]
-            self.buffer = self.buffer_obj.name
-        else: 
-            self.buffer_obj = self.AFC.buffers[self.buffer]
+        if self.buffer is None and self.unit_obj.buffer_obj is not None: self.buffer = self.unit_obj.buffer_obj.name
+        
+        self.hub_obj = self.AFC.hubs[self.hub]
 
+        if self.led_name is None: self.led_name = self.unit_obj.led_name
+        if self.led_fault is None: self.led_fault = self.unit_obj.led_fault
+        if self.led_ready is None: self.led_ready = self.unit_obj.led_ready
+        if self.led_not_ready is None: self.led_not_ready = self.unit_obj.led_not_ready
+        if self.led_loading is None: self.led_loading = self.unit_obj.led_loading
+        if self.led_prep_loaded is None: self.led_prep_loaded = self.unit_obj.led_prep_loaded
+        if self.led_unloading is None: self.led_unloading = self.unit_obj.led_unloading
+        if self.led_tool_loaded is None: self.led_tool_loaded = self.unit_obj.led_tool_loaded
+
+        if self.long_moves_speed is None: self.long_moves_speed = self.unit_obj.long_moves_speed        # Speed in mm/s to move filament when doing long moves
+        if self.long_moves_accel is None: self.long_moves_accel = self.unit_obj.long_moves_accel           # Acceleration in mm/s squared when doing long moves
+        if self.short_moves_speed is None: self.short_moves_speed = self.unit_obj.short_moves_speed          # Speed in mm/s to move filament when doing short moves
+        if self.short_moves_accel is None: self.short_moves_accel = self.unit_obj.short_moves_accel        # Acceleration in mm/s squared when doing short moves
+        if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis                # Move distance in mm for failsafe moves.
 
     def _get_tmc_values(self, config):
         """

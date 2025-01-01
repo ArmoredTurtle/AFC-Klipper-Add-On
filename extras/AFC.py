@@ -25,7 +25,7 @@ class afc:
         self.current = None
         self.error_state = False
         self.hub = None
-        self.buffer=None
+        self.buffer = None
         self.units = {}
         self.tools = {}
         self.lanes = {}
@@ -157,7 +157,7 @@ class afc:
             self.hub = HUB
             break
         for BUFFER in self.buffers.keys():
-            self.buffer = BUFFER
+            self.buffer_obj = self.buffers[BUFFER]
             break
 
     def print_version(self):
@@ -602,7 +602,7 @@ class afc:
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'Tool Loading'
         self.save_vars()
-        self.led(CUR_LANE.led_loading, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
         if CUR_LANE.load_state and not CUR_HUB.state:
@@ -683,7 +683,7 @@ class afc:
             CUR_EXTRUDER.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
                 self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
@@ -696,7 +696,7 @@ class afc:
             # Update lane and extruder state for tracking.
             CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
-            self.led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -784,7 +784,7 @@ class afc:
         CUR_EXTRUDER.disable_buffer()
 
         # Activate LED indicator for unloading.
-        self.led(CUR_LANE.led_unloading, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
 
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
@@ -903,7 +903,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         CUR_LANE.loaded_to_hub = True
-        self.led(CUR_LANE.led_ready, CUR_LANE.led_index)
+        self.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.current = None
         CUR_LANE.do_enable(False)
@@ -1063,9 +1063,7 @@ class afc:
                str[CUR_UNIT.name]['system']['hub'] = CUR_UNIT.hub
                str[UNIT]['system']['hub_loaded']  = CUR_UNIT.hub_obj.state
                str[UNIT]['system']['Hub_can_cut']  = CUR_UNIT.hub_obj.cut
-            if CUR_UNIT.buffer is None:
-                CUR_UNIT.buffer = self.printer.lookup_object('AFC_buffer '+list(self.buffers.keys())[0])
-            else:
+            if CUR_UNIT.buffer is not None:
                 str[CUR_UNIT.name]['system']['buffer'] = CUR_UNIT.buffer
                 str[CUR_UNIT.name]['system']['buffer_state'] = CUR_UNIT.buffer_obj.last_state
             str[CUR_UNIT.name]['system']['screen'] = CUR_UNIT.screen_mac
@@ -1077,7 +1075,7 @@ class afc:
         str["system"]["extruders"]={}
 
         for EXTRUDE in self.tools.keys():
-            CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
+            CUR_EXTRUDER = self.tools[EXTRUDE]
             str["system"]["extruders"][CUR_EXTRUDER.name]={}
             str["system"]["extruders"][CUR_EXTRUDER.name]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
             if CUR_EXTRUDER.tool_start == "buffer":
@@ -1102,7 +1100,7 @@ class afc:
                     str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
             else:
                 str["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = 'Not In Use '
-                str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = ' NONE'
+                str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
         return str
 
     def is_homed(self):
