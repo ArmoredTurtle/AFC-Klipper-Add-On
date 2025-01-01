@@ -1016,10 +1016,10 @@ class afc:
         if CUR_LANE.prep_state:
             if CUR_LANE.load_state:
                 if CUR_LANE.extruder_obj is not None and CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
-                    return 'In Tool:' + self.HexConvert(CUR_LANE.led_tool_loaded)
-                return "Ready:" + self.HexConvert(CUR_LANE.led_ready)
-            return 'Prep:' + self.HexConvert(CUR_LANE.led_prep_loaded)
-        return 'Not Ready:' + self.HexConvert(CUR_LANE.led_not_ready)
+                    return 'In Tool:' + self.HexConvert(CUR_LANE.led_tool_loaded).split(':')[-1]
+                return "Ready:" + self.HexConvert(CUR_LANE.led_ready).split(':')[-1]
+            return 'Prep:' + self.HexConvert(CUR_LANE.led_prep_loaded).split(':')[-1]
+        return 'Not Ready:' + self.HexConvert(CUR_LANE.led_not_ready).split(':')[-1]
 
     def HexConvert(self,tmp):
         led=tmp.split(',')
@@ -1060,7 +1060,7 @@ class afc:
                 str[CUR_UNIT.name][CUR_LANE.name]["color"]=CUR_LANE.color
                 str[CUR_UNIT.name][CUR_LANE.name]["weight"]=CUR_LANE.weight
                 str[CUR_UNIT.name][CUR_LANE.name]["runout_lane"]=CUR_LANE.runout_lane
-                filiment_stat=self.get_filament_status(CUR_LANE)
+                filiment_stat=self.get_filament_status(CUR_LANE).split(':')
                 str[CUR_UNIT.name][CUR_LANE.name]['filament_status']=filiment_stat[0]
                 str[CUR_UNIT.name][CUR_LANE.name]['filament_status_led']=filiment_stat[1]
                 str[CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status 

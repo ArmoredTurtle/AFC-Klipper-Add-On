@@ -467,9 +467,9 @@ class AFCExtruderStepper:
         self.response["color"]=self.color
         self.response["weight"]=self.weight
         self.response["runout_lane"]=self.runout_lane
-       # filiment_stat=self.get_filament_status().split(':')
-        #self.response['filament_status'] = filiment_stat[0]
-        #self.response['filament_status_led'] = filiment_stat[1]
+        filiment_stat=self.AFC.get_filament_status(self).split(':')
+        self.response['filament_status'] = filiment_stat[0]
+        self.response['filament_status_led'] = filiment_stat[1]
         self.response['status'] = self.status
         return self.response
     
