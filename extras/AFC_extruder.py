@@ -122,8 +122,10 @@ class AFCextruder:
         self.response['buffer'] = self.buffer_name
         self.response['lane_loaded'] = self.lane_loaded
         self.response['tool_start'] = self.tool_start
-        self.response['tool_start_status'] = self.tool_start_state
+        self.response['tool_start_status'] = bool(self.tool_start_state)
         self.response['tool_end'] = self.tool_end
+        if self.tool_end is not None:
+            self.response['tool_start_status'] = bool(self.tool_end_state)
         return self.response
     
 def load_config_prefix(config):

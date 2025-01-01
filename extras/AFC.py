@@ -1094,9 +1094,9 @@ class afc:
                 else:
                     str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = True
             else:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = CUR_EXTRUDER.tool_start_state
+                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = bool(CUR_EXTRUDER.tool_start_state)
             if CUR_EXTRUDER.tool_end is not None:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = CUR_EXTRUDER.tool_end_state
+                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = bool(CUR_EXTRUDER.tool_end_state)
             else:
                 str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = None
             if self.current is not None:
@@ -1264,15 +1264,14 @@ class afc:
             CUR_LANE.hub_load = True
             CUR_LANE.do_enable(False)
             CUR_LANE.dist_hub = hub_pos - CUR_HUB.hub_clear_move_dis
-            self.ConfigRewrite(CUR_LANE.fullname, "dist_hub", hub_pos - CUR_HUB.hub_clear_move_dis)
             cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
+            self.ConfigRewrite(CUR_LANE.fullname, "dist_hub", hub_pos - CUR_HUB.hub_clear_move_dis, cal_msg)
             return True, cal_msg
 
         # Determine if a specific lane is provided
         if lanes is not None:
             self.gcode.respond_info('Starting AFC distance Calibrations')
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-            cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             if lanes != 'all':
                 lane_to_calibrate = find_lane_to_calibrate(lanes)
                 if lane_to_calibrate is None:
@@ -1295,7 +1294,6 @@ class afc:
             if lanes is None:
                 self.gcode.respond_info('Starting AFC distance Calibrations')
                 cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-                cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
 
             lane_to_calibrate = find_lane_to_calibrate(afc_bl)
 
@@ -1318,23 +1316,22 @@ class afc:
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                 bow_pos = calc_position(CUR_LANE, lambda: CUR_EXTRUDER.tool_start_state, bow_pos, short_dis, tol)
                 CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
-                calibrate_hub(CUR_LANE, CUR_HUB)
                 if CUR_HUB.state:
                     CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                 if CUR_EXTRUDER.tool_start == 'buffer':
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (short_dis * 2))
-                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (short_dis * 2))
+                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (short_dis * 2), cal_msg)
                 else:
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - short_dis)
-                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - short_dis)
+                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - short_dis, cal_msg)
                 CUR_LANE.do_enable(False)
             else:
                 self.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
         self.save_vars()
-        self.gcode.respond_info(cal_msg)
+#        self.gcode.respond_info(cal_msg)
 
-    def ConfigRewrite(self, rawsection, rawkey, rawvalue):
+    def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
         taskdone = False
         sectionfound = False
         for filename in os.listdir(self.cfgloc):
@@ -1359,8 +1356,11 @@ class afc:
                     f.write(dataout)
                     f.close
                     taskdone = False
+                    msg +='\n<span class=info--text>Saved to configuration file</span>'
+                    self.gcode.respond_info(msg)
                     return
-        self.gcode.respond_info('Unable to auto save')
+        msg +='\n<span class=info--text>Update values in [' + rawsection +']</span>'
+        self.gcode.respond_info(msg)
 
 def load_config(config):
     return afc(config)
