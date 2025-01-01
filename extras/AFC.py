@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import json
+import os
 
 AFC_VERSION="1.0.0"
 
@@ -22,6 +23,8 @@ class afc:
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.VarFile = config.get('VarFile','../printer_data/config/AFC/')
+        self.cfgloc = self.remove_after_last(self.VarFile,"/")
+        
         self.current = None
         self.error_state = False
         self.hub = None
@@ -112,6 +115,13 @@ class afc:
         # Printing here will not display in console but it will go to klippy.log
         self.print_version()
 
+    def remove_after_last(self, string, char):
+        last_index = string.rfind(char)
+        if last_index != -1:
+            return string[:last_index + 1]
+        else:
+            return string
+            
     def _update_trsync(self, config):
         # Logic to update trsync values
         update_trsync = config.getboolean("trsync_update", False)                   # Set to true to enable updating trsync value in klipper mcu. Enabling this and updating the timeouts can help with Timer Too Close(TTC) errors
@@ -936,7 +946,7 @@ class afc:
         tmp = gcmd.get_commandline()
         cmd = tmp.upper()
         Tcmd = ''
-        if 'LANE' in cmd:
+        if 'CHANGE' in cmd:
             lane = gcmd.get('LANE', None)
             for key in self.tool_cmds.keys():
                 if self.tool_cmds[key].upper() == lane.upper():
@@ -1028,7 +1038,7 @@ class afc:
 
         return '#{:02x}{:02x}{:02x}'.format(*led)
 
-    def get_status(self, eventtime):   #   will be removed near future  do not use for future coding
+    def get_status(self, eventtime=None):   #   will be removed near future  do not use for future coding
         str = {}
         numoflanes = 0
         for UNIT in self.units.keys():
@@ -1050,7 +1060,7 @@ class afc:
                 str[CUR_UNIT.name][CUR_LANE.name]["color"]=CUR_LANE.color
                 str[CUR_UNIT.name][CUR_LANE.name]["weight"]=CUR_LANE.weight
                 str[CUR_UNIT.name][CUR_LANE.name]["runout_lane"]=CUR_LANE.runout_lane
-                filiment_stat=self.get_filament_status(CUR_LANE).split(':')
+                filiment_stat=self.get_filament_status(CUR_LANE)
                 str[CUR_UNIT.name][CUR_LANE.name]['filament_status']=filiment_stat[0]
                 str[CUR_UNIT.name][CUR_LANE.name]['filament_status_led']=filiment_stat[1]
                 str[CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status 
@@ -1084,9 +1094,9 @@ class afc:
                 else:
                     str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = True
             else:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = True == CUR_EXTRUDER.tool_start_state if CUR_EXTRUDER.tool_start is not None else False
+                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = bool(CUR_EXTRUDER.tool_start_state)
             if CUR_EXTRUDER.tool_end is not None:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = True == CUR_EXTRUDER.tool_end_state
+                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = bool(CUR_EXTRUDER.tool_end_state)
             else:
                 str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = None
             if self.current is not None:
@@ -1253,14 +1263,15 @@ class afc:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             CUR_LANE.hub_load = True
             CUR_LANE.do_enable(False)
+            CUR_LANE.dist_hub = hub_pos - CUR_HUB.hub_clear_move_dis
             cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
+            self.ConfigRewrite(CUR_LANE.fullname, "dist_hub", hub_pos - CUR_HUB.hub_clear_move_dis, cal_msg)
             return True, cal_msg
 
         # Determine if a specific lane is provided
         if lanes is not None:
             self.gcode.respond_info('Starting AFC distance Calibrations')
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-            cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             if lanes != 'all':
                 lane_to_calibrate = find_lane_to_calibrate(lanes)
                 if lane_to_calibrate is None:
@@ -1283,7 +1294,6 @@ class afc:
             if lanes is None:
                 self.gcode.respond_info('Starting AFC distance Calibrations')
                 cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-                cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
 
             lane_to_calibrate = find_lane_to_calibrate(afc_bl)
 
@@ -1306,19 +1316,51 @@ class afc:
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                 bow_pos = calc_position(CUR_LANE, lambda: CUR_EXTRUDER.tool_start_state, bow_pos, short_dis, tol)
                 CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
-                calibrate_hub(CUR_LANE, CUR_HUB)
                 if CUR_HUB.state:
                     CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                 if CUR_EXTRUDER.tool_start == 'buffer':
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (short_dis * 2))
+                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (short_dis * 2), cal_msg)
                 else:
                     cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - short_dis)
+                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - short_dis, cal_msg)
                 CUR_LANE.do_enable(False)
             else:
                 self.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
         self.save_vars()
-        self.gcode.respond_info(cal_msg)
+#        self.gcode.respond_info(cal_msg)
+
+    def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
+        taskdone = False
+        sectionfound = False
+        for filename in os.listdir(self.cfgloc):
+            file_path = os.path.join(self.cfgloc, filename)
+            if os.path.isfile(file_path) and filename.endswith(".cfg"):
+                with open(file_path, 'r') as f:
+                    dataout = ''
+                    for line in f:
+                        if rawsection in line: sectionfound = True
+                        if sectionfound == True and line.startswith(rawkey):
+                            comments = ""
+                            try:
+                                comments = line.index('#')
+                            except:
+                                pass
+                            line = "{}: {}{}\n".format(rawkey, rawvalue, comments )
+                            sectionfound = False
+                            taskdone = True
+                        dataout += line
+                if taskdone:
+                    f=open(file_path, 'w')
+                    f.write(dataout)
+                    f.close
+                    taskdone = False
+                    msg +='\n<span class=info--text>Saved to configuration file</span>'
+                    self.gcode.respond_info(msg)
+                    return
+        msg +='\n<span class=info--text>Update values in [' + rawsection +']</span>'
+        self.gcode.respond_info(msg)
 
 def load_config(config):
     return afc(config)

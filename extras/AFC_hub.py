@@ -6,7 +6,7 @@ class afc_hub:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.AFC = self.printer.lookup_object('AFC')
         self.name = config.get_name().split()[-1]
-
+        self.fullname = config.get_name()
         # HUB Cut variables
         # Next two variables are used in AFC
         self.cut = config.getboolean("cut", False)
