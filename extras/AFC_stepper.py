@@ -56,8 +56,9 @@ class AFCExtruderStepper:
 
         #stored status variables
         self.name = config.get_name().split()[-1]
+        self.fullname = config.get_name()
         self.extruder_name = config.get('extruder')
-        
+        self.extruder_obj = None
         self.map = config.get('cmd','NONE')
         self.tool_loaded = False
         self.loaded_to_hub = False
@@ -163,9 +164,8 @@ class AFCExtruderStepper:
         self.unit_obj=self.AFC.units[self.unit]
         self.extruder_obj = self.AFC.tools[self.extruder_name] 
         if self.hub is None: self.hub = self.unit_obj.hub_obj.name
-
         if self.buffer is None and self.unit_obj.buffer_obj is not None: self.buffer = self.unit_obj.buffer_obj.name
-        
+       
         self.hub_obj = self.AFC.hubs[self.hub]
 
         if self.led_name is None: self.led_name = self.unit_obj.led_name
@@ -467,9 +467,9 @@ class AFCExtruderStepper:
         self.response["color"]=self.color
         self.response["weight"]=self.weight
         self.response["runout_lane"]=self.runout_lane
-        filiment_stat=self.get_filament_status().split(':')
-        self.response['filament_status'] = filiment_stat[0]
-        self.response['filament_status_led'] = filiment_stat[1]
+       # filiment_stat=self.get_filament_status().split(':')
+        #self.response['filament_status'] = filiment_stat[0]
+        #self.response['filament_status_led'] = filiment_stat[1]
         self.response['status'] = self.status
         return self.response
     
