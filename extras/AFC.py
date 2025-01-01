@@ -946,7 +946,7 @@ class afc:
         tmp = gcmd.get_commandline()
         cmd = tmp.upper()
         Tcmd = ''
-        if 'LANE' in cmd:
+        if 'CHANGE' in cmd:
             lane = gcmd.get('LANE', None)
             for key in self.tool_cmds.keys():
                 if self.tool_cmds[key].upper() == lane.upper():
