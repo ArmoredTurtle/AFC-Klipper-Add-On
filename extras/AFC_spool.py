@@ -229,7 +229,7 @@ class afcSpool:
                 CUR_LANE.material = ''
                 CUR_LANE.color = ''
                 CUR_LANE.weight = ''
-            if save_vars: self.AFC.save_vars()
+            save_vars: self.AFC.save_vars()
 
     cmd_SET_RUNOUT_help = "change filaments ID"
     def cmd_SET_RUNOUT(self, gcmd):

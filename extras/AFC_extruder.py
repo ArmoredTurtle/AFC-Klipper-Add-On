@@ -28,7 +28,7 @@ class AFCextruder:
   
         # RAMMING
         # Use buffer sensors for loading and unloading filament
-        if self.tool_start == "buffer" or self.tool_start is not None:
+        if self.tool_start == "buffer":
             self.r_enabled = False
             b = config.getsection("AFC_buffer {}".format(self.buffer_name))
             ap = b.get('advance_pin', None)
@@ -122,7 +122,10 @@ class AFCextruder:
         self.response['buffer'] = self.buffer_name
         self.response['lane_loaded'] = self.lane_loaded
         self.response['tool_start'] = self.tool_start
+        self.response['tool_start_status'] = bool(self.tool_start_state)
         self.response['tool_end'] = self.tool_end
+        if self.tool_end is not None:
+            self.response['tool_start_status'] = bool(self.tool_end_state)
         return self.response
     
 def load_config_prefix(config):
