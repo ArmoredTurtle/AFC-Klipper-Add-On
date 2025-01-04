@@ -30,12 +30,12 @@ install_menu() {
                           \e[49m                                    \e[m
 ";
     printf "%b▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n" "$MENU_GREEN"
-    printf "|%b                                    AFC Script Help      %b                            |\n" "$RESET" "$MENU_GREEN"
+    printf "█%b                                    AFC Script Help      %b                            █\n" "$RESET" "$MENU_GREEN"
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
     printf "%b\n" "$message"
     printf "%b▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n" "$MENU_GREEN"
-    printf "|%b            Please review the following options to configure your system%b             |\n" "$RESET" "$MENU_GREEN"
-    printf "|%b        Use the provided option selection to cycle through available choices%b         |\n" "$RESET" "$MENU_GREEN"
+    printf "█%b            Please review the following options to configure your system%b             █\n" "$RESET" "$MENU_GREEN"
+    printf "█%b        Use the provided option selection to cycle through available choices%b         █\n" "$RESET" "$MENU_GREEN"
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
     printf "T. Installation Type: %s \n" "$installation_type"
     printf "1. Add the AFC includes to the your printer.cfg automatically? : %s \n" "$afc_includes"

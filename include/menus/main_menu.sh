@@ -38,7 +38,7 @@ completed you will not be able to use this assisted process for any future updat
     else
       printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  Force Update Required: $GREEN%s$RESET\n" $force_update
     fi
-    #printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  \n"
+    printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  \n"
     printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  \n"
     printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  1. Printer Config Directory : %s \n" $printer_config_dir
     printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  2. Klipper Directory        : %s \n" $klipper_dir
@@ -49,17 +49,19 @@ completed you will not be able to use this assisted process for any future updat
     printf "\e[49m             \e[49;38;5;143m▀▀\e[38;5;143;48;5;143m▄\e[38;5;143;49m▄\e[38;5;143;48;5;143m▄\e[49;38;5;143m▀▀\e[49m             \e[m  (Select a number to change the default value)\n"
     echo ""
     printf "${MENU_GREEN}▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n"
-    printf "|${RESET}                                    AFC Script Help      ${MENU_GREEN}                            |\n"
+    printf "█${RESET}                                    AFC Script Help      ${MENU_GREEN}                            █\n"
     printf "${MENU_GREEN}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${RESET} \n"
     printf "%b\n" "$message"
     printf "${MENU_GREEN}▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n"
-    printf "|${RESET}                                  AFC Install Options${MENU_GREEN}                                |\n"
+    printf "█${RESET}                                  AFC Install Options${MENU_GREEN}                                █\n"
     printf "${MENU_GREEN}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${RESET} \n"
     echo ""
     if [ "$prior_installation" == "False" ]; then
       printf "I. Install AFC Klipper Add-On\n"
     fi
-    printf "U. Update AFC Klipper Add-On\n"
+    if [ "$prior_installation" == "True" ]; then
+      printf "U. Update AFC Klipper Add-On\n"
+    fi
     printf "R. Remove AFC Klipper Add-On\n"
     #printf "A. Add new unit type\n"
     echo "Q. Exit"
