@@ -30,6 +30,7 @@ backup_date=$(date +%Y%m%d%H%M%S)
 current_install_version="1.0.0"
 min_version="1.0.0"
 files_updated_or_installed="False"
+test_mode="False"
 
 # AFC default configs
 park_macro="True"

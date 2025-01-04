@@ -28,7 +28,7 @@ source include/utils.sh
 
 ###################### Main script logic below ######################
 
-while getopts "k:s:m:b:p:uh" arg; do
+while getopts "k:s:m:b:p:u:th" arg; do
   case ${arg} in
   k) klipper_dir=${OPTARG} ;;
   m) moonraker_config_file=${OPTARG} ;;
@@ -36,6 +36,7 @@ while getopts "k:s:m:b:p:uh" arg; do
   b) branch=${OPTARG} ;;
   p) printer_config_dir=${OPTARG} ;;
   u) uninstall=True ;;
+  t) test_mode=True ;;
   h) show_help
     exit 0 ;;
   *) exit 1 ;;
@@ -48,7 +49,9 @@ clear
 check_root
 check_for_hh
 check_for_prereqs
-clone_repo
+if [ "$test_mode" == "False" ]; then
+  clone_repo
+fi
 check_existing_install
 check_old_config_version
 #set_install_version_if_missing

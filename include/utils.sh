@@ -141,23 +141,6 @@ function auto_update() {
   # mv "${AFC_CONFIG_PATH}/AFC_Hardware-temp.cfg" "${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
 }
 
-set_install_version_if_missing() {
-  local version_file="${afc_config_dir}/.afc-version"
-
-  # Check if the version file exists
-  if [[ ! -f "$version_file" ]]; then
-    return
-  fi
-
-  # Check if 'AFC_INSTALL_VERSION' is missing and add it if necessary
-  if ! grep -q 'AFC_INSTALL_VERSION' "$version_file"; then
-    if ! echo "AFC_INSTALL_VERSION=$current_install_version" > "$version_file"; then
-      echo "Error: Failed to write to version file '$version_file'."
-      return 1
-    fi
-  fi
-}
-
 check_version_and_set_force_update() {
   local current_version
   current_version=$(curl -s "localhost/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
@@ -172,6 +155,10 @@ update_afc_version() {
   local version_update
   version_update=$1
   curl -s -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
+}
+
+remove_afc_version() {
+  curl -s -XDELETE "localhost/server/database/item?namespace=afc-install&key=version" > /dev/null
 }
 
 stop_service() {
