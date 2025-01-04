@@ -127,7 +127,7 @@ restart_klipper() {
 
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
-    echo "AFC_INSTALL_VERSION=$current_install_version" > "${afc_config_dir}/.afc-version"
+    update_afc_version "$current_install_version"
   restart_klipper
   fi
   exit 0
@@ -159,18 +159,19 @@ set_install_version_if_missing() {
 }
 
 check_version_and_set_force_update() {
-  local version_file="${afc_config_dir}/.afc-version"
   local current_version
-
-  if [[ -f $version_file ]]; then
-    current_version=$(grep -oP '(?<=AFC_INSTALL_VERSION=)[0-9]+\.[0-9]+\.[0-9]+' "$version_file")
-  fi
-
+  current_version=$(curl -s "localhost/server/database/item?namespace=afc-install&key=version" | jq .result.value)
   if [[ -z "$current_version" || "$current_version" < "$min_version" ]]; then
     force_update=True
   else
     force_update=False
   fi
+}
+
+update_afc_version() {
+  local version_update
+  version_update=$1
+  curl -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update"
 }
 
 stop_service() {

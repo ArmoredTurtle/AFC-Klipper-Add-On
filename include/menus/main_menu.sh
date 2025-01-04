@@ -61,7 +61,7 @@ completed you will not be able to use this assisted process for any future updat
     fi
     printf "U. Update AFC Klipper Add-On\n"
     printf "R. Remove AFC Klipper Add-On\n"
-    printf "A. Add new unit type\n"
+    #printf "A. Add new unit type\n"
     echo "Q. Exit"
     echo ""
     read -p "Enter your choice: " choice

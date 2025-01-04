@@ -55,8 +55,6 @@ copy_unit_files() {
   if [ "$installation_type" == "BoxTurtle" ]; then
     cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_Turtle_1.cfg"
-    mkdir -p "${afc_config_dir}/mcu"
-    cp "${afc_path}/templates/mcu/TurtleNeckv2.cfg" "${afc_config_dir}/mcu/TurtleNeckv2.cfg"
   fi
 }
 
