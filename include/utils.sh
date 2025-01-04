@@ -160,7 +160,7 @@ set_install_version_if_missing() {
 
 check_version_and_set_force_update() {
   local current_version
-  current_version=$(curl -s "localhost/server/database/item?namespace=afc-install&key=version" | jq .result.value)
+  current_version=$(curl -s "localhost/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
   if [[ -z "$current_version" || "$current_version" < "$min_version" ]]; then
     force_update=True
   else
@@ -171,7 +171,7 @@ check_version_and_set_force_update() {
 update_afc_version() {
   local version_update
   version_update=$1
-  curl -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update"
+  curl -s -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update"
 }
 
 stop_service() {
