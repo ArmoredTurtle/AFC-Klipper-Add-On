@@ -108,7 +108,7 @@ install_afc() {
 
 - AFC-Klipper-Add-On python extensions installed to ${klipper_dir}/klippy/extras/
 
-- Ensure you enter either your canbus or serial information in the ${afc_config_dir}/AFC_Turtle1.cfg file
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_Turtle_1.cfg file
 """
 if [ "$buffer_type" == "TurtleNeckV2" ]; then
   message+="""

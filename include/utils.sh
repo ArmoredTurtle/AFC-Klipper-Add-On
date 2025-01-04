@@ -171,7 +171,7 @@ check_version_and_set_force_update() {
 update_afc_version() {
   local version_update
   version_update=$1
-  curl -s -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update"
+  curl -s -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
 }
 
 stop_service() {
