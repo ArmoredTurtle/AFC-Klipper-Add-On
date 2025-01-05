@@ -60,6 +60,7 @@ Additionally, review the following files for any changes that may be required:
 
 1. `~/printer_data/config/AFC/AFC.cfg`
 2. `~/printer_data/config/AFC/AFC_Macro_Vars.cfg`
+3. `~/printer_data/config/AFC/AFC_Turtle_1.cfg`
 
 Review information in [mandatory configuration changes](README.md#mandatory-configuration-changes-all) section
 
@@ -79,17 +80,20 @@ cp -R ~/AFC-Klipper-Add-On/config/* ~/printer_data/config/AFC/
 Next, please copy the appropriate `AFC_Hardware.cfg` template file from `~/AFC-Klipper-Add-On/templates` to `~/printer_data/config/AFC`
 and modify the file to match your hardware configuration. Ensure you rename the file properly based on the selected board type to `AFC_Hardware.cfg`.
 
+You should also copy the `AFC_Turtle_1.cfg` template file from `~/AFC-Klipper-Add-On/templates` to `~/printer_data/config/AFC` and modify this file to match your hardware configuration.
+
 Finally, review and update the following files as needed for your configuration.
 
 1. `~/printer_data/config/AFC/AFC.cfg`
 2. `~/printer_data/config/AFC/AFC_Macro_Vars.cfg`
 3. `~/printer_data/config/AFC/AFC_Hardware.cfg`
+4. `~/printer_data/config/AFC/AFC_Turtle_1.cfg`
 
 ### Buffer configuration - Manual
 
 If you are using a buffer such as the Turtleneck, Turtleneck v2 or Annex Belay, and you installed the software manually, you may need to make a couple of additional changes.
 
-You should add the following block to your `AFC_Hardware.cfg` file based on the type of buffer you are using.
+You should add the following block to your `AFC_Turtle_1.cfg` file based on the type of buffer you are using.
 
 **NOTE** The `pin` value should be set to the pin that the buffer is connected to on your board.
 
@@ -216,17 +220,17 @@ _distances will be calibrated to have ~1 short move after the move distance_
 
 ### Usage
 
-`CALIBRATE_AFC LANES=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`  
+`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`  
 _`DISTANCE` and `TOLERANCE` are optional. default distance 25mm, default tolerance 5mm_
 
 - To calibrate all lanes and the bowden length all at once:
-  - `CALIBRATE_AFC LANES=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
+  - `CALIBRATE_AFC LANE=all BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 - To calibrate individual lanes
-  - `CALIBRATE_AFC LANES=<lane>` input the lane you would like to calibrate
+  - `CALIBRATE_AFC LANE=<lane>` input the lane you would like to calibrate
 - To calibrate just the bowden length:
   - `CALIBRATE_AFC BOWDEN=<lane>` input which lane to be used to check `afc_bowden_length`
 
-If using a hub different than the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.  
+If using a hub different from the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.  
 **All values must be updated in AFC_Hardware.cfg after calibration**
 
 ## Troubleshooting
@@ -268,8 +272,10 @@ To remove the plugin, you can use the following commands:
 
 ```bash
 cd ~/AFC-Klipper-Add-On
-./install-afc.sh -u
+./install-afc.sh
 ```
+
+Once the installation program starts, please select the option to remove the plugin.
 
 ## Support
 
