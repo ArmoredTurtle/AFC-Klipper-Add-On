@@ -37,24 +37,26 @@ install_menu() {
     printf "█%b            Please review the following options to configure your system%b             █\n" "$RESET" "$MENU_GREEN"
     printf "█%b        Use the provided option selection to cycle through available choices%b         █\n" "$RESET" "$MENU_GREEN"
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
-    printf "T. Installation Type: %s \n" "$installation_type"
-    printf "1. Add the AFC includes to the your printer.cfg automatically? : %s \n" "$afc_includes"
-    printf "2. Enable tip-forming? : %s \n" "$tip_forming"
-    printf "3. Enable a toolhead cutter? : %s \n" "$toolhead_cutter"
-    printf "4. Enable a hub cutter? : %s \n" "$hub_cutter"
-    printf "5. Enable the kick macro? : %s \n" "$kick_macro"
-    printf "6. Enable Park Macro? : %s \n" "$park_macro"
-    printf "7. Enable Poop Macro? : %s \n" "$poop_macro"
-    printf "8. Enable Wipe Macro? : %s \n" "$wipe_macro"
-    printf "9. Use a toolhead sensor or ramming with a TN/TN2 buffer? : %s \n" "$toolhead_sensor"
-    if [ "$toolhead_sensor" == "Sensor" ]; then
-      if [ "$toolhead_sensor_pin" == "Unknown" ]; then
-        printf "A. Toolhead sensor pin: ${RED}%s${RESET} \n" "$toolhead_sensor_pin"
-      else
-        printf "A. Toolhead sensor pin: %s \n" "$toolhead_sensor_pin"
+    if [ "$files_updated_or_installed" == "False" ]; then
+      printf "T. Installation Type: %s \n" "$installation_type"
+      printf "1. Add the AFC includes to the your printer.cfg automatically? : %s \n" "$afc_includes"
+      printf "2. Enable tip-forming? : %s \n" "$tip_forming"
+      printf "3. Enable a toolhead cutter? : %s \n" "$toolhead_cutter"
+      printf "4. Enable a hub cutter? : %s \n" "$hub_cutter"
+      printf "5. Enable the kick macro? : %s \n" "$kick_macro"
+      printf "6. Enable Park Macro? : %s \n" "$park_macro"
+      printf "7. Enable Poop Macro? : %s \n" "$poop_macro"
+      printf "8. Enable Wipe Macro? : %s \n" "$wipe_macro"
+      printf "9. Use a toolhead sensor or ramming with a TN/TN2 buffer? : %s \n" "$toolhead_sensor"
+      if [ "$toolhead_sensor" == "Sensor" ]; then
+        if [ "$toolhead_sensor_pin" == "Unknown" ]; then
+          printf "A. Toolhead sensor pin: ${RED}%s${RESET} \n" "$toolhead_sensor_pin"
+        else
+          printf "A. Toolhead sensor pin: %s \n" "$toolhead_sensor_pin"
+        fi
       fi
+      printf "B. Buffer type: %s \n" "$buffer_type"
     fi
-    printf "B. Buffer type: %s \n" "$buffer_type"
     echo ""
     printf "I. Install system with current selections\n"
     printf "M. Return to Main Menu\n"

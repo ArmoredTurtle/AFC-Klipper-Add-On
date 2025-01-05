@@ -20,9 +20,11 @@ main_menu() {
     printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49;38;5;29m▀\e[38;5;29;49m▄▄\e[38;5;29;48;5;29m▄▄▄▄\e[38;5;29;49m▄▄\e[49m   \e[38;5;29;49m▄▄\e[38;5;29;48;5;29m▄▄▄▄\e[38;5;29;49m▄▄\e[49;38;5;29m▀\e[48;5;29m    \e[49m \e[48;5;143m \e[m  Github: https://github.com/ArmoredTurtle\n"
     printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m \e[49;38;5;29m▀▀\e[38;5;29;48;5;29m▄\e[48;5;29m \e[38;5;29;48;5;29m▄\e[48;5;29m   \e[38;5;29;48;5;29m▄▄▄\e[48;5;29m   \e[38;5;29;48;5;29m▄\e[48;5;29m \e[38;5;29;48;5;29m▄\e[49;38;5;29m▀▀\e[49m \e[48;5;29m    \e[49m \e[48;5;143m \e[m  Documentation: https://armoredturtle.xyz/\n"
     printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m     \e[49;38;5;29m▀▀\e[48;5;29m      \e[38;5;29;48;5;29m▄\e[49;38;5;29m▀▀\e[49m     \e[48;5;29m    \e[49m \e[48;5;143m \e[m\n"
-    if [ "$prior_installation" == "True" ]; then
+    if [ "$files_updated_or_installed" == "True" ]; then
+      printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  Prior AFC-Klipper-Add-On installation detected: $GREEN%s$RESET\n" $files_updated_or_installed
+    elif [ "$prior_installation" == "True" ]; then
       printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  Prior AFC-Klipper-Add-On installation detected: $GREEN%s$RESET\n" $prior_installation
-    else
+    elif [ "$prior_installation" == "False" ]; then
       printf "\e[48;5;143m \e[49m \e[48;5;29m    \e[49m        \e[48;5;29m     \e[49m        \e[48;5;29m    \e[49m \e[48;5;143m \e[m  Prior AFC-Klipper-Add-On installation detected: $RED%s$RESET\n" $prior_installation
     fi
     if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
