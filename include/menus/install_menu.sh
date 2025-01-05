@@ -58,7 +58,9 @@ install_menu() {
       printf "B. Buffer type: %s \n" "$buffer_type"
     fi
     echo ""
-    printf "I. Install system with current selections\n"
+    if [ "$files_updated_or_installed" == "False" ]; then
+      printf "I. Install system with current selections\n"
+    fi
     printf "M. Return to Main Menu\n"
     printf "Q. Quit\n"
     echo ""

@@ -58,7 +58,7 @@ completed you will not be able to use this assisted process for any future updat
     printf "█${RESET}                                  AFC Install Options${MENU_GREEN}                                █\n"
     printf "${MENU_GREEN}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${RESET} \n"
     echo ""
-    if [ "$prior_installation" == "False" ]; then
+    if [ "$prior_installation" == "False" ] && [ "$files_updated_or_installed" == "False" ]; then
       printf "I. Install AFC Klipper Add-On\n"
     fi
     if [ "$prior_installation" == "True" ]; then
