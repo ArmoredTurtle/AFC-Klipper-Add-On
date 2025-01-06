@@ -269,6 +269,10 @@ class afcBoxTurtle:
 
         self.AFC.save_vars()
         self.AFC.gcode.respond_info(cal_msg)
-
+        
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['lanes'] = self.lanes
+        
 def load_config(config):
     return afcBoxTurtle(config)
