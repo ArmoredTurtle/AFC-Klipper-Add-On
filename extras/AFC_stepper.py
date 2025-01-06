@@ -286,15 +286,9 @@ class AFCExtruderStepper:
     def prep_callback(self, eventtime, state):
         self.prep_state = state
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
-        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done:
-            led = self.led_index
+        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
             if self.prep_state == True:
                 x = 0
-                # Check to see if the printer is printing or moving as trying to load while printer is doing something will crash klipper
-                if self.AFC.is_printing():
-                    self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
-                    return
-
                 while self.load_state == False and self.prep_state == True:
                     x += 1
                     self.do_enable(True)
@@ -303,34 +297,41 @@ class AFCExtruderStepper:
                     if x> 40:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.ERROR.AFC_error(msg, False)
-                        self.AFC.afc_led(self.AFC.led_fault, led)
+                        self.AFC.afc_led(self.AFC.led_fault, self.led_index)
                         self.status=''
                         break
                 self.status=''
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
-                    self.AFC.afc_led(self.AFC.led_ready, led)
-            elif self.name == self.AFC.current and self.AFC.IDLE.state == 'Printing' and self.load_state and self.status != 'ejecting':
+                    self.AFC.afc_led(self.AFC.led_ready, self.led_index)
+
+            elif self.AFC.is_printing() and self.prep_state == True:
+                self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
+                return
+            
+            elif self.prep_state == False and self.name == self.AFC.current and self.AFC.is_printing() and self.load_state and self.status != 'ejecting':
                 # Checking to make sure runout_lane is set and does not equal 'NONE'
                 if  self.runout_lane != 'NONE':
                     self.status = None
-                    self.AFC.afc_led(self.AFC.led_not_ready, led)
+                    self.AFC.afc_led(self.AFC.led_not_ready, self.led_index)
                     self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
-                    empty_LANE = self.AFC.stepper[self.AFC.current]
-                    change_LANE = self.AFC.stepper[self.runout_lane]
-                    self.gcode.run_script_from_command(change_LANE.map)
+                    empty_LANE = self.AFC.lanes[self.AFC.current]
+                    change_LANE = self.AFC.lanes[self.runout_lane]
+                    self.gcode.run_script_from_command('PAUSE')
+                    self.AFC.CHANGE_TOOL(change_LANE)
                     self.gcode.run_script_from_command('SET_MAP LANE=' + change_LANE.name + ' MAP=' + empty_LANE.map)
                     self.gcode.run_script_from_command('LANE_UNLOAD LANE=' + empty_LANE.name)
+                    self.gcode.run_script_from_command('RESUME')
                 else:
                     # Pause print
                     self.status = None
-                    self.AFC.afc_led(self.AFC.led_not_ready, led)
+                    self.AFC.afc_led(self.AFC.led_not_ready, self.led_index)
                     self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
                     self.AFC.ERROR.pause_print()
             else:
                 self.status = None
-                self.AFC.afc_led(self.AFC.led_not_ready, led)
+                self.AFC.afc_led(self.AFC.led_not_ready, self.led_index)
 
     def do_enable(self, enable):
         self.sync_print_time()

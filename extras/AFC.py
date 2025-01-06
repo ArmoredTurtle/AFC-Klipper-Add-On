@@ -772,6 +772,7 @@ class afc:
             return False
 
         self.gcode.respond_info("Unloading {}".format(CUR_LANE.name))
+        CUR_LANE.status = 'Tool Unloading'
         # Lookup current extruder and hub objects using the lane's information.
         CUR_HUB = CUR_LANE.hub_obj
         CUR_EXTRUDER = CUR_LANE.extruder_obj
@@ -867,7 +868,6 @@ class afc:
             pos[3] -= CUR_EXTRUDER.tool_sensor_after_extruder
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
-        CUR_LANE.status = 'Tool Unloading'
         self.save_vars()
         # Synchronize and move filament out of the hub.
         CUR_LANE.unsync_to_extruder()
@@ -958,8 +958,9 @@ class afc:
         if Tcmd == '':
             self.gcode.respond_info("I did not understand the change -- " +cmd)
             return
+        self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]])
 
-        lane=self.tool_cmds[Tcmd]
+    def CHANGE_TOOL(self, CUR_LANE):
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         try:
             bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
@@ -970,47 +971,34 @@ class afc:
             bypass = None
 
         # If the requested lane is not the current lane, proceed with the tool change.
-        if lane != self.current:
+        if CUR_LANE.name != self.current:
             # Save the current toolhead position to allow restoration after the tool change.
             self.save_pos()
-
             # Set the in_toolchange flag to prevent overwriting the saved position during potential failures.
             self.in_toolchange = True
 
-            # Lookup the lane object for the requested lane.
-            if lane not in self.lanes:
-                self.gcode.respond_info('{} Unknown'.format(lane.upper()))
-                return
-            CUR_LANE = self.lanes[lane]
             # Check if the lane has completed the preparation process required for tool changes.
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
-                self.gcode.respond_info("Tool Change - {} -> {}".format(self.current, lane))
+                self.gcode.respond_info("Tool Change - {} -> {}".format(self.current, CUR_LANE.name))
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
                     if self.current not in self.lanes:
                         self.gcode.respond_info('{} Unknown'.format(self.current.upper()))
                         return
-                    CUR_LANE = self.lanes[self.current]
-                    if not self.TOOL_UNLOAD(CUR_LANE):
+                    if not self.TOOL_UNLOAD(self.lanes[self.current]):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
-                        self.ERROR.fix(msg, CUR_LANE)  #send to error handling
+                        self.ERROR.fix(msg, self.lanes[self.current])  #send to error handling
                         return
-
-                # Switch to the new lane for loading.
-                if lane not in self.lanes:
-                    self.gcode.respond_info('{} Unknown'.format(lane.upper()))
-                    return
-                CUR_LANE = self.lanes[lane]
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(CUR_LANE) and not self.error_state:
-                self.gcode.respond_info("{} is now loaded in toolhead".format(lane))
+                self.gcode.respond_info("{} is now loaded in toolhead".format(CUR_LANE.name))
                 self.restore_pos()
                 self.in_toolchange = False
         else:
-            self.gcode.respond_info("{} already loaded".format(lane))
+            self.gcode.respond_info("{} already loaded".format(CUR_LANE.name))
 
     def get_filament_status(self, CUR_LANE):
         if CUR_LANE.prep_state:
@@ -1139,7 +1127,9 @@ class afc:
             return
         # Try to find led object, if not found print error to console for user to see
         afc_object = 'AFC_led '+ idx.split(':')[0]
-        try: led = self.printer.lookup_object(afc_object)
+        try: 
+            led = self.printer.lookup_object(afc_object)
+            led.led_change(int(idx.split(':')[1]), status)
         except:
             error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
             self.gcode.respond_info( error_string)

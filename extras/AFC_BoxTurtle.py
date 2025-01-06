@@ -138,6 +138,12 @@ class afcBoxTurtle:
         self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name.upper(), tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()
         return succeeded
+    
+    def get_status(self, eventtime=None):
+        self.response = {}
+        self.response['lanes'] = self.lanes
+
+        return self.response
         
 def load_config_prefix(config):
     return afcBoxTurtle(config)
