@@ -289,6 +289,9 @@ class AFCExtruderStepper:
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
             if self.prep_state == True:
                 x = 0
+                if self.AFC.is_printing():
+                    self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
+                    return
                 while self.load_state == False and self.prep_state == True:
                     x += 1
                     self.do_enable(True)
@@ -305,11 +308,7 @@ class AFCExtruderStepper:
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
                     self.AFC.afc_led(self.AFC.led_ready, self.led_index)
-
-            elif self.AFC.is_printing() and self.prep_state == True:
-                self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
-                return
-            
+           
             elif self.prep_state == False and self.name == self.AFC.current and self.AFC.is_printing() and self.load_state and self.status != 'ejecting':
                 # Checking to make sure runout_lane is set and does not equal 'NONE'
                 if  self.runout_lane != 'NONE':
