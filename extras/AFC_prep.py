@@ -58,17 +58,13 @@ class afcPrep:
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
             units=json.load(open(self.AFC.VarFile + '.unit'))
 
-        ## load Toolhead stored variables
-        extruders={}
-        if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
-            extruders=json.load(open(self.AFC.VarFile + '.tool'))
-
+        
         # check if Lane is suppose to be loaded in tool head from saved file
         for EXTRUDER in self.AFC.tools.keys():
             PrinterObject=self.AFC.tools[EXTRUDER]
             self.AFC.tools[PrinterObject.name]=PrinterObject
-            if PrinterObject.name in extruders:
-                if 'lane_loaded' in extruders[PrinterObject.name]: PrinterObject.lane_loaded = extruders[PrinterObject.name]['lane_loaded']
+            if 'system' in units:
+                if 'lane_loaded' in units["system"]["extruders"][PrinterObject.name]: PrinterObject.lane_loaded = units["system"]["extruders"][PrinterObject.name]['lane_loaded']
             self.AFC.current = PrinterObject.lane_loaded
 
         for LANE in self.AFC.lanes.keys():
