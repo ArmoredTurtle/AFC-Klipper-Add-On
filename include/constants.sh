@@ -18,8 +18,8 @@ moonraker_config_file="$printer_config_dir/moonraker.conf"
 klipper_service="klipper"
 
 # Git related constants
-gitrepo="https://github.com/ejsears/AFC-Klipper-Add-On.git"
-branch="install-script-redesign"
+gitrepo="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
+branch="main"
 
 # Misc constants
 prior_installation="False"
