@@ -126,6 +126,8 @@ class AFCextruder:
         self.response['tool_end'] = self.tool_end
         if self.tool_end is not None:
             self.response['tool_start_status'] = bool(self.tool_end_state)
+        else:
+            self.response['tool_start_status'] =False
         return self.response
     
 def load_config_prefix(config):
