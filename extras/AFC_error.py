@@ -1,4 +1,5 @@
-
+def load_config(config):
+    return afcError(config)
 
 class afcError:
     def __init__(self, config):

@@ -234,7 +234,7 @@ class afcFunction:
                     break
         self.AFC.tool_cmds[CUR_LANE.map]=CUR_LANE.name
         try:
-            self.AFC.gcode.register_command(CUR_LANE.map, self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
+            self.AFC.gcode.register_command(CUR_LANE.map, self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
         except:
             self.AFC.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=CUR_LANE.map), )
         self.AFC.save_vars()
@@ -420,5 +420,5 @@ class afcFunction:
             self.AFC.gcode.respond_info('Testing at 10 percent speed')
             CUR_LANE.assist(-.1)
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
-        self.AFC..gcode.respond_info('Test routine complete')
+        self.AFC.gcode.respond_info('Test routine complete')
         CUR_LANE.assist(0)

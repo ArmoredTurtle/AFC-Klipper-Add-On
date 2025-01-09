@@ -467,20 +467,11 @@ class AFCExtruderStepper:
         self.response["color"]=self.color
         self.response["weight"]=self.weight
         self.response["runout_lane"]=self.runout_lane
-        filiment_stat=self.AFC.get_filament_status(self).split(':')
+        filiment_stat=self.AFC.FUNCTION.get_filament_status(self).split(':')
         self.response['filament_status'] = filiment_stat[0]
         self.response['filament_status_led'] = filiment_stat[1]
         self.response['status'] = self.status
         return self.response
     
-    def get_filament_status(self):
-        if self.prep_state:
-            if self.load_state:
-                if self.extruder_obj is not None and self.extruder_obj.lane_loaded == self.name:
-                    return 'In Tool:' + self.AFC.HexConvert(self.led_tool_loaded)
-                return "Ready:" + self.AFC.HexConvert(self.led_ready)
-            return 'Prep:' + self.AFC.HexConvert(self.led_prep_loaded)
-        return 'Not Ready:' + self.AFC.HexConvert(self.led_not_ready)
-
 def load_config_prefix(config):
     return AFCExtruderStepper(config)

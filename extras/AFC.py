@@ -20,7 +20,7 @@ class afc:
         
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
-        self.FUNCTION = self.printer.load_object(config,'AFC_function')
+        self.FUNCTION = self.printer.load_object(config,'AFC_functions')
         self.IDLE = self.printer.load_object(config,'idle_timeout')
         self.gcode = self.printer.lookup_object('gcode')
 
@@ -281,7 +281,7 @@ class afc:
                 str[CUR_UNIT.name][CUR_LANE.name]["color"]=CUR_LANE.color
                 str[CUR_UNIT.name][CUR_LANE.name]["weight"]=CUR_LANE.weight
                 str[CUR_UNIT.name][CUR_LANE.name]["runout_lane"]=CUR_LANE.runout_lane
-                filiment_stat=self.get_filament_status(CUR_LANE).split(':')
+                filiment_stat=self.FUNCTION.get_filament_status(CUR_LANE).split(':')
                 str[CUR_UNIT.name][CUR_LANE.name]['filament_status']=filiment_stat[0]
                 str[CUR_UNIT.name][CUR_LANE.name]['filament_status_led']=filiment_stat[1]
                 str[CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status 
@@ -499,7 +499,7 @@ class afc:
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'Tool Loading'
         self.save_vars()
-        self.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
+        self.FUNCTION.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
         if CUR_LANE.load_state and not CUR_HUB.state:
@@ -591,7 +591,7 @@ class afc:
             CUR_EXTRUDER.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
                 self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
@@ -604,7 +604,7 @@ class afc:
             # Update lane and extruder state for tracking.
             CUR_EXTRUDER.lane_loaded = CUR_LANE.name
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
-            self.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+            self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -693,7 +693,7 @@ class afc:
         CUR_EXTRUDER.disable_buffer()
 
         # Activate LED indicator for unloading.
-        self.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
+        self.FUNCTION.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
 
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
@@ -811,7 +811,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         CUR_LANE.loaded_to_hub = True
-        self.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
+        self.FUNCTION.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
         self.current = None
         CUR_LANE.do_enable(False)
@@ -911,3 +911,66 @@ class afc:
         str['lanes'] = list(self.lanes.keys())
         str["extruders"] = list(self.tools.keys())
         return str
+    
+    cmd_AFC_STATUS_help = "Return current status of AFC"
+    def cmd_AFC_STATUS(self, gcmd):
+        """
+        This function generates a status message for each unit and lane, indicating the preparation,
+        loading, hub, and tool states. The status message is formatted with HTML tags for display.
+
+        Usage: `AFC_STATUS`
+        Example: `AFC_STATUS`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
+        status_msg = ''
+
+        for UNIT in self.units.keys():
+            # Find the maximum length of lane names to determine the column width
+            max_lane_length = max(len(lane) for lane in self.lanes.keys())
+            status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
+
+            # Create a dynamic format string that adjusts based on lane name length
+            header_format = '{:<{}} | Prep | Load |\n'
+            status_msg += header_format.format("LANE", max_lane_length)
+
+            for LANE in self.lanes.keys():
+                lane_msg = ''
+                CUR_LANE = self.lanes[LANE]
+                CUR_HUB = CUR_LANE.hub_obj
+                CUR_EXTRUDER = CUR_LANE.extruder_obj
+                if self.current != None:
+                    if self.current == CUR_LANE.name:
+                        if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
+                            lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
+                        else:
+                            lane_msg += '<span class=success--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
+                    else:
+                        lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
+                else:
+                    lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
+
+                if CUR_LANE.prep_state == True:
+                    lane_msg += '| <span class=success--text><--></span> |'
+                else:
+                    lane_msg += '|  <span class=error--text>xx</span>  |'
+                if CUR_LANE.load_state == True:
+                    lane_msg += ' <span class=success--text><--></span> |\n'
+                else:
+                    lane_msg += '  <span class=error--text>xx</span>  |\n'
+                status_msg += lane_msg
+            if CUR_HUB.state == True:
+                status_msg += 'HUB: <span class=success--text><-></span>'
+            else:
+                status_msg += 'HUB: <span class=error--text>x</span>'
+            if CUR_EXTRUDER.tool_start_state == True:
+                status_msg += '  Tool: <span class=success--text><-></span>'
+            else:
+                status_msg += '  Tool: <span class=error--text>x</span>'
+            if CUR_EXTRUDER.tool_start == 'buffer':
+                status_msg += '\n<span class=info--text>Ram sensor enabled</span>'
+        self.gcode.respond_raw(status_msg)

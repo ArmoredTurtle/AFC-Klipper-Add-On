@@ -93,20 +93,20 @@ class afcBoxTurtle:
         CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
         if CUR_LANE.prep_state == False:
             if CUR_LANE.load_state == False:
-                self.AFC.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
+                self.AFC.FUNCTION.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
                 msg += 'EMPTY READY FOR SPOOL'
             else:
-                self.AFC.afc_led(CUR_LANE.led_fault, CUR_LANE.led_index)
+                self.AFC.FUNCTION.afc_led(CUR_LANE.led_fault, CUR_LANE.led_index)
                 msg +="<span class=error--text> NOT READY</span>"
                 CUR_LANE.do_enable(False)
                 msg = '<span class=error--text>CHECK FILAMENT Prep: False - Load: True</span>'
                 succeeded = False
         else:
-            self.AFC.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
+            self.AFC.FUNCTION.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
             if CUR_LANE.load_state == False:
                 msg +="<span class=error--text> NOT LOADED</span>"
-                self.AFC.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
+                self.AFC.FUNCTION.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
                 succeeded = False
             else:
                 CUR_LANE.status = 'Loaded'
@@ -120,7 +120,7 @@ class afcBoxTurtle:
                             if CUR_LANE.extruder_obj.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
                             self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
-                            self.AFC.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
+                            self.AFC.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
                             CUR_LANE.status = 'Tooled'
                             CUR_LANE.extruder_obj.enable_buffer()
                             CUR_LANE.extruder_obj.lane_loaded = CUR_LANE.name
@@ -133,7 +133,7 @@ class afcBoxTurtle:
                         if not lane_check:
                             return False
 
-        if assignTcmd: self.AFC.TcmdAssign(CUR_LANE)
+        if assignTcmd: self.AFC.FUNCTION.TcmdAssign(CUR_LANE)
         CUR_LANE.do_enable(False)
         self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name.upper(), tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()
