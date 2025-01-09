@@ -168,6 +168,7 @@ class afc:
             break
         for BUFFER in self.buffers.keys():
             self.buffer_obj = self.buffers[BUFFER]
+            self.buffer = self.buffer_obj.name
             break
 
     def print_version(self):
@@ -741,12 +742,23 @@ class afc:
             self.save_vars()
             CUR_LANE.sync_to_extruder()
 
+            if CUR_EXTRUDER.tool_end:
+                while not CUR_EXTRUDER.tool_end_state:
+                    tool_attempts += 1
+                    pos[3] += CUR_LANE.short_move_dis
+                    self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
+                    self.toolhead.wait_moves()
+                    if tool_attempts > 20:
+                        message = ('FAILED TO LOAD TO TOOL END, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
+                        self.ERROR.handle_lane_failure(CUR_LANE, message)
+                        return False
+                    
             # Adjust tool position for loading.
             pos = self.toolhead.get_position()
             pos[3] += CUR_EXTRUDER.tool_stn
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
             self.toolhead.wait_moves()
-
+                    
             # Check if ramming is enabled, if it is go through ram load sequence.
             # Lane will load until Advance sensor is True
             # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
@@ -925,7 +937,7 @@ class afc:
             pos[3] -= CUR_EXTRUDER.tool_stn_unload
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
-        else:
+        elif CUR_EXTRUDER.tool_start:
             while CUR_EXTRUDER.tool_start_state:
                 num_tries += 1
                 if num_tries > self.tool_max_unload_attempts:
@@ -1115,83 +1127,6 @@ class afc:
         str['units'] = list(unitdisplay)
         str['lanes'] = list(self.lanes.keys())
         str["extruders"] = list(self.tools.keys())
-
-        numoflanes = 0
-        str["query"]={}
-        for UNIT in self.units.keys():
-            CUR_UNIT=self.units[UNIT]
-            str["query"][CUR_UNIT.name]={}
-            name=[]
-            for NAME in CUR_UNIT.lanes:
-                CUR_LANE=self.lanes[NAME]
-                str["query"][CUR_UNIT.name][CUR_LANE.name]={}
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['index'] = CUR_LANE.index
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['hub'] = CUR_LANE.hub
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['buffer'] = CUR_LANE.buffer
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['map'] = CUR_LANE.map
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['load'] = bool(CUR_LANE.load_state)
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["prep"] =bool(CUR_LANE.prep_state)
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["tool_loaded"] = CUR_LANE.tool_loaded
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["loaded_to_hub"] = CUR_LANE.loaded_to_hub
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["material"]=CUR_LANE.material
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["spool_id"]=CUR_LANE.spool_id
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["color"]=CUR_LANE.color
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["weight"]=CUR_LANE.weight
-                str["query"][CUR_UNIT.name][CUR_LANE.name]["runout_lane"]=CUR_LANE.runout_lane
-                filiment_stat=self.get_filament_status(CUR_LANE).split(':')
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['filament_status']=filiment_stat[0]
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['filament_status_led']=filiment_stat[1]
-                str["query"][CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status 
-                numoflanes +=1
-                name.append(CUR_LANE.name)
-            str["query"][CUR_UNIT.name]['system']={}
-            str["query"][CUR_UNIT.name]['lanes'] = name
-            str["query"][CUR_UNIT.name]['system']['type'] = CUR_UNIT.type
-            if CUR_UNIT.hub is None:
-                CUR_UNIT.hub = self.printer.lookup_object('AFC_hub '+list(self.hubs.keys())[0])
-            else:
-               str["query"][CUR_UNIT.name]['system']['hub'] = CUR_UNIT.hub
-               str["query"][UNIT]['system']['hub_loaded']  = CUR_UNIT.hub_obj.state
-               str["query"][UNIT]['system']['Hub_can_cut']  = CUR_UNIT.hub_obj.cut
-            if CUR_UNIT.buffer is not None:
-                str["query"][CUR_UNIT.name]['system']['buffer'] = CUR_UNIT.buffer
-                str["query"][CUR_UNIT.name]['system']['buffer_state'] = CUR_UNIT.buffer_obj.last_state
-            str["query"][CUR_UNIT.name]['system']['screen'] = CUR_UNIT.screen_mac
-        str["system"]={}
-        str["system"]['current_load']= self.current
-        str["system"]['num_units'] = len(self.units)
-        str["system"]['num_lanes'] = numoflanes
-        str["system"]['num_extruders'] = len(self.tools)
-
-        str["query"]["system"]={}
-        str["query"]["system"]["extruders"]={}
-        for EXTRUDE in self.tools.keys():
-            CUR_EXTRUDER = self.tools[EXTRUDE]
-            str["query"]["system"]["extruders"][CUR_EXTRUDER.name]={}
-            str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
-            if CUR_EXTRUDER.tool_start == "buffer":
-                if CUR_EXTRUDER.lane_loaded == '':
-                    str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = False
-                else:
-                    str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = True
-            else:
-                str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = bool(CUR_EXTRUDER.tool_start_state)
-            if CUR_EXTRUDER.tool_end is not None:
-                str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = bool(CUR_EXTRUDER.tool_end_state)
-            else:
-                str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = None
-            if self.current is not None:
-                CUR_LANE=self.lanes[self.current]
-                if CUR_LANE.extruder_name == CUR_EXTRUDER.name:
-                    CUR_EXTRUDER.buffer_name = CUR_LANE.buffer
-                    str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = CUR_EXTRUDER.buffer_name
-                    str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = CUR_EXTRUDER.buffer_status()
-                else:
-                    str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = 'Not In Use'
-                    str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
-            else:
-                str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = 'Not In Use '
-                str["query"]["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
         return str
 
     def is_homed(self):
