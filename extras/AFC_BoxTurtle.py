@@ -161,14 +161,15 @@ class afcBoxTurtle:
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             if CUR_EXTRUDER.tool_start == 'buffer':
-                cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (CUR_LANE.short_move_dis * 2))
+                cal_msg = '\n afc_bowden_length: {}'.format(bow_pos - (CUR_LANE.short_move_dis * 2))
                 self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (CUR_LANE.short_move_dis * 2), cal_msg)
             else:
-                cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - CUR_LANE.short_move_dis)
-                self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - CUR_LANE.short_move_dis, cal_msg)
+                cal_msg = '\n afc_bowden_length: {}'.format(bow_pos - CUR_LANE.short_move_dis)
+                self.AFC.FUNCTION.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - CUR_LANE.short_move_dis, cal_msg)
             CUR_LANE.do_enable(False)
         else:
             self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
+        self.AFC.gcode.respond_info(cal_msg)
         self.AFC.save_vars()
 
         # Helper functions for movement and calibration
