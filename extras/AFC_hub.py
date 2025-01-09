@@ -29,6 +29,7 @@ class afc_hub:
 
         self.move_dis = config.getfloat("move_dis", 50)
         self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
+        self.assisted_retract = config.getboolean("assisted_retract", False) # if True, retracts are assisted to prevent loose windings on the spool
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
         buttons = self.printer.load_object(config, "buttons")
@@ -63,7 +64,7 @@ class afc_hub:
         # To have an accurate reference position for `hub_cut_dist`, move back and forth in smaller steps
         # to find the point where the hub just triggers.
         while self.state:
-            CUR_LANE.move(-10, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+            CUR_LANE.move(-10, self.AFC.short_moves_speed, self.AFC.short_moves_accel, self.assisted_retract)
         while not self.state:
             CUR_LANE.move(2, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
 
@@ -88,7 +89,7 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
 
         # Retract lane by `hub_cut_clear`.
-        CUR_LANE.move(-self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel)
+        CUR_LANE.move(-self.cut_clear, self.AFC.short_moves_speed, self.AFC.short_moves_accel, self.assisted_retract)
 
 def load_config_prefix(config):
     return afc_hub(config)
