@@ -20,6 +20,7 @@ class afc:
         
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
+        self.FUNCTION = self.printer.load_object(config,'AFC_function')
         self.IDLE = self.printer.load_object(config,'idle_timeout')
         self.gcode = self.printer.lookup_object('gcode')
 
