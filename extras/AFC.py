@@ -470,7 +470,7 @@ class afc:
         Returns:
             bool: True if load was successful, False if an error occurred.
         """
-        if not self.is_homed():
+        if not self.FUNCTION.is_homed():
             self.ERROR.AFC_error("Please home printer before doing a tool load", False)
             return False
 
@@ -661,7 +661,7 @@ class afc:
         Returns:
             bool: True if unloading was successful, False if an error occurred.
         """
-        if not self.is_homed():
+        if not self.FUNCTION.is_homed():
             self.ERROR.AFC_error("Please home printer before doing a tool unload", False)
             return False
 
@@ -837,7 +837,7 @@ class afc:
         Returns:
             None
         """
-        if not self.is_homed():
+        if not self.FUNCTION.is_homed():
             self.ERROR.AFC_error("Please home printer before doing a tool change", False)
             return
 

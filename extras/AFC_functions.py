@@ -51,7 +51,6 @@ class afcFunction:
         dis = gcmd.get_float('DISTANCE', 25)
         tol = gcmd.get_float('TOLERANCE', 5)
         afc_bl = gcmd.get('BOWDEN', None)
-        short_dis = self.AFC.short_move_dis
         lanes = gcmd.get('LANE', None)
 
         if self.AFC.current is not None:
@@ -59,140 +58,32 @@ class afcFunction:
             return
 
         cal_msg = ''
-
-        def find_lane_to_calibrate(lane_name):
-            """
-            Search for the given lane across all units in the AFC system.
-
-            Args: lane_name: The name of the lane to search for
-
-            Returns: The lane name if found, otherwise None
-            """
-            if lane_name in self.AFC.lanes:
-                return lane_name
-
-            # If the lane was not found
-            self.AFC.gcode.respond_info('{} not found in any unit.'.format(lane_name))
-            return None
-
-        # Helper functions for movement and calibration
-        def calibrate_hub(CUR_LANE):
-            hub_pos = 0
-            hub_pos = move_until_state(CUR_LANE, lambda: CUR_LANE.hub_obj.state, CUR_LANE.hub_obj.move_dis, tol, short_dis, hub_pos)
-            tuned_hub_pos = calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos, short_dis, tol)
-            return tuned_hub_pos
-
-        def move_until_state(CUR_LANE, state, move_dis, tolerance, short_move, pos=0):
-            while state() == False:
-                CUR_LANE.move(move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
-                pos += move_dis
-            self.AFC.reactor.pause(self.reactor.monotonic() + 0.1)
-            while state() == True:
-                CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
-                pos -= short_move
-            self.AFC.reactor.pause(self.reactor.monotonic() + 0.1)
-            while state() == False:
-                CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
-                pos += tolerance
-            return pos
-
-        def calc_position(CUR_LANE, state, pos, short_move, tolerance):
-            while state():
-                CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
-                pos -= short_move
-            self.AFC.reactor.pause(self.reactor.monotonic() + 0.1)
-            while not state():
-                CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
-                pos += tolerance
-            return pos
-
-        def calibrate_lane(LANE):
-            if LANE not in self.AFC.lanes:
-                self.AFC.gcode.respond_info(LANE + ' Unknown')
-                return
-            CUR_LANE = self.lanes[LANE]
-            CUR_HUB = CUR_LANE.hub_obj
-            if CUR_HUB.state:
-                self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
-                return False, ""
-            if not CUR_LANE.load_state:
-                self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
-                return True, ""
-
-            self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
-            # reset to extruder
-            calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, short_dis, tol)
-            hub_pos = calibrate_hub(CUR_LANE)
-            if CUR_HUB.state:
-                CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
-            CUR_LANE.hub_load = True
-            CUR_LANE.do_enable(False)
-            CUR_LANE.dist_hub = hub_pos - CUR_HUB.hub_clear_move_dis
-            cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
-            self.ConfigRewrite(CUR_LANE.fullname, "dist_hub", hub_pos - CUR_HUB.hub_clear_move_dis, cal_msg)
-            return True, cal_msg
+        if afc_bl is not None:
+            self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
+            cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
+            cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
+            CUR_LANE=self.AFC.lanes[afc_bl]
+            CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
 
         # Determine if a specific lane is provided
         if lanes is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
             if lanes != 'all':
-                lane_to_calibrate = find_lane_to_calibrate(lanes)
-                if lane_to_calibrate is None:
-                    return
-                # Calibrate the specific lane
-                checked, msg = calibrate_lane(lane_to_calibrate)
+                CUR_LANE=self.AFC.lanes[lanes]
+                checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                 if(not checked): return
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
                 for LANE in self.AFC.lanes.keys():
                     # Calibrate the specific lane
-                    checked, msg = calibrate_lane(LANE)
+                    CUR_LANE=self.AFC.lanes[LANE]
+                    checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                     if(not checked): return
                     cal_msg += msg
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
-
-        if afc_bl is not None:
-            if lanes is None:
-                self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
-                cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-
-            lane_to_calibrate = find_lane_to_calibrate(afc_bl)
-
-            if lane_to_calibrate is None:
-                return
-
-            lane = lane_to_calibrate
-            CUR_LANE = self.AFC.lanes[lane]
-            CUR_EXTRUDER = CUR_LANE.extruder_obj
-            CUR_HUB = CUR_LANE.hub_obj
-            self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name.upper()))
-
-            move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol, short_dis)
-
-            bow_pos = 0
-            if CUR_EXTRUDER.tool_start:
-                while not CUR_EXTRUDER.tool_start_state:
-                    CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
-                    bow_pos += dis
-                    self.AFC.reactor.pause(self.reactor.monotonic() + 0.1)
-                bow_pos = calc_position(CUR_LANE, lambda: CUR_EXTRUDER.tool_start_state, bow_pos, short_dis, tol)
-                CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
-                if CUR_HUB.state:
-                    CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
-                if CUR_EXTRUDER.tool_start == 'buffer':
-                    cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (short_dis * 2))
-                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (short_dis * 2), cal_msg)
-                else:
-                    cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - short_dis)
-                    self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - short_dis, cal_msg)
-                CUR_LANE.do_enable(False)
-            else:
-                self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
-
-        self.AFC.save_vars()
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
         taskdone = False
@@ -373,7 +264,7 @@ class afcFunction:
         if lane not in self.AFC.lanes:
             self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
             return
-        CUR_LANE = self.lanes[lane]
+        CUR_LANE = self.AFC.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
         CUR_HUB.hub_cut(CUR_LANE)
         self.AFC.gcode.respond_info('Hub cut Done!')

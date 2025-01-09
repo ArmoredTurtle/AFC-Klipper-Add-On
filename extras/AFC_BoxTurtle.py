@@ -144,6 +144,85 @@ class afcBoxTurtle:
         self.response['lanes'] = self.lanes
 
         return self.response
+    
+    def calibrate_bowden(self, CUR_LANE, dis, tol):
+        CUR_EXTRUDER = CUR_LANE.extruder_obj
+        CUR_HUB = CUR_LANE.hub_obj
+        self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name.upper()))
+        self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol, CUR_LANE.short_move_dis)
+        bow_pos = 0
+        if CUR_EXTRUDER.tool_start:
+            while not CUR_EXTRUDER.tool_start_state:
+                CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
+                bow_pos += dis
+                self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+            bow_pos = self.calc_position(CUR_LANE, lambda: CUR_EXTRUDER.tool_start_state, bow_pos, CUR_LANE.short_move_dis, tol)
+            CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
+            if CUR_HUB.state:
+                CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            if CUR_EXTRUDER.tool_start == 'buffer':
+                cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - (CUR_LANE.short_move_dis * 2))
+                self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (CUR_LANE.short_move_dis * 2), cal_msg)
+            else:
+                cal_msg += '\n afc_bowden_length: {}'.format(bow_pos - CUR_LANE.short_move_dis)
+                self.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - CUR_LANE.short_move_dis, cal_msg)
+            CUR_LANE.do_enable(False)
+        else:
+            self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
+        self.AFC.save_vars()
+
+        # Helper functions for movement and calibration
+    def calibrate_hub(self, CUR_LANE, tol):
+        hub_pos = 0
+        hub_pos = self.move_until_state(CUR_LANE, lambda: CUR_LANE.hub_obj.state, CUR_LANE.hub_obj.move_dis, tol, CUR_LANE.short_move_dis, hub_pos)
+        tuned_hub_pos = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos, CUR_LANE.short_move_dis, tol)
+        return tuned_hub_pos
+
+    def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0):
+        while state() == False:
+            CUR_LANE.move(move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+            pos += move_dis
+        self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+        while state() == True:
+            CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            pos -= short_move
+        self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+        while state() == False:
+            CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+            pos += tolerance
+        return pos
+
+    def calc_position(self,CUR_LANE, state, pos, short_move, tolerance):
+        while state():
+            CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            pos -= short_move
+        self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+        while not state():
+            CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+            pos += tolerance
+        return pos
+
+    def calibrate_lane(self, CUR_LANE, tol):
+        CUR_HUB = CUR_LANE.hub_obj
+        if CUR_HUB.state:
+            self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
+            return False, ""
+        if not CUR_LANE.load_state:
+            self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name.upper()))
+            return True, ""
+
+        self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name.upper()))
+        # reset to extruder
+        self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis, tol)
+        hub_pos = self.calibrate_hub(CUR_LANE, tol)
+        if CUR_HUB.state:
+            CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+        CUR_LANE.hub_load = True
+        CUR_LANE.do_enable(False)
+        CUR_LANE.dist_hub = hub_pos - CUR_HUB.hub_clear_move_dis
+        cal_msg = "\n{} dist_hub: {}".format(CUR_LANE.name.upper(), (hub_pos - CUR_HUB.hub_clear_move_dis))
+        self.AFC.FUNCTION.ConfigRewrite(CUR_LANE.fullname, "dist_hub", hub_pos - CUR_HUB.hub_clear_move_dis, cal_msg)
+        return True, cal_msg
         
 def load_config_prefix(config):
     return afcBoxTurtle(config)
