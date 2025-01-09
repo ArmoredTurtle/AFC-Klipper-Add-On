@@ -142,6 +142,65 @@ class afcError:
         self.AFC_error(msg, pause)
         self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
 
-def load_config(config):
-    return afcError(config)
+    cmd_AFC_STATUS_help = "Return current status of AFC"
+    def cmd_AFC_STATUS(self, gcmd):
+        """
+        This function generates a status message for each unit and lane, indicating the preparation,
+        loading, hub, and tool states. The status message is formatted with HTML tags for display.
 
+        Usage: `AFC_STATUS`
+        Example: `AFC_STATUS`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
+        status_msg = ''
+
+        for UNIT in self.units.keys():
+            # Find the maximum length of lane names to determine the column width
+            max_lane_length = max(len(lane) for lane in self.lanes.keys())
+            status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
+
+            # Create a dynamic format string that adjusts based on lane name length
+            header_format = '{:<{}} | Prep | Load |\n'
+            status_msg += header_format.format("LANE", max_lane_length)
+
+            for LANE in self.lanes.keys():
+                lane_msg = ''
+                CUR_LANE = self.lanes[LANE]
+                CUR_HUB = CUR_LANE.hub_obj
+                CUR_EXTRUDER = CUR_LANE.extruder_obj
+                if self.current != None:
+                    if self.current == CUR_LANE.name:
+                        if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
+                            lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
+                        else:
+                            lane_msg += '<span class=success--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
+                    else:
+                        lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
+                else:
+                    lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
+
+                if CUR_LANE.prep_state == True:
+                    lane_msg += '| <span class=success--text><--></span> |'
+                else:
+                    lane_msg += '|  <span class=error--text>xx</span>  |'
+                if CUR_LANE.load_state == True:
+                    lane_msg += ' <span class=success--text><--></span> |\n'
+                else:
+                    lane_msg += '  <span class=error--text>xx</span>  |\n'
+                status_msg += lane_msg
+            if CUR_HUB.state == True:
+                status_msg += 'HUB: <span class=success--text><-></span>'
+            else:
+                status_msg += 'HUB: <span class=error--text>x</span>'
+            if CUR_EXTRUDER.tool_start_state == True:
+                status_msg += '  Tool: <span class=success--text><-></span>'
+            else:
+                status_msg += '  Tool: <span class=error--text>x</span>'
+            if CUR_EXTRUDER.tool_start == 'buffer':
+                status_msg += '\n<span class=info--text>Ram sensor enabled</span>'
+        self.gcode.respond_raw(status_msg)
