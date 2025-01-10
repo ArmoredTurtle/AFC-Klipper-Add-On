@@ -122,7 +122,7 @@ class AFCtrigger:
 
     def enable_buffer(self):
         if self.led:
-            self.AFC.afc_led(self.led_buffer_disabled, self.led_index)
+            self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.enable = True
             multiplier = 1.0
@@ -141,7 +141,7 @@ class AFCtrigger:
         self.enable = False
         if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
         if self.led:
-            self.AFC.afc_led(self.led_buffer_disabled, self.led_index)
+            self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
         self.last_state = False
@@ -156,11 +156,11 @@ class AFCtrigger:
         if multiplier > 1:
             self.last_state = TRAILING_STATE_NAME
             if self.led:
-                self.AFC.afc_led(self.led_trailing, self.led_index)
+                self.AFC.FUNCTION.afc_led(self.led_trailing, self.led_index)
         elif multiplier < 1:
             self.last_state = ADVANCE_STATE_NAME
             if self.led:
-                self.AFC.afc_led(self.led_advancing, self.led_index)
+                self.AFC.FUNCTION.afc_led(self.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
             self.gcode.respond_info("New rotation distance after applying factor: {}".format(stepper.get_rotation_distance()[0]))

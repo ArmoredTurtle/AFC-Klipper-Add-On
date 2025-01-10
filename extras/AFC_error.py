@@ -1,4 +1,5 @@
-
+def load_config(config):
+    return afcError(config)
 
 class afcError:
     def __init__(self, config):
@@ -141,7 +142,3 @@ class afcError:
         msg = "{} {}".format(CUR_LANE.name.upper(), message)
         self.AFC_error(msg, pause)
         self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
-
-def load_config(config):
-    return afcError(config)
-

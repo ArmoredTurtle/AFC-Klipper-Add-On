@@ -289,7 +289,7 @@ class AFCExtruderStepper:
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
             if self.prep_state == True:
                 x = 0
-                if self.AFC.is_printing():
+                if self.AFC.FUNCTION.is_printing():
                     self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
                     return
                 while self.load_state == False and self.prep_state == True:
@@ -300,20 +300,20 @@ class AFCExtruderStepper:
                     if x> 40:
                         msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                         self.AFC.ERROR.AFC_error(msg, False)
-                        self.AFC.afc_led(self.AFC.led_fault, self.led_index)
+                        self.AFC.FUNCTION.afc_led(self.AFC.led_fault, self.led_index)
                         self.status=''
                         break
                 self.status=''
                 self.do_enable(False)
                 if self.load_state == True and self.prep_state == True:
                     self.status = 'Loaded'
-                    self.AFC.afc_led(self.AFC.led_ready, self.led_index)
+                    self.AFC.FUNCTION.afc_led(self.AFC.led_ready, self.led_index)
            
-            elif self.prep_state == False and self.name == self.AFC.current and self.AFC.is_printing() and self.load_state and self.status != 'ejecting':
+            elif self.prep_state == False and self.name == self.AFC.current and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
                 # Checking to make sure runout_lane is set and does not equal 'NONE'
                 if  self.runout_lane != 'NONE':
                     self.status = None
-                    self.AFC.afc_led(self.AFC.led_not_ready, self.led_index)
+                    self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
                     self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
                     empty_LANE = self.AFC.lanes[self.AFC.current]
                     change_LANE = self.AFC.lanes[self.runout_lane]
@@ -325,12 +325,12 @@ class AFCExtruderStepper:
                 else:
                     # Pause print
                     self.status = None
-                    self.AFC.afc_led(self.AFC.led_not_ready, self.led_index)
+                    self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
                     self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
                     self.AFC.ERROR.pause_print()
             else:
                 self.status = None
-                self.AFC.afc_led(self.AFC.led_not_ready, self.led_index)
+                self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
 
     def do_enable(self, enable):
         self.sync_print_time()
@@ -467,20 +467,12 @@ class AFCExtruderStepper:
         self.response["color"]=self.color
         self.response["weight"]=self.weight
         self.response["runout_lane"]=self.runout_lane
-        filiment_stat=self.AFC.get_filament_status(self).split(':')
-        self.response['filament_status'] = filiment_stat[0]
-        self.response['filament_status_led'] = filiment_stat[1]
+        if self.led_name is not None:
+            filiment_stat=self.AFC.FUNCTION.get_filament_status(self).split(':')
+            self.response['filament_status'] = filiment_stat[0]
+            self.response['filament_status_led'] = filiment_stat[1]
         self.response['status'] = self.status
         return self.response
     
-    def get_filament_status(self):
-        if self.prep_state:
-            if self.load_state:
-                if self.extruder_obj is not None and self.extruder_obj.lane_loaded == self.name:
-                    return 'In Tool:' + self.AFC.HexConvert(self.led_tool_loaded)
-                return "Ready:" + self.AFC.HexConvert(self.led_ready)
-            return 'Prep:' + self.AFC.HexConvert(self.led_prep_loaded)
-        return 'Not Ready:' + self.AFC.HexConvert(self.led_not_ready)
-
 def load_config_prefix(config):
     return AFCExtruderStepper(config)
