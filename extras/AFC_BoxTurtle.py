@@ -162,9 +162,11 @@ class afcBoxTurtle:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             if CUR_EXTRUDER.tool_start == 'buffer':
                 cal_msg = '\n afc_bowden_length: {}'.format(bow_pos - (CUR_LANE.short_move_dis * 2))
+                CUR_LANE.hub_obj.afc_bowden_length = bow_pos - (CUR_LANE.short_move_dis * 2)
                 self.AFC.FUNCTION.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - (CUR_LANE.short_move_dis * 2), cal_msg)
             else:
                 cal_msg = '\n afc_bowden_length: {}'.format(bow_pos - CUR_LANE.short_move_dis)
+                CUR_LANE.hub_obj.afc_bowden_length = bow_pos - CUR_LANE.short_move_dis
                 self.AFC.FUNCTION.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bow_pos - CUR_LANE.short_move_dis, cal_msg)
             CUR_LANE.do_enable(False)
         else:
