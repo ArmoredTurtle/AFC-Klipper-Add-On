@@ -301,3 +301,17 @@ file as the code now generates them automatically.
   Allows to update tip forming configuration at runtime.
 
   See command_reference doc for more info
+
+## [2025-01-10]
+
+### Changed
+- Due to a too long retraction, hub cuts had the risk of ejecting filament from the extruder,
+  requiring manual intervention. The hub cut sequence was changed to avoid this situation.
+
+  **NOTE**: due to the new way hub cuts are performed, the configuration has to be updated!
+        The value `cut_dist` in `[AFC_Hub]` has to be reduced by about 150. Please recalibrate
+        this before the next print.
+
+### Added
+- [AFC_Hub] has a new config option: `assisted_retract`. If set to true, retracts are assisted so
+  that filament can't get loose on the spool.
