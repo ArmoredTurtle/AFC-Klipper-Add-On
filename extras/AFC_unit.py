@@ -1,0 +1,118 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
+from configfile import error
+
+class afcUnit:
+    def __init__(self, config):
+        self.printer    = config.get_printer()
+        self.gcode      = self.printer.lookup_object('gcode')
+        self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.AFC = self.printer.lookup_object('AFC')
+
+        self.lanes      = {}
+
+        # Objects
+        self.buffer_obj     = None
+        self.hub_obj        = None
+        self.extruder_obj   = None
+
+        # Config get section
+        self.full_name          = config.get_name().split()
+        self.name               = self.full_name[-1]
+        self.screen_mac         = config.get('screen_mac', None)
+        self.hub                = config.get("hub", None)                                           # Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
+        self.extruder           = config.get("extruder", None)                                      # Extruder name(AFC_extruder) that belongs to this unit, can be overridden in AFC_stepper section
+        self.buffer_name        = config.get('buffer', None)                                        # Buffer name(AFC_buffer) that belongs to this unit, can be overridden in AFC_stepper section
+        self.led_name           = config.get('led_name', self.AFC.led_name)
+        self.led_fault          = config.get('led_fault', self.AFC.led_fault)                       # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_ready          = config.get('led_ready', self.AFC.led_ready)                       # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_not_ready      = config.get('led_not_ready', self.AFC.led_not_ready)               # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_loading        = config.get('led_loading', self.AFC.led_loading)                   # LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_prep_loaded    = config.get('led_loading', self.AFC.led_loading)                   # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_unloading      = config.get('led_unloading', self.AFC.led_unloading)               # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_tool_loaded    = config.get('led_tool_loaded', self.AFC.led_tool_loaded)           # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+
+        self.long_moves_speed   = config.getfloat("long_moves_speed",  self.AFC.long_moves_speed)   # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
+        self.long_moves_accel   = config.getfloat("long_moves_accel",  self.AFC.long_moves_accel)   # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
+        self.short_moves_speed  = config.getfloat("short_moves_speed",  self.AFC.short_moves_speed) # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
+        self.short_moves_accel  = config.getfloat("short_moves_accel",  self.AFC.short_moves_accel) # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
+        self.short_move_dis     = config.getfloat("short_move_dis",  self.AFC.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+
+    def handle_connect(self):
+        """
+        Handles klippy:connect event, and does error checking to make sure users have hub/extruder/buffers sections if these variables are defined at the unit level
+        """
+        self.AFC = self.printer.lookup_object('AFC')
+        self.AFC.units[self.name] = self
+
+        # Error checking for hub
+        # TODO: once supported add check if users is not using a hub
+        if self.hub is not None:
+            try:
+                self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
+            except:
+                error_string = 'Error: No config found for hub: {hub} in [AFC_{unit_type} {unit_name}]. Please make sure [AFC_hub {hub}] section exists in your config'.format(
+                hub=self.hub, unit_type=self.type.replace("_", ""), unit_name=self.name )
+                raise error(error_string)
+
+        # Error checking for extruder
+        if self.extruder is not None:
+            try:
+                self.extruder_obj = self.printer.lookup_object("AFC_extruder {}".format(self.extruder))
+            except:
+                error_string = 'Error: No config found for extruder: {extruder} in [AFC_{unit_type} {unit_name}]. Please make sure [AFC_extruder {extruder}] section exists in your config'.format(
+                    extruder=self.extruder, unit_type=self.type.replace("_", ""), unit_name=self.name )
+                raise error(error_string)
+
+        # Error checking for buffer
+        if self.buffer_name is not None:
+            try:
+                self.buffer_obj = self.printer.lookup_object('AFC_buffer {}'.format(self.buffer_name))
+            except:
+                error_string = 'Error: No config found for buffer: {buffer} in [AFC_{unit_type} {unit_name}]. Please make sure [AFC_buffer {buffer}] section exists in your config'.format(
+                    buffer=self.buffer_name, unit_type=self.type.replace("_", ""), unit_name=self.name )
+                raise error(error_string)
+
+        # Send out event so lanes can store units object
+        self.printer.send_event("AFC_unit_{}:connect".format(self.name), self)
+
+    def get_status(self, eventtime=None):
+        response = {}
+        response['lanes'] = [lane.name for lane in self.lanes.values()]
+        response["extruders"]=[]
+        response["hubs"] = []
+        response["buffers"] = []
+
+        for lane in self.lanes.values():
+            if lane.hub is not None and lane.hub not in response["hubs"]: response["hubs"].append(lane.hub)
+            if lane.extruder_name is not None and lane.extruder_name not in response["extruders"]: response["extruders"].append(lane.extruder_name)
+            if lane.buffer_name is not None and lane.buffer_name not in response["buffers"]: response["buffers"].append(lane.buffer_name)
+
+        return response
+
+    # Functions are below are placeholders so the function exists for all units, override these function in your unit files
+    def _print_function_not_defined(self, name):
+        self.AFC.gcode("{} function not defined for {}".format(name, self.name))
+
+    # Function that other units can create so that they are specific to the unit
+    def system_Test(self, CUR_LANE, delay, assignTcmd, enable_movement):
+        self._print_function_not_defined(self.system_test.__name__)
+
+    def calibrate_bowden(self, CUR_LANE, dis, tol):
+        self._print_function_not_defined(self.calibrate_bowden.__name__)
+
+    def calibrate_hub(self, CUR_LANE, tol):
+        self._print_function_not_defined(self.calibrate_hub.__name__)
+
+    def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0):
+        self._print_function_not_defined(self.move_until_state.__name__)
+
+    def calc_position(self,CUR_LANE, state, pos, short_move, tolerance):
+        self._print_function_not_defined(self.calc_position.__name__)
+
+    def calibrate_lane(self, CUR_LANE, tol):
+        self._print_function_not_defined(self.calibrate_lane.__name__)

@@ -89,64 +89,6 @@ Finally, review and update the following files as needed for your configuration.
 3. `~/printer_data/config/AFC/AFC_Hardware.cfg`
 4. `~/printer_data/config/AFC/AFC_Turtle_1.cfg`
 
-### Buffer configuration - Manual
-
-If you are using a buffer such as the Turtleneck, Turtleneck v2 or Annex Belay, and you installed the software manually, you may need to make a couple of additional changes.
-
-You should add the following block to your `AFC_Turtle_1.cfg` file based on the type of buffer you are using.
-
-**NOTE** The `pin` value should be set to the pin that the buffer is connected to on your board.
-
-#### Turtleneck
-
-```cfg
-[AFC_buffer TN]
-advance_pin:     # set advance pin
-trailing_pin:    # set trailing pin
-multiplier_high: 1.05   # default 1.05, factor to feed more filament
-multiplier_low:  0.95   # default 0.95, factor to feed less filament
-velocity: 100
-```
-
-Turtleneck v2
-
-```cfg
-[AFC_buffer TN2]
-advance_pin: !turtleneck:ADVANCE
-trailing_pin: !turtleneck:TRAILING
-multiplier_high: 1.05   # default 1.05, factor to feed more filament
-multiplier_low:  0.95   # default 0.95, factor to feed less filament
-led_index: Buffer_Indicator:1
-velocity: 100
-
-[AFC_led Buffer_Indicator]
-pin: turtleneck:RGB
-chain_count: 1
-color_order: GRBW
-initial_RED: 0.0
-initial_GREEN: 0.0
-initial_BLUE: 0.0
-initial_WHITE: 0.0
-```
-
-Annex Belay
-
-```cfg
-[AFC_buffer Belay]
-pin: mcu:BUFFER
-distance: 12
-velocity: 1000
-accel: 1000
-```
-
-Finally, add `Buffer_Name: <TYPE>` to your `AFC.cfg` file. For example, if you are using the Turtleneck v2, you would add the following line:
-
-```cfg
-Buffer_Name: TN2
-```
-
-Additional information about the buffer configuration and operation can be found in the [AFC_buffer.md](./docs/AFC_buffer.md) file.
-
 ## Mandatory Configuration Changes (All)
 
 Prior to operation, the following checks / updates **MUST** be made to your system:
@@ -208,6 +150,78 @@ If using snappy hub cutter update the following values:
 - cut: change to True
 - cut_dist: update to the value that you would like to cut off the end, this may take some tuning to get right
 
+### Buffer configuration - Manual
+
+If you are using a buffer such as the Turtleneck, Turtleneck v2 or Annex Belay, and you installed the software manually, you may need to make a couple of additional changes.
+
+You should add the following block to your `AFC_Turtle_1.cfg` file based on the type of buffer you are using.
+
+**NOTE** The `pin` value should be set to the pin that the buffer is connected to on your board.
+
+#### Turtleneck
+
+```cfg
+[AFC_buffer TN]
+advance_pin:     # set advance pin
+trailing_pin:    # set trailing pin
+multiplier_high: 1.05   # default 1.05, factor to feed more filament
+multiplier_low:  0.95   # default 0.95, factor to feed less filament
+velocity: 100
+```
+
+Turtleneck v2
+
+```cfg
+[AFC_buffer TN2]
+advance_pin: !turtleneck:ADVANCE
+trailing_pin: !turtleneck:TRAILING
+multiplier_high: 1.05   # default 1.05, factor to feed more filament
+multiplier_low:  0.95   # default 0.95, factor to feed less filament
+led_index: Buffer_Indicator:1
+velocity: 100
+
+[AFC_led Buffer_Indicator]
+pin: turtleneck:RGB
+chain_count: 1
+color_order: GRBW
+initial_RED: 0.0
+initial_GREEN: 0.0
+initial_BLUE: 0.0
+initial_WHITE: 0.0
+```
+
+Annex Belay
+
+```cfg
+[AFC_buffer Belay]
+pin: mcu:BUFFER
+distance: 12
+velocity: 1000
+accel: 1000
+```
+
+Finally, add `buffer: <buffer_name>` to either your `AFC_extruder`, `AFC_stepper`, or `AFC_<unit_type>` sections in `AFC_Turtle_(n).cfg` files. For example, if you are using the Turtleneck v2, you would add the following line:
+
+Using this config, buffer will be used for every unit that uses this extruder
+```cfg
+[AFC_extruder extruder]
+buffer: TN2
+```
+
+Using this config, buffer will be used for every lanes that uses this unit
+```cfg
+[AFC_BoxTurtle Turtle_1]
+buffer: TN2
+```
+
+Using this config, buffer will be used for just the lanes the buffers is assigned to, this will override anything set in extruder/unit sections
+```cfg
+[AFC_stepper lane1]
+buffer: TN2
+```
+
+Additional information about the buffer configuration and operation can be found in the [AFC_buffer.md](./docs/AFC_buffer.md) file.
+
 ## Automatic Calibration
 
 The function `CALIBRATE_AFC` can be called in the console to calibrate distances.  
@@ -237,7 +251,7 @@ If using a hub different from the stock set up `hub_clear_move_dis` under AFC un
 
 Debug information about the respooler system can be found by visiting the following URL in your browser:
 
-`{ip address}/printer/objects/query?AFC`
+`{ip address}/printer/afc/status`
 
 ## LEDs not displaying correct color
 

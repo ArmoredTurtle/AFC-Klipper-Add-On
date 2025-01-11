@@ -1,3 +1,11 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
+from extras.AFC import State
+
 def load_config(config):
     return afcError(config)
 
@@ -32,14 +40,13 @@ class afcError:
         else:
             self.PauseUserIntervention(problem)
         if not error_handled:
-            self.AFC.afc_led(self.AFC.led_fault, LANE.led_index)
+            self.AFC.FUNCTION.afc_led(self.AFC.led_fault, LANE.led_index)
 
         return error_handled
 
     def ToolHeadFix(self, CUR_LANE):
-        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        if CUR_EXTRUDER.tool_start_state:   #toolhead has filament
-            if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:   #var has right lane loaded
+        if CUR_LANE.get_toolhead_sensor_state():   #toolhead has filament
+            if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:   #var has right lane loaded
                 if CUR_LANE.load_state == False: #Lane has filament
                     self.PauseUserIntervention('Filament not loaded in Lane')
                 else:
@@ -67,7 +74,7 @@ class afcError:
     def PauseUserIntervention(self,message):
         #pause for user intervention
         self.AFC.gcode._respond_error(message)
-        if self.AFC.is_homed() and not self.AFC.is_paused():
+        if self.AFC.FUNCTION.is_homed() and not self.AFC.FUNCTION.is_paused():
             self.AFC.save_pos()
             if self.pause:
                 self.pause_print()
@@ -86,6 +93,7 @@ class afcError:
         if state == True and self.AFC.error_state == False:
             self.AFC.save_pos()
         self.AFC.error_state = state
+        self.AFC.current_state = State.ERROR if state else State.IDLE
 
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
@@ -139,6 +147,6 @@ class afcError:
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         CUR_LANE.status = 'Error'
-        msg = "{} {}".format(CUR_LANE.name.upper(), message)
+        msg = "{} {}".format(CUR_LANE.name, message)
         self.AFC_error(msg, pause)
-        self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
+        self.AFC.FUNCTION.afc_led(self.AFC.led_fault, CUR_LANE.led_index)

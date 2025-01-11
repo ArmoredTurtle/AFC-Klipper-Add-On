@@ -5,6 +5,10 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configparser import Error as error
+try:
+    from extras.AFC_utils import add_filament_switch
+except:
+    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 ADVANCE_STATE_NAME = "Trailing"
 TRAILING_STATE_NAME = "Advancing"
@@ -13,21 +17,23 @@ class AFCtrigger:
 
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.AFC = self.printer.lookup_object('AFC')
         self.reactor = self.AFC.reactor
         self.gcode = self.AFC.gcode
-        
+
         self.name = config.get_name().split(' ')[-1]
+        self.lanes = {}
         self.turtleneck = False
         self.belay = False
-        self.last_state = False
+        self.last_state = "Unknown"
         self.enable = False
         self.current = ''
-        
+        self.advance_state = False
+        self.trailing_state = False
 
         self.debug = config.getboolean("debug", False)
         self.buttons = self.printer.load_object(config, "buttons")
+        self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui)  # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 
         # LED SETTINGS
         self.led_index = config.get('led_index', None)
@@ -59,6 +65,13 @@ class AFCtrigger:
             self.multiplier_low = config.getfloat("multiplier_low", default=0.9, minval=0.0, maxval=1.0)
             self.velocity = config.getfloat('velocity', 0)
 
+            if self.enable_sensors_in_gui:
+                self.adv_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "expanded")
+                self.fila_avd = add_filament_switch(self.adv_filament_switch_name, self.advance_pin, self.printer )
+
+                self.trail_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "compressed")
+                self.fila_trail = add_filament_switch(self.trail_filament_switch_name, self.trailing_pin, self.printer )
+
         # Pull config for Belay style buffer (single switch)
         elif self.buffer_distance is not None:
             self.belay = True
@@ -74,8 +87,8 @@ class AFCtrigger:
             raise error( msg )
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        self.gcode.register_mux_command("QUERY_BUFFER", "BUFFER", self.name, self.cmd_QUERY_BUFFER, desc=self.cmd_QUERY_BUFFER_help)
-        self.gcode.register_mux_command("SET_BUFFER_VELOCITY", "BUFFER", self.name, self.cmd_SET_BUFFER_VELOCITY, desc=self.cmd_SET_BUFFER_VELOCITY_help)
+        self.gcode.register_mux_command("QUERY_BUFFER",         "BUFFER", self.name, self.cmd_QUERY_BUFFER,         desc=self.cmd_QUERY_BUFFER_help)
+        self.gcode.register_mux_command("SET_BUFFER_VELOCITY",  "BUFFER", self.name, self.cmd_SET_BUFFER_VELOCITY,  desc=self.cmd_SET_BUFFER_VELOCITY_help)
 
         # Belay Buffer
         if self.belay:
@@ -85,15 +98,10 @@ class AFCtrigger:
         if self.turtleneck:
             self.buttons.register_buttons([self.advance_pin], self.advance_callback)
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
-            self.gcode.register_mux_command("SET_ROTATION_FACTOR", "AFC_trigger", None, self.cmd_SET_ROTATION_FACTOR, desc=self.cmd_LANE_ROT_FACTOR_help)
-            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER", "AFC_trigger", None, self.cmd_SET_MULTIPLIER, desc=self.cmd_SET_MULTIPLIER_help)
 
-    def handle_connect(self):
-        """
-        Handle the connection event.
-        This function is called when the printer connects. It looks up AFC info
-        and assigns it to the instance variable `self.AFC`.
-        """
+            self.gcode.register_mux_command("SET_ROTATION_FACTOR",      "BUFFER", self.name, self.cmd_SET_ROTATION_FACTOR,  desc=self.cmd_LANE_ROT_FACTOR_help)
+            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER",    "BUFFER", self.name, self.cmd_SET_MULTIPLIER,       desc=self.cmd_SET_MULTIPLIER_help)
+
         self.AFC.buffers[self.name] = self
 
     def _handle_ready(self):
@@ -104,7 +112,7 @@ class AFCtrigger:
         if not self.last_state and state:
             if self.printer.state_message == 'Printer is ready' and self.enable:
                 if self.AFC.current is not None:
-                    CUR_LANE = self.AFC.current
+                    CUR_LANE = self.AFC.lanes[self.AFC.current]
                     CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                     if CUR_EXTRUDER.tool_start_state:
                         self.belay_move_lane(state)
@@ -117,7 +125,7 @@ class AFCtrigger:
         if state:
             LANE = self.AFC.lanes[self.AFC.current]
             if LANE.status != 'unloading':
-                if self.debug: self.gcode.respond_info("Buffer Triggered, Moving Lane {} forward {}mm".format(self.AFC.current, self.buffer_distance))
+                if self.debug: self.gcode.respond_info("Buffer Triggered, Moving Lane {} forward {}mm".format(LANE.name, self.buffer_distance))
                 LANE.move(self.buffer_distance, self.velocity ,self.accel)
 
     def enable_buffer(self):
@@ -131,15 +139,15 @@ class AFCtrigger:
             else:
                 multiplier = self.multiplier_high
             self.set_multiplier( multiplier )
-            if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
+            if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name))
         elif self.belay:
             self.enable = True
-            if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name.upper()))
+            if self.debug: self.gcode.respond_info("{} buffer enabled".format(self.name))
             self.belay_move_lane(self.last_state)
 
     def disable_buffer(self):
         self.enable = False
-        if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name.upper()))
+        if self.debug: self.gcode.respond_info("{} buffer disabled".format(self.name))
         if self.led:
             self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
@@ -173,6 +181,7 @@ class AFCtrigger:
         self.gcode.respond_info("Rotation distance reset : {}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
 
     def advance_callback(self, eventime, state):
+        self.advance_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
             CUR_LANE = self.AFC.lanes[self.AFC.current]
             if self.AFC.current != None and state:
@@ -184,6 +193,7 @@ class AFCtrigger:
         self.last_state = ADVANCE_STATE_NAME
 
     def trailing_callback(self, eventime, state):
+        self.trailing_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
             CUR_LANE = self.AFC.lanes[self.AFC.current]
             if self.AFC.current != None and state:
@@ -212,8 +222,8 @@ class AFCtrigger:
         It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
         ensures that the factor is valid and updates the corresponding multiplier.
 
-        Usage: SET_BUFFER_MULTIPLIER MULTIPLIER=<HIGH/LOW> FACTOR=<factor>
-        Example: SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2
+        Usage: SET_BUFFER_MULTIPLIER BUFFER=<buffer_name> MULTIPLIER=<HIGH/LOW> FACTOR=<factor>
+        Example: SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -254,8 +264,8 @@ class AFCtrigger:
         specified factor. If no factor is provided, it defaults to 1.0, which resets
         the rotation distance to the base value.
 
-        Usage: SET_ROTATION_FACTOR FACTOR=<factor>
-        Example: SET_ROTATION_FACTOR FACTOR=1.2
+        Usage: SET_ROTATION_FACTOR BUFFER=<buffer_name> FACTOR=<factor>
+        Example: SET_ROTATION_FACTOR BUFFER=TN FACTOR=1.2
 
         Args:
             gcmd: A G-code command object containing the parameters for the factor.
@@ -284,9 +294,9 @@ class AFCtrigger:
                 else:
                     self.set_multiplier( change_factor )
             else:
-                self.gcode.respond_info("BUFFER {} NOT ENABLED".format(self.name.upper()))
+                self.gcode.respond_info("BUFFER {} NOT ENABLED".format(self.name))
         else:
-            self.gcode.respond_info("BUFFER {} CAN'T CHANGE ROTATION DISTANCE".format(self.name.upper()))
+            self.gcode.respond_info("BUFFER {} CAN'T CHANGE ROTATION DISTANCE".format(self.name))
 
     cmd_QUERY_BUFFER_help = "Report Buffer sensor state"
     def cmd_QUERY_BUFFER(self, gcmd):
@@ -295,7 +305,7 @@ class AFCtrigger:
         distance of the current AFC stepper motor.
 
         Usage: QUERY_BUFFER BUFFER=<buffer_name>
-        Example: QUERY_BUFFER BUFFER=TN2
+        Example: QUERY_BUFFER BUFFER=TN
 
         Behavior:
             - If the `turtleneck` feature is enabled and a tool is loaded, the rotation
@@ -312,7 +322,7 @@ class AFCtrigger:
                 LANE = self.AFC.lanes[self.AFC.current]
                 stepper = LANE.extruder_stepper.stepper
                 rotation_dist = stepper.get_rotation_distance()[0]
-                state_info += ("\n{} Rotation distance: {}".format(LANE.name.upper(), rotation_dist))
+                state_info += ("\n{} Rotation distance: {}".format(LANE.name, rotation_dist))
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
@@ -338,7 +348,8 @@ class AFCtrigger:
     def get_status(self, eventtime=None):
         self.response = {}
         self.response['state'] = self.last_state
+        self.response['lanes'] = [lane.name for lane in self.lanes.values()]
         return self.response
-   
+
 def load_config_prefix(config):
     return AFCtrigger(config)
