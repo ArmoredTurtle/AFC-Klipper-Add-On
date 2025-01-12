@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-01-11]
+### Added
+- Added clearing spool info and `load_to_hub` when lane retracts too far past Box Turtle extruder, reset once prep goes low
+- Added logic so that buffer/extruder/hubs don't need to be entered per stepper as long as they are defined in their Unit(AFC_BoxTurtle/AFC_NightOwl) section 
+
+For the following please see [Features doc](docs/Features.md) for more information on how to setup
+- Added ability to set and track number of toolchanges when doing multicolor prints
+- Added ability to set extruder temperature based off spoolman values or filament materials type if manually entered
+- Added ability to show sensors as filament sensors in gui's
+- Added ability to use multiple buffers
+- Added automatically loading filament to hub for users that have moved their hubs closer to their toolhead
+
+### Changed
+
+- `http://<ip_address>/printer/objects/query?AFC` has moved to `http://<ip_address>/printer/afc/status`endpoint. If tools have been designed around original endpoint please review results returned as new items have been added
+
+## [2025-01-08]
+### Added
+- If using `tool_end` variable(sensor after extruder gears) `tool_stn` distance will now be based off this sensor
+- When running `CALIBRATE_AFC` command values will be automatically updated and saved to config file
+
+### Fixed
+- Fixed infinite spool logic
+
 ## [2025-01-05]
 
 ### Updated

@@ -1,3 +1,9 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+
 import os
 
 def load_config(config):
@@ -7,8 +13,29 @@ class afcFunction:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
+        self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
         self.errorLog= {}
         self.pause= False
+
+    def register_lane_macros(self, lane_obj):
+        """
+        Callback function to register macros with proper lane names so that klipper errors out correctly when users supply lanes names that
+        are not valid
+
+        :param lane_obj: object for lane to register
+        """
+        self.AFC.gcode.register_mux_command('TEST',         "LANE", lane_obj.name, self.cmd_TEST,         desc=self.cmd_TEST_help)
+        self.AFC.gcode.register_mux_command('HUB_CUT_TEST', "LANE", lane_obj.name, self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
+
+    def register_hub_macros(self, hub_obj):
+        """
+        Callback function to register macros with proper hub names so that klipper errors out correctly when users supply hub names that
+        are not valid
+
+        :param hub_obj: object for hub to register
+        """
+        self.AFC.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'HUB', hub_obj.name, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
 
     def handle_connect(self):
         """
@@ -17,10 +44,6 @@ class afcFunction:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
-
-        self.AFC.gcode.register_command('TEST', self.cmd_TEST, desc=self.cmd_TEST_help)
-        self.AFC.gcode.register_command('HUB_CUT_TEST', self.cmd_HUB_CUT_TEST, desc=self.cmd_HUB_CUT_TEST_help)
-        self.AFC.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'AFC', None, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
         self.AFC.gcode.register_mux_command('CALIBRATE_AFC', None, None, self.cmd_CALIBRATE_AFC, desc=self.cmd_CALIBRATE_AFC_help)
 
     cmd_CALIBRATE_AFC_help = 'calibrate the dist hub for lane and then afc_bowden_length'
@@ -58,12 +81,6 @@ class afcFunction:
             return
 
         cal_msg = ''
-        if afc_bl is not None:
-            self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
-            cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-            cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
-            CUR_LANE=self.AFC.lanes[afc_bl]
-            CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
 
         # Determine if a specific lane is provided
         if lanes is not None:
@@ -76,14 +93,21 @@ class afcFunction:
                 cal_msg += msg
             else:
                 # Calibrate all lanes if no specific lane is provided
-                for LANE in self.AFC.lanes.keys():
+                for CUR_LANE in self.AFC.lanes.values():
                     # Calibrate the specific lane
-                    CUR_LANE=self.AFC.lanes[LANE]
                     checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                     if(not checked): return
                     cal_msg += msg
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
+
+        # Calibrate Bowden length with specified lane
+        if afc_bl is not None:
+            self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
+            cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
+            cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
+            CUR_LANE=self.AFC.lanes[afc_bl]
+            CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
         taskdone = False
@@ -114,6 +138,7 @@ class afcFunction:
                     self.AFC.gcode.respond_info(msg)
                     return
         msg +='\n<span class=info--text>Update values in [' + rawsection +']</span>'
+        self.AFC.save_vars()
         self.AFC.gcode.respond_info(msg)
 
     def TcmdAssign(self, CUR_LANE):
@@ -129,7 +154,7 @@ class afcFunction:
         except:
             self.AFC.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=CUR_LANE.map), )
         self.AFC.save_vars()
-    
+
     def is_homed(self):
         curtime = self.AFC.reactor.monotonic()
         kin_status = self.AFC.toolhead.get_kinematics().get_status(curtime)
@@ -156,7 +181,7 @@ class afcFunction:
             return
         # Try to find led object, if not found print error to console for user to see
         afc_object = 'AFC_led '+ idx.split(':')[0]
-        try: 
+        try:
             led = self.printer.lookup_object(afc_object)
             led.led_change(int(idx.split(':')[1]), status)
         except:
@@ -221,7 +246,7 @@ class afcFunction:
             self.AFC.gcode.respond_info("A lane is not loaded please specify hub to adjust bowden length")
             return
 
-        CUR_HUB = CUR_LANE.hub_obj
+        CUR_HUB = self.AFC.hubs[hub]
         config_bowden = CUR_HUB.afc_bowden_length
 
         if length_param is None or length_param.strip() == '':
@@ -262,7 +287,7 @@ class afcFunction:
         lane = gcmd.get('LANE', None)
         self.AFC.gcode.respond_info('Testing Hub Cut on Lane: ' + lane)
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
@@ -295,7 +320,7 @@ class afcFunction:
             return
         self.AFC.gcode.respond_info('TEST ROUTINE')
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         self.AFC.gcode.respond_info('Testing at full speed')

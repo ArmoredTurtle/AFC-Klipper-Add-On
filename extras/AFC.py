@@ -8,6 +8,17 @@ import json
 
 AFC_VERSION="1.0.0"
 
+# Class for holding different states so its clear what all valid states are
+class State:
+    INIT            = "Initialized"
+    IDLE            = "Idle"
+    ERROR           = "Error"
+    LOADING         = "Loading"
+    UNLOADING       = "Unloading"
+    EJECTING_LANE   = "Ejecting"
+    MOVING_LANE     = "Moving"
+    RESTORING_POS   = "Restoring"
+
 def load_config(config):
     return afc(config)
 
@@ -15,9 +26,14 @@ class afc:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
+        self.webhooks = self.printer.lookup_object('webhooks')
         self.printer.register_event_handler("klippy:connect",self.handle_connect)
-        self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        
+
+        # Registering stepper callback so that mux macro can be set properly with valid lane names
+        self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
+        # Registering webhooks endpoint for <ip_address>/printer/afc/status
+        self.webhooks.register_endpoint("afc/status", self._webhooks_status)
+
         self.SPOOL = self.printer.load_object(config,'AFC_spool')
         self.ERROR = self.printer.load_object(config,'AFC_error')
         self.FUNCTION = self.printer.load_object(config,'AFC_functions')
@@ -25,22 +41,23 @@ class afc:
         self.gcode = self.printer.lookup_object('gcode')
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
-        self.VarFile = config.get('VarFile','../printer_data/config/AFC/')
-        self.cfgloc = self.remove_after_last(self.VarFile,"/")
-        
-        self.current = None
-        self.error_state = False
-        self.hub = None
-        self.buffer = None
-        self.units = {}
-        self.tools = {}
-        self.lanes = {}
-        self.hubs = {}
-        self.buffers = {}
-        self.tool_cmds={}
-        self.monitoring = False
 
-        self.unit_order_list = config.get('unit_order_list','')
+        self.current        = None
+        self.current_loading= None
+        self.next_lane_load = None
+        self.error_state    = False
+        self.current_state  = State.INIT
+
+        # Objects for everything configured for AFC
+        self.units      = {}
+        self.tools      = {}
+        self.lanes      = {}
+        self.hubs       = {}
+        self.buffers    = {}
+        self.tool_cmds  = {}
+        self.monitoring = False
+        self.number_of_toolchanges  = 0
+        self.current_toolchange     = 0
 
         # tool position when tool change was requested
         self.change_tool_pos = None
@@ -55,13 +72,20 @@ class afc:
         self.speed = 25.
         self.absolute_coord = True
 
+        # Config get section
+        self.unit_order_list = config.get('unit_order_list','')
+        self.VarFile = config.get('VarFile','../printer_data/config/AFC/') 			# Path to the variables file for AFC configuration.
+        self.cfgloc = self._remove_after_last(self.VarFile,"/")
+        self.default_material_temps = config.getlists("default_material_temps", None) # Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
+
         # SPOOLMAN
         self.spoolman_ip = config.get('spoolman_ip', None)                          # To utilize spoolman enter spoolmans IP address
         self.spoolman_port = config.get('spoolman_port', None)                      # To utilize spoolman enter spoolmans port
 
         #LED SETTINGS
         self.ind_lights = None
-        self.led_name = config.get('led_name',None)                                      # Not used removed?
+        # led_name is not used, either use or needs to be removed
+        self.led_name = config.get('led_name',None)
         self.led_fault =config.get('led_fault','1,0,0,0')                           # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_ready = config.get('led_ready','1,1,1,1')                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_not_ready = config.get('led_not_ready','1,1,0,0')                  # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness.
@@ -73,7 +97,6 @@ class afc:
         self.led_trailing = config.get('led_buffer_trailing','0,1,0,0')             # LED color to set when buffer is trailing          (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_buffer_disabled = config.get('led_buffer_disable', '0,0,0,0.25')   # LED color to set when buffer is disabled          (R,G,B,W) 0 = off, 1 = full brightness.
 
-        
         # TOOL Cutting Settings
         self.tool = ''
         self.tool_cut = config.getboolean("tool_cut", False)                        # Set to True to enable toolhead cutting
@@ -93,7 +116,6 @@ class afc:
         self.form_tip_cmd = config.get('form_tip_cmd', None)                        # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
 
         # MOVE SETTINGS
-        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0) # Currently unused
         self.long_moves_speed = config.getfloat("long_moves_speed", 100)            # Speed in mm/s to move filament when doing long moves
         self.long_moves_accel = config.getfloat("long_moves_accel", 400)            # Acceleration in mm/s squared when doing long moves
         self.short_moves_speed = config.getfloat("short_moves_speed", 25)           # Speed in mm/s to move filament when doing short moves
@@ -109,6 +131,8 @@ class afc:
 
         self.global_print_current = config.getfloat("global_print_current", None)   # Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly
 
+        self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", False) # Set to True to show all sensor switches as filament sensors in mainsail/fluidd gui
+        self.load_to_hub        = config.getboolean("load_to_hub", True)            # Fast loads filament to hub when inserted, set to False to disable. This is a global setting and can be overridden at AFC_stepper
         self._update_trsync(config)
 
         # Get debug and cast to boolean
@@ -118,13 +142,13 @@ class afc:
         # Printing here will not display in console but it will go to klippy.log
         self.print_version()
 
-    def remove_after_last(self, string, char):
+    def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
         if last_index != -1:
             return string[:last_index + 1]
         else:
             return string
-            
+
     def _update_trsync(self, config):
         # Logic to update trsync values
         update_trsync = config.getboolean("trsync_update", False)                   # Set to true to enable updating trsync value in klipper mcu. Enabling this and updating the timeouts can help with Timer Too Close(TTC) errors
@@ -144,6 +168,18 @@ class afc:
             except Exception as e:
                 self.gcode.respond_info("Unable to update TRSYNC_TIMEOUT: {}".format(e))
 
+    def register_lane_macros(self, lane_obj):
+        """
+        Callback function to register macros with proper lane names so that klipper errors out correctly when users supply lanes that
+        are not valid
+
+        :param lane_obj: object for lane to register
+        """
+        self.gcode.register_mux_command('LANE_MOVE',    "LANE", lane_obj.name, self.cmd_LANE_MOVE,      desc=self.cmd_LANE_MOVE_help)
+        self.gcode.register_mux_command('LANE_UNLOAD',  "LANE", lane_obj.name, self.cmd_LANE_UNLOAD,    desc=self.cmd_LANE_UNLOAD_help)
+        self.gcode.register_mux_command('HUB_LOAD',     "LANE", lane_obj.name, self.cmd_HUB_LOAD,       desc=self.cmd_HUB_LOAD_help)
+        self.gcode.register_mux_command('TOOL_LOAD',    "LANE", lane_obj.name, self.cmd_TOOL_LOAD,      desc=self.cmd_TOOL_LOAD_help)
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -153,30 +189,93 @@ class afc:
         self.toolhead = self.printer.lookup_object('toolhead')
 
         # GCODE REGISTERS
-        self.gcode.register_command('HUB_LOAD', self.cmd_HUB_LOAD, desc=self.cmd_HUB_LOAD_help)
-        self.gcode.register_command('LANE_UNLOAD', self.cmd_LANE_UNLOAD, desc=self.cmd_LANE_UNLOAD_help)
-        self.gcode.register_command('TOOL_LOAD', self.cmd_TOOL_LOAD, desc=self.cmd_TOOL_LOAD_help)
-        self.gcode.register_command('TOOL_UNLOAD', self.cmd_TOOL_UNLOAD, desc=self.cmd_TOOL_UNLOAD_help)
-        self.gcode.register_command('CHANGE_TOOL', self.cmd_CHANGE_TOOL, desc=self.cmd_CHANGE_TOOL_help)
-        self.gcode.register_command('LANE_MOVE', self.cmd_LANE_MOVE, desc=self.cmd_LANE_MOVE_help)
-        self.gcode.register_command('AFC_STATUS', self.cmd_AFC_STATUS, desc=self.cmd_AFC_STATUS_help)
-    
-    def _handle_ready(self):
-        for HUB in self.hubs.keys():
-            self.hub = HUB
-            break
-        for BUFFER in self.buffers.keys():
-            self.buffer_obj = self.buffers[BUFFER]
-            self.buffer = self.buffer_obj.name
-            break
+        self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
+        self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
+        self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
+        self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
+        self.current_state = State.IDLE
 
     def print_version(self):
+        """
+        Calculated AFC git version and displays to console and log
+        """
         import subprocess
         import os
         afc_dir  = os.path.dirname(os.path.realpath(__file__))
         git_hash = subprocess.check_output(['git', '-C', '{}'.format(afc_dir), 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
         git_commit_num = subprocess.check_output(['git', '-C', '{}'.format(afc_dir), 'rev-list', 'HEAD', '--count']).decode('ascii').strip()
         self.gcode.respond_info("AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash))
+
+    def _get_default_material_temps(self, CUR_LANE):
+        """
+        Helper function to get material temperatures
+
+        Defaults to min extrude temperature + 5 if nothing is found.
+
+        Returns value that user has inputted if using spoolman, or tries to parse manually entered values
+        in AFC.cfg and sees if a temperature exists for filament material.
+
+        :param CUR_LANE: Current lane object
+        :return float: Returns float for temperature to heat extruder to
+        """
+        temp_value = self.heater.min_extrude_temp + 5
+        if CUR_LANE.extruder_temp is not None:
+            temp_value = CUR_LANE.extruder_temp
+        elif self.default_material_temps is not None and CUR_LANE.material is not None:
+            for mat in self.default_material_temps:
+                m = mat.split(":")
+                if m[0] in CUR_LANE.material:
+                    temp_value = m[1]
+                    break
+        self.gcode.respond_info("Temperature: {}".format(temp_value))
+        return float(temp_value)
+
+    def _check_extruder_temp(self, CUR_LANE):
+        """
+        Helper function that check to see if extruder needs to be heated, and wait for hotend to get to temp if needed
+        """
+        # Prepare extruder and heater.
+        # This will need to be done a different way for multiple toolhead extruders
+        extruder = self.toolhead.get_extruder()
+        self.heater = extruder.get_heater()
+
+        pheaters = self.printer.lookup_object('heaters')
+        target_temp = self._get_default_material_temps(CUR_LANE)
+
+        # Check to make sure temp is with +/-5 of target temp
+        if target_temp -5 <= self.heater.target_temp <= target_temp +5:
+            self.gcode.respond_info('Extruder below min_extrude_temp or below temp for specified filament, heating to {} degrees.'.format(target_temp))
+            pheaters.set_temperature(extruder.get_heater(), target_temp, wait=True)
+
+    cmd_SET_AFC_TOOLCHANGES_help = "Sets number of toolchanges for AFC to keep track of"
+    def cmd_SET_AFC_TOOLCHANGES(self, gcmd):
+        """
+        This macro can be used to set total number of toolchanges from slicer. AFC will keep track of tool changes and print out
+        current tool change number when a T(n) command is called from gcode
+
+        This call can be added to the slicer by adding the following lines to Change filament G-code section in your slicer.
+        You may already have `T[next_extruder]`, just make sure the toolchange call is after your T(n) call
+        ```
+        T[next_extruder]
+        { if toolchange_count == 1 }SET_AFC_TOOLCHANGES TOOLCHANGES=[total_toolchanges]{endif }
+        ```
+
+        The following can also be added to your `PRINT_END` section in your slicer to set number of toolchanges back to zero
+        `SET_AFC_TOOLCHANGES TOOLCHANGES=0`
+
+        Usage: `SET_AFC_TOOLCHANGES TOOLCHANGES=<number>`
+        Example: `SET_AFC_TOOLCHANGES TOOLCHANGES=100`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
+        self.number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
+        self.current_toolchange     = 0 # Reset back to one
+        if self.number_of_toolchanges > 0:
+            self.gcode.respond_info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
@@ -201,30 +300,35 @@ class afc:
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         if lane not in self.lanes:
-            self.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.gcode.respond_info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.lanes[lane]
+        self.current_state = State.MOVING_LANE
         CUR_LANE.set_load_current() # Making current is set correctly when doing lane moves
         CUR_LANE.do_enable(True)
         CUR_LANE.move(distance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
         CUR_LANE.do_enable(False)
+        self.current_state = State.IDLE
 
     def save_pos(self):
-        # Only save previous location on the first toolchange call to keep an error state from overwriting the location
+        """
+        Only save previous location on the first toolchange call to keep an error state from overwriting the location
+        """
         if self.in_toolchange == False:
             if self.error_state == False:
                 self.last_toolhead_position = self.toolhead.get_position()
-                self.base_position = self.gcode_move.base_position
-                self.last_gcode_position = self.gcode_move.last_position
-                self.homing_position = self.gcode_move.homing_position
-                self.speed = self.gcode_move.speed
-                self.absolute_coord = self.gcode_move.absolute_coord
+                self.base_position          = self.gcode_move.base_position
+                self.last_gcode_position    = self.gcode_move.last_position
+                self.homing_position        = self.gcode_move.homing_position
+                self.speed                  = self.gcode_move.speed
+                self.absolute_coord         = self.gcode_move.absolute_coord
 
     def restore_pos(self):
         """
         restore_pos function restores the previous saved position, speed and coord type. The resume uses
         the z_hop value to lift, move to previous x,y coords, then lower to saved z position.
         """
+        self.current_state = State.RESTORING_POS
         newpos = self.toolhead.get_position()
         newpos[2] = self.last_gcode_position[2] + self.z_hop
 
@@ -252,58 +356,27 @@ class afc:
         # Drop to previous z
         newpos[2] = self.last_gcode_position[2]
         self.gcode_move.move_with_transform(newpos, speedz)
+        self.current_state = State.IDLE
 
-    # Helper function to write variables to file. Prints with indents to make it more readable for users
     def save_vars(self):
         """
         save_vars function saves lane variables to var file and prints with indents to
                   make it more readable for users
         """
         str = {}
-        numoflanes = 0
         for UNIT in self.units.keys():
             CUR_UNIT=self.units[UNIT]
             str[CUR_UNIT.name]={}
             name=[]
             for NAME in CUR_UNIT.lanes:
                 CUR_LANE=self.lanes[NAME]
-                str[CUR_UNIT.name][CUR_LANE.name]={}
-                str[CUR_UNIT.name][CUR_LANE.name]['index'] = CUR_LANE.index
-                str[CUR_UNIT.name][CUR_LANE.name]['hub'] = CUR_LANE.hub
-                str[CUR_UNIT.name][CUR_LANE.name]['buffer'] = CUR_LANE.buffer
-                str[CUR_UNIT.name][CUR_LANE.name]['map'] = CUR_LANE.map
-                str[CUR_UNIT.name][CUR_LANE.name]['load'] = bool(CUR_LANE.load_state)
-                str[CUR_UNIT.name][CUR_LANE.name]["prep"] =bool(CUR_LANE.prep_state)
-                str[CUR_UNIT.name][CUR_LANE.name]["tool_loaded"] = CUR_LANE.tool_loaded
-                str[CUR_UNIT.name][CUR_LANE.name]["loaded_to_hub"] = CUR_LANE.loaded_to_hub
-                str[CUR_UNIT.name][CUR_LANE.name]["material"]=CUR_LANE.material
-                str[CUR_UNIT.name][CUR_LANE.name]["spool_id"]=CUR_LANE.spool_id
-                str[CUR_UNIT.name][CUR_LANE.name]["color"]=CUR_LANE.color
-                str[CUR_UNIT.name][CUR_LANE.name]["weight"]=CUR_LANE.weight
-                str[CUR_UNIT.name][CUR_LANE.name]["runout_lane"]=CUR_LANE.runout_lane
-                filiment_stat=self.FUNCTION.get_filament_status(CUR_LANE).split(':')
-                str[CUR_UNIT.name][CUR_LANE.name]['filament_status']=filiment_stat[0]
-                str[CUR_UNIT.name][CUR_LANE.name]['filament_status_led']=filiment_stat[1]
-                str[CUR_UNIT.name][CUR_LANE.name]['status'] = CUR_LANE.status 
-                numoflanes +=1
+                str[CUR_UNIT.name][CUR_LANE.name]=CUR_LANE.get_status()
                 name.append(CUR_LANE.name)
-            str[CUR_UNIT.name]['system']={}
-            str[CUR_UNIT.name]['lanes'] = name
-            str[CUR_UNIT.name]['system']['type'] = CUR_UNIT.type
-            if CUR_UNIT.hub is None:
-                CUR_UNIT.hub = self.printer.lookup_object('AFC_hub '+list(self.hubs.keys())[0])
-            else:
-               str[CUR_UNIT.name]['system']['hub'] = CUR_UNIT.hub
-               str[UNIT]['system']['hub_loaded']  = CUR_UNIT.hub_obj.state
-               str[UNIT]['system']['Hub_can_cut']  = CUR_UNIT.hub_obj.cut
-            if CUR_UNIT.buffer is not None:
-                str[CUR_UNIT.name]['system']['buffer'] = CUR_UNIT.buffer
-                str[CUR_UNIT.name]['system']['buffer_state'] = CUR_UNIT.buffer_obj.last_state
-            str[CUR_UNIT.name]['system']['screen'] = CUR_UNIT.screen_mac
+
         str["system"]={}
         str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.units)
-        str["system"]['num_lanes'] = numoflanes
+        str["system"]['num_lanes'] = len(self.lanes)
         str["system"]['num_extruders'] = len(self.tools)
         str["system"]["extruders"]={}
 
@@ -311,32 +384,8 @@ class afc:
             CUR_EXTRUDER = self.tools[EXTRUDE]
             str["system"]["extruders"][CUR_EXTRUDER.name]={}
             str["system"]["extruders"][CUR_EXTRUDER.name]['lane_loaded'] = CUR_EXTRUDER.lane_loaded
-            if CUR_EXTRUDER.tool_start == "buffer":
-                if CUR_EXTRUDER.lane_loaded == '':
-                    str ["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = False
-                else:
-                    str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = True
-            else:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_start_sensor'] = bool(CUR_EXTRUDER.tool_start_state)
-            if CUR_EXTRUDER.tool_end is not None:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = bool(CUR_EXTRUDER.tool_end_state)
-            else:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['tool_end_sensor']   = None
-            if self.current is not None:
-                CUR_LANE=self.lanes[self.current]
-                if CUR_LANE.extruder_name == CUR_EXTRUDER.name:
-                    CUR_EXTRUDER.buffer_name = CUR_LANE.buffer
-                    str["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = CUR_EXTRUDER.buffer_name
-                    str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = CUR_EXTRUDER.buffer_status()
-                else:
-                    str["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = 'Not In Use'
-                    str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
-            else:
-                str["system"]["extruders"][CUR_EXTRUDER.name]['buffer']   = 'Not In Use '
-                str["system"]["extruders"][CUR_EXTRUDER.name]['buffer_status']   = 'NONE'
 
         with open(self.VarFile+ '.unit', 'w') as f:
-            #status = self.get_status(0)
             f.write(json.dumps(str, indent=4))
 
     # HUB COMMANDS
@@ -359,7 +408,7 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         if lane not in self.lanes:
-            self.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.gcode.respond_info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
@@ -399,10 +448,13 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         if lane not in self.lanes:
-            self.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.gcode.respond_info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
+
+        self.current_state = State.EJECTING_LANE
+
         if CUR_LANE.name != self.current:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
@@ -427,6 +479,8 @@ class afc:
         else:
             self.gcode.respond_info("LANE {} is loaded in toolhead, can't unload.".format(CUR_LANE.name))
 
+        self.current_state = State.IDLE
+
     cmd_TOOL_LOAD_help = "Load lane into tool"
     def cmd_TOOL_LOAD(self, gcmd):
         """
@@ -447,11 +501,11 @@ class afc:
         """
         lane = gcmd.get('LANE', None)
         if lane not in self.lanes:
-            self.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.gcode.respond_info('{} Unknown'.format(lane))
             return
 
         if self.current is not None:
-            self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane.upper(), self.current.upper()), pause=False)
+            self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane, self.current), pause=False)
             return
         CUR_LANE = self.lanes[lane]
         self.TOOL_LOAD(CUR_LANE)
@@ -492,9 +546,8 @@ class afc:
         # Lookup extruder and hub objects associated with the lane.
         CUR_HUB = CUR_LANE.hub_obj
         CUR_EXTRUDER = CUR_LANE.extruder_obj
-        # Prepare extruder and heater.
-        extruder = self.toolhead.get_extruder()
-        self.heater = extruder.get_heater()
+        self.current_state = State.LOADING
+        self.current_loading = CUR_LANE.name
 
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'Tool Loading'
@@ -503,12 +556,8 @@ class afc:
 
         # Check if the lane is in a state ready to load and hub is clear.
         if CUR_LANE.load_state and not CUR_HUB.state:
-            # Heat the extruder if it is below the minimum extrusion temperature.
-            if not self.heater.can_extrude:
-                pheaters = self.printer.lookup_object('heaters')
-                if self.heater.target_temp <= self.heater.min_extrude_temp:
-                    self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min.')
-                    pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait=True)
+
+            self._check_extruder_temp(CUR_LANE)
 
             # Enable the lane for filament movement.
             CUR_LANE.do_enable(True)
@@ -538,7 +587,7 @@ class afc:
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
             if CUR_EXTRUDER.tool_start:
-                while not CUR_EXTRUDER.tool_start_state:
+                while not CUR_LANE.get_toolhead_sensor_state():
                     tool_attempts += 1
                     CUR_LANE.move(CUR_LANE.short_move_dis, CUR_EXTRUDER.tool_load_speed, CUR_LANE.long_moves_accel)
                     if tool_attempts > 20:
@@ -552,6 +601,7 @@ class afc:
             CUR_LANE.sync_to_extruder()
 
             if CUR_EXTRUDER.tool_end:
+                pos = self.toolhead.get_position()
                 while not CUR_EXTRUDER.tool_end_state:
                     tool_attempts += 1
                     pos[3] += CUR_LANE.short_move_dis
@@ -561,21 +611,21 @@ class afc:
                         message = ('FAILED TO LOAD TO TOOL END, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
-                    
+
             # Adjust tool position for loading.
             pos = self.toolhead.get_position()
             pos[3] += CUR_EXTRUDER.tool_stn
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
             self.toolhead.wait_moves()
-                    
+
             # Check if ramming is enabled, if it is go through ram load sequence.
             # Lane will load until Advance sensor is True
             # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
             if CUR_EXTRUDER.tool_start == "buffer":
                 CUR_LANE.unsync_to_extruder()
                 load_checks = 0
-                while CUR_EXTRUDER.tool_start_state == True:
-                    CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
+                while CUR_LANE.get_toolhead_sensor_state() == True:
+                    CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel )
                     load_checks += 1
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if load_checks > self.tool_max_load_checks:
@@ -586,9 +636,8 @@ class afc:
                         break
                 CUR_LANE.sync_to_extruder()
             # Update tool and lane status.
-            CUR_LANE.tool_loaded = True
-            self.current = CUR_LANE.name
-            CUR_EXTRUDER.enable_buffer()
+            CUR_LANE.set_loaded()
+            CUR_LANE.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
             self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
@@ -606,6 +655,7 @@ class afc:
             self.SPOOL.set_active_spool(CUR_LANE.spool_id)
             self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
+            self.current_state = State.IDLE
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
             if CUR_HUB.state:
@@ -640,7 +690,7 @@ class afc:
         if lane == None:
             return
         if lane not in self.lanes:
-            self.gcode.respond_info('{} Unknown'.format(lane.upper()))
+            self.gcode.respond_info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.lanes[lane]
         self.TOOL_UNLOAD(CUR_LANE)
@@ -669,11 +719,17 @@ class afc:
             # If no lane is provided, exit the function early with a failure.
             return False
 
+        self.current_state  = State.UNLOADING
+        self.current_loading = CUR_LANE.name
         self.gcode.respond_info("Unloading {}".format(CUR_LANE.name))
         CUR_LANE.status = 'Tool Unloading'
+        self.save_vars()
         # Lookup current extruder and hub objects using the lane's information.
         CUR_HUB = CUR_LANE.hub_obj
         CUR_EXTRUDER = CUR_LANE.extruder_obj
+
+        # Prepare the extruder and heater for unloading.
+        self._check_extruder_temp( CUR_LANE )
 
         # Quick pull to prevent oozing.
         pos = self.toolhead.get_position()
@@ -686,11 +742,8 @@ class afc:
         self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
         self.toolhead.wait_moves()
 
-        # Prepare the extruder and heater for unloading.
-        extruder = self.toolhead.get_extruder()
-        self.heater = extruder.get_heater()
         # Disable the buffer if it's active.
-        CUR_EXTRUDER.disable_buffer()
+        CUR_LANE.disable_buffer()
 
         # Activate LED indicator for unloading.
         self.FUNCTION.afc_led(CUR_LANE.led_unloading, CUR_LANE.led_index)
@@ -698,13 +751,6 @@ class afc:
         if CUR_LANE.extruder_stepper.motion_queue != CUR_LANE.extruder_name:
             # Synchronize the extruder stepper with the lane.
             CUR_LANE.sync_to_extruder()
-
-        # Check and set the extruder temperature if below the minimum.
-        wait = True
-        pheaters = self.printer.lookup_object('heaters')
-        if self.heater.target_temp <= self.heater.min_extrude_temp:
-            self.gcode.respond_info('Extruder below min_extrude_temp, heating to 5 degrees above min.')
-            pheaters.set_temperature(extruder.get_heater(), self.heater.min_extrude_temp + 5, wait)
 
         # Enable the lane for unloading operations.
         CUR_LANE.do_enable(True)
@@ -730,9 +776,9 @@ class afc:
         if CUR_EXTRUDER.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
             CUR_LANE.unsync_to_extruder()
-            while CUR_EXTRUDER.buffer_trailing == False:
+            while CUR_LANE.get_trailing() == False:
                 # attempt to return buffer to trailng pin
-                CUR_LANE.move( self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel )
+                CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel )
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
                 if num_tries > self.tool_max_unload_attempts:
@@ -746,8 +792,8 @@ class afc:
             pos[3] -= CUR_EXTRUDER.tool_stn_unload
             self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
             self.toolhead.wait_moves()
-        elif CUR_EXTRUDER.tool_start:
-            while CUR_EXTRUDER.tool_start_state:
+        else:
+            while CUR_LANE.get_toolhead_sensor_state():
                 num_tries += 1
                 if num_tries > self.tool_max_unload_attempts:
                     # Handle failure if the filament cannot be unloaded.
@@ -772,10 +818,8 @@ class afc:
         CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
         # Clear toolhead's loaded state for easier error handling later.
-        CUR_LANE.tool_loaded = False
-        CUR_EXTRUDER.lane_loaded = None
-        CUR_LANE.status = None
-        self.current = None
+        CUR_LANE.set_unloaded()
+
         self.save_vars()
 
         # Ensure filament is fully cleared from the hub.
@@ -813,10 +857,11 @@ class afc:
         CUR_LANE.loaded_to_hub = True
         self.FUNCTION.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
-        self.current = None
+
         CUR_LANE.do_enable(False)
         self.save_vars()
         self.gcode.respond_info("LANE {} unload done".format(CUR_LANE.name))
+        self.current_state = State.IDLE
         return True
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
@@ -868,6 +913,8 @@ class afc:
         except:
             bypass = None
 
+        self.next_lane_load = CUR_LANE.name
+
         # If the requested lane is not the current lane, proceed with the tool change.
         if CUR_LANE.name != self.current:
             # Save the current toolhead position to allow restoration after the tool change.
@@ -879,11 +926,14 @@ class afc:
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
                 self.gcode.respond_info("Tool Change - {} -> {}".format(self.current, CUR_LANE.name))
+                if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
+                    self.current_toolchange += 1
+                    self.gcode.respond_raw("//      Change {} out of {}".format(self.current_toolchange, self.number_of_toolchanges))
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
                     if self.current not in self.lanes:
-                        self.gcode.respond_info('{} Unknown'.format(self.current.upper()))
+                        self.gcode.respond_info('{} Unknown'.format(self.current))
                         return
                     if not self.TOOL_UNLOAD(self.lanes[self.current]):
                         # Abort if the unloading process fails.
@@ -895,13 +945,24 @@ class afc:
                 self.gcode.respond_info("{} is now loaded in toolhead".format(CUR_LANE.name))
                 self.restore_pos()
                 self.in_toolchange = False
+                # Setting next lane load as none since toolchange was successful
+                self.next_lane_load = None
         else:
             self.gcode.respond_info("{} already loaded".format(CUR_LANE.name))
+            if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
+                self.current_toolchange += 1
 
-    def get_status(self, eventtime=None):   #   will be removed near future  do not use for future coding
+    def get_status(self, eventtime=None):
+        """
+        Displays current status of AFC for webhooks
+        """
         str = {}
-        str={}
-        str['current_load']= self.current
+        str['current_load']             = self.current
+        str['current_lane']             = self.current_loading
+        str['next_lane']                = self.next_lane_load
+        str['current_state']            = self.current_state
+        str["current_toolchange"]       = self.current_toolchange
+        str["number_of_toolchanges"]    = self.number_of_toolchanges
         unitdisplay =[]
         for UNIT in self.units.keys():
             CUR_UNIT=self.units[UNIT]
@@ -910,8 +971,48 @@ class afc:
         str['units'] = list(unitdisplay)
         str['lanes'] = list(self.lanes.keys())
         str["extruders"] = list(self.tools.keys())
+        str["hubs"] = list(self.hubs.keys())
+        str["buffers"] = list(self.buffers.keys())
         return str
-    
+
+    def _webhooks_status(self, web_request):
+        """
+        Webhooks callback for <ip_address>/printer/afc/status, and displays current AFC status for everything
+        """
+        str = {}
+        numoflanes = 0
+        for unit in self.units.values():
+            str.update({unit.name: { "system": {}}})
+            name=[]
+            for lane in unit.lanes.values():
+                str[unit.name][lane.name]=lane.get_status()
+                numoflanes +=1
+                name.append(lane.name)
+            str[unit.name]['system']['type'] = unit.type
+            str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state
+
+        str["system"]={}
+        str["system"]['current_load']= self.current
+        str["system"]['num_units'] = len(self.units)
+        str["system"]['num_lanes'] = numoflanes
+        str["system"]['num_extruders'] = len(self.tools)
+        str["system"]["extruders"]={}
+        str["system"]["hubs"] = {}
+        str["system"]["buffers"] = {}
+        str["current_toolchange"]       = self.current_toolchange
+        str["number_of_toolchanges"]    = self.number_of_toolchanges
+
+        for extruder in self.tools.values():
+            str["system"]["extruders"][extruder.name] = extruder.get_status()
+
+        for hub in self.hubs.values():
+            str["system"]["hubs"][hub.name] = hub.get_status()
+
+        for buffer in self.buffers.values():
+            str["system"]["buffers"][buffer.name] = buffer.get_status()
+
+        web_request.send( {"status:" : {"AFC": str}})
+
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
         """
@@ -929,30 +1030,28 @@ class afc:
         """
         status_msg = ''
 
-        for UNIT in self.units.keys():
+        for UNIT in self.units.values():
             # Find the maximum length of lane names to determine the column width
-            max_lane_length = max(len(lane) for lane in self.lanes.keys())
-            status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT)
+            max_lane_length = max(len(lane) for lane in UNIT.lanes.keys())
+
+            status_msg += '<span class=info--text>{} Status</span>\n'.format(UNIT.name)
 
             # Create a dynamic format string that adjusts based on lane name length
             header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
-            for LANE in self.lanes.keys():
+            for CUR_LANE in UNIT.lanes.values():
                 lane_msg = ''
-                CUR_LANE = self.lanes[LANE]
-                CUR_HUB = CUR_LANE.hub_obj
-                CUR_EXTRUDER = CUR_LANE.extruder_obj
                 if self.current != None:
                     if self.current == CUR_LANE.name:
-                        if not CUR_EXTRUDER.tool_start_state or not CUR_HUB.state:
-                            lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
+                        if not CUR_LANE.get_toolhead_sensor_state() or not CUR_LANE.hub_obj.state:
+                            lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name, max_lane_length)
                         else:
-                            lane_msg += '<span class=success--text>{:<{}} </span>'.format(CUR_LANE.name.upper(), max_lane_length)
+                            lane_msg += '<span class=success--text>{:<{}} </span>'.format(CUR_LANE.name, max_lane_length)
                     else:
-                        lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
+                        lane_msg += '{:<{}} '.format(CUR_LANE.name,max_lane_length)
                 else:
-                    lane_msg += '{:<{}} '.format(CUR_LANE.name.upper(),max_lane_length)
+                    lane_msg += '{:<{}} '.format(CUR_LANE.name,max_lane_length)
 
                 if CUR_LANE.prep_state == True:
                     lane_msg += '| <span class=success--text><--></span> |'
@@ -963,14 +1062,23 @@ class afc:
                 else:
                     lane_msg += '  <span class=error--text>xx</span>  |\n'
                 status_msg += lane_msg
-            if CUR_HUB.state == True:
+
+            if CUR_LANE.hub_obj.state == True:
                 status_msg += 'HUB: <span class=success--text><-></span>'
             else:
                 status_msg += 'HUB: <span class=error--text>x</span>'
-            if CUR_EXTRUDER.tool_start_state == True:
-                status_msg += '  Tool: <span class=success--text><-></span>'
+
+            extruder_msg = '  Tool: <span class=error--text>x</span>'
+            if CUR_LANE.extruder_obj.tool_start != "buffer":
+                if CUR_LANE.extruder_obj.tool_start_state == True:
+                    extruder_msg = '  Tool: <span class=success--text><-></span>'
             else:
-                status_msg += '  Tool: <span class=error--text>x</span>'
-            if CUR_EXTRUDER.tool_start == 'buffer':
-                status_msg += '\n<span class=info--text>Ram sensor enabled</span>'
+                if CUR_LANE.tool_loaded and CUR_LANE.extruder_obj.lane_loaded in self.units[UNIT]:
+                    if CUR_LANE.get_toolhead_sensor_state() == True:
+                        extruder_msg = '  Tool: <span class=success--text><-></span>'
+
+            status_msg += extruder_msg
+            if CUR_LANE.extruder_obj.tool_start == 'buffer':
+                status_msg += '\n<span class=info--text>Ram sensor enabled</span>\n'
+
         self.gcode.respond_raw(status_msg)

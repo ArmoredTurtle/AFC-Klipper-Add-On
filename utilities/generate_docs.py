@@ -72,6 +72,7 @@ def format_markdown(cmd_functions):
         "\n",
         "The following commands are built-in the AFC-Klipper-Add-On and are available through \n",
         "the Klipper console.\n",
+        "\nNOTE: LANE/HUB/BUFFER etc. names are case sensitive and should exactly match the names defined in config files",
         "\n"
     ]
     for name, docstring in cmd_functions:

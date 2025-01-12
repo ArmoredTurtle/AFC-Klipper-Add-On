@@ -114,6 +114,25 @@ velocity: 1000
 accel: 1000
 ```
 
+## Off-Nominal Buffer Configurations
+Buffers can also be set per Unit/Stepper. If multiple lanes use the same buffer for one Unit then the buffer can just be added to Unit config (`AFC_BoxTurtle`, `AFC_NightOwl`, etc). If a buffer is inputted into the `AFC_Stepper` config then this will override whatever is set at the Unit level.
+
+### Example
+
+Setting buffer for a single unit
+```
+[AFC_BoxTurtle Turtle_1]
+buffer: TN
+```
+Overriding buffer at stepper
+```
+[AFC_Stepper lane1]
+unit: Turtle_1:1
+buffer: TN2
+<rest of config>
+```
+
+
 ## AFC buffer commands
 
 ### QUERY BUFFER
@@ -133,13 +152,13 @@ _for TurtleNeck Style Buffers_
 This command allows the adjustment of rotation distance of the current AFC stepper motor by applying a factor. Factors greater than 1 will increase the rate filament is fed to the primary extruder, factors less than 1 but greater than 0 will decrease the rate filament to the primary extruder.
 
 Example Usage:
-`SET_ROTATION_FACTOR FACTOR=1.1`
+`SET_ROTATION_FACTOR BUFFER=TN FACTOR=1.1`
 
 ### SET_BUFFER_MULTIPLIER
 _for TurtleNeck Style Buffers_
 
 `SET_BUFFER_MULTIPLIER` used to live adjust the high and low multipliers for the buffer
-- To change `multiplier_high`: `SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=1.2`
-- To change `multiplier_low`: `SET_BUFFER_MULTIPLIER MULTIPLIER=HIGH FACTOR=0.8`
+- To change `multiplier_high`: `SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2`
+- To change `multiplier_low`: `SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=0.8`
     
 __Buffer config section must be updated for values to be saved__
