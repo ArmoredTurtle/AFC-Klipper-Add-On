@@ -24,7 +24,8 @@ class afcError:
         """
         self.AFC = self.printer.lookup_object('AFC')
         # Constant variable for renaming RESUME macro
-        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
+        self.BASE_RESUME_NAME       = 'RESUME'
+        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_{}_'.format(self.BASE_RESUME_NAME)
 
         self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_RESET_FAILURE, desc=self.cmd_RESET_FAILURE_help)
         self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)

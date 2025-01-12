@@ -85,7 +85,6 @@ class afc:
         self.default_material_temps = config.getlists("default_material_temps", None) # Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
 
         # SPOOLMAN
-        
         try:
             self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         except:
@@ -116,8 +115,8 @@ class afc:
         self.park_cmd = config.get('park_cmd', None)                                # Macro to use when parking. Change macro name if you would like to use your own park macro
         self.kick = config.getboolean("kick", False)                                # Set to True to enable poop kicking after lane loads
         self.kick_cmd = config.get('kick_cmd', None)                                # Macro to use when kicking. Change macro name if you would like to use your own kick macro
-        self.wipe = config.getboolean("wipe", False)                                # Set to True to enable nozzle wipeing after lane loads
-        self.wipe_cmd = config.get('wipe_cmd', None)                                # Macro to use when nozzle wipeing. Change macro name if you would like to use your own wipe macro
+        self.wipe = config.getboolean("wipe", False)                                # Set to True to enable nozzle wiping after lane loads
+        self.wipe_cmd = config.get('wipe_cmd', None)                                # Macro to use when nozzle wiping. Change macro name if you would like to use your own wipe macro
         self.poop = config.getboolean("poop", False)                                # Set to True to enable pooping(purging color) after lane loads
         self.poop_cmd = config.get('poop_cmd', None)                                # Macro to use when pooping. Change macro name if you would like to use your own poop/purge macro
 
@@ -150,6 +149,9 @@ class afc:
 
         # Printing here will not display in console but it will go to klippy.log
         self.print_version()
+
+        self.BASE_UNLOAD_FILAMENT    = 'UNLOAD_FILAMENT'
+        self.RENAMED_UNLOAD_FILAMENT = '_AFC_RENAMED_{}_'.format(self.BASE_UNLOAD_FILAMENT)
 
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
@@ -225,19 +227,22 @@ class afc:
         in AFC.cfg and sees if a temperature exists for filament material.
 
         :param CUR_LANE: Current lane object
-        :return float: Returns float for temperature to heat extruder to
+        :return truple : float for temperature to heat extruder to,
+                         bool True if user is using min_extruder_temp value
         """
         temp_value = self.heater.min_extrude_temp + 5
+        using_min_value = True  # Set it true if default temp/spoolman temps are not being used
         if CUR_LANE.extruder_temp is not None:
             temp_value = CUR_LANE.extruder_temp
+            using_min_value = False
         elif self.default_material_temps is not None and CUR_LANE.material is not None:
             for mat in self.default_material_temps:
                 m = mat.split(":")
                 if m[0] in CUR_LANE.material:
                     temp_value = m[1]
+                    using_min_value = False
                     break
-        self.gcode.respond_info("Temperature: {}".format(temp_value))
-        return float(temp_value)
+        return float(temp_value), using_min_value
 
     def _check_extruder_temp(self, CUR_LANE):
         """
@@ -249,12 +254,35 @@ class afc:
         self.heater = extruder.get_heater()
 
         pheaters = self.printer.lookup_object('heaters')
-        target_temp = self._get_default_material_temps(CUR_LANE)
+        target_temp, using_min_value = self._get_default_material_temps(CUR_LANE)
 
-        # Check to make sure temp is with +/-5 of target temp
-        if target_temp -5 <= self.heater.target_temp <= target_temp +5:
-            self.gcode.respond_info('Extruder below min_extrude_temp or below temp for specified filament, heating to {} degrees.'.format(target_temp))
-            pheaters.set_temperature(extruder.get_heater(), target_temp, wait=True)
+        # Check to make sure temp is with +/-5 of target temp, not setting if temp is over target temp and using min_extrude_temp value
+        if self.heater.target_temp <= (target_temp-5) or (self.heater.target_temp >= (target_temp+5) and not using_min_value):
+            wait = False if self.heater.target_temp >= (target_temp+5) else True
+
+            self.gcode.respond_info('Setting extruder temperature to {} {}'.format(target_temp, "and waiting for extruder to reach temperature" if wait else ""))
+            pheaters.set_temperature(extruder.get_heater(), target_temp, wait=wait)
+
+    def _check_bypass(self, unload=False):
+        """
+        Helper function that checks if bypass has filament loaded
+
+        :param unload: Set True if user is trying to unload, when set to True and filament is loaded AFC runs users renamed stock UNLOAD_FILAMENT macro
+        :return        Returns true if filament is present in sensor
+        """
+        try:
+            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+            if bypass.filament_present:
+                if unload:
+                    self.gcode.respond_info("Bypass detected, calling manual unload filament routine")
+                    self.gcode.run_script_from_command(self.RENAMED_UNLOAD_FILAMENT)
+                    self.gcode.respond_info("Filament unloaded")
+                else:
+                    self.gcode.respond_info("Filament loaded in bypass, not doing tool load")
+                return True
+        except:
+            pass
+        return False
 
     cmd_SET_AFC_TOOLCHANGES_help = "Sets number of toolchanges for AFC to keep track of"
     def cmd_SET_AFC_TOOLCHANGES(self, gcmd):
@@ -542,13 +570,7 @@ class afc:
             return False
 
         # Check if the bypass filament sensor is triggered; abort loading if filament is already present.
-        try:
-            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-            if bypass.filament_present:
-                self.gcode.respond_info("Filament loaded in bypass, not doing tool load")
-                return False
-        except:
-            bypass = None
+        if self._check_bypass(): return False
 
         self.gcode.respond_info("Loading {}".format(CUR_LANE.name))
 
@@ -720,6 +742,9 @@ class afc:
         Returns:
             bool: True if unloading was successful, False if an error occurred.
         """
+        # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
+        if self._check_bypass(unload=True): return False
+
         if not self.FUNCTION.is_homed():
             self.ERROR.AFC_error("Please home printer before doing a tool unload", False)
             return False
@@ -891,6 +916,10 @@ class afc:
         Returns:
             None
         """
+
+        # Check if the bypass filament sensor detects filament; if so, abort the tool change.
+        if self._check_bypass(unload=False): return
+
         if not self.FUNCTION.is_homed():
             self.ERROR.AFC_error("Please home printer before doing a tool change", False)
             return
@@ -914,13 +943,7 @@ class afc:
 
     def CHANGE_TOOL(self, CUR_LANE):
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
-        try:
-            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-            if bypass.filament_present:
-                self.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
-                return
-        except:
-            bypass = None
+        if self._check_bypass(unload=False): return
 
         self.next_lane_load = CUR_LANE.name
 

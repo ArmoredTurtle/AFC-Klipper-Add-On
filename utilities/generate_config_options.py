@@ -3,7 +3,7 @@ import re
 
 def extract_config_options(directory):
     config_options = {}
-    config_pattern = re.compile(r'config\.\w+\(\s*\'(\w+)\'\s*,\s*([^\)]+)\s*\)\s*#\s*(.*)')
+    config_pattern = re.compile(r'config\.\w+\(\s*[\'\"](\w+)[\'\"]\s*,\s*([^\)]+)\s*\)\s*#\s*(.*)')
 
     for filename in os.listdir(directory):
         if filename.endswith('.py'):
@@ -28,7 +28,7 @@ def main():
     directory = '../extras'
     config_options = extract_config_options(directory)
     documentation = generate_documentation(config_options)
-    with open('CONFIGURATION_OPTIONS.md', 'w') as doc_file:
+    with open('../docs/CONFIGURATION_OPTIONS.md', 'w') as doc_file:
         doc_file.write(documentation)
 
 if __name__ == "__main__":
