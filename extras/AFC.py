@@ -5,6 +5,11 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import json
+try:
+    from urllib.request import urlopen
+except:
+    # Python 2.7 support
+    from urllib2 import urlopen
 
 AFC_VERSION="1.0.0"
 
@@ -42,6 +47,7 @@ class afc:
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
+        self.moonraker = json.load(urlopen('http://localhost/server/config'))
         self.current        = None
         self.current_loading= None
         self.next_lane_load = None
@@ -79,8 +85,11 @@ class afc:
         self.default_material_temps = config.getlists("default_material_temps", None) # Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
 
         # SPOOLMAN
-        self.spoolman_ip = config.get('spoolman_ip', None)                          # To utilize spoolman enter spoolmans IP address
-        self.spoolman_port = config.get('spoolman_port', None)                      # To utilize spoolman enter spoolmans port
+        
+        try:
+            self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
+        except:
+            self.spoolman = None                      # set to none if not found
 
         #LED SETTINGS
         self.ind_lights = None
@@ -963,6 +972,7 @@ class afc:
         str['current_state']            = self.current_state
         str["current_toolchange"]       = self.current_toolchange
         str["number_of_toolchanges"]    = self.number_of_toolchanges
+        str['spoolman']             = self.spoolman
         unitdisplay =[]
         for UNIT in self.units.keys():
             CUR_UNIT=self.units[UNIT]
