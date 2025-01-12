@@ -13,6 +13,7 @@ class afcPrep:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.delay = config.getfloat('delay_time', 0.1, minval=0.0)                 # Time to delay when moving extruders and spoolers during PREP routine
         self.enable = config.getboolean("enable", False)                            # Set True to disable PREP checks
+        self.dis_unload_macro = config.getboolean("disable_unload_filament_remapping", False) # Set to True to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD macro
 
         # Flag to set once resume rename as occurred for the first time
         self.rename_occurred = False
@@ -28,29 +29,38 @@ class afcPrep:
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
 
-    def _rename_resume(self):
+    def _rename(self, base_name, rename_name, rename_macro, rename_help):
         """
-            Helper function to check if renaming RESUME macro has occured and renames RESUME.
-            Addes a new RESUME macro that points to AFC resume function
+        Helper function to get stock macros, rename to something and replace stock macro with AFC functions
         """
+        # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
+        prev_cmd = self.AFC.gcode.register_command(base_name, None)
+        if prev_cmd is not None:
+            pdesc = "Renamed builtin of '%s'" % (base_name,)
+            self.AFC.gcode.register_command(rename_name, prev_cmd, desc=pdesc)
+        else:
+            self.AFC.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
+        self.AFC.gcode.register_command(base_name, rename_macro, desc=rename_help)
 
+    def _rename_macros(self):
+        """
+        Helper function to rename multiple macros and substitute with AFC macros.
+        - Replaces stock RESUME macro and reassigns to AFC_resume function
+        - Replaces stock UNLOAD macro and reassigns to TOOL_UNLOAD function. This can be disabled in AFC_prep config
+        """
         # Checking to see if rename has already been done, don't want to rename again if prep was already ran
         if not self.rename_occurred:
             self.rename_occurred = True
-            # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
-            base_resume_name = "RESUME"
-            prev_cmd = self.AFC.gcode.register_command(base_resume_name, None)
-            if prev_cmd is not None:
-                pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
-                self.AFC.gcode.register_command(self.AFC.ERROR.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
-            else:
-                self.AFC.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
-            self.AFC.gcode.register_command(base_resume_name, self.AFC.ERROR.cmd_AFC_RESUME, desc=self.AFC.ERROR.cmd_AFC_RESUME_help)
+            self._rename( self.AFC.ERROR.BASE_RESUME_NAME, self.AFC.ERROR.AFC_RENAME_RESUME_NAME, self.AFC.ERROR.cmd_AFC_RESUME, self.AFC.ERROR.cmd_AFC_RESUME_help )
+
+            # Check to see if the user does not want to rename UNLOAD_FILAMENT macor
+            if not self.dis_unload_macro:
+                self._rename( self.AFC.BASE_UNLOAD_FILAMENT,   self.AFC.RENAMED_UNLOAD_FILAMENT,      self.AFC.cmd_TOOL_UNLOAD,      self.AFC.cmd_TOOL_UNLOAD_help )
 
     def PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
-        self._rename_resume()
+        self._rename_macros()
         self.AFC.print_version()
 
         ## load Unit stored variables

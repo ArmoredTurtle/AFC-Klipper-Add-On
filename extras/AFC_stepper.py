@@ -81,11 +81,11 @@ class AFCExtruderStepper:
         # Overrides buffers set at the unit level
         self.hub 				= config.get('hub',None)                                # Hub name(AFC_hub) that belongs to this stepper, overrides hub that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         # Overrides buffers set at the unit and extruder level
-        self.buffer_name        = config.get("buffer", None)                            # Buffer name(AFC_buffer) that belongs to this stepper, overrides buffer that is set in extrider(AFC_extruder) or unit(AFC_BoxTurtle/NightOwl/etc) sections.
+        self.buffer_name        = config.get("buffer", None)                            # Buffer name(AFC_buffer) that belongs to this stepper, overrides buffer that is set in extruder(AFC_extruder) or unit(AFC_BoxTurtle/NightOwl/etc) sections.
         self.unit               = unit.split(':')[0]
         self.index              = int(unit.split(':')[1])
 
-        self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruer that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
+        self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         self.map                = config.get('cmd','NONE')
         self.led_index 			= config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
         self.led_name 			= config.get('led_name',None)
@@ -103,7 +103,7 @@ class AFCExtruderStepper:
         self.short_moves_accel	= config.getfloat("short_moves_accel", None)           # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
         self.short_move_dis 	= config.getfloat("short_move_dis", None)              # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
 
-        self.dist_hub           = config.getfloat('dist_hub', 60)                      # Bowden distance between Boxturtle extruder and hub
+        self.dist_hub           = config.getfloat('dist_hub', 60)                      # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                     # Currently unused
 
         self.load_to_hub        = config.getboolean("load_to_hub", self.AFC.load_to_hub) # Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
@@ -654,6 +654,7 @@ class AFCExtruderStepper:
         response["spool_id"]=self.spool_id
         response["color"]=self.color
         response["weight"]=self.weight
+        response["extruder_temp"] = self.extruder_temp
         response["runout_lane"]=self.runout_lane
         filiment_stat=self.AFC.FUNCTION.get_filament_status(self).split(':')
         response['filament_status'] = filiment_stat[0]
