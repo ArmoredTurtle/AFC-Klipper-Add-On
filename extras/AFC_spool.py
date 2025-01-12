@@ -32,8 +32,6 @@ class afcSpool:
 
         self.gcode.register_command("RESET_AFC_MAPPING", self.cmd_RESET_AFC_MAPPING, desc=self.cmd_RESET_AFC_MAPPING_help)
 
-        self.URL = 'http://{}:{}/api/v1/spool/'.format(self.AFC.spoolman_ip, self.AFC.spoolman_port)
-
     def register_lane_macros(self, lane_obj):
         """
         Callback function to register macros with proper lane names so that klipper errors out correctly when users supply lanes that
@@ -178,7 +176,7 @@ class afcSpool:
         self.AFC.save_vars()
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
-        if self.AFC.spoolman_ip != None:
+        if self.AFC.spoolman != None:
             if ID and ID is not None:
                 id = int(ID)
             else:
@@ -209,7 +207,7 @@ class afcSpool:
         Returns:
             None
         """
-        if self.AFC.spoolman_ip !=None:
+        if self.AFC.spoolman !=None:
             lane = gcmd.get('LANE', None)
             if lane == None:
                 self.gcode.respond_info("No LANE Defined")
@@ -247,10 +245,10 @@ class afcSpool:
         CUR_LANE.material = None
 
     def set_spoolID(self, CUR_LANE, SpoolID, save_vars=True):
-        if self.AFC.spoolman_ip !=None:
+        if self.AFC.spoolman !=None:
             if SpoolID !='':
                 try:
-                    url =  "{}{}".format(self.URL, SpoolID)
+                    url =  "{}{}".format(self.AFC.spoolman + '/api/v1/spool/', SpoolID)
                     result = json.load(urlopen(url))
                     CUR_LANE.spool_id = SpoolID
 

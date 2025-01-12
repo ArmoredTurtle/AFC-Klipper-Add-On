@@ -76,7 +76,7 @@ class afcPrep:
             if CUR_LANE.unit in units:
                 if CUR_LANE.name in units[CUR_LANE.unit]:
                     if 'spool_id' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.spool_id = units[CUR_LANE.unit][CUR_LANE.name]['spool_id']
-                    if self.AFC.spoolman_ip !=None and CUR_LANE.spool_id:
+                    if self.AFC.spoolman !=None and CUR_LANE.spool_id:
                         self.AFC.SPOOL.set_spoolID(CUR_LANE, CUR_LANE.spool_id, save_vars=False)
                     else:
                         if 'material' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.material = units[CUR_LANE.unit][CUR_LANE.name]['material']
