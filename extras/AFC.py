@@ -44,6 +44,7 @@ class afc:
         self.FUNCTION = self.printer.load_object(config,'AFC_functions')
         self.IDLE = self.printer.load_object(config,'idle_timeout')
         self.gcode = self.printer.lookup_object('gcode')
+        self.prompt = self.printer.load_object(config,'AFC_respond')
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
 

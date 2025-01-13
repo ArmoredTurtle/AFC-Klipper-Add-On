@@ -80,6 +80,9 @@ class afcUnit:
         # Send out event so lanes can store units object
         self.printer.send_event("AFC_unit_{}:connect".format(self.name), self)
 
+        self.gcode.register_mux_command('UNIT_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_CALIBRATION, desc=self.cmd_UNIT_CALIBRATION_help)
+        self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
+
     def get_status(self, eventtime=None):
         response = {}
         response['lanes'] = [lane.name for lane in self.lanes.values()]
@@ -93,6 +96,35 @@ class afcUnit:
             if lane.buffer_name is not None and lane.buffer_name not in response["buffers"]: response["buffers"].append(lane.buffer_name)
 
         return response
+
+    cmd_UNIT_CALIBRATION_help = 'open prompt to calibrate the dist hub for lanes in selected unit'
+    def cmd_UNIT_CALIBRATION(self, gcmd):
+        buttons = []
+        title = '{} Calibration'.format(self.name)
+        text = 'Select a lane to calibrate or elect to calibrate Bowden length'
+        for index, LANE in enumerate(self.lanes):
+            # Create a button for each lane with alternating styles
+            button_label = "Calibrate {}".format(LANE)
+            button_command = "CALIBRATE_AFC LANE={}".format(LANE)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            buttons.append((button_label, button_command, button_style))
+        buttons.append(("all Lanes", "CALIBRATE_AFC UNIT={} LANE=all".format(self.name), "info"))
+        bow_footer = [(("afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))]
+        self.AFC.prompt.create_custom_p(title, text, buttons, True, bow_footer)
+
+    cmd_UNIT_BOW_CALIBRATION_help = 'open prompt to calibrate the afc_bowden_length from a lane in the unit'
+    def cmd_UNIT_BOW_CALIBRATION(self, gcmd):
+        buttons = []
+        title = 'Bowden Length Calibration {}'.format(self.name)
+        text = 'Select lane to measure Bowden length with'
+        for index, LANE in enumerate(self.lanes):
+            # Create a button for each lane
+            button_label = "Calibrate {}".format(LANE)
+            button_command = "CALIBRATE_AFC BOWDEN={}".format(LANE)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            buttons.append((button_label, button_command, button_style))
+        back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
+        self.AFC.prompt.create_custom_p(title, text, buttons, True, back)
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):
