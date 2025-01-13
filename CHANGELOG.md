@@ -26,6 +26,20 @@ For the following please see [Features doc](docs/Features.md) for more informati
 - Added ability to use multiple buffers
 - Added automatically loading filament to hub for users that have moved their hubs closer to their toolhead
 
+## [2025-01-10]
+
+### Changed
+- Due to a too long retraction, hub cuts had the risk of ejecting filament from the extruder,
+  requiring manual intervention. The hub cut sequence was changed to avoid this situation.
+
+  **NOTE**: due to the new way hub cuts are performed, the configuration has to be updated!
+        The value `cut_dist` in `[AFC_Hub]` has to be reduced by about 150. Please recalibrate
+        this before the next print.
+
+### Added
+- [AFC_Hub] has a new config option: `assisted_retract`. If set to true, retracts are assisted so
+  that filament can't get loose on the spool.
+
 ### Changed
 
 - `http://<ip_address>/printer/objects/query?AFC` has moved to `http://<ip_address>/printer/afc/status`endpoint. If tools have been designed around original endpoint please review results returned as new items have been added
@@ -44,6 +58,18 @@ For the following please see [Features doc](docs/Features.md) for more informati
 - This update will require the re-installation of an user's configuration  files due to changes in the config file structure.
 - Re-designed the `install-afc.sh` script to be more user-friendly, interactive, and more indicative of what is happening 
 during the installation process.
+
+## [2024-12-29]
+
+### Added
+- **New Command: `GET_TIP_FORMING`**
+  Shows the current tip forming configuration. Mostly interesting together with
+  SET_TIP_FORMING.
+
+- **New Command: `SET_TIP_FORMING`**
+  Allows to update tip forming configuration at runtime.
+
+  See command_reference doc for more info
 
 ## [2024-12-23]
 ### Added

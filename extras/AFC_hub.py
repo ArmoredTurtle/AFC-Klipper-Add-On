@@ -26,7 +26,7 @@ class afc_hub:
         self.cut = config.getboolean("cut", False)
         self.cut_cmd = config.get('cut_cmd', None)
         self.cut_servo_name = config.get('cut_servo_name', 'cut')
-        self.cut_dist = config.getfloat("cut_dist", 200)
+        self.cut_dist = config.getfloat("cut_dist", 50)
         self.cut_clear = config.getfloat("cut_clear", 120)
         self.cut_min_length = config.getfloat("cut_min_length", 200)
         self.cut_servo_pass_angle = config.getfloat("cut_servo_pass_angle", 0)
@@ -37,6 +37,7 @@ class afc_hub:
         self.move_dis = config.getfloat("move_dis", 50)
 
         self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
+        self.assisted_retract = config.getboolean("assisted_retract", False) # if True, retracts are assisted to prevent loose windings on the spool
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
         buttons = self.printer.load_object(config, "buttons")
@@ -74,10 +75,16 @@ class afc_hub:
         # Prep the servo for cutting.
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
-        while self.state == False:
+        while not self.state:
             CUR_LANE.move( self.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
-        # Go back, to allow the `hub_cut_dist` to be accurate.
-        CUR_LANE.move( -self.move_dis*4, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+
+        # To have an accurate reference position for `hub_cut_dist`, move back and forth in smaller steps
+        # to find the point where the hub just triggers.
+        while self.state:
+            CUR_LANE.move(-10, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, self.assisted_retract)
+        while not self.state:
+            CUR_LANE.move(2, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+
         # Feed the `hub_cut_dist` amount.
         CUR_LANE.move( self.cut_dist, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         # Have a snooze
@@ -99,7 +106,7 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
 
         # Retract lane by `hub_cut_clear`.
-        CUR_LANE.move( -self.cut_clear, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+        CUR_LANE.move(-self.cut_clear, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, self.assisted_retract)
 
     def get_status(self, eventtime=None):
         self.response = {}
