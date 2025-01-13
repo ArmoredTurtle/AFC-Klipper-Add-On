@@ -45,6 +45,33 @@ class afcFunction:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_mux_command('CALIBRATE_AFC', None, None, self.cmd_CALIBRATE_AFC, desc=self.cmd_CALIBRATE_AFC_help)
+        self.gcode.register_mux_command('AFC_CALIBRATION', None, None, self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
+
+    cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
+    def cmd_AFC_CALIBRATION(self, gcmd):
+        buttons = []
+        group_buttons = []
+        title = 'AFC Calibration'
+        text = ('The following prompts will lead you through the calibration of your AFC unit(s)\n'
+                'First, select a unit to calibrate')
+        for index, UNIT in enumerate(self.AFC.units.key()):
+            # Create a button for each unit
+            button_label = "{}".format(UNIT)
+            button_command = 'UNIT_CALIBRATION UNIT={}'.format(UNIT)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            group_buttons.append((button_label, button_command, button_style))
+
+            # Add group to buttons list after every 4 keys
+            if (index + 1) % 4 == 0 or index == len(self.AFC.units.key()) - 1:
+                buttons.append(group_buttons)
+                group_buttons = []
+
+        bow_footer = [(("All Lanes in all units", "CALIBRATE_AFC LANE=all", "secondary"))]
+        self.AFC.prompt.create_custom_p(title=title, 
+                                        text=text, 
+                                        groups=buttons, 
+                                        cancel=True, 
+                                        footer_buttons=bow_footer)
 
     cmd_CALIBRATE_AFC_help = 'calibrate the dist hub for lane and then afc_bowden_length'
     def cmd_CALIBRATE_AFC(self, gcmd):

@@ -53,38 +53,24 @@ class AFCPrompt:
     def p_button_group_end(self):
         self.AFC.gcode.respond_raw("// action:prompt_button_group_end")
 
-    # Displaying a full example prompt with options
-    def display_example_prompt(self):
-        self.prompt_begin("My Prompt")
-        self.prompt_text("This is an example of a prompt")
-
-        # Adding buttons with various styles
-        self.p_button("primary", "G28", "primary")
-        self.p_button("secondary", "RESPOND MSG=test", "secondary")
-        self.p_button("info", "RESPOND MSG=test #2", "info")
-        self.p_button("warning", "RESPOND MSG=test #3", "warning")
-        
-        # Showing the prompt
-        self.p_show()
-
-    # Example of grouped buttons
-    def display_grouped_buttons(self):
-        self.p_begin("Grouped Buttons Example")
-        self.p_text("These buttons are grouped:")
-
+    def p_group_buttons(self, buttons):
         self.p_button_group_start()
-        self.p_button("Button 1", "CMD_1", "primary")
-        self.p_button("Button 2", "CMD_2", "secondary")
+        for button in buttons:
+            label, command, style = button
+            self.p_button(label, command, style)
         self.p_button_group_end()
 
-        self.p_button("Stand-alone Button", "CMD_3", "info")
-        self.p_show()
-
     # Method to create a custom prompt
-    def create_custom_p(self, prompt_name, text=None, buttons=None, Cancel=False, footer_buttons=None):
+    def create_custom_p(self, prompt_name, text=None, buttons=None, Cancel=False, groups=None, footer_buttons=None):
         self.p_begin(prompt_name)
         if text != None:
             self.p_text(text)
+
+        # Add group bottons
+        if groups != None:
+            for group in groups:
+                buttons = group
+                self.p_group_buttons(buttons)
 
         # Add main buttons
         if buttons != None:
@@ -102,6 +88,33 @@ class AFCPrompt:
             self.p_cancel_button()
 
         self.p_show()
+
+    # template to be used to create prompts with groups of buttons
+    def example_prompt(self, keys):
+        buttons = []
+        group_buttons = []
+        title = 'Prompt title'
+        text = 'Prompt text'
+
+        # Loop to group buttons
+        for index, key in enumerate(keys):
+            # Create a button for each lane
+            button_label = "{}".format(key)
+            button_command = "CALIBRATE_AFC BOWDEN={}".format(key)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            group_buttons.append((button_label, button_command, button_style))
+
+            # Add group to buttons list after every 4 keys
+            if (index + 1) % 4 == 0 or index == len(keys) - 1:
+                buttons.append(group_buttons)
+                group_buttons = []
+
+        back = [('Back', '<Prompt to go back to>', 'info')]
+        self.AFC.prompt.create_custom_p(title=title, 
+                                        text=text, 
+                                        groups=buttons, 
+                                        cancel=True, 
+                                        footer_buttons=back)
 
 def load_config(config):
     return AFCPrompt(config)
