@@ -93,10 +93,10 @@ install_afc() {
   if [ "$buffer_type" == "TurtleNeck" ]; then
     query_tn_pins "TN"
     append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_Hardware.cfg" "TN"
+    add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
   elif [ "$buffer_type" == "TurtleNeckV2" ]; then
     append_buffer_config "TurtleNeckV2"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_Hardware.cfg" "TN2"
+    add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
   fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
