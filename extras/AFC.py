@@ -53,6 +53,7 @@ class afc:
         self.next_lane_load = None
         self.error_state    = False
         self.current_state  = State.INIT
+        self.spoolman = None
 
         # Objects for everything configured for AFC
         self.units      = {}
