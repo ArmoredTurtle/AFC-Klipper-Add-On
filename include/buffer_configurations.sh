@@ -72,7 +72,7 @@ add_buffer_to_extruder() {
   #   $2: buffer_name - The name of the buffer to be added.
   local file_path="$1"
   local buffer_name="$2"
-  local section="[AFC_extruder extruder]"
+  local section="[AFC_BoxTurtle Turtle_1]"
   local buffer_line="buffer: $buffer_name"
 
   awk -v section="$section" -v buffer="$buffer_line" '
@@ -103,14 +103,14 @@ query_tn_pins() {
   #   $1: buffer_name - The name of the buffer to be added.
   local buffer_name="$1"
   local input
-  tn_advance_pin="^AFC:TN_ADV"
-  tn_trailing_pin="^AFC:TN_TRL"
+  tn_advance_pin="^Turtle_1:TN_ADV"
+  tn_trailing_pin="^Turtle_1:TN_TRL"
 
   print_msg INFO "\nPlease enter the pin numbers for the TurtleNeck buffer '$buffer_name':"
   print_msg INFO "(Leave blank to use the default values)"
   print_msg INFO "Ensure you use a pull-up '^' if you are using a AFC end stop pin."
-  print_msg INFO "(Example: ^AFC:TN_ADV)"
-  print_msg INFO "(Example: ^AFC:TN_TRL)"
+  print_msg INFO "(Example: ^Turtle_1:TN_ADV)"
+  print_msg INFO "(Example: ^Turtle_1:TN_TRL)"
 
   read -p "  Enter the advance pin (default: $tn_advance_pin): " -r input
   if [ -n "$input" ]; then
