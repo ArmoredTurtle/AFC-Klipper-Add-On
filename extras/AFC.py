@@ -47,7 +47,7 @@ class afc:
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
-        self.moonraker = json.load(urlopen('http://localhost/server/config'))
+        
         self.current        = None
         self.current_loading= None
         self.next_lane_load = None
@@ -84,11 +84,7 @@ class afc:
         self.cfgloc = self._remove_after_last(self.VarFile,"/")
         self.default_material_temps = config.getlists("default_material_temps", None) # Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
 
-        # SPOOLMAN
-        try:
-            self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
-        except:
-            self.spoolman = None                      # set to none if not found
+        
 
         #LED SETTINGS
         self.ind_lights = None
@@ -198,6 +194,14 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
+        
+        # SPOOLMAN
+        try:
+            self.moonraker = json.load(urlopen('http://localhost/server/config'))
+            self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
+        except:
+            self.spoolman = None                      # set to none if not found
+
 
         # GCODE REGISTERS
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
