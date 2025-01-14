@@ -194,9 +194,10 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
-        self.moonraker = json.load(urlopen('http://localhost/server/config'))
+        
         # SPOOLMAN
         try:
+            self.moonraker = json.load(urlopen('http://localhost/server/config'))
             self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         except:
             self.spoolman = None                      # set to none if not found
