@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configfile import error
+from extras.AFC_respond import AFCprompt
 
 class afcUnit:
     def __init__(self, config):
@@ -12,6 +13,7 @@ class afcUnit:
         self.gcode      = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.AFC = self.printer.lookup_object('AFC')
+        self.prompt = AFCprompt(config)
 
         self.lanes      = {}
 
@@ -108,15 +110,16 @@ class afcUnit:
         buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
         # Button back to previous step
         back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
-        self.AFC.prompt.create_custom_p(title, text, buttons, True, None, back)
+
+        self.prompt.create_custom_p(title, text, buttons, True, None, back)
 
     cmd_UNIT_LANE_CALIBRATION_help = 'open prompt to calibrate the length from extruder to hub'
     def cmd_UNIT_LANE_CALIBRATION(self, gcmd):
         buttons = []
         group_buttons = []
         title = '{} Lane Calibration'.format(self.name)
-        text = ('Select a lane from {} to calibrate length from extruder to hub. '
-                'Config option: dist_hub').format(self.name)
+        text  = ('Select a lane from {} to calibrate length from extruder to hub. '
+                 'Config option: dist_hub').format(self.name)
 
         # Create buttons for each lane and group every 4 lanes together
         for index, LANE in enumerate(self.lanes):
@@ -129,17 +132,13 @@ class afcUnit:
             if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
                 buttons.append(list(group_buttons))
                 group_buttons = []
-        
-        all_lanes = [('All lanes', 'CALIBRATE_AFC LANE=all UNIT={}'.format(self.name), 'default')]
 
-        # Example footer buttons, including a 'Back' button
+        all_lanes = [('All lanes', 'CALIBRATE_AFC LANE=all UNIT={}'.format(self.name), 'default')]
+        # 'Back' button
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
-        self.AFC.prompt.create_custom_p(title, 
-                                        text,
-                                        all_lanes,
-                                        True,
-                                        buttons,
-                                        back)
+
+        self.prompt.create_custom_p(title, text, all_lanes,
+                                     True, buttons, back)
 
     cmd_UNIT_BOW_CALIBRATION_help = 'open prompt to calibrate the afc_bowden_length from a lane in the unit'
     def cmd_UNIT_BOW_CALIBRATION(self, gcmd):
@@ -163,12 +162,9 @@ class afcUnit:
                 group_buttons = []
 
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
-        self.AFC.prompt.create_custom_p(title, 
-                                        text,
-                                        None,
-                                        True,
-                                        buttons,
-                                        back)
+
+        self.prompt.create_custom_p(title, text, None,
+                                    True, buttons, back)
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):

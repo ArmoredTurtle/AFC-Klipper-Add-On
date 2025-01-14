@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import os
+from extras.AFC_respond import AFCprompt
 
 def load_config(config):
     return afcFunction(config)
@@ -15,8 +16,9 @@ class afcFunction:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
-        self.errorLog= {}
-        self.pause= False
+        self.errorLog = {}
+        self.pause    = False
+        self.prompt   = AFCprompt(config)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -44,9 +46,9 @@ class afcFunction:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
-        self.AFC.gcode.register_mux_command('CALIBRATE_AFC', None, None, self.cmd_CALIBRATE_AFC, desc=self.cmd_CALIBRATE_AFC_help)
-        self.AFC.gcode.register_mux_command('AFC_CALIBRATION', None, None, self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
-        self.AFC.gcode.register_mux_command('ALL_CALIBRATION', None, None, self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
+        self.AFC.gcode.register_command('CALIBRATE_AFC'  , self.cmd_CALIBRATE_AFC  , desc=self.cmd_CALIBRATE_AFC_help)
+        self.AFC.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
+        self.AFC.gcode.register_command('ALL_CALIBRATION', self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
 
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
@@ -61,13 +63,9 @@ class afcFunction:
             button_style = "primary" if index % 2 == 0 else "secondary"
             buttons.append((button_label, button_command, button_style))
 
-        bow_footer = [(("All Lanes in all units", "ALL_CALIBRATION", "secondary"))]
-        self.AFC.prompt.create_custom_p(title, 
-                                        text,
-                                        buttons,
-                                        True,
-                                        None,
-                                        bow_footer)
+        bow_footer = [("All Lanes in all units", "ALL_CALIBRATION", "secondary")]
+        self.prompt.create_custom_p(title, text, buttons,
+                                    True, None, bow_footer)
 
     cmd_ALL_CALIBRATION_help = 'open prompt to begin calibration to confirm calibrating all lanes'
     def cmd_ALL_CALIBRATION(self, gcmd):
@@ -77,12 +75,8 @@ class afcFunction:
         footer.append(('Back', 'AFC_CALIBRATION', 'info'))
         footer.append(("Yes", "CALIBRATE_AFC LANE=all", "error"))
 
-        self.AFC.prompt.create_custom_p(title, 
-                                text,
-                                None,
-                                True,
-                                None,
-                                footer)
+        self.prompt.create_custom_p(title, text, None,
+                                    True, None, footer)
 
 
     cmd_CALIBRATE_AFC_help = 'calibrate the dist hub for lane and then afc_bowden_length'
