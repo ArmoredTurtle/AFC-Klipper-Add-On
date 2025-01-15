@@ -1,4 +1,4 @@
-# Armored Turtle Automated Filament Changer
+# Armored Turtle Automated Filament Control
 #
 # Copyright (C) 2024 Armored Turtle
 #
@@ -18,7 +18,6 @@ class afcFunction:
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
         self.errorLog = {}
         self.pause    = False
-        self.prompt   = AFCprompt(config)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -52,10 +51,12 @@ class afcFunction:
 
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
+        prompt = AFCprompt(gcmd)
         buttons = []
         title = 'AFC Calibration'
         text = ('The following prompts will lead you through the calibration of your AFC unit(s).'
-                ' First, select a unit to calibrate')
+                ' First, select a unit to calibrate.'
+                ' *All values will be automatically updated in the appropriate config sections.')
         for index, (key, item) in enumerate(self.AFC.units.items()):
             # Create a button for each unit
             button_label = "{}".format(key)
@@ -64,26 +65,27 @@ class afcFunction:
             buttons.append((button_label, button_command, button_style))
 
         bow_footer = [("All Lanes in all units", "ALL_CALIBRATION", "secondary")]
-        self.prompt.create_custom_p(title, text, buttons,
-                                    True, None, bow_footer)
+        prompt.create_custom_p(title, text, buttons,
+                               True, None, bow_footer)
 
     cmd_ALL_CALIBRATION_help = 'open prompt to begin calibration to confirm calibrating all lanes'
     def cmd_ALL_CALIBRATION(self, gcmd):
+        prompt = AFCprompt(gcmd)
         footer = []
         title = 'Calibrate all'
         text = ('Press Yes to confirm calibrating all lanes in all units')
         footer.append(('Back', 'AFC_CALIBRATION', 'info'))
         footer.append(("Yes", "CALIBRATE_AFC LANE=all", "error"))
 
-        self.prompt.create_custom_p(title, text, None,
-                                    True, None, footer)
+        prompt.create_custom_p(title, text, None,
+                               True, None, footer)
 
 
     cmd_CALIBRATE_AFC_help = 'calibrate the dist hub for lane and then afc_bowden_length'
     def cmd_CALIBRATE_AFC(self, gcmd):
         """
         This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
-        (Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
+        (Automated Filament Control) system. The function uses precise movements to adjust the positions of the
         steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.

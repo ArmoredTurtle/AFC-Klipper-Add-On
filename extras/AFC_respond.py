@@ -1,8 +1,12 @@
+# Armored Turtle Automated Filament Control
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
 
 class AFCprompt:
-    def __init__(self, config):
-        self.printer = config.get_printer()
-        self.gcode = self.printer.lookup_object('gcode')
+    def __init__(self, gcmd):
+        self.gcode = gcmd
 
     # Prompt begin action
     def p_begin(self, prompt_name):
@@ -101,6 +105,3 @@ class AFCprompt:
         back = [('Back', '<Prompt to go back to>', 'info')]
         self.prompt.create_custom_p(title, text, None,
                                     True, buttons, back)
-
-def load_config(config):
-    return AFCprompt(config)

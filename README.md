@@ -1,7 +1,8 @@
-# Automated Filament Changer (AFC) Klipper Add-on
+# Automated Filament Control (AFC) Klipper Add-on
 
-This Klipper plugin is for use on the Box Turtle Filament Changer. The Box Turtle is currently in an open beta.
-More information can be found [here](https://github.com/ArmoredTurtle/BoxTurtle)
+This Klipper plugin is for use with modern filament control systems such as BoxTurtle, NightOwl etc.
+
+More information about BoxTurtle can be found [here](https://github.com/ArmoredTurtle/BoxTurtle)
 
 Further information to include command references can be found in the [docs](./docs) folder.
 

@@ -96,7 +96,7 @@ Example: `TEST_AFC_TIP_FORMING LANE=leg1`
 
 ### CALIBRATE_AFC
 _Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
-(Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
+(Automated Filament Control) system. The function uses precise movements to adjust the positions of the
 steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
 user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
 the option to calibrate the Bowden length for a particular lane, if specified.  

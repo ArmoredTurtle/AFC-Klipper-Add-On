@@ -1,4 +1,4 @@
-# Armored Turtle Automated Filament Changer
+# Armored Turtle Automated Filament Control
 #
 # Copyright (C) 2024 Armored Turtle
 #
@@ -13,7 +13,6 @@ class afcUnit:
         self.gcode      = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.AFC = self.printer.lookup_object('AFC')
-        self.prompt = AFCprompt(config)
 
         self.lanes      = {}
 
@@ -102,6 +101,7 @@ class afcUnit:
 
     cmd_UNIT_CALIBRATION_help = 'open prompt to calibrate the dist hub for lanes in selected unit'
     def cmd_UNIT_CALIBRATION(self, gcmd):
+        prompt = AFCprompt(gcmd)
         buttons = []
         title = '{} Calibration'.format(self.name)
         text = 'Select to calibrate the distance from extruder to hub or bowden length'
@@ -111,10 +111,11 @@ class afcUnit:
         # Button back to previous step
         back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
 
-        self.prompt.create_custom_p(title, text, buttons, True, None, back)
+        prompt.create_custom_p(title, text, buttons, True, None, back)
 
     cmd_UNIT_LANE_CALIBRATION_help = 'open prompt to calibrate the length from extruder to hub'
     def cmd_UNIT_LANE_CALIBRATION(self, gcmd):
+        prompt = AFCprompt(gcmd)
         buttons = []
         group_buttons = []
         title = '{} Lane Calibration'.format(self.name)
@@ -137,11 +138,12 @@ class afcUnit:
         # 'Back' button
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
 
-        self.prompt.create_custom_p(title, text, all_lanes,
-                                     True, buttons, back)
+        prompt.create_custom_p(title, text, all_lanes,
+                               True, buttons, back)
 
     cmd_UNIT_BOW_CALIBRATION_help = 'open prompt to calibrate the afc_bowden_length from a lane in the unit'
     def cmd_UNIT_BOW_CALIBRATION(self, gcmd):
+        prompt = AFCprompt(gcmd)
         buttons = []
         group_buttons = []
         title = 'Bowden Calibration {}'.format(self.name)
@@ -163,8 +165,8 @@ class afcUnit:
 
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
 
-        self.prompt.create_custom_p(title, text, None,
-                                    True, buttons, back)
+        prompt.create_custom_p(title, text, None, 
+                               True, buttons, back)
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):
