@@ -51,6 +51,16 @@ class afcFunction:
 
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and 
+        allows the option to calibrate all lanes across all units.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         prompt = AFCprompt(gcmd)
         buttons = []
         title = 'AFC Calibration'
@@ -70,6 +80,16 @@ class afcFunction:
 
     cmd_ALL_CALIBRATION_help = 'open prompt to begin calibration to confirm calibrating all lanes'
     def cmd_ALL_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to 
+        return to the previous menu.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         prompt = AFCprompt(gcmd)
         footer = []
         title = 'Calibrate all'
@@ -102,6 +122,7 @@ class afcFunction:
                 - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
                 - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
                 - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
+                - UNIT: Specifies the unit to be used in calibration (optional)
 
         Returns:
             None
