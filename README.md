@@ -226,10 +226,11 @@ Additional information about the buffer configuration and operation can be found
 ## Automatic Calibration
 
 Call `AFC_CALIBRATION` in your gui of choice and follow the prompts to calibrate your AFC system.  
-_distances will be calibrated to have ~1 short move after the move distance_
+_distances will be calibrated to have ~1 short move after the move distance_  
+**All values will be automatically updated in the proper config sections after calibration**
 
-If using a hub different from the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.  
-**All values will be automatically updated in the proper config sections after calibration**  
+If using a hub different from the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.
+
 For additional information and the steps for manual calibration, can be found in [Calibration.md](./docs/Calibration.md)
 
 ## Troubleshooting
