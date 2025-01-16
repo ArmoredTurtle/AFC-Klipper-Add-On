@@ -1,10 +1,11 @@
-# Armored Turtle Automated Filament Changer
+# Armored Turtle Automated Filament Control
 #
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configfile import error
+from extras.AFC_respond import AFCprompt
 
 class afcUnit:
     def __init__(self, config):
@@ -80,6 +81,10 @@ class afcUnit:
         # Send out event so lanes can store units object
         self.printer.send_event("AFC_unit_{}:connect".format(self.name), self)
 
+        self.gcode.register_mux_command('UNIT_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_CALIBRATION, desc=self.cmd_UNIT_CALIBRATION_help)
+        self.gcode.register_mux_command('UNIT_LANE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_LANE_CALIBRATION, desc=self.cmd_UNIT_LANE_CALIBRATION_help)
+        self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
+
     def get_status(self, eventtime=None):
         response = {}
         response['lanes'] = [lane.name for lane in self.lanes.values()]
@@ -93,6 +98,116 @@ class afcUnit:
             if lane.buffer_name is not None and lane.buffer_name not in response["buffers"]: response["buffers"].append(lane.buffer_name)
 
         return response
+
+    cmd_UNIT_CALIBRATION_help = 'open prompt to calibrate the dist hub for lanes in selected unit'
+    def cmd_UNIT_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length
+        for the selected unit. Provides buttons for lane calibration, Bowden length calibration, and a back option.
+
+        Usage:`UNIT_CALIBRATION UNIT=<unit>`
+        Examples:
+            - `UNIT_CALIBRATION UNIT=Turtle_1`
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        prompt = AFCprompt(gcmd)
+        buttons = []
+        title = '{} Calibration'.format(self.name)
+        text = 'Select to calibrate the distance from extruder to hub or bowden length'
+        # Selection buttons
+        buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
+        buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
+        # Button back to previous step
+        back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
+
+        prompt.create_custom_p(title, text, buttons, True, None, back)
+
+    cmd_UNIT_LANE_CALIBRATION_help = 'open prompt to calibrate the length from extruder to hub'
+    def cmd_UNIT_LANE_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons
+        for each lane, grouped in sets of two, and allows calibration for all lanes or individual lanes.
+
+        Usage:`UNIT_LANE_CALIBRATION UNIT=<unit>`
+        Examples:
+            - `UNIT_LANE_CALIBRATION UNIT=Turtle_1`
+
+        Args:
+            UNIT: Specifies the unit to be used in calibration
+
+        Returns:
+            None
+        """
+        prompt = AFCprompt(gcmd)
+        buttons = []
+        group_buttons = []
+        title = '{} Lane Calibration'.format(self.name)
+        text  = ('Select a lane from {} to calibrate length from extruder to hub. '
+                 'Config option: dist_hub').format(self.name)
+
+        # Create buttons for each lane and group every 4 lanes together
+        for index, LANE in enumerate(self.lanes):
+            button_label = "{}".format(LANE)
+            button_command = "CALIBRATE_AFC LANE={}".format(LANE)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            group_buttons.append((button_label, button_command, button_style))
+
+            # Add group to buttons list after every 4 lanes
+            if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                buttons.append(list(group_buttons))
+                group_buttons = []
+
+        all_lanes = [('All lanes', 'CALIBRATE_AFC LANE=all UNIT={}'.format(self.name), 'default')]
+        # 'Back' button
+        back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
+
+        prompt.create_custom_p(title, text, all_lanes,
+                               True, buttons, back)
+
+    cmd_UNIT_BOW_CALIBRATION_help = 'open prompt to calibrate the afc_bowden_length from a lane in the unit'
+    def cmd_UNIT_BOW_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons
+        for each lane, with a note to only calibrate one lane per unit.
+
+        Usage:`UNIT_CALIBRATION UNIT=<unit>`
+        Examples:
+            - `UNIT_CALIBRATION UNIT=Turtle_1`
+
+        Args:
+            UNIT: Specifies the unit to be used in calibration
+
+        Returns:
+            None
+        """
+        prompt = AFCprompt(gcmd)
+        buttons = []
+        group_buttons = []
+        title = 'Bowden Calibration {}'.format(self.name)
+        text = ('Select a lane from {} to measure Bowden length. '
+                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT. '
+                'Config option: afc_bowden_length').format(self.name)
+
+        for index, LANE in enumerate(self.lanes):
+            # Create a button for each lane
+            button_label = "{}".format(LANE)
+            button_command = "CALIBRATE_AFC BOWDEN={}".format(LANE)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            group_buttons.append((button_label, button_command, button_style))
+
+            # Add group to buttons list after every 4 lanes
+            if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                buttons.append(list(group_buttons))
+                group_buttons = []
+
+        back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
+
+        prompt.create_custom_p(title, text, None,
+                               True, buttons, back)
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):

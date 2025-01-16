@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-01-12]
 ### Added
+
+- Added Guided calibration using `AFC_CALIBRATION`
+  - With the call of `AFC_CALIBRATION` the user will be guided through calibrating the lanes in their AFC unit.
+- Added `UNIT` as an option to the `CALIBRATE_AFC` macro that is leveraged to calibrate lanes in a specific unit.
+
+## [2025-01-12]
+### Added
 - Remapping stock `UNLOAD_FILAMENT` to call `TOOL_UNLOAD` function. Stock `UNLOAD_FILAMENT` will be renamed to `_AFC_RENAMED_UNLOAD_FILAMENT_` and can still be called from the command line. If trying to do a `TOOL_UNLOAD` and filament is loaded into bypass, AFC will unload with `_AFC_RENAMED_UNLOAD_FILAMENT_` macro. Remapping `UNLOAD_FILAMENT` macro can be disabled by setting `disable_unload_filament_remapping: True` in AFC_prep config section. 
 - Added `docs/CONFIGURATION_OPTIONS.md` file that describes the different config parameters, still a work in progress
 

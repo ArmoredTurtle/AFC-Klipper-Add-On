@@ -1,10 +1,11 @@
-# Armored Turtle Automated Filament Changer
+# Armored Turtle Automated Filament Control
 #
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import os
+from extras.AFC_respond import AFCprompt
 
 def load_config(config):
     return afcFunction(config)
@@ -15,8 +16,8 @@ class afcFunction:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
-        self.errorLog= {}
-        self.pause= False
+        self.errorLog = {}
+        self.pause    = False
 
     def register_lane_macros(self, lane_obj):
         """
@@ -44,13 +45,73 @@ class afcFunction:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
-        self.AFC.gcode.register_mux_command('CALIBRATE_AFC', None, None, self.cmd_CALIBRATE_AFC, desc=self.cmd_CALIBRATE_AFC_help)
+        self.AFC.gcode.register_command('CALIBRATE_AFC'  , self.cmd_CALIBRATE_AFC  , desc=self.cmd_CALIBRATE_AFC_help)
+        self.AFC.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
+        self.AFC.gcode.register_command('ALL_CALIBRATION', self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
+
+    cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
+    def cmd_AFC_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
+        allows the option to calibrate all lanes across all units.
+
+        Usage:`AFC_CALIBRATION`
+        Examples:
+            - `AFC_CALIBRATION`
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        prompt = AFCprompt(gcmd)
+        buttons = []
+        title = 'AFC Calibration'
+        text = ('The following prompts will lead you through the calibration of your AFC unit(s).'
+                ' First, select a unit to calibrate.'
+                ' *All values will be automatically updated in the appropriate config sections.')
+        for index, (key, item) in enumerate(self.AFC.units.items()):
+            # Create a button for each unit
+            button_label = "{}".format(key)
+            button_command = 'UNIT_CALIBRATION UNIT={}'.format(key)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            buttons.append((button_label, button_command, button_style))
+
+        bow_footer = [("All Lanes in all units", "ALL_CALIBRATION", "secondary")]
+        prompt.create_custom_p(title, text, buttons,
+                               True, None, bow_footer)
+
+    cmd_ALL_CALIBRATION_help = 'open prompt to begin calibration to confirm calibrating all lanes'
+    def cmd_ALL_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to
+        return to the previous menu.
+
+        Usage:`ALL_CALIBRATION`
+        Examples:
+            - `ALL_CALIBRATION`
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        prompt = AFCprompt(gcmd)
+        footer = []
+        title = 'Calibrate all'
+        text = ('Press Yes to confirm calibrating all lanes in all units')
+        footer.append(('Back', 'AFC_CALIBRATION', 'info'))
+        footer.append(("Yes", "CALIBRATE_AFC LANE=all", "error"))
+
+        prompt.create_custom_p(title, text, None,
+                               True, None, footer)
+
 
     cmd_CALIBRATE_AFC_help = 'calibrate the dist hub for lane and then afc_bowden_length'
     def cmd_CALIBRATE_AFC(self, gcmd):
         """
         This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
-        (Automated Filament Changer) system. The function uses precise movements to adjust the positions of the
+        (Automated Filament Control) system. The function uses precise movements to adjust the positions of the
         steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
@@ -67,14 +128,16 @@ class afcFunction:
                 - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
                 - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
                 - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
+                - UNIT: Specifies the unit to be used in calibration (optional)
 
         Returns:
             None
         """
-        dis = gcmd.get_float('DISTANCE', 25)
-        tol = gcmd.get_float('TOLERANCE', 5)
-        afc_bl = gcmd.get('BOWDEN', None)
-        lanes = gcmd.get('LANE', None)
+        dis    = gcmd.get_float('DISTANCE' , 25)
+        tol    = gcmd.get_float('TOLERANCE', 5)
+        afc_bl = gcmd.get(      'BOWDEN'   , None)
+        lanes  = gcmd.get(      'LANE'     , None)
+        unit   = gcmd.get(      'UNIT'     , None)
 
         if self.AFC.current is not None:
             self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
@@ -86,20 +149,37 @@ class afcFunction:
         if lanes is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
             cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-            if lanes != 'all':
-                CUR_LANE=self.AFC.lanes[lanes]
-                checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
-                if(not checked): return
-                cal_msg += msg
-            else:
-                # Calibrate all lanes if no specific lane is provided
-                for CUR_LANE in self.AFC.lanes.values():
-                    # Calibrate the specific lane
+            if unit is None:
+                if lanes != 'all':
+                    CUR_LANE=self.AFC.lanes[lanes]
                     checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                     if(not checked): return
                     cal_msg += msg
+                else:
+                    # Calibrate all lanes if no specific lane is provided
+                    for CUR_LANE in self.AFC.lanes.values():
+                        # Calibrate the specific lane
+                        checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                        if(not checked): return
+                        cal_msg += msg
+            else:
+                if lanes != 'all':
+                    CUR_LANE=self.AFC.lanes[lanes]
+                    checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                    if(not checked): return
+                    cal_msg += msg
+                else:
+                    CUR_UNIT = self.AFC.units[unit]
+                    self.AFC.gcode.respond_info('{}'.format(CUR_UNIT))
+                    # Calibrate all lanes if no specific lane is provided
+                    for CUR_LANE in CUR_UNIT.lanes.values():
+                        # Calibrate the specific lane
+                        checked, msg = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
+                        if(not checked): return
+                        cal_msg += msg
         else:
             cal_msg +='No lanes selected to calibrate dist_hub'
+
 
         # Calibrate Bowden length with specified lane
         if afc_bl is not None:
