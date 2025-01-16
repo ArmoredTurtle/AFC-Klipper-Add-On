@@ -1,6 +1,6 @@
 # Overview of features 
 
-This file goes over the features that can be found in Armored Turtle Automated Filament Changer (AFC) Software
+This file goes over the features that can be found in Armored Turtle Automated Filament Control (AFC) Software
 
 ## TurtleNeck Buffer Ram Sensor
 AFC allows the use of using the TurtleNeck Buffers as a ram sensor for detecting when filament is loaded to the toolhead extruder. This can be used inplace of a toolhead filament sensor. To learn more about this feature please see [Buffer Ram Sensor](Buffer_Ram_Sensor.md) document

@@ -1,6 +1,6 @@
-# Armored Turtle Automated Filament Changer (AFC) Buffer
+# Armored Turtle Automated Filament Control (AFC) Buffer
 
-This file describes the `AFC_buffer` module, part of the Armored Turtle Automated Filament Changer (AFC) project.
+This file describes the `AFC_buffer` module, part of the Armored Turtle Automated Filament Control (AFC) project.
 
 ## Overview
 
@@ -10,7 +10,7 @@ The buffer adjusts the filament movement based on sensor inputs and can either c
 
 ### Basic Functionality
 
-The AFC is a two extruder filament changer. The primary extruder is at the print head(s) and the second is in the AFC unit. While the 2 extruders are synced they will never be perfect. This is where a buffer comes in. The buffer is used to make up for any inconsistencies in the sync between the 2 stepper motors.
+The AFC buffer is designed to work with two extruder filament control systems. The primary extruder is at the print head(s) and the second is in the AFC unit. While the 2 extruders are synced they will never be perfect. This is where a buffer comes in. The buffer is used to make up for any inconsistencies in the sync between the 2 stepper motors.
 
 ## TurtleNeck Style buffer
 

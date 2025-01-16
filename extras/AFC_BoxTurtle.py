@@ -1,4 +1,4 @@
-# Armored Turtle Automated Filament Changer
+# Armored Turtle Automated Filament Control
 #
 # Copyright (C) 2024 Armored Turtle
 #
