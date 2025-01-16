@@ -102,9 +102,12 @@ class afcUnit:
     cmd_UNIT_CALIBRATION_help = 'open prompt to calibrate the dist hub for lanes in selected unit'
     def cmd_UNIT_CALIBRATION(self, gcmd):
         """
-        Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length 
+        Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length
         for the selected unit. Provides buttons for lane calibration, Bowden length calibration, and a back option.
 
+        Usage:`UNIT_CALIBRATION UNIT=<unit>`
+        Examples:
+            - `UNIT_CALIBRATION UNIT=Turtle_1`
         Args:
             None
 
@@ -126,8 +129,12 @@ class afcUnit:
     cmd_UNIT_LANE_CALIBRATION_help = 'open prompt to calibrate the length from extruder to hub'
     def cmd_UNIT_LANE_CALIBRATION(self, gcmd):
         """
-        Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons 
+        Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons
         for each lane, grouped in sets of two, and allows calibration for all lanes or individual lanes.
+
+        Usage:`UNIT_LANE_CALIBRATION UNIT=<unit>`
+        Examples:
+            - `UNIT_LANE_CALIBRATION UNIT=Turtle_1`
 
         Args:
             UNIT: Specifies the unit to be used in calibration
@@ -164,8 +171,12 @@ class afcUnit:
     cmd_UNIT_BOW_CALIBRATION_help = 'open prompt to calibrate the afc_bowden_length from a lane in the unit'
     def cmd_UNIT_BOW_CALIBRATION(self, gcmd):
         """
-        Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons 
+        Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons
         for each lane, with a note to only calibrate one lane per unit.
+
+        Usage:`UNIT_CALIBRATION UNIT=<unit>`
+        Examples:
+            - `UNIT_CALIBRATION UNIT=Turtle_1`
 
         Args:
             UNIT: Specifies the unit to be used in calibration

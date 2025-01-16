@@ -6,6 +6,7 @@ The following commands are built-in the AFC-Klipper-Add-On and are available thr
 the Klipper console.
 
 NOTE: LANE/HUB/BUFFER etc. names are case sensitive and should exactly match the names defined in config files
+
 ### SET_AFC_TOOLCHANGES
 _Description_: This macro can be used to set total number of toolchanges from slicer. AFC will keep track of tool changes and print out
 current tool change number when a T(n) command is called from gcode  
@@ -94,6 +95,28 @@ _Description_: Gives ability to test AFC tip forming without doing a tool change
 Usage: `TEST_AFC_TIP_FORMING LANE=<lane>`  
 Example: `TEST_AFC_TIP_FORMING LANE=leg1`  
 
+### GET_TIP_FORMING
+_Description_: Shows the tip forming configuration  
+Usage: `GET_TIP_FORMING`  
+Example: `GET_TIP_FORMING LANE=leg1`  
+
+### SET_TIP_FORMING
+_Description_: Sets the tip forming configuration  
+Usage: `SET_TIP_FORMING PARAMETER=VALUE ...`  
+Example: `SET_TIP_FORMING ramming_volume=20 toolchange_temp=220`
+
+### AFC_CALIBRATION
+_Description_: Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and 
+allows the option to calibrate all lanes across all units.  
+Usage: ``AFC_CALIBRATION``  
+Example: `AFC_CALIBRATION`  
+
+### ALL_CALIBRATION
+_Description_: Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to 
+return to the previous menu.  
+Usage: ``ALL_CALIBRATION``  
+Example: `ALL_CALIBRATION`
+
 ### CALIBRATE_AFC
 _Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
 (Automated Filament Control) system. The function uses precise movements to adjust the positions of the
@@ -102,6 +125,25 @@ user-provided input. If no specific lane is provided, the function defaults to n
 the option to calibrate the Bowden length for a particular lane, if specified.  
 Usage: ``CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
 Example: `CALIBRATE_AFC LANE=leg1`  
+
+### UNIT_CALIBRATION
+_Description_: Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length
+for the selected unit. Provides buttons for lane calibration, Bowden length calibration, and a back option.  
+Usage: ``UNIT_CALIBRATION UNIT=<unit>``  
+Example: `UNIT_CALIBRATION UNIT=Turtle_1`  
+
+### UNIT_LANE_CALIBRATION
+_Description_: Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons
+for each lane, grouped in sets of two, and allows calibration for all lanes or individual lanes.  
+Usage: ``UNIT_LANE_CALIBRATION UNIT=<unit>``  
+Example: `UNIT_LANE_CALIBRATION UNIT=Turtle_1`  
+
+### UNIT_BOW_CALIBRATION
+_Description_: Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons
+for each lane, with a note to only calibrate one lane per unit.  
+Usage: ``UNIT_CALIBRATION UNIT=<unit>``  
+Example: `UNIT_BOW_CALIBRATION UNIT=Turtle_1`  
+
 
 ### SET_BOWDEN_LENGTH
 _Description_: This function adjusts the length of the Bowden tube between the hub and the toolhead.

@@ -55,6 +55,9 @@ class afcFunction:
         Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and 
         allows the option to calibrate all lanes across all units.
 
+        Usage:`AFC_CALIBRATION`
+        Examples:
+            - `AFC_CALIBRATION`
         Args:
             None
 
@@ -84,6 +87,9 @@ class afcFunction:
         Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to 
         return to the previous menu.
 
+        Usage:`ALL_CALIBRATION`
+        Examples:
+            - `ALL_CALIBRATION`
         Args:
             None
 
