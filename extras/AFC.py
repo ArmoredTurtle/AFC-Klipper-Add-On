@@ -497,7 +497,7 @@ class afc:
 
         self.current_state = State.EJECTING_LANE
 
-        if CUR_LANE.name != self.current:
+        if CUR_LANE.name != self.current and CUR_LANE.hub != 'direct':
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
@@ -518,8 +518,11 @@ class afc:
             self.SPOOL.set_spoolID( CUR_LANE, "")
             self.gcode.respond_info("LANE {} eject done".format(CUR_LANE.name))
 
-        else:
+        elif CUR_LANE.name == self.current:
             self.gcode.respond_info("LANE {} is loaded in toolhead, can't unload.".format(CUR_LANE.name))
+        
+        elif CUR_LANE.hub == 'direct':
+            self.gcode.respond_info("LANE {} is a direct lane must be tool unloaded.".format(CUR_LANE.name))
 
         self.current_state = State.IDLE
 
@@ -581,6 +584,7 @@ class afc:
 
         # Lookup extruder and hub objects associated with the lane.
         CUR_HUB = CUR_LANE.hub_obj
+
         CUR_EXTRUDER = CUR_LANE.extruder_obj
         self.current_state = State.LOADING
         self.current_loading = CUR_LANE.name
@@ -591,7 +595,7 @@ class afc:
         self.FUNCTION.afc_led(CUR_LANE.led_loading, CUR_LANE.led_index)
 
         # Check if the lane is in a state ready to load and hub is clear.
-        if CUR_LANE.load_state and not CUR_HUB.state:
+        if (CUR_LANE.load_state and not CUR_HUB.state) or CUR_LANE.hub == 'direct':
 
             self._check_extruder_temp(CUR_LANE)
 
@@ -599,14 +603,14 @@ class afc:
             CUR_LANE.do_enable(True)
 
             # Move filament to the hub if it's not already loaded there.
-            if not CUR_LANE.loaded_to_hub:
+            if not CUR_LANE.loaded_to_hub or CUR_LANE.hub == 'direct':
                 CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, CUR_LANE.dist_hub > 200)
 
             CUR_LANE.loaded_to_hub = True
             hub_attempts = 0
 
             # Ensure filament moves past the hub.
-            while not CUR_HUB.state:
+            while not CUR_HUB.state and CUR_LANE.hub != 'direct':
                 if hub_attempts == 0:
                     CUR_LANE.move(CUR_HUB.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 else:
@@ -618,7 +622,8 @@ class afc:
                     return False
 
             # Move filament towards the toolhead.
-            CUR_LANE.move(CUR_HUB.afc_bowden_length, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
+            if CUR_LANE.hub != 'direct':
+                CUR_LANE.move(CUR_HUB.afc_bowden_length, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
@@ -854,7 +859,10 @@ class afc:
         self.save_vars()
         # Synchronize and move filament out of the hub.
         CUR_LANE.unsync_to_extruder()
-        CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
+        if CUR_LANE.hub !='direct':
+            CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
+        else:
+            CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, CUR_LANE.dist_hub > 200)
 
         # Clear toolhead's loaded state for easier error handling later.
         CUR_LANE.set_unloaded()
@@ -873,29 +881,34 @@ class afc:
                 return False
 
         #Move to make sure hub path is clear based on the move_clear_dis var
-        CUR_LANE.move( CUR_HUB.hub_clear_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+        if CUR_LANE.hub !='direct':
+            CUR_LANE.move( CUR_HUB.hub_clear_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
 
         # Cut filament at the hub, if configured.
-        if CUR_HUB.cut:
-            if CUR_HUB.cut_cmd == 'AFC':
-                CUR_HUB.hub_cut(CUR_LANE)
-            else:
-                self.gcode.run_script_from_command(CUR_HUB.cut_cmd)
+            if CUR_HUB.cut:
+                if CUR_HUB.cut_cmd == 'AFC':
+                    CUR_HUB.hub_cut(CUR_LANE)
+                else:
+                    self.gcode.run_script_from_command(CUR_HUB.cut_cmd)
 
-            # Confirm the hub is clear after the cut.
-            while CUR_HUB.state:
-                CUR_LANE.move(CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
-                num_tries += 1
-                # TODO: Figure out max number of tries
-                if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
-                    message = 'HUB NOT CLEARING after hub cut\n'
-                    self.ERROR.handle_lane_failure(CUR_LANE, message)
-                    return False
+                # Confirm the hub is clear after the cut.
+                while CUR_HUB.state:
+                    CUR_LANE.move(CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+                    num_tries += 1
+                    # TODO: Figure out max number of tries
+                    if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
+                        message = 'HUB NOT CLEARING after hub cut\n'
+                        self.ERROR.handle_lane_failure(CUR_LANE, message)
+                        return False
 
         # Finalize unloading and reset lane state.
         CUR_LANE.loaded_to_hub = True
         self.FUNCTION.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
         CUR_LANE.status = None
+
+        if CUR_LANE.hub =='direct':
+            while CUR_LANE.prep_state:
+                CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
 
         CUR_LANE.do_enable(False)
         self.save_vars()

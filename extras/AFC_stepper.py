@@ -132,6 +132,8 @@ class AFCExtruderStepper:
         if self.load is not None:
             self.load_state = False
             buttons.register_buttons([self.load], self.load_callback)
+        else: self.load_state = True
+
         # Respoolers
         self.afc_motor_rwd = config.get('afc_motor_rwd', None)                                      # Reverse pin on MCU for spoolers
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)                                      # Forwards pin on MCU for spoolers
@@ -201,7 +203,7 @@ class AFCExtruderStepper:
 
         self.hub_obj = self.unit_obj.hub_obj
         # TODO: once supported add check if users is not using a hub
-        if self.hub is not None:
+        if self.hub is not None and self.hub !='direct':
             try:
                 self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
             except:
@@ -221,8 +223,13 @@ class AFCExtruderStepper:
                 self.multi_hubs_found = True
 
         # Assigning hub name just in case stepper is using hub defined in units config
-        self.hub = self.hub_obj.name
-        self.hub_obj.lanes[self.name] = self
+        if self.hub !='direct':
+            self.hub = self.hub_obj.name
+            self.hub_obj.lanes[self.name] = self
+        else:
+            self.hub_obj = lambda: None
+            self.hub_obj.state = False
+       
 
         self.extruder_obj = self.unit_obj.extruder_obj
         if self.extruder_name is not None:
@@ -396,7 +403,7 @@ class AFCExtruderStepper:
                 if self.AFC.FUNCTION.is_printing():
                     self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
                     return
-                while self.load_state == False and self.prep_state == True:
+                while self.load_state == False and self.prep_state == True and self.load != None:
                     x += 1
                     self.do_enable(True)
                     self.move(10,500,400)
@@ -409,6 +416,9 @@ class AFCExtruderStepper:
                         break
                 self.status=''
 
+                if self.hub == 'direct':
+                    self.AFC.TOOL_LOAD(self)
+                    return
                 # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
                 if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state:
                     self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
