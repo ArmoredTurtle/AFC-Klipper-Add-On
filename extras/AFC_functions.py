@@ -52,7 +52,7 @@ class afcFunction:
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
         """
-        Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and 
+        Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
         allows the option to calibrate all lanes across all units.
 
         Usage:`AFC_CALIBRATION`
@@ -84,7 +84,7 @@ class afcFunction:
     cmd_ALL_CALIBRATION_help = 'open prompt to begin calibration to confirm calibrating all lanes'
     def cmd_ALL_CALIBRATION(self, gcmd):
         """
-        Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to 
+        Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to
         return to the previous menu.
 
         Usage:`ALL_CALIBRATION`

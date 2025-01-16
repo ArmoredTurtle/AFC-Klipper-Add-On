@@ -206,7 +206,7 @@ class afcUnit:
 
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
 
-        prompt.create_custom_p(title, text, None, 
+        prompt.create_custom_p(title, text, None,
                                True, buttons, back)
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files

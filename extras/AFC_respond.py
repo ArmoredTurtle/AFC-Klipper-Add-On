@@ -76,7 +76,7 @@ class AFCprompt:
             for footer_button in footer_buttons:
                 label, command, style = footer_button
                 self.p_footer_button(label, command, style)
-        
+
         if cancel:
             self.p_cancel_button()
 
