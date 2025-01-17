@@ -311,6 +311,8 @@ class afcSpool:
         Useful to put in your PRINT_END macro to reset mapping
 
         Usage: RESET_AFC_MAPPING
+
+        Example: RESET_AFC_MAPPING
         """
         t_index = 0
         for key, unit in self.AFC.units.items():

@@ -5,7 +5,11 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import os
-from extras.AFC_respond import AFCprompt
+from configfile import error
+try:
+    from extras.AFC_respond import AFCprompt
+except:
+    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 def load_config(config):
     return afcFunction(config)
@@ -56,8 +60,7 @@ class afcFunction:
         allows the option to calibrate all lanes across all units.
 
         Usage:`AFC_CALIBRATION`
-        Examples:
-            - `AFC_CALIBRATION`
+        Example: `AFC_CALIBRATION`
         Args:
             None
 
@@ -88,8 +91,7 @@ class afcFunction:
         return to the previous menu.
 
         Usage:`ALL_CALIBRATION`
-        Examples:
-            - `ALL_CALIBRATION`
+        Example: `ALL_CALIBRATION`
         Args:
             None
 
@@ -144,6 +146,14 @@ class afcFunction:
             return
 
         cal_msg = ''
+        # Check to make sure lane and unit is valid
+        if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:
+            self.AFC.ERROR.AFC_error("{} not a valid lane".format(lanes), pause=False)
+            return
+
+        if unit is not None and unit not in self.AFC.units:
+            self.AFC.ERROR.AFC_error("{} not a valid unit".format(unit), pause=False)
+            return
 
         # Determine if a specific lane is provided
         if lanes is not None:
@@ -245,11 +255,9 @@ class afcFunction:
 
     def is_printing(self):
         eventtime = self.AFC.reactor.monotonic()
-        idle_timeout = self.printer.lookup_object("idle_timeout")
-        if idle_timeout.get_status(eventtime)["state"] == "Printing":
-            return True
-        else:
-            False
+        # idle_timeout = self.printer.lookup_object("idle_timeout")
+        print_stats = self.printer.lookup_object("print_stats")
+        return print_stats.get_status(eventtime)["state"] == "printing"
 
     def is_paused(self):
         eventtime = self.AFC.reactor.monotonic()

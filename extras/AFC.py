@@ -47,7 +47,6 @@ class afc:
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
-        
         self.current        = None
         self.current_loading= None
         self.next_lane_load = None
@@ -85,8 +84,6 @@ class afc:
         self.cfgloc = self._remove_after_last(self.VarFile,"/")
         self.default_material_temps = config.getlists("default_material_temps", None) # Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
 
-        
-
         #LED SETTINGS
         self.ind_lights = None
         # led_name is not used, either use or needs to be removed
@@ -121,11 +118,13 @@ class afc:
         self.form_tip_cmd = config.get('form_tip_cmd', None)                        # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
 
         # MOVE SETTINGS
-        self.long_moves_speed = config.getfloat("long_moves_speed", 100)            # Speed in mm/s to move filament when doing long moves
-        self.long_moves_accel = config.getfloat("long_moves_accel", 400)            # Acceleration in mm/s squared when doing long moves
-        self.short_moves_speed = config.getfloat("short_moves_speed", 25)           # Speed in mm/s to move filament when doing short moves
-        self.short_moves_accel = config.getfloat("short_moves_accel", 400)          # Acceleration in mm/s squared when doing short moves
-        self.short_move_dis = config.getfloat("short_move_dis", 10)                 # Move distance in mm for failsafe moves.
+        self.long_moves_speed   = config.getfloat("long_moves_speed", 100)          # Speed in mm/s to move filament when doing long moves
+        self.long_moves_accel   = config.getfloat("long_moves_accel", 400)          # Acceleration in mm/s squared when doing long moves
+        self.short_moves_speed  = config.getfloat("short_moves_speed", 25)          # Speed in mm/s to move filament when doing short moves
+        self.short_moves_accel  = config.getfloat("short_moves_accel", 400)         # Acceleration in mm/s squared when doing short moves
+        self.short_move_dis     = config.getfloat("short_move_dis", 10)             # Move distance in mm for failsafe moves.
+        self.max_move_dis       = config.getfloat("max_move_dis", 999999)           # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
+
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)# Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks = config.getint('tool_max_load_checks', 4)        # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 
@@ -195,14 +194,13 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
-        
+
         # SPOOLMAN
         try:
             self.moonraker = json.load(urlopen('http://localhost/server/config'))
             self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         except:
             self.spoolman = None                      # set to none if not found
-
 
         # GCODE REGISTERS
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
@@ -253,12 +251,16 @@ class afc:
         """
         Helper function that check to see if extruder needs to be heated, and wait for hotend to get to temp if needed
         """
+
         # Prepare extruder and heater.
         # This will need to be done a different way for multiple toolhead extruders
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
-
         pheaters = self.printer.lookup_object('heaters')
+
+        # If extruder can extruder and printing return and do not update temperature, don't want to modify extruder temperature during prints
+        if self.heater.can_extrude and self.FUNCTION.is_printing():
+            return
         target_temp, using_min_value = self._get_default_material_temps(CUR_LANE)
 
         # Check to make sure temp is with +/-5 of target temp, not setting if temp is over target temp and using min_extrude_temp value
@@ -520,7 +522,7 @@ class afc:
 
         elif CUR_LANE.name == self.current:
             self.gcode.respond_info("LANE {} is loaded in toolhead, can't unload.".format(CUR_LANE.name))
-        
+
         elif CUR_LANE.hub == 'direct':
             self.gcode.respond_info("LANE {} is a direct lane must be tool unloaded.".format(CUR_LANE.name))
 
