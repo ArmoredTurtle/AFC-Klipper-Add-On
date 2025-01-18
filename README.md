@@ -90,6 +90,22 @@ Finally, review and update the following files as needed for your configuration.
 3. `~/printer_data/config/AFC/AFC_Hardware.cfg`
 4. `~/printer_data/config/AFC/AFC_Turtle_1.cfg`
 
+## Moonraker configuration
+
+To enable the AFC plugin in Moonraker, you should add the following lines to your `moonraker.conf` file:
+
+```cfg
+[update_manager afc-software]
+type: git_repo
+path: ~/AFC-Klipper-Add-On
+origin: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git
+managed_services: klipper
+primary_branch: main
+is_system_service: False
+info_tags:
+    desc=AFC Klipper Add On
+```
+
 ## Mandatory Configuration Changes (All)
 
 Prior to operation, the following checks / updates **MUST** be made to your system:
