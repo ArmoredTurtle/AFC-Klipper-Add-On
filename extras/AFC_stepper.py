@@ -97,14 +97,15 @@ class AFCExtruderStepper:
         self.led_unloading 		= config.get('led_unloading',None)                      # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_tool_loaded 	= config.get('led_tool_loaded',None)                    # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
-        self.long_moves_speed 	= config.getfloat("long_moves_speed", None)            # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
-        self.long_moves_accel 	= config.getfloat("long_moves_accel", None)            # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
-        self.short_moves_speed 	= config.getfloat("short_moves_speed", None)           # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
-        self.short_moves_accel	= config.getfloat("short_moves_accel", None)           # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
-        self.short_move_dis 	= config.getfloat("short_move_dis", None)              # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+        self.long_moves_speed 	= config.getfloat("long_moves_speed", None)             # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.long_moves_accel 	= config.getfloat("long_moves_accel", None)             # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.short_moves_speed 	= config.getfloat("short_moves_speed", None)            # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.short_moves_accel	= config.getfloat("short_moves_accel", None)            # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.short_move_dis 	= config.getfloat("short_move_dis", None)               # Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.max_move_dis       = config.getfloat("max_move_dis", 999999)               # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
-        self.dist_hub           = config.getfloat('dist_hub', 60)                      # Bowden distance between Box Turtle extruder and hub
-        self.park_dist          = config.getfloat('park_dist', 10)                     # Currently unused
+        self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
+        self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
 
         self.load_to_hub        = config.getboolean("load_to_hub", self.AFC.load_to_hub) # Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
         self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
@@ -229,7 +230,6 @@ class AFCExtruderStepper:
         else:
             self.hub_obj = lambda: None
             self.hub_obj.state = False
-       
 
         self.extruder_obj = self.unit_obj.extruder_obj
         if self.extruder_name is not None:
@@ -286,6 +286,7 @@ class AFCExtruderStepper:
         if self.short_moves_speed is None: self.short_moves_speed = self.unit_obj.short_moves_speed
         if self.short_moves_accel is None: self.short_moves_accel = self.unit_obj.short_moves_accel
         if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis
+        if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
 
         # Send out event so that macros and be registered properly with valid lane names
         self.printer.send_event("afc_stepper:register_macros", self)
@@ -336,7 +337,7 @@ class AFCExtruderStepper:
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
 
-    def move(self, distance, speed, accel, assist_active=False):
+    def _move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
         This function calculates the movement parameters and commands the stepper motor
@@ -381,6 +382,20 @@ class AFCExtruderStepper:
         toolhead.flush_step_generation()
         toolhead.wait_moves()
         if assist_active: self.assist(0)
+
+    def move(self, distance, speed, accel, assist_active=False):
+
+        direction = 1 if distance > 0 else -1
+        move_total = abs(distance)
+
+        # Breaks up move length to help with TTC errors
+        while move_total > 0:
+            move_value = self.max_move_dis if move_total > self.max_move_dis else move_total
+            move_total -= move_value
+            # Adding back direction
+            move_value = move_value * direction
+
+            self._move(move_value, speed, accel, assist_active)
 
     def set_afc_prep_done(self):
         """
@@ -599,6 +614,7 @@ class AFCExtruderStepper:
         self.status = None
         self.AFC.current = None
         self.AFC.current_loading = None
+        self.AFC.SPOOL.set_active_spool( None )
 
     def enable_buffer(self):
         """

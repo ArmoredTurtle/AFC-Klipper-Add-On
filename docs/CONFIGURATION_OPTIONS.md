@@ -30,6 +30,7 @@
 - `short_moves_speed` (default: `25`): Speed in mm/s to move filament when doing short moves
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves
 - `short_move_dis` (default: `10`): Move distance in mm for failsafe moves.
+- `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
 - `tool_max_unload_attempts` (default: `2`): Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
 - `tool_max_load_checks` (default: `4`): Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 - `z_hop` (default: `0`): Height to move up before and after a tool change completes
@@ -49,6 +50,9 @@
 
 ## AFC_extruder
 - `enable_sensors_in_gui` (default: `False`): Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+
+## AFC_hub
+- `assisted_retract` (default: `False`): if True, retracts are assisted to prevent loose windings on the spool
 
 ## AFC_prep
 - `delay_time` (default: `0.1, minval=0.0`): Time to delay when moving extruders and spoolers during PREP routine
@@ -72,6 +76,7 @@
 - `short_moves_speed` (default: `None`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_moves_accel` (default: `None`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_move_dis` (default: `None`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+- `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `dist_hub` (default: `60`): Bowden distance between Box Turtle extruder and hub
 - `park_dist` (default: `10`): Currently unused
 - `load_to_hub` (default: `True`): Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
@@ -112,6 +117,7 @@
 - `short_moves_speed` (default: `25`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_move_dis` (default: `400`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+- `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
 
 ## AFC_NightOwl
 - `hub` (default: `None`): Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
