@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import os
+import re
 from configfile import error
 try:
     from extras.AFC_respond import AFCprompt
@@ -180,7 +181,7 @@ class afcFunction:
                     cal_msg += msg
                 else:
                     CUR_UNIT = self.AFC.units[unit]
-                    self.AFC.gcode.respond_info('{}'.format(CUR_UNIT))
+                    self.AFC.gcode.respond_info('{}'.format(CUR_UNIT.name))
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in CUR_UNIT.lanes.values():
                         # Calibrate the specific lane
@@ -202,13 +203,19 @@ class afcFunction:
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
         taskdone = False
         sectionfound = False
+        # Creating regex pattern based off rawsection
+        pattern = re.compile("^\[\s*{}\s*\]".format(rawsection))
         for filename in os.listdir(self.AFC.cfgloc):
             file_path = os.path.join(self.AFC.cfgloc, filename)
             if os.path.isfile(file_path) and filename.endswith(".cfg"):
                 with open(file_path, 'r') as f:
                     dataout = ''
                     for line in f:
-                        if rawsection in line: sectionfound = True
+                        # If previous section found and line starts with bracket, means that this line is another section
+                        #  need to put sectionfound to false to not update wrong sections if rawkey is not found
+                        if sectionfound and line.startswith("["): sectionfound = False
+
+                        if re.match(pattern, line) is not None: sectionfound = True
                         if sectionfound == True and line.startswith(rawkey):
                             comments = ""
                             try:
@@ -224,11 +231,10 @@ class afcFunction:
                     f.write(dataout)
                     f.close
                     taskdone = False
-                    msg +='\n<span class=info--text>Saved to configuration file</span>'
+                    msg +='\n<span class=info--text>Saved {}:{} in {} section to configuration file</span>'.format(rawkey, rawvalue, rawsection)
                     self.AFC.gcode.respond_info(msg)
                     return
-        msg +='\n<span class=info--text>Update values in [' + rawsection +']</span>'
-        self.AFC.save_vars()
+        msg +='\n<span class=info--text>Key {} not found in section {}, cannot update</span>'.format(rawkey, rawsection)
         self.AFC.gcode.respond_info(msg)
 
     def TcmdAssign(self, CUR_LANE):
