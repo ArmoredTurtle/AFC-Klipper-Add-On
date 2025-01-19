@@ -136,7 +136,6 @@ class afcBoxTurtle(afcUnit):
             CUR_LANE.do_enable(False)
         else:
             self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
-        self.AFC.gcode.respond_info(cal_msg)
         self.AFC.save_vars()
 
     # Helper functions for movement and calibration
