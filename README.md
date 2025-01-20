@@ -183,7 +183,7 @@ If direct loading to an extruder is desired the following lines need to be added
 hub: direct
 ```
 
-When using this will cause the spool to autmatcily load to the extruder. there should be no Hub in between that lane and the extruder.
+When using this will cause the spool to automatically load to the extruder. There should be no Hub in-between that lane and the extruder.
 Using 'direct' will disable calabrations for that lane.
 
 #### Turtleneck
