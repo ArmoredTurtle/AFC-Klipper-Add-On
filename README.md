@@ -175,6 +175,17 @@ You should add the following block to your `AFC_Turtle_1.cfg` file based on the 
 
 **NOTE** The `pin` value should be set to the pin that the buffer is connected to on your board.
 
+### Hub configuration - Manual
+
+If direct loading to an extruder is desired the following lines need to be added to the [AFC_stepper <lane>] of choice.
+
+```cfg
+hub: direct
+```
+
+When using this will cause the spool to autmatcily load to the extruder. there should be no Hub in between that lane and the extruder.
+Using 'direct' will disable calabrations for that lane.
+
 #### Turtleneck
 
 ```cfg
@@ -220,18 +231,21 @@ accel: 1000
 Finally, add `buffer: <buffer_name>` to either your `AFC_extruder`, `AFC_stepper`, or `AFC_<unit_type>` sections in `AFC_Turtle_(n).cfg` files. For example, if you are using the Turtleneck v2, you would add the following line:
 
 Using this config, buffer will be used for every unit that uses this extruder
+
 ```cfg
 [AFC_extruder extruder]
 buffer: TN2
 ```
 
 Using this config, buffer will be used for every lanes that uses this unit
+
 ```cfg
 [AFC_BoxTurtle Turtle_1]
 buffer: TN2
 ```
 
 Using this config, buffer will be used for just the lanes the buffers is assigned to, this will override anything set in extruder/unit sections
+
 ```cfg
 [AFC_stepper lane1]
 buffer: TN2
