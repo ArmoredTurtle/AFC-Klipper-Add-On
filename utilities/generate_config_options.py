@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import re
 
@@ -18,7 +20,8 @@ def extract_config_options(directory):
 def generate_documentation(config_options):
     documentation = "# Configuration Options Documentation\n\n"
     for filename, options in config_options.items():
-        documentation += f"## {filename}\n"
+        filename_without_extension = os.path.splitext(filename)[0]
+        documentation += f"## {filename_without_extension}\n"
         for option, default, description in options:
             documentation += f"- `{option}` (default: `{default}`): {description}\n"
         documentation += "\n"

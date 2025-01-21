@@ -33,7 +33,7 @@ multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
 
-[AFC_led Turtle_1_Buffer_Indicator]
+[AFC_led Buffer_Indicator]
 pin: turtleneck:RGB
 chain_count: 1
 color_order: GRBW
@@ -109,8 +109,8 @@ query_tn_pins() {
   print_msg INFO "\nPlease enter the pin numbers for the TurtleNeck buffer '$buffer_name':"
   print_msg INFO "(Leave blank to use the default values)"
   print_msg INFO "Ensure you use a pull-up '^' if you are using a AFC end stop pin."
-  print_msg INFO "(Example: ^Turtle_1:TN_ADV)"
-  print_msg INFO "(Example: ^Turtle_1:TN_TRL)"
+  print_msg INFO "(Default: ^Turtle_1:TN_ADV)"
+  print_msg INFO "(Default: ^Turtle_1:TN_TRL)"
 
   read -p "  Enter the advance pin (default: $tn_advance_pin): " -r input
   if [ -n "$input" ]; then

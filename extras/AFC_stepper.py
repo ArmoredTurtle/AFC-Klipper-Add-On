@@ -139,9 +139,6 @@ class AFCExtruderStepper:
         self.afc_motor_rwd = config.get('afc_motor_rwd', None)                                      # Reverse pin on MCU for spoolers
         self.afc_motor_fwd = config.get('afc_motor_fwd', None)                                      # Forwards pin on MCU for spoolers
         self.afc_motor_enb = config.get('afc_motor_enb', None)                                      # Enable pin on MCU for spoolers
-        self.afc_motor_fwd_pulse = config.getfloat('afc_motor_fwd_pulse', None)                     # Need description
-        self.afc_motor_fwd_gear_ratio = config.get('afc_motor_fwd_gear_ratio', None)                # Need description
-        self.afc_motor_fwd_drive_diam = config.getfloat('afc_motor_fwd_drive_diam', None)           # Need description
         if self.afc_motor_rwd is not None:
             self.afc_motor_rwd = AFC_assist.AFCassistMotor(config, 'rwd')
         if self.afc_motor_fwd is not None:

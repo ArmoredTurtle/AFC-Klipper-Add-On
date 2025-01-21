@@ -22,11 +22,10 @@ function show_help() {
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -p <printer config dir>     Specify the path to the printer config directory (default: ~/printer_data/config)"
   echo "  -b <branch>                 Specify the branch to use (default: main)"
-  echo "  -u                          Uninstall the extensions"
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-b <branch>] [-u] [-h] "
+  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-b <branch>] [-h] "
 }
 
 function copy_config() {
@@ -144,7 +143,7 @@ function auto_update() {
 check_version_and_set_force_update() {
   local current_version
   current_version=$(curl -s "localhost/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
-  if [[ -z "$current_version" || "$current_version" < "$min_version" ]]; then
+  if [[ -z "$current_version" || "$current_version" == "null" || "$current_version" < "$min_version" ]]; then
     force_update=True
   else
     force_update=False
