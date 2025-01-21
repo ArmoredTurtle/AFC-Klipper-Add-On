@@ -58,10 +58,12 @@ completed you will not be able to use this assisted process for any future updat
     printf "█${RESET}                                  AFC Install Options${MENU_GREEN}                                █\n"
     printf "${MENU_GREEN}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${RESET} \n"
     echo ""
-    if [ "$prior_installation" == "False" ] && [ "$files_updated_or_installed" == "False" ]; then
+    if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
+      printf "I. Install AFC Klipper Add-on\n"
+    elif [ "$prior_installation" == "False" ] && [ "$files_updated_or_installed" == "False" ]; then
       printf "I. Install AFC Klipper Add-On\n"
     fi
-    if [ "$prior_installation" == "True" ]; then
+    if [ "$prior_installation" == "True" ] && [ "$force_update" == "False" ]; then
       printf "U. Update AFC Klipper Add-On\n"
     fi
     printf "R. Remove AFC Klipper Add-On\n"
@@ -83,6 +85,9 @@ completed you will not be able to use this assisted process for any future updat
       5)
         export message="To change the branch, please re-run this script with a '-b <branch>' option." ;;
       I)
+        if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
+          backup_afc_config
+        fi
         install_menu ;;
       U)
         update_menu ;;

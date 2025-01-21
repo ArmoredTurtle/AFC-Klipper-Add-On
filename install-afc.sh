@@ -35,7 +35,6 @@ while getopts "k:s:m:b:p:u:th" arg; do
   s) klipper_service=${OPTARG} ;;
   b) branch=${OPTARG} ;;
   p) printer_config_dir=${OPTARG} ;;
-  u) uninstall=True ;;
   t) test_mode=True ;;
   h) show_help
     exit 0 ;;
@@ -53,7 +52,7 @@ if [ "$test_mode" == "False" ]; then
   clone_repo
 fi
 check_existing_install
-check_old_config_version
+check_version_and_set_force_update
 #set_install_version_if_missing
 if [ "$force_update_no_version" == "False" ]; then
   check_version_and_set_force_update
