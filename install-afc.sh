@@ -35,7 +35,6 @@ while getopts "k:s:m:b:p:u:th" arg; do
   s) klipper_service=${OPTARG} ;;
   b) branch=${OPTARG} ;;
   p) printer_config_dir=${OPTARG} ;;
-  u) uninstall=True ;;
   t) test_mode=True ;;
   h) show_help
     exit 0 ;;
