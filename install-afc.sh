@@ -53,7 +53,7 @@ if [ "$test_mode" == "False" ]; then
   clone_repo
 fi
 check_existing_install
-check_old_config_version
+check_version_and_set_force_update
 #set_install_version_if_missing
 if [ "$force_update_no_version" == "False" ]; then
   check_version_and_set_force_update
