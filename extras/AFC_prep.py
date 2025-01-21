@@ -6,22 +6,19 @@
 
 import os
 import json
-try:
-    from urllib.request import urlopen
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
 
 class afcPrep:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)
-        self.enable = config.getboolean("enable", False)
+        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)                 # Time to delay when moving extruders and spoolers during PREP routine
+        self.enable = config.getboolean("enable", False)                            # Set True to disable PREP checks
+        self.dis_unload_macro = config.getboolean("disable_unload_filament_remapping", False) # Set to True to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD macro
 
-
-        # Flag to set once resume rename as occured for the first time
-        self.rename_occured = False
+        # Flag to set once resume rename as occurred for the first time
+        self.rename_occurred = False
+        # Value gets set to false once prep has been ran for the first time after restarting klipper
+        self.assignTcmd = True
 
     def handle_connect(self):
         """
@@ -32,139 +29,122 @@ class afcPrep:
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
 
-    def _rename_resume(self):
+    def _rename(self, base_name, rename_name, rename_macro, rename_help):
         """
-            Helper function to check if renaming RESUME macro has occured and renames RESUME.
-            Addes a new RESUME macro that points to AFC resume function
+        Helper function to get stock macros, rename to something and replace stock macro with AFC functions
         """
+        # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
+        prev_cmd = self.AFC.gcode.register_command(base_name, None)
+        if prev_cmd is not None:
+            pdesc = "Renamed builtin of '%s'" % (base_name,)
+            self.AFC.gcode.register_command(rename_name, prev_cmd, desc=pdesc)
+        else:
+            self.AFC.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
+        self.AFC.gcode.register_command(base_name, rename_macro, desc=rename_help)
 
+    def _rename_macros(self):
+        """
+        Helper function to rename multiple macros and substitute with AFC macros.
+        - Replaces stock RESUME macro and reassigns to AFC_resume function
+        - Replaces stock UNLOAD macro and reassigns to TOOL_UNLOAD function. This can be disabled in AFC_prep config
+        """
         # Checking to see if rename has already been done, don't want to rename again if prep was already ran
-        if not self.rename_occured:
-            self.rename_occured = True
-            # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
-            base_resume_name = "RESUME"
-            prev_cmd = self.AFC.gcode.register_command(base_resume_name, None)
-            if prev_cmd is not None:
-                pdesc = "Renamed builtin of '%s'" % (base_resume_name,)
-                self.AFC.gcode.register_command(self.AFC.ERROR.AFC_RENAME_RESUME_NAME, prev_cmd, desc=pdesc)
-            else:
-                self.AFC.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_resume_name, "</span>",))
+        if not self.rename_occurred:
+            self.rename_occurred = True
+            self._rename( self.AFC.ERROR.BASE_RESUME_NAME, self.AFC.ERROR.AFC_RENAME_RESUME_NAME, self.AFC.ERROR.cmd_AFC_RESUME, self.AFC.ERROR.cmd_AFC_RESUME_help )
 
-            self.AFC.gcode.register_command(base_resume_name, self.AFC.ERROR.cmd_AFC_RESUME, desc=self.AFC.ERROR.cmd_AFC_RESUME_help)
+            # Check to see if the user does not want to rename UNLOAD_FILAMENT macor
+            if not self.dis_unload_macro:
+                self._rename( self.AFC.BASE_UNLOAD_FILAMENT,   self.AFC.RENAMED_UNLOAD_FILAMENT,      self.AFC.cmd_TOOL_UNLOAD,      self.AFC.cmd_TOOL_UNLOAD_help )
 
     def PREP(self, gcmd):
         while self.printer.state_message != 'Printer is ready':
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
+        self._rename_macros()
+        self.AFC.print_version()
 
-        self._rename_resume()
-
-        ## load Unit variables
+        ## load Unit stored variables
+        units={}
         if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
-            self.AFC.lanes=json.load(open(self.AFC.VarFile + '.unit'))
-        else:
-            self.AFC.lanes={}
-        ## load Toolhead variables
-        if os.path.exists(self.AFC.VarFile + '.tool') and os.stat(self.AFC.VarFile + '.tool').st_size > 0:
-            self.AFC.extruders=json.load(open(self.AFC.VarFile + '.tool'))
-        else:
-            self.AFC.extruders={}
+            units=json.load(open(self.AFC.VarFile + '.unit'))
 
-        temp=[]
+        # check if Lane is suppose to be loaded in tool head from saved file
+        for EXTRUDER in self.AFC.tools.keys():
+            PrinterObject=self.AFC.tools[EXTRUDER]
+            self.AFC.tools[PrinterObject.name]=PrinterObject
+            if 'system' in units:
+                # Check to see if lane_loaded is in dictionary and its its not an empty string
+                if 'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
+                    PrinterObject.lane_loaded = units["system"]["extruders"][PrinterObject.name]['lane_loaded']
+                    self.AFC.current = PrinterObject.lane_loaded
 
-        self.AFC.tool_cmds={}
-        for PO in self.printer.objects:
-            if 'AFC_stepper' in PO and 'tmc' not in PO:
-                LANE=self.printer.lookup_object(PO)
-                temp.append(LANE.name)
-                if LANE.unit not in self.AFC.lanes: self.AFC.lanes[LANE.unit]={}
-                if LANE.name not in self.AFC.lanes[LANE.unit]: self.AFC.lanes[LANE.unit][LANE.name]={}
-                if LANE.extruder_name not in self.AFC.extruders: self.AFC.extruders[LANE.extruder_name]={}
-                if 'lane_loaded' not in self.AFC.extruders[LANE.extruder_name]: self.AFC.extruders[LANE.extruder_name]['lane_loaded']=''
+        for LANE in self.AFC.lanes.keys():
+            CUR_LANE = self.AFC.lanes[LANE]
+            CUR_LANE.unit_obj = self.AFC.units[CUR_LANE.unit]
+            if CUR_LANE.name not in CUR_LANE.unit_obj.lanes: CUR_LANE.unit_obj.lanes.append(CUR_LANE.name)    #add lanes to units list
+            # If units section exists in vars file add currently stored data to AFC.units array
+            if CUR_LANE.unit in units:
+                if CUR_LANE.name in units[CUR_LANE.unit]:
+                    if 'spool_id' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.spool_id = units[CUR_LANE.unit][CUR_LANE.name]['spool_id']
+                    if self.AFC.spoolman !=None and CUR_LANE.spool_id:
+                        self.AFC.SPOOL.set_spoolID(CUR_LANE, CUR_LANE.spool_id, save_vars=False)
+                    else:
+                        if 'material' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.material = units[CUR_LANE.unit][CUR_LANE.name]['material']
+                        if 'color' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.color = units[CUR_LANE.unit][CUR_LANE.name]['color']
+                        if 'weight' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.weight = units[CUR_LANE.unit][CUR_LANE.name]['weight']
+                    if 'runout_lane' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.runout_lane = units[CUR_LANE.unit][CUR_LANE.name]['runout_lane']
+                    if CUR_LANE.runout_lane == '': CUR_LANE.runout_lane='NONE'
+                    if 'map' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.map = units[CUR_LANE.unit][CUR_LANE.name]['map']
+                    if CUR_LANE.map != 'NONE':
+                        self.AFC.tool_cmds[CUR_LANE.map] = CUR_LANE.name
+                    # Check first for hub_loaded as this was the old name in software with version <= 1030
+                    if 'hub_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['hub_loaded']
+                    # Check for loaded_to_hub as this is how its being saved version > 1030
+                    if 'loaded_to_hub' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['loaded_to_hub']
+                    if 'tool_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.tool_loaded = units[CUR_LANE.unit][CUR_LANE.name]['tool_loaded']
+                    if 'status' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.status = units[CUR_LANE.unit][CUR_LANE.name]['status']
 
-                if 'spool_id' not in self.AFC.lanes[LANE.unit][LANE.name]:
-                    self.AFC.lanes[LANE.unit][LANE.name]['spool_id']=''
-                else:
-                    if self.AFC.spoolman_ip !=None and self.AFC.lanes[LANE.unit][LANE.name]['spool_id'] != '':
-                        try:
-                            url = 'http://' + self.AFC.spoolman_ip + ':'+ self.AFC.spoolman_port +"/api/v1/spool/" + self.AFC.lanes[LANE.unit][LANE.name]['spool_id']
-                            result = json.load(urlopen(url))
-                            self.AFC.lanes[LANE.unit][LANE.name]['material'] = result['filament']['material']
-                            self.AFC.lanes[LANE.unit][LANE.name]['color'] = '#' + result['filament']['color_hex']
-                            if 'remaining_weight' in result: self.AFC.lanes[LANE.unit][LANE.name]['weight'] =  result['remaining_weight']
-                        except:
-                            self.AFC.ERROR.AFC_error("Error when trying to get Spoolman data for ID:{}".format(self.AFC.lanes[LANE.unit][LANE.name]['spool_id']), False)
+        for UNIT in self.AFC.units.keys():
+            try: CUR_UNIT = self.AFC.units[UNIT]
+            except:
+                error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
+                self.AFC.ERROR.AFC_error(error_string, False)
+                return
+            self.AFC.gcode.respond_info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
+            lanes_for_first_hub = []
+            hub_name = ""
+            LaneCheck = True
+            for LANE in CUR_UNIT.lanes.values():
+                # Used to print out warning message that multiple hubs are found
+                if LANE.multi_hubs_found:
+                    lanes_for_first_hub.append(LANE.name)
+                    hub_name = LANE.hub_obj.fullname
 
-                if 'material' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['material']=''
-                if 'color' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['color']='#000000'
-                if 'weight' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['weight'] = 0
-                if 'runout_lane' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['runout_lane']='NONE'
-                if 'map' not in self.AFC.lanes[LANE.unit][LANE.name] or self.AFC.lanes[LANE.unit][LANE.name]['map'] is None:
-                   self.AFC.lanes[LANE.unit][LANE.name]['map'] = 'NONE'
-                else:
-                   LANE.map = self.AFC.lanes[LANE.unit][LANE.name]['map']
-                if LANE.map != 'NONE':
-                   self.AFC.lanes[LANE.unit][LANE.name]['map'] = LANE.map
-                   self.AFC.tool_cmds[LANE.map] = LANE.name
+                if not CUR_UNIT.system_Test(LANE, self.delay, self.assignTcmd, self.enable):
+                    LaneCheck = False
+            # Warn user if multiple hubs were found and hub was not assigned to unit/stepper
+            if len(lanes_for_first_hub) != 0:
+                self.AFC.gcode.respond_raw("<span class=warning--text>No hub defined in lanes or unit for {unit}. Defaulting to {hub}</span>".format(
+                                            unit=" ".join(CUR_UNIT.full_name), hub=hub_name))
 
-                if 'index' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['index'] = LANE.index
-                if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                if 'hub_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['hub_loaded'] = False
-                if 'tool_loaded' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['tool_loaded'] = False
-                if 'status' not in self.AFC.lanes[LANE.unit][LANE.name]: self.AFC.lanes[LANE.unit][LANE.name]['status'] = ''
-
-        tmp=[]
-        for UNIT in self.AFC.lanes.keys():
-            if UNIT !='system':
-                for LANE in self.AFC.lanes[UNIT].keys():
-                    if LANE !='system':
-                        if LANE not in temp: tmp.append(LANE)
-        for erase in tmp:
-            del self.AFC.lanes[UNIT][erase]
-        self.AFC.save_vars()
-
-        if self.enable == False:
-            self.AFC.gcode.respond_info('Prep Checks Disabled')
-            return
-        elif len(self.AFC.lanes) >0:
-            for UNIT in self.AFC.lanes.keys():
-                logo=''
-                logo_error = ''
-                try: CUR_HUB = self.printer.lookup_object('AFC_hub '+ UNIT)
-                except:
-                    error_string = 'Error: Hub for ' + UNIT + ' not found in AFC_Hardware.cfg. Please add the [AFC_Hub ' + UNIT + '] config section.'
-                    self.AFC.AFC_error(error_string, False)
-                    return
-                self.AFC.gcode.respond_info(CUR_HUB.type + ' ' + UNIT +' Prepping lanes')
-
-                logo=CUR_HUB.unit.logo
-                logo+='  ' + UNIT + '\n'
-                logo_error=CUR_HUB.unit.logo_error
-                logo_error+='  ' + UNIT + '\n'
-
-                LaneCheck = True
-                for LANE in self.AFC.lanes[UNIT].keys():
-                    if not CUR_HUB.unit.system_Test(UNIT,LANE, self.delay):
-                        LaneCheck = False
-
-                if LaneCheck:
-                    self.AFC.gcode.respond_raw(logo)
-                else:
-                    self.AFC.gcode.respond_raw(logo_error)
-            try:
-                bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-                if bypass.filament_present == True:
-                    self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
-            except: bypass = None
-
-            for EXTRUDE in self.AFC.extruders.keys():
-                CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + EXTRUDE)
-                if CUR_EXTRUDER.tool_start_state == True and bypass != True:
-                    if not self.AFC.extruders[EXTRUDE]['lane_loaded']:
-                        self.AFC.gcode.respond_info("<span class=error--text>{} loaded with out identifying lane in AFC.vars.tool file<span>".format(EXTRUDE))
+            if LaneCheck:
+                self.AFC.gcode.respond_raw(CUR_UNIT.logo)
+            else:
+                self.AFC.gcode.respond_raw(CUR_UNIT.logo_error)
+        try:
+            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+            if bypass.filament_present == True:
+              self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
+        except: bypass = None
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.AFC.current is None:
             self.AFC.SPOOL.set_active_spool( None )
+        # Setting value to False so the T commands don't try to get reassigned when users manually
+        #   run PREP after it has already be ran once upon boot
+        self.assignTcmd = False
+
+        self.AFC.save_vars()
 
 def load_config(config):
     return afcPrep(config)

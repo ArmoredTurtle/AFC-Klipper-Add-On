@@ -11,7 +11,7 @@ check_klipper() {
   # If the service is found, it prints a success message.
   # If the service is not found, it prints an error message and exits with status 1.
 
-  if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "${KLIPPER_SERVICE}.service"; then
+  if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "$klipper_service}.service"; then
     print_msg SUCCESS "  Klipper service found!"
   else
     print_msg ERROR "  Klipper service not found. Install Klipper first."
@@ -36,13 +36,13 @@ check_existing_dirs() {
   # If the Moonraker directory is not found, it prints an error message and exits with status 1.
   # The user can override the default directories using '-k <klipper_dir>' and '-m <moonraker_dir>' options.
 
-  if [ ! -d "${KLIPPER_PATH}" ]; then
+  if [ ! -d "${klipper_path}" ]; then
     print_msg ERROR "  Klipper directory not found. Use '-k <klipper_dir>' to override."
     exit 1
   fi
 
   if [ ! -d "${MOONRAKER_PATH}" ]; then
-    print_msg ERROR "  Moonraker directory not found. Use '-m <moonraker_dir>' to override."
+    print_msg ERROR "  Moonraker configuration not found. Use '-m <moonraker_dir>' to override."
     exit 1
   fi
 }
@@ -54,12 +54,10 @@ check_existing_install() {
   # If an existing installation is found, it sets the PRIOR_INSTALLATION variable to True and breaks the loop.
 
   local extension
-  print_msg INFO "  Checking for prior AFC Klipper installation..."
-  for extension in "${AFC_PATH}"/extras/*.py; do
+  for extension in ${afc_path}/extras/*.py; do
     extension=$(basename "${extension}")
-    if [ -L "${KLIPPER_PATH}/klippy/extras/${extension}" ]; then
-      print_msg INFO "  Existing installation found..."
-      PRIOR_INSTALLATION=True
+    if [ -L "${klipper_dir}/klippy/extras/${extension}" ]; then
+      prior_installation=True
       break
     fi
   done
@@ -72,13 +70,13 @@ check_for_hh() {
   # If "Happy Hare" is found, it prints an error message and exits with status 1.
   # This is because AFC is not compatible with the "Happy Hare" extension.
 
-  local file_path="${KLIPPER_PATH}/klippy/extras/mmu.py"
+  local file_path="${klipper_dir}/klippy/extras/mmu.py"
   local search_text="Happy Hare"
 
   if [ -f "$file_path" ]; then
     if grep -q "$search_text" "$file_path"; then
-      print_msg ERROR "  Happy Hare was found installed in your klipper extras. AFC is not currently compatible"
-      print_msg ERROR "  with Happy Hare. Please remove it, and then re-run this install-afc.sh script."
+      print_msg ERROR "Happy Hare was found installed in your klipper extras. AFC is not currently compatible"
+      print_msg ERROR "with Happy Hare. Please remove it, and then re-run this install-afc.sh script."
       exit 1
     fi
   fi
@@ -90,10 +88,10 @@ check_for_afc() {
   # If the AFC extension is found, it prints an error message and exits with status 1.
   # This is to prevent the user from installing AFC multiple times.
 
-  local file_path="${KLIPPER_PATH}/klippy/extras/AFC.py"
+  local file_path="${klipper_dir}/klippy/extras/AFC.py"
 
   if [ ! -f "$file_path" ]; then
-    print_msg ERROR "  AFC Klipper extension not found. Install AFC first."
+    print_msg ERROR "AFC Klipper extension not found. Install AFC first."
     exit 1
   fi
 }
@@ -150,5 +148,39 @@ query_printer_status() {
     return 0
   else
     return 1
+  fi
+}
+
+check_old_config_version() {
+  local config_file="${afc_config_dir}/AFC.cfg"
+
+  # Check if the configuration file exists
+  if [[ ! -f "$config_file" ]]; then
+    force_update=False
+    force_update_no_version=False
+    return
+  fi
+
+  # Check if 'Type: Box_Turtle' is found in the first 15 lines of the file
+  for config_file in "$afc_config_dir"/*.cfg; do
+    if head -n 15 "$config_file" | grep -v '^\s*#' | grep -q 'Type: Box_Turtle'; then
+      force_update=True
+      # Since we have software without an AFC_INSTALL_VERSION in it, we need a way to designate this as a version that needs to be updated.
+      force_update_no_version=True
+    else
+    force_update=False
+    force_update_no_version=False
+    fi
+  done
+}
+
+check_for_prereqs() {
+  if ! command -v jq &> /dev/null; then
+    sudo apt-get update &> /dev/null
+    sudo apt-get install -y jq &> /dev/null
+  fi
+  if ! command -v crudini &> /dev/null; then
+    sudo apt-get update &> /dev/null
+    sudo apt-get install -y crudini &> /dev/null
   fi
 }

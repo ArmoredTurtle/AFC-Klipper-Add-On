@@ -1,4 +1,13 @@
+# Armored Turtle Automated Filament Changer
+#
+# Copyright (C) 2024 Armored Turtle
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
 
+from extras.AFC import State
+
+def load_config(config):
+    return afcError(config)
 
 class afcError:
     def __init__(self, config):
@@ -15,7 +24,8 @@ class afcError:
         """
         self.AFC = self.printer.lookup_object('AFC')
         # Constant variable for renaming RESUME macro
-        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_RESUME_'
+        self.BASE_RESUME_NAME       = 'RESUME'
+        self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_{}_'.format(self.BASE_RESUME_NAME)
 
         self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_RESET_FAILURE, desc=self.cmd_RESET_FAILURE_help)
         self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
@@ -31,14 +41,13 @@ class afcError:
         else:
             self.PauseUserIntervention(problem)
         if not error_handled:
-            self.AFC.afc_led(self.AFC.led_fault, LANE.led_index)
+            self.AFC.FUNCTION.afc_led(self.AFC.led_fault, LANE.led_index)
 
         return error_handled
 
     def ToolHeadFix(self, CUR_LANE):
-        CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-        if CUR_EXTRUDER.tool_start_state:   #toolhead has filament
-            if self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded'] == CUR_LANE.name:   #var has right lane loaded
+        if CUR_LANE.get_toolhead_sensor_state():   #toolhead has filament
+            if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:   #var has right lane loaded
                 if CUR_LANE.load_state == False: #Lane has filament
                     self.PauseUserIntervention('Filament not loaded in Lane')
                 else:
@@ -52,8 +61,10 @@ class afcError:
                     CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
                 while CUR_LANE.load_state == False:  # reload lane extruder
                     CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                self.AFC.lanes[CUR_LANE.unit][CUR_LANE.name]['tool_loaded'] = False
-                self.AFC.extruders[CUR_LANE.extruder_name]['lane_loaded']= ''
+
+                CUR_LANE.tool_load = False
+                CUR_LANE.loaded_to_hub = False
+                CUR_LANE.extruder_obj.lane_loaded = ''
                 self.AFC.save_vars()
                 self.pause = False
                 return True
@@ -64,7 +75,7 @@ class afcError:
     def PauseUserIntervention(self,message):
         #pause for user intervention
         self.AFC.gcode._respond_error(message)
-        if self.AFC.is_homed() and not self.AFC.is_paused():
+        if self.AFC.FUNCTION.is_homed() and not self.AFC.FUNCTION.is_paused():
             self.AFC.save_pos()
             if self.pause:
                 self.pause_print()
@@ -83,6 +94,7 @@ class afcError:
         if state == True and self.AFC.error_state == False:
             self.AFC.save_pos()
         self.AFC.error_state = state
+        self.AFC.current_state = State.ERROR if state else State.IDLE
 
     def AFC_error(self, msg, pause=True):
         # Handle AFC errors
@@ -136,10 +148,6 @@ class afcError:
         # Disable the stepper for this lane
         CUR_LANE.do_enable(False)
         CUR_LANE.status = 'Error'
-        msg = (CUR_LANE.name.upper() + ' NOT READY' + message)
+        msg = "{} {}".format(CUR_LANE.name, message)
         self.AFC_error(msg, pause)
-        self.AFC.afc_led(self.AFC.led_fault, CUR_LANE.led_index)
-
-def load_config(config):
-    return afcError(config)
-
+        self.AFC.FUNCTION.afc_led(self.AFC.led_fault, CUR_LANE.led_index)

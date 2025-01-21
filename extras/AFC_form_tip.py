@@ -44,6 +44,8 @@ class afc_tip_form:
         Gives ability to test AFC tip forming without doing a tool change
 
         Usage: TEST_AFC_TIP_FORMING
+
+        Example: TEST_AFC_TIP_FORMING
         '''
         self.tip_form()
 
@@ -54,6 +56,7 @@ class afc_tip_form:
         Shows the tip forming configuration
 
         Usage: GET_TIP_FORMING
+        Example: GET_TIP_FORMING
         '''
         status_msg = "Tip Forming Configuration:\n"
         status_msg += "ramming_volume:        {}\n".format(self.ramming_volume)

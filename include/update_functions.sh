@@ -5,8 +5,12 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-exit_afc_install() {
-  echo "AFC_INSTALL_VERSION=$CURRENT_INSTALL_VERSION" > "${AFC_CONFIG_PATH}/.afc-version"
-  restart_klipper
-  exit 0
+update_afc() {
+  link_extensions
+  remove_t_macros
+  message="""
+AFC Klipper Add-On updated successfully.
+"""
+  export message
+  files_updated_or_installed="True"
 }

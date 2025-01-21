@@ -1,6 +1,6 @@
-# Armored Turtle Automated Filament Changer (AFC) Buffer Ram Sensor
+# Armored Turtle Automated Filament Control (AFC) Buffer Ram Sensor
 
-This file describes using a filament buffer as a ram sensor. This is part of the Armored Turtle Automated Filament Changer (AFC) project.
+This file describes using a filament buffer as a ram sensor. This is part of the Armored Turtle Automated Filament Control (AFC) project.
 
 ## Overview
 
@@ -33,6 +33,28 @@ __advance_pin and trailing_pin must be defined__
 
 - __advance_pin__: Pin for the advance sensor.
 - __trailing_pin__: Pin for the trailing sensor.
+
+Under `[AFC_extruder <extruder_name>]`, `[AFC_<unit_name> <name>]` or `[AFC_stepper lane(n)]` buffer name must be defined. This allows having a buffer per extruder, unit or lane. Defining buffer in `AFC_stepper` config overrides buffer variable being set in other places, and defining buffer in `AFC_<unit_name>` overrides buffer being set in `AFC_extruder`. 
+
+Examples
+```
+[AFC_extruder <extruder_name>]
+buffer: TN
+pin_tool_start: buffer
+<reset_of_config>
+```
+
+```
+[AFC_BoxTurtle <unit_name>]
+buffer: TN
+<reset_of_config>
+```
+
+```
+[AFC_Stepper <stepper_name>]
+buffer: TN
+<reset_of_config>
+```
 
 ### Optional Configuration
 
