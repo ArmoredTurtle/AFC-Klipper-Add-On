@@ -33,7 +33,7 @@ multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
 
-[AFC_led Turtle_1_Buffer_Indicator]
+[AFC_led Buffer_Indicator]
 pin: turtleneck:RGB
 chain_count: 1
 color_order: GRBW
