@@ -109,8 +109,8 @@ query_tn_pins() {
   print_msg INFO "\nPlease enter the pin numbers for the TurtleNeck buffer '$buffer_name':"
   print_msg INFO "(Leave blank to use the default values)"
   print_msg INFO "Ensure you use a pull-up '^' if you are using a AFC end stop pin."
-  print_msg INFO "(Example: ^Turtle_1:TN_ADV)"
-  print_msg INFO "(Example: ^Turtle_1:TN_TRL)"
+  print_msg INFO "(Default: ^Turtle_1:TN_ADV)"
+  print_msg INFO "(Default: ^Turtle_1:TN_TRL)"
 
   read -p "  Enter the advance pin (default: $tn_advance_pin): " -r input
   if [ -n "$input" ]; then
