@@ -143,6 +143,9 @@ class AFCExtruderStepper:
             self.afc_motor_rwd = AFC_assist.AFCassistMotor(config, 'rwd')
         if self.afc_motor_fwd is not None:
             self.afc_motor_fwd = AFC_assist.AFCassistMotor(config, 'fwd')
+            afc_motor_fwd_pulse = config.getfloat('afc_motor_fwd_pulse', None)
+            afc_motor_fwd_gear_ratio = config.getfloat('afc_motor_fwd_gear_ratio', None)
+            afc_motor_fwd_drive_diam = config.getfloat('afc_motor_fwd_drive_diam', None)
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
 
