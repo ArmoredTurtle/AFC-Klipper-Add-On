@@ -137,6 +137,7 @@ class afc:
 
         self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", False) # Set to True to show all sensor switches as filament sensors in mainsail/fluidd gui
         self.load_to_hub        = config.getboolean("load_to_hub", True)            # Fast loads filament to hub when inserted, set to False to disable. This is a global setting and can be overridden at AFC_stepper
+        self.disable_homing_check = config.getboolean("disable_homing_check", False)# Disables homing check when doing toolchanges. Only use this if you are using a toolchanger and don't need to home to unload toolheads
         self._update_trsync(config)
 
         # Get debug and cast to boolean
@@ -253,7 +254,6 @@ class afc:
         """
 
         # Prepare extruder and heater.
-        # This will need to be done a different way for multiple toolhead extruders
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
         pheaters = self.printer.lookup_object('heaters')
@@ -551,10 +551,10 @@ class afc:
             self.gcode.respond_info('{} Unknown'.format(lane))
             return
 
-        if self.current is not None:
-            self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane, self.current), pause=False)
-            return
         CUR_LANE = self.lanes[lane]
+        if CUR_LANE.extruder_obj.lane_loaded:
+            self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane, CUR_LANE.extruder_obj.lane_loaded), pause=False)
+            return
         self.TOOL_LOAD(CUR_LANE)
 
     def TOOL_LOAD(self, CUR_LANE):
@@ -588,6 +588,10 @@ class afc:
         CUR_HUB = CUR_LANE.hub_obj
 
         CUR_EXTRUDER = CUR_LANE.extruder_obj
+
+        # Switching toolhead extruders, this is mainly for setups with multiple extruders
+        CUR_LANE.activate_toolhead_extruder()
+
         self.current_state = State.LOADING
         self.current_loading = CUR_LANE.name
 
@@ -729,6 +733,7 @@ class afc:
         Returns:
             None
         """
+        # TODO figure this out if moving to CUR_LANE.extruder_obj.lane_loaded structure, maybe get current extruder from toolhead?
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
@@ -773,6 +778,9 @@ class afc:
         # Lookup current extruder and hub objects using the lane's information.
         CUR_HUB = CUR_LANE.hub_obj
         CUR_EXTRUDER = CUR_LANE.extruder_obj
+
+        # Switching toolhead extruders, this is mainly for setups with multiple extruders
+        CUR_LANE.activate_toolhead_extruder()
 
         # Prepare the extruder and heater for unloading.
         self._check_extruder_temp( CUR_LANE )

@@ -107,6 +107,12 @@ class AFCtrigger:
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
 
+        if self.led_index is not None:
+            # Verify that LED config is found
+            error_string, led = self.AFC.FUNCTION.verify_led_object(self.led_index)
+            if led is None:
+                raise error(error_string)
+
      # Belay Call back
     def belay_sensor_callback(self, eventime, state):
         if not self.last_state and state:

@@ -16,6 +16,8 @@ class AFCextruder:
         buttons = self.printer.load_object(config, "buttons")
         self.AFC = self.printer.lookup_object('AFC')
 
+        self.toolhead_extruder = None
+
         self.name = config.get_name().split(' ')[-1]
         self.tool_stn = config.getfloat("tool_stn", 72)
         self.tool_stn_unload = config.getfloat("tool_stn_unload", 100)
@@ -48,6 +50,7 @@ class AFCextruder:
             if self.enable_sensors_in_gui:
                 self.tool_end_state_filament_switch_name = "filament_switch_sensor {}".format("tool_end")
                 self.fila_avd = add_filament_switch(self.tool_end_state_filament_switch_name, self.tool_end, self.printer )
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -56,6 +59,11 @@ class AFCextruder:
         """
         self.reactor = self.AFC.reactor
         self.AFC.tools[self.name] = self
+
+        try:
+            self.toolhead_extruder = self.printer.lookup_object(self.name)
+        except:
+            raise error("[{}] not found in config file".format(self.name))
 
     def tool_start_callback(self, eventtime, state):
         self.tool_start_state = state

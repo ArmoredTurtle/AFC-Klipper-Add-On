@@ -187,6 +187,12 @@ class AFCExtruderStepper:
         if self.unit_obj is None:
             raise error("Unit {unit} is not defined in your configuration file. Please defined unit ex. [AFC_BoxTurtle {unit}]".format(unit=self.unit))
 
+        if self.led_index is not None:
+            # Verify that LED config is found
+            error_string, led = self.AFC.FUNCTION.verify_led_object(self.led_index)
+            if led is None:
+                raise error(error_string)
+
     def handle_unit_connect(self, unit_obj):
         """
         Callback from <unit_name>:connect to verify units/hub/buffer/extruder object. Errors out if user specified names and they do not exist in their configuration
@@ -200,28 +206,27 @@ class AFCExtruderStepper:
         self.AFC.lanes[self.name] = self
 
         self.hub_obj = self.unit_obj.hub_obj
-        # TODO: once supported add check if users is not using a hub
-        if self.hub is not None and self.hub !='direct':
-            try:
-                self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
-            except:
-                error_string = 'Error: No config found for hub: {hub} in [AFC_stepper {stepper}]. Please make sure [AFC_hub {hub}] section exists in your config'.format(
-                hub=self.hub, stepper=self.name )
-                raise error(error_string)
-        elif self.hub_obj is None:
-            # Check to make sure at least 1 hub exists in config, if not error out with message
-            if len(self.AFC.hubs) == 0:
-                error_string = "Error: AFC_hub not found in configuration please make sure there is a [AFC_hub <hub_name>] defined in your configuration"
-                raise error(error_string)
-            # Setting hub to first hub in AFC hubs dictionary
-            if len(self.AFC.hubs) > 0:
-                self.hub_obj = next(iter(self.AFC.hubs.values()))
-            # Set flag to warn during prep that multiple hubs were found
-            if len(self.AFC.hubs) > 1:
-                self.multi_hubs_found = True
+        if self.hub != 'direct':
+            if self.hub is not None:
+                try:
+                    self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
+                except:
+                    error_string = 'Error: No config found for hub: {hub} in [AFC_stepper {stepper}]. Please make sure [AFC_hub {hub}] section exists in your config'.format(
+                    hub=self.hub, stepper=self.name )
+                    raise error(error_string)
+            elif self.hub_obj is None:
+                # Check to make sure at least 1 hub exists in config, if not error out with message
+                if len(self.AFC.hubs) == 0:
+                    error_string = "Error: AFC_hub not found in configuration please make sure there is a [AFC_hub <hub_name>] defined in your configuration"
+                    raise error(error_string)
+                # Setting hub to first hub in AFC hubs dictionary
+                if len(self.AFC.hubs) > 0:
+                    self.hub_obj = next(iter(self.AFC.hubs.values()))
+                # Set flag to warn during prep that multiple hubs were found
+                if len(self.AFC.hubs) > 1:
+                    self.multi_hubs_found = True
 
-        # Assigning hub name just in case stepper is using hub defined in units config
-        if self.hub !='direct':
+            # Assigning hub name just in case stepper is using hub defined in units config
             self.hub = self.hub_obj.name
             self.hub_obj.lanes[self.name] = self
         else:
@@ -657,6 +662,16 @@ class AFCExtruderStepper:
         if self.buffer_obj is not None:
             return self.buffer_obj.trailing_state
         else: return None
+    
+    def activate_toolhead_extruder(self):
+        if self.AFC.toolhead.get_extruder() is self.extruder_obj.toolhead_extruder:
+            self.AFC.gcode.respond_info("Extruder already active") #TODO remove before pushing to dev/main
+            return
+        else:
+            self.AFC.gcode.respond_info("Activating extruder")
+            # Code below is pulled exactly from klippy/kinematics/extruder.py file without the prints
+            self.AFC.toolhead.flush_step_generation()
+            self.AFC.toolhead.set_extruder( self.extruder_obj.toolhead_extruder, 0.)
 
     def get_status(self, eventtime=None):
         response = {}
