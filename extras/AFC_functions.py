@@ -271,6 +271,20 @@ class afcFunction:
         pause_resume = self.printer.lookup_object("pause_resume")
         return bool(pause_resume.get_status(eventtime)["is_paused"])
 
+    def get_current_lane(self):
+        if self.printer.state_message == 'Printer is ready':
+            current_extruder = self.AFC.toolhead.get_extruder().name
+            if current_extruder in self.AFC.tools:
+                return self.AFC.tools[current_extruder].lane_loaded
+        return None
+
+    def get_current_lane_obj(self):
+        curr_lane_obj = None
+        curr_lane = self.get_current_lane()
+        if curr_lane in self.AFC.lanes:
+            curr_lane_obj = self.AFC.lanes[curr_lane]
+        return curr_lane_obj
+
     def verify_led_object(self, led_name):
         error_string = ""
         led = None

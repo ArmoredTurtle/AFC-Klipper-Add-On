@@ -655,6 +655,7 @@ class AFCExtruderStepper:
             return self.buffer_obj.advance_state
         else:
             return self.extruder_obj.tool_start_state
+
     def get_trailing(self):
         """
         Helper function to get trailing status, returns none if buffer is not defined
@@ -665,13 +666,14 @@ class AFCExtruderStepper:
     
     def activate_toolhead_extruder(self):
         if self.AFC.toolhead.get_extruder() is self.extruder_obj.toolhead_extruder:
-            self.AFC.gcode.respond_info("Extruder already active") #TODO remove before pushing to dev/main
+            # self.AFC.gcode.respond_info("Extruder already active") #TODO remove before pushing to dev/main
             return
         else:
-            self.AFC.gcode.respond_info("Activating extruder")
+            # self.AFC.gcode.respond_info("Activating extruder")
             # Code below is pulled exactly from klippy/kinematics/extruder.py file without the prints
             self.AFC.toolhead.flush_step_generation()
             self.AFC.toolhead.set_extruder( self.extruder_obj.toolhead_extruder, 0.)
+            self.printer.send_event("extruder:activate_extruder")
 
     def get_status(self, eventtime=None):
         response = {}

@@ -33,6 +33,7 @@ class afc:
         self.reactor = self.printer.get_reactor()
         self.webhooks = self.printer.lookup_object('webhooks')
         self.printer.register_event_handler("klippy:connect",self.handle_connect)
+        self.printer.register_event_handler("extruder:activate_extruder", self._handle_activate_extruder)
 
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
@@ -113,6 +114,9 @@ class afc:
         self.wipe_cmd = config.get('wipe_cmd', None)                                # Macro to use when nozzle wiping. Change macro name if you would like to use your own wipe macro
         self.poop = config.getboolean("poop", False)                                # Set to True to enable pooping(purging color) after lane loads
         self.poop_cmd = config.get('poop_cmd', None)                                # Macro to use when pooping. Change macro name if you would like to use your own poop/purge macro
+
+        self.post_load_macro    = config.get("post_load_macro", None)
+        self.post_unload_macro  = config.get("post_unload_macro", None)
 
         self.form_tip = config.getboolean("form_tip", False)                        # Set to True to tip forming when unloading lanes
         self.form_tip_cmd = config.get('form_tip_cmd', None)                        # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
@@ -209,6 +213,24 @@ class afc:
         self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
         self.current_state = State.IDLE
+
+    def _handle_activate_extruder(self):
+        cur_lane_loaded = self.FUNCTION.get_current_lane_obj()
+        # Disable extruder steppers for non active lanes
+        for key, obj in self.lanes.items():
+            if key != cur_lane_loaded.name:
+                obj.do_enable(False)
+                self.FUNCTION.afc_led(obj.led_ready, obj.led_index)
+
+        # Switch spoolman ID
+        self.SPOOL.set_active_spool(cur_lane_loaded.spool_id)
+        # Set lanes tool loaded led
+        self.FUNCTION.afc_led(cur_lane_loaded.led_tool_loaded, cur_lane_loaded.led_index)
+        # Enable stepper
+        cur_lane_loaded.do_enable(True)
+        # Enable buffer
+        cur_lane_loaded.enable_buffer()
+
 
     def print_version(self):
         """
@@ -586,14 +608,13 @@ class afc:
 
         # Lookup extruder and hub objects associated with the lane.
         CUR_HUB = CUR_LANE.hub_obj
-
         CUR_EXTRUDER = CUR_LANE.extruder_obj
-
-        # Switching toolhead extruders, this is mainly for setups with multiple extruders
-        CUR_LANE.activate_toolhead_extruder()
 
         self.current_state = State.LOADING
         self.current_loading = CUR_LANE.name
+
+        # Switching toolhead extruders, this is mainly for setups with multiple extruders
+        CUR_LANE.activate_toolhead_extruder()
 
         # Set the lane status to 'loading' and activate the loading LED.
         CUR_LANE.status = 'Tool Loading'
@@ -699,10 +720,12 @@ class afc:
 
             # Update lane and extruder state for tracking.
             CUR_EXTRUDER.lane_loaded = CUR_LANE.name
-            self.SPOOL.set_active_spool(CUR_LANE.spool_id)
             self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             self.save_vars()
             self.current_state = State.IDLE
+
+            if self.post_load_macro is not None:
+                self.gcode.run_script_from_command(self.post_load_macro)
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
             if CUR_HUB.state:
@@ -920,6 +943,9 @@ class afc:
             while CUR_LANE.prep_state:
                 CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
 
+        if self.post_unload_macro is not None:
+            self.gcode.run_script_from_command(self.post_unload_macro)
+
         CUR_LANE.do_enable(False)
         self.save_vars()
         self.gcode.respond_info("LANE {} unload done".format(CUR_LANE.name))
@@ -1017,7 +1043,7 @@ class afc:
         Displays current status of AFC for webhooks
         """
         str = {}
-        str['current_load']             = self.current
+        str['current_load']             = self.FUNCTION.get_current_lane() # self.current
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
