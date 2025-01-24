@@ -606,6 +606,8 @@ class afc:
             # Exit early if no lane is provided.
             return False
 
+        # TODO: add check to make sure current extruder is not loaded with a lane, mainly for scenarios with multuple toolheads
+
         # Check if the bypass filament sensor is triggered; abort loading if filament is already present.
         if self._check_bypass(): return False
 
@@ -763,6 +765,7 @@ class afc:
         """
 
         # TODO figure this out if moving to CUR_LANE.extruder_obj.lane_loaded structure, maybe get current extruder from toolhead?
+        # How would you deal with multiple extruders....
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
@@ -1074,6 +1077,9 @@ class afc:
         """
         str = {}
         numoflanes = 0
+        str["gc_stats"] = "{}".format(gc.get_stats())
+        str["gc_count"] = "{}".format(gc.get_count())
+        str["_check_gc"] = self.reactor._check_gc
         for unit in self.units.values():
             str.update({unit.name: { "system": {}}})
             name=[]

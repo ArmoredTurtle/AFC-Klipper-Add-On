@@ -178,7 +178,7 @@ class AFCtrigger:
                 self.AFC.FUNCTION.afc_led(self.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
-            self.gcode.respond_info("New rotation distance after applying factor: {}".format(stepper.get_rotation_distance()[0]))
+            self.gcode.respond_info("New rotation distance after applying factor: {:.4f}".format(stepper.get_rotation_distance()[0]))
 
     def reset_multiplier(self):
         if self.debug: self.gcode.respond_info("Buffer multiplier reset")
@@ -187,7 +187,7 @@ class AFCtrigger:
         if cur_stepper is None: return
 
         cur_stepper.update_rotation_distance( 1 )
-        self.gcode.respond_info("Rotation distance reset : {}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
+        self.gcode.respond_info("Rotation distance reset : {:.4f}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
 
     def advance_callback(self, eventime, state):
         self.advance_state = state
@@ -335,7 +335,7 @@ class AFCtrigger:
                 LANE = self.AFC.FUNCTION.get_current_lane_obj()
                 stepper = LANE.extruder_stepper.stepper
                 rotation_dist = stepper.get_rotation_distance()[0]
-                state_info += ("\n{} Rotation distance: {}".format(LANE.name, rotation_dist))
+                state_info += ("\n{} Rotation distance: {:.4f}".format(LANE.name, rotation_dist))
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
@@ -363,6 +363,7 @@ class AFCtrigger:
         self.response['state'] = self.last_state
         self.response['lanes'] = [lane.name for lane in self.lanes.values()]
         self.response['enabled'] = self.enable
+        self.response['rot_dist'] = 0.0
         return self.response
 
 def load_config_prefix(config):

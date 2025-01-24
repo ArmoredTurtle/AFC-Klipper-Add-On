@@ -433,9 +433,12 @@ class AFCExtruderStepper:
                         break
                 self.status=''
 
-                if self.hub == 'direct':
+                # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
+                #   This is only really a issue when using direct and still using load sensor
+                if self.hub == 'direct' and self.prep_state:
                     self.AFC.TOOL_LOAD(self)
                     return
+
                 # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
                 if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state:
                     self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
