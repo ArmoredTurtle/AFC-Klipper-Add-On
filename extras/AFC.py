@@ -440,7 +440,7 @@ class afc:
                 name.append(CUR_LANE.name)
 
         str["system"]={}
-        str["system"]['current_load']= self.current
+        str["system"]['current_load']= self.FUNCTION.get_current_lane()
         str["system"]['num_units'] = len(self.units)
         str["system"]['num_lanes'] = len(self.lanes)
         str["system"]['num_extruders'] = len(self.tools)
@@ -756,6 +756,7 @@ class afc:
         Returns:
             None
         """
+
         # TODO figure this out if moving to CUR_LANE.extruder_obj.lane_loaded structure, maybe get current extruder from toolhead?
         lane = gcmd.get('LANE', self.current)
         if lane == None:
