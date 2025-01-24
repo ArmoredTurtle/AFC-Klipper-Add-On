@@ -105,7 +105,6 @@ class afcPrep:
                     # Check for loaded_to_hub as this is how its being saved version > 1030
                     if 'loaded_to_hub' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['loaded_to_hub']
                     if 'tool_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.tool_loaded = units[CUR_LANE.unit][CUR_LANE.name]['tool_loaded']
-                    if 'status' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.status = units[CUR_LANE.unit][CUR_LANE.name]['status']
 
         for UNIT in self.AFC.units.keys():
             try: CUR_UNIT = self.AFC.units[UNIT]

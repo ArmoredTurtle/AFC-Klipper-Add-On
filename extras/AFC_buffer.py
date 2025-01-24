@@ -136,7 +136,6 @@ class AFCtrigger:
 
     def enable_buffer(self):
         # Check if enabled already and return if already enabled
-        if self.enable: return
         if self.led:
             self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:

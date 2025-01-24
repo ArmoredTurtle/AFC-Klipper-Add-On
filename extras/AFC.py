@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-import json
+import json, gc
 try:
     from urllib.request import urlopen
 except:
@@ -216,11 +216,16 @@ class afc:
 
     def _handle_activate_extruder(self):
         cur_lane_loaded = self.FUNCTION.get_current_lane_obj()
+
         # Disable extruder steppers for non active lanes
         for key, obj in self.lanes.items():
-            if key != cur_lane_loaded.name:
+            if cur_lane_loaded is None or key != cur_lane_loaded.name:
                 obj.do_enable(False)
+                obj.disable_buffer()
                 self.FUNCTION.afc_led(obj.led_ready, obj.led_index)
+
+        # Exit early if lane is None
+        if cur_lane_loaded is None: return
 
         # Switch spoolman ID
         self.SPOOL.set_active_spool(cur_lane_loaded.spool_id)
@@ -521,7 +526,7 @@ class afc:
 
         self.current_state = State.EJECTING_LANE
 
-        if CUR_LANE.name != self.current and CUR_LANE.hub != 'direct':
+        if CUR_LANE.name != CUR_LANE.extruder_obj.lane_loaded and CUR_LANE.hub != 'direct':
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
@@ -542,7 +547,7 @@ class afc:
             self.SPOOL.set_spoolID( CUR_LANE, "")
             self.gcode.respond_info("LANE {} eject done".format(CUR_LANE.name))
 
-        elif CUR_LANE.name == self.current:
+        elif CUR_LANE.name == CUR_LANE.extruder_obj.lane_loaded:
             self.gcode.respond_info("LANE {} is loaded in toolhead, can't unload.".format(CUR_LANE.name))
 
         elif CUR_LANE.hub == 'direct':
@@ -1077,10 +1082,10 @@ class afc:
                 numoflanes +=1
                 name.append(lane.name)
             str[unit.name]['system']['type'] = unit.type
-            str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state
+            str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state if unit.hub_obj is not None else None
 
         str["system"]={}
-        str["system"]['current_load']= self.current
+        str["system"]['current_load']= self.FUNCTION.get_current_lane()
         str["system"]['num_units'] = len(self.units)
         str["system"]['num_lanes'] = numoflanes
         str["system"]['num_extruders'] = len(self.tools)
