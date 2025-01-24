@@ -179,6 +179,7 @@ class AFCExtruderStepper:
                 self.load_filament_switch_name = "filament_switch_sensor {}_load".format(self.name)
                 self.fila_load = add_filament_switch(self.load_filament_switch_name, self.load, self.printer )
         self.connect_done = False
+        self.gone_prepping = False
 
     def _handle_ready(self):
         """
@@ -411,8 +412,14 @@ class AFCExtruderStepper:
 
     def prep_callback(self, eventtime, state):
         self.prep_state = state
+
+        if self.gone_prepping == False:
+            self.gone_prepping = True
+        else:
+            return
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
+            
             # Only try to load when load state trigger is false
             if self.prep_state == True and self.load_state == False:
                 x = 0
@@ -480,7 +487,9 @@ class AFCExtruderStepper:
                 self.loaded_to_hub = False
                 self.AFC.SPOOL._clear_values(self)
                 self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-            self.AFC.save_vars()
+
+        self.gone_prepping = False
+        self.AFC.save_vars()
 
     def do_enable(self, enable):
         self.sync_print_time()
