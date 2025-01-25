@@ -70,7 +70,13 @@ install_menu() {
 
     case $choice in
       T)
-        message="Currently only BoxTurtle is supported, more coming soon!"
+        installation_type=$(
+          case "$installation_type" in
+            "BoxTurtle") echo "NightOwl" ;;
+            "NightOwl") echo "BoxTurtle" ;;
+          esac
+        )
+        message="Installation Type: $installation_type"
         export message ;;
       1)
         afc_includes=$([ "$afc_includes" == "True" ] && echo "False" || echo "True")
