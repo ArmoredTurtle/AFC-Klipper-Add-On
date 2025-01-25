@@ -729,6 +729,9 @@ class afc:
         Returns:
             None
         """
+        # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
+        if self._check_bypass(unload=True): return False
+
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
