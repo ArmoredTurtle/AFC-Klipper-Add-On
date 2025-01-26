@@ -8,8 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added installation type for NightOwl, currently only ERB2.0 board is supported
 
+## [2025-01-26]
+### Added
+- Added ability to specify moonraker port, needed for when user has multiple moonraker/klipper instances on a single machine
+
+### Fixed
+- Fixed issue where software was updated to no long detected movement outside of printing, this fixes crashing klipper when inserting filament while printer is moving
+- Fixed issue where remaining weight was not being pulled correctly from spoolman
+
 ## [2025-01-23]
-## Fixed
+### Fixed
 - Fixed not being able to unload filament with UNLOAD_FILAMENT macro when using bypass
 
 ## [2025-01-17]

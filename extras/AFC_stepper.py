@@ -411,8 +411,8 @@ class AFCExtruderStepper:
             # Only try to load when load state trigger is false
             if self.prep_state == True and self.load_state == False:
                 x = 0
-                # Check to see if the printer is printing or moving as trying to load while printer is doing something will crash klipper
-                if self.AFC.FUNCTION.is_printing():
+                # Check to see if the printer is printing or moving, as trying to load while printer is doing something will crash klipper
+                if self.AFC.FUNCTION.is_printing(check_movement=True):
                     self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
                     return
                 while self.load_state == False and self.prep_state == True and self.load != None:
