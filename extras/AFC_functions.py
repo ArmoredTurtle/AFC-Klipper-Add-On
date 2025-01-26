@@ -259,11 +259,32 @@ class afcFunction:
         else:
             return True
 
-    def is_printing(self):
+    def is_moving(self):
+        '''
+        Helper function to return if the printer is moving or not. This is different from `is_printing` as it will return true if anything in the printer is moving.
+
+        :return boolean: True if anything in the printer is moving
+        '''
         eventtime = self.AFC.reactor.monotonic()
-        # idle_timeout = self.printer.lookup_object("idle_timeout")
+        idle_timeout = self.printer.lookup_object("idle_timeout")
+        return idle_timeout.get_status(eventtime)["state"] == "Printing"
+
+    def is_printing(self, check_movement=False):
+        '''
+        Helper function to return if the printer is printing an object.
+
+        :param check_movement: When set to True will also return True if anything in the printer is also moving
+
+        :return boolean: True if printer is printing an object or if printer is moving when `check_movement` is True
+        '''
+        eventtime = self.AFC.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
-        return print_stats.get_status(eventtime)["state"] == "printing"
+        moving = False
+
+        if check_movement:
+            moving = self.is_moving()
+
+        return print_stats.get_status(eventtime)["state"] == "printing" or moving
 
     def is_paused(self):
         eventtime = self.AFC.reactor.monotonic()

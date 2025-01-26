@@ -52,7 +52,7 @@ class afc:
         self.next_lane_load = None
         self.error_state    = False
         self.current_state  = State.INIT
-        self.spoolman = None
+        self.spoolman       = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -79,6 +79,7 @@ class afc:
         self.absolute_coord = True
 
         # Config get section
+        self.moonraker_port = config.get("moonraker_port", None)                    # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
         self.unit_order_list = config.get('unit_order_list','')
         self.VarFile = config.get('VarFile','../printer_data/config/AFC/') 			# Path to the variables file for AFC configuration.
         self.cfgloc = self._remove_after_last(self.VarFile,"/")
@@ -194,10 +195,12 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
+        moonraker_port = ""
+        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
 
         # SPOOLMAN
         try:
-            self.moonraker = json.load(urlopen('http://localhost/server/config'))
+            self.moonraker = json.load(urlopen('http://localhost{port}/server/config'.format( port=moonraker_port )))
             self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         except:
             self.spoolman = None                      # set to none if not found
@@ -1018,7 +1021,7 @@ class afc:
         str['current_state']            = self.current_state
         str["current_toolchange"]       = self.current_toolchange
         str["number_of_toolchanges"]    = self.number_of_toolchanges
-        str['spoolman']             = self.spoolman
+        str['spoolman']                 = self.spoolman
         unitdisplay =[]
         for UNIT in self.units.keys():
             CUR_UNIT=self.units[UNIT]
@@ -1044,19 +1047,20 @@ class afc:
                 str[unit.name][lane.name]=lane.get_status()
                 numoflanes +=1
                 name.append(lane.name)
-            str[unit.name]['system']['type'] = unit.type
-            str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state
+            str[unit.name]['system']['type']        = unit.type
+            str[unit.name]['system']['hub_loaded']  = unit.hub_obj.state
 
-        str["system"]={}
-        str["system"]['current_load']= self.current
-        str["system"]['num_units'] = len(self.units)
-        str["system"]['num_lanes'] = numoflanes
-        str["system"]['num_extruders'] = len(self.tools)
-        str["system"]["extruders"]={}
-        str["system"]["hubs"] = {}
-        str["system"]["buffers"] = {}
-        str["current_toolchange"]       = self.current_toolchange
-        str["number_of_toolchanges"]    = self.number_of_toolchanges
+        str["system"]                           = {}
+        str["system"]['current_load']           = self.current
+        str["system"]['num_units']              = len(self.units)
+        str["system"]['num_lanes']              = numoflanes
+        str["system"]['num_extruders']          = len(self.tools)
+        str["system"]['spoolman']               = self.spoolman
+        str["system"]["current_toolchange"]     = self.current_toolchange
+        str["system"]["number_of_toolchanges"]  = self.number_of_toolchanges
+        str["system"]["extruders"]              = {}
+        str["system"]["hubs"]                   = {}
+        str["system"]["buffers"]                = {}
 
         for extruder in self.tools.values():
             str["system"]["extruders"][extruder.name] = extruder.get_status()
