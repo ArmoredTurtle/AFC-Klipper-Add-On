@@ -59,11 +59,11 @@ class AFCtrigger:
         # Pull config for Turtleneck style buffer (advance and training switches)
         if self.advance_pin is not None:
             self.turtleneck = True
-            self.advance_pin = config.get('advance_pin')
-            self.trailing_pin = config.get('trailing_pin')
+            self.advance_pin = config.get('advance_pin') # Advance pin for buffer
+            self.trailing_pin = config.get('trailing_pin') # Trailing pin for buffer
             self.multiplier_high = config.getfloat("multiplier_high", default=1.1, minval=1.0)
             self.multiplier_low = config.getfloat("multiplier_low", default=0.9, minval=0.0, maxval=1.0)
-            self.velocity = config.getfloat('velocity', 0)
+            self.velocity = config.getfloat('velocity', 0) # Velocity for forward assist
 
             if self.enable_sensors_in_gui:
                 self.adv_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "expanded")

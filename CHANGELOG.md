@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-01-28]
+
+### Changed
+- Added `velocity` default setting back into buffer configuration when using the `install-afc.sh` script. This value was previously set to `0` by default,
+but the configuration did not display this value. For future installations, this value will be explicitly set in the buffer configuration.
+
+### Fixed
+- Added minor documentation changes regarding `velocity` changes in the buffer configuration.
+
 ## [2025-01-26]
 ### Added
 - Added ability to specify moonraker port, needed for when user has multiple moonraker/klipper instances on a single machine
