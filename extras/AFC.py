@@ -545,6 +545,8 @@ class afc:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameter:
                   - LANE: The name of the lane to be loaded.
+                  - PURGE_LENGTH: The amount of filament to poop (optional).
+
 
         Returns:
             None
@@ -557,10 +559,12 @@ class afc:
         if self.current is not None:
             self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane, self.current), pause=False)
             return
-        CUR_LANE = self.lanes[lane]
-        self.TOOL_LOAD(CUR_LANE)
 
-    def TOOL_LOAD(self, CUR_LANE):
+        purge_length = gcmd.get('PURGE_LENGTH', None)
+        CUR_LANE = self.lanes[lane]
+        self.TOOL_LOAD(CUR_LANE, purge_length)
+
+    def TOOL_LOAD(self, CUR_LANE, purge_length=None):
         """
         This function handles the loading of a specified lane into the tool. It performs
         several checks and movements to ensure the lane is properly loaded.
@@ -570,6 +574,8 @@ class afc:
 
         Args:
             CUR_LANE: The lane object to be loaded into the tool.
+            purge_length: Amount of filament to poop (optional).
+
 
         Returns:
             bool: True if load was successful, False if an error occurred.
@@ -688,7 +694,10 @@ class afc:
             # Activate the tool-loaded LED and handle filament operations if enabled.
             self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
-                self.gcode.run_script_from_command(self.poop_cmd)
+                if purge_length is not None:
+                    self.gcode.run_script_from_command("%s %s=%s" % (self.poop_cmd, 'PURGE_LENGTH', purge_length))
+                else:
+                    self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             if self.kick:
@@ -938,6 +947,8 @@ class afc:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameter:
                   - LANE: The name of the lane to be loaded.
+                  - PURGE_LENGTH: The amount of filament to poop (optional).
+
 
         Returns:
             None
