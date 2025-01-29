@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-01-26]
+### Added
+- Added ability to specify moonraker port, needed for when user has multiple moonraker/klipper instances on a single machine
+
+### Fixed
+- Fixed issue where software was updated to no long detected movement outside of printing, this fixes crashing klipper when inserting filament while printer is moving
+- Fixed issue where remaining weight was not being pulled correctly from spoolman
+
+## [2025-01-23]
+### Fixed
+- Fixed not being able to unload filament with UNLOAD_FILAMENT macro when using bypass
+
 ## [2025-01-17]
 ### Added
 - Added ability to break up long bowden moves into shorter moves with `max_move_dis` variable to help with users that are facing timer too close issues when doing long moves. This variable can be set in `AFC.cfg` as a global setting or in the stepper/config sections.

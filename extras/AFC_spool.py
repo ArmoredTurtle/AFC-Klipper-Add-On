@@ -253,8 +253,8 @@ class afcSpool:
                     CUR_LANE.spool_id = SpoolID
 
                     CUR_LANE.material       = self._get_filament_values( result['filament'], 'material')
-                    CUR_LANE.weight         = self._get_filament_values( result['filament'], 'remaining_weight')
                     CUR_LANE.extruder_temp  = self._get_filament_values( result['filament'], 'settings_extruder_temp')
+                    CUR_LANE.weight         = self._get_filament_values( result,             'remaining_weight')
                     # Check to see if filament is defined as multi color and take the first color for now
                     # Once support for multicolor is added this needs to be updated
                     if "multi_color_hexes" in result['filament']:

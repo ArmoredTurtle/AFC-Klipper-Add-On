@@ -1,6 +1,7 @@
 # Configuration Options Documentation
 
 ## AFC
+- `moonraker_port` (default: `None`): Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
 - `VarFile` (default: `'../printer_data/config/AFC/'`): Path to the variables file for AFC configuration.
 - `default_material_temps` (default: `None`): Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
 - `led_fault` (default: `'1,0,0,0'`): LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
@@ -71,11 +72,11 @@
 - `led_loading` (default: `None`): LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `led_unloading` (default: `None`): LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `led_tool_loaded` (default: `None`): LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-- `long_moves_speed` (default: `None`): Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
-- `long_moves_accel` (default: `None`): Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
-- `short_moves_speed` (default: `None`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
-- `short_moves_accel` (default: `None`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
-- `short_move_dis` (default: `None`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+- `long_moves_speed` (default: `None`): Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `long_moves_accel` (default: `None`): Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `short_moves_speed` (default: `None`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `short_moves_accel` (default: `None`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `short_move_dis` (default: `None`): Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `dist_hub` (default: `60`): Bowden distance between Box Turtle extruder and hub
 - `park_dist` (default: `10`): Currently unused
@@ -87,9 +88,6 @@
 - `afc_motor_rwd` (default: `None`): Reverse pin on MCU for spoolers
 - `afc_motor_fwd` (default: `None`): Forwards pin on MCU for spoolers
 - `afc_motor_enb` (default: `None`): Enable pin on MCU for spoolers
-- `afc_motor_fwd_pulse` (default: `None`): Need description
-- `afc_motor_fwd_gear_ratio` (default: `None`): Need description
-- `afc_motor_fwd_drive_diam` (default: `None`): Need description
 - `print_current` (default: `None`): Current to use while printing, set to a lower current to reduce stepper heat when printing. Defaults to global_print_current, if not specified current is not changed.
 - `filament_diameter` (default: `1.75`): Diameter of filament being used
 - `filament_density` (default: `1.24`): Density of filament being used
