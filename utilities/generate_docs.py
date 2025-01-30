@@ -98,7 +98,7 @@ def format_markdown(cmd_functions):
         if example:
             markdown_lines.append(f"Example: `{example}`  \n")
         else:
-            markdown_lines.append(f"Example: `{command_name} LANE=leg1`  \n")
+            markdown_lines.append(f"Example: `{command_name} LANE=lane1`  \n")
 
         markdown_lines.append("\n")  # Add an extra newline for separation
     return markdown_lines

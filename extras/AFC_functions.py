@@ -121,8 +121,8 @@ class afcFunction:
 
         Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANE=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
-            - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
+            - `CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3`
+            - `CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -381,7 +381,7 @@ class afcFunction:
         msg += '\n// TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple'
         self.AFC.gcode.respond_raw(msg)
 
-    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
+    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=laneN"
     def cmd_HUB_CUT_TEST(self, gcmd):
         """
         This function tests the cutting sequence of the hub cutter for a specified lane.
@@ -389,7 +389,7 @@ class afcFunction:
         and responds with the status of the operation.
 
         Usage: `HUB_CUT_TEST LANE=<lane>`
-        Example: `HUB_CUT_TEST LANE=leg1`
+        Example: `HUB_CUT_TEST LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -419,7 +419,7 @@ class afcFunction:
         3. Reports the status of each test step.
 
         Usage: `TEST LANE=<lane>`
-        Example: `TEST LANE=leg1`
+        Example: `TEST LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
