@@ -331,7 +331,7 @@ class afc:
         specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
 
         Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
-        Example: `LANE_MOVE LANE=leg1 DISTANCE=100`
+        Example: `LANE_MOVE LANE=lane1 DISTANCE=100`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -443,7 +443,7 @@ class afc:
         several checks and movements to ensure the lane is properly loaded.
 
         Usage: `HUB_LOAD LANE=<lane>`
-        Example: `HUB_LOAD LANE=leg1`
+        Example: `HUB_LOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -483,7 +483,7 @@ class afc:
         several checks and movements to ensure the lane is properly unloaded.
 
         Usage: `LANE_UNLOAD LANE=<lane>`
-        Example: `LANE_UNLOAD LANE=leg1`
+        Example: `LANE_UNLOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -539,7 +539,7 @@ class afc:
         the loading process.
 
         Usage: `TOOL_LOAD LANE=<lane>`
-        Example: `TOOL_LOAD LANE=leg1`
+        Example: `TOOL_LOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -570,7 +570,7 @@ class afc:
         several checks and movements to ensure the lane is properly loaded.
 
         Usage: `TOOL_LOAD LANE=<lane>`
-        Example: `TOOL_LOAD LANE=leg1`
+        Example: `TOOL_LOAD LANE=lane1`
 
         Args:
             CUR_LANE: The lane object to be loaded into the tool.
@@ -731,7 +731,7 @@ class afc:
         is provided, and calls the TOOL_UNLOAD method to perform the unloading process.
 
         Usage: `TOOL_UNLOAD [LANE=<lane>]`
-        Example: `TOOL_UNLOAD LANE=leg1`
+        Example: `TOOL_UNLOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -762,7 +762,7 @@ class afc:
         several checks and movements to ensure the lane is properly unloaded.
 
         Usage: `TOOL_UNLOAD LANE=<lane>`
-        Example: `TOOL_UNLOAD LANE=leg1`
+        Example: `TOOL_UNLOAD LANE=lane1`
         Args:
             CUR_LANE: The lane object to be unloaded from the tool.
 
@@ -941,7 +941,7 @@ class afc:
         current lane and loading the new lane.
 
         Usage: `CHANGE_TOOL LANE=<lane>`
-        Example: `CHANGE_TOOL LANE=leg1`
+        Example: `CHANGE_TOOL LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.

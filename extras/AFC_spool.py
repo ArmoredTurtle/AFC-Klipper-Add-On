@@ -52,7 +52,7 @@ class afcSpool:
         This function handles changing the GCODE tool change command for a Lane.
 
         Usage: `SET_MAP LANE=<lane> MAP=<cmd>`
-        Example: `SET_MAP LANE=leg1 MAP=T1`
+        Example: `SET_MAP LANE=lane1 MAP=T1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -90,7 +90,7 @@ class afcSpool:
         specified by the 'LANE' parameter and sets its color to the value provided by the 'COLOR' parameter.
 
         Usage: `SET_COLOR LANE=<lane> COLOR=<color>`
-        Example: `SET_COLOR LANE=leg1 COLOR=FF0000`
+        Example: `SET_COLOR LANE=lane1 COLOR=FF0000`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -120,7 +120,7 @@ class afcSpool:
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
 
         Usage: SET_WEIGHT LANE=<lane> WEIGHT=<weight>
-        Example: SET_WEIGHT LANE=leg1 WEIGHT=850
+        Example: SET_WEIGHT LANE=lane1 WEIGHT=850
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -151,7 +151,7 @@ class afcSpool:
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
 
         Usage: SET_MATERIAL LANE=<lane> MATERIAL=<material>
-        Example: SET_MATERIAL LANE=leg1 MATERIAL=ABS
+        Example: SET_MATERIAL LANE=lane1 MATERIAL=ABS
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -196,7 +196,7 @@ class afcSpool:
         based on the information retrieved from the Spoolman API.
 
         Usage: `SET_SPOOL_ID LANE=<lane> SPOOL_ID=<spool_id>`
-        Example: `SET_SPOOL_ID LANE=leg1 SPOOL_ID=12345`
+        Example: `SET_SPOOL_ID LANE=lane1 SPOOL_ID=12345`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
