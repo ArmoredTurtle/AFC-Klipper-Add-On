@@ -156,6 +156,10 @@ class afcFunction:
             self.AFC.ERROR.AFC_error("{} not a valid unit".format(unit), pause=False)
             return
 
+        if afc_bl not in self.AFC.lanes:
+            self.AFC.ERROR.AFC_error("{} not a valid lane".format(afc_bl), pause=False)
+            return
+
         # Determine if a specific lane is provided
         if lanes is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
