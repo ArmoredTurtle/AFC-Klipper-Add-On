@@ -152,7 +152,6 @@ class AFCtrigger:
             self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
-        self.last_state = False
 
     # Turtleneck commands
     def set_multiplier(self, multiplier):
@@ -316,7 +315,12 @@ class AFCtrigger:
             - Both the buffer state and, if applicable, the stepper motor's rotation
             distance are sent back as G-code responses.
         """
+        state_mapping = {
+            TRAILING_STATE_NAME: ' (Compressed)',
+            ADVANCE_STATE_NAME: ' (Expanded)',
+            }
         state_info = self.buffer_status()
+        state_info += state_mapping.get(state_info, '')
         if self.turtleneck:
             if self.enable:
                 LANE = self.AFC.lanes[self.AFC.current]
