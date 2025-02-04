@@ -152,7 +152,6 @@ class AFCtrigger:
             self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
-        self.last_state = False
 
     # Turtleneck commands
     def set_multiplier(self, multiplier):
