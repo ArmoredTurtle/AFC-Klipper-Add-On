@@ -55,9 +55,11 @@ copy_unit_files() {
   if [ "$installation_type" == "BoxTurtle" ]; then
     cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_Turtle_1.cfg"
+  # If we are installing a Nightowl, then copy these files over.
   elif [ "$installation_type" == "NightOwl" ]; then
     cp "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
+    cp "${afc_path}/config/mcu/ERB2.0.cfg" "${afc_config_dir}/mcu/ERB2.0.cfg"
   fi
 }
 
@@ -93,20 +95,17 @@ install_afc() {
   elif [ "$toolhead_sensor" == "Ramming" ]; then
     update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "buffer"
   fi
-  if [ "$buffer_type" == "TurtleNeck" && "$installation_type" == "BoxTurtle" ]; then
-    query_tn_pins "TN"
-    append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
-  elif [ "$buffer_type" == "TurtleNeckV2" && "$installation_type" == "BoxTurtle" ]; then
-    append_buffer_config "TurtleNeckV2"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
-  elif [ "$buffer_type" == "TurtleNeckV2" && "$installation_type" == "NightOwl" ]; then
-    append_buffer_config "TurtleNeckV2"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_NightOwl_1.cfg" "NightOwl_1"
-  elif [ "$buffer_type" == "TurtleNeck" && "$installation_type" == "NightOwl" ]; then
-    query_tn_pins "TN"
-    append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_NightOwl_1.cfg" "NightOwl_1"
+  # When using Boxturtle as Installation Type then insert selected buffer configuration
+  # Nightowl uses Turtleneck as default for now
+  if [ "$installation_type" == "BoxTurtle" ]; then
+    if [ "$buffer_type" == "TurtleNeck" ]; then
+      query_tn_pins "TN"
+      append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
+      add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
+    elif [ "$buffer_type" == "TurtleNeckV2" ]; then
+      append_buffer_config "TurtleNeckV2"
+      add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
+    fi
   fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
