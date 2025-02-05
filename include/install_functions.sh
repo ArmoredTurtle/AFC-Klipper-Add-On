@@ -59,7 +59,6 @@ copy_unit_files() {
   elif [ "$installation_type" == "NightOwl" ]; then
     cp "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
-    cp "${afc_path}/config/mcu/ERB2.0.cfg" "${afc_config_dir}/mcu/ERB2.0.cfg"
   fi
 }
 
