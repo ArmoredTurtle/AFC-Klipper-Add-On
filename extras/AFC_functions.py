@@ -156,7 +156,7 @@ class afcFunction:
             self.AFC.ERROR.AFC_error("'{}' is not a valid unit".format(unit), pause=False)
             return
 
-        if afc_bl is not None not in self.AFC.lanes:
+        if afc_bl is not None and afc_bl not in self.AFC.lanes:
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
 
