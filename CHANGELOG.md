@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed error out during calibration when not calibrating bowden length
+- Fixed issue where AFC could crash klipper in some scenarios when tool unloads fail to clear hub
 
 
 ## [2025-02-03]
