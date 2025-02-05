@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added installation type for NightOwl, currently only ERB2.0 board is supported
 - Moved MCU include from AFC.cfg to AFC_Turtle_1 or Nightowl respectively
 
+## [2025-02-03]
+
+### Changed
+- Added expanded and compressed to buffer query for easier troubleshooting
+
+### Fixed
+- Corrected readme to point to the correct files
+- Added check for key on bowden length calibration to not crash klipper if the wrong value is provided
+
+## [2025-01-28]
+
+### Changed
+- Added `velocity` default setting back into buffer configuration when using the `install-afc.sh` script. This value was previously set to `0` by default,
+but the configuration did not display this value. For future installations, this value will be explicitly set in the buffer configuration.
+
+### Fixed
+- Added minor documentation changes regarding `velocity` changes in the buffer configuration.
+
 ## [2025-01-26]
 ### Added
 - Added ability to specify moonraker port, needed for when user has multiple moonraker/klipper instances on a single machine
