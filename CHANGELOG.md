@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added installation type for NightOwl, currently only ERB2.0 board is supported
 - Moved MCU include from AFC.cfg to AFC_Turtle_1 or Nightowl respectively
 
+## [2025-02-04]
+
+### Changed
+- Changed default `hub_clear_move_dis` to 25 to avoid too much retraction during filament changes
+
+### Fixed
+- Fixed error out during calibration when not calibrating bowden length
+- Fixed issue where AFC could crash klipper in some scenarios when tool unloads fail to clear hub
+
+
 ## [2025-02-03]
 
 ### Changed
