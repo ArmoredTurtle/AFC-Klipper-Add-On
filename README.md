@@ -110,15 +110,20 @@ info_tags:
 
 Prior to operation, the following checks / updates **MUST** be made to your system:
 
-1.  Update the following values in the `~/printer_data/config/AFC/AFC.cfg` file:
+1.  Update the following values in the `~/printer_data/config/AFC/AFC_Hardware-{board}.cfg` file:  
+    *default name with AFC-lite will be AFC_Hardware-AFC.cfg*
 
     - tool_stn: This value is the length from your toolhead sensor to nozzle
     - tool_stn_unload: This value is the amount to unload from extruder when doing a filament change.
+
+2.  Update the following in the `~/printer_data/config/AFC/AFC_Turtle_{n}.cfg` file:  
+    *for systems with a single unit, the file will show as `AFC_Turtle_1.cfg` addtional units with be 2, 3 etc.*
+
     - afc_bowden_length: This value is the length from your hub to your toolhead sensor
 
-2.  Verify that `pin_tool_start` is set to the correct pin for your toolhead sensor. If you are using an existing filament sensor as your toolhead sensor make sure you comment out the filament sensor section in your `printer.cfg` file.
+3.  Verify that `pin_tool_start` is set to the correct pin for your toolhead sensor. If you are using an existing filament sensor as your toolhead sensor make sure you comment out any filament sensor sections in your `printer.cfg` file.
 
-3.  If you are using any of the built-in macros, the variables in the `~/printer_data/config/AFC/AFC_Macro_Vars.cfg` file
+4.  If you are using any of the built-in macros, the variables in the `~/printer_data/config/AFC/AFC_Macro_Vars.cfg` file
     must also be modified to match your configuration for your system.
 
         Required variables to verify and update if necessary for the following default macros
@@ -143,7 +148,7 @@ Prior to operation, the following checks / updates **MUST** be made to your syst
           - cooling_tube_position
           - cooling_tube_length
 
-4.  If you would like to use your own macro instead of the provided macros, make sure to update the command with your custom macro in `~/printer_data/config/AFC/AFC.cfg`  
+5.  If you would like to use your own macro instead of the provided macros, make sure to update the command with your custom macro in `~/printer_data/config/AFC/AFC.cfg`  
      ex. If using custom park macro, change `park_cmd` from `AFC_PARK` to your macro name
 
 **Failure to update these values can result in damage to your system**

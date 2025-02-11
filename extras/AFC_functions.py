@@ -149,11 +149,15 @@ class afcFunction:
         cal_msg = ''
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:
-            self.AFC.ERROR.AFC_error("{} not a valid lane".format(lanes), pause=False)
+            self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)
             return
 
         if unit is not None and unit not in self.AFC.units:
-            self.AFC.ERROR.AFC_error("{} not a valid unit".format(unit), pause=False)
+            self.AFC.ERROR.AFC_error("'{}' is not a valid unit".format(unit), pause=False)
+            return
+
+        if afc_bl is not None and afc_bl not in self.AFC.lanes:
+            self.AFC.ERROR.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
 
         # Determine if a specific lane is provided
