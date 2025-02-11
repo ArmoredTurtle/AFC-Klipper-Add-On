@@ -1012,13 +1012,14 @@ class afc:
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
-                    if self.current not in self.lanes:
-                        self.gcode.respond_info('{} Unknown'.format(self.current))
+                    c_lane = self.current
+                    if c_lane not in self.lanes:
+                        self.gcode.respond_info('{} Unknown'.format(c_lane))
                         return
-                    if not self.TOOL_UNLOAD(self.lanes[self.current]):
+                    if not self.TOOL_UNLOAD(self.lanes[c_lane]):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
-                        self.ERROR.fix(msg, self.lanes[self.current])  #send to error handling
+                        self.ERROR.fix(msg, self.lanes[c_lane])  #send to error handling
                         return
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(CUR_LANE, purge_length) and not self.error_state:

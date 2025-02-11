@@ -48,6 +48,7 @@
 ## AFC_buffer
 - `enable_sensors_in_gui` (default: `False`): Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 - `accel` (default: `0`): Error if buffer is not configured correctly
+- `velocity` (default: `0`): Set buffer velocity for forward assist.
 
 ## AFC_extruder
 - `enable_sensors_in_gui` (default: `False`): Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
