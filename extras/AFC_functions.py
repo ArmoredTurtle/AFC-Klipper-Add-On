@@ -121,8 +121,8 @@ class afcFunction:
 
         Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
         Examples:
-            - `CALIBRATE_AFC LANE=all Bowden=leg1 DISTANCE=30 TOLERANCE=3`
-            - `CALIBRATE_AFC BOWDEN=leg1` (Calibrates the Bowden length for 'leg1')
+            - `CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3`
+            - `CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -149,11 +149,15 @@ class afcFunction:
         cal_msg = ''
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:
-            self.AFC.ERROR.AFC_error("{} not a valid lane".format(lanes), pause=False)
+            self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)
             return
 
         if unit is not None and unit not in self.AFC.units:
-            self.AFC.ERROR.AFC_error("{} not a valid unit".format(unit), pause=False)
+            self.AFC.ERROR.AFC_error("'{}' is not a valid unit".format(unit), pause=False)
+            return
+
+        if afc_bl is not None and afc_bl not in self.AFC.lanes:
+            self.AFC.ERROR.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
 
         # Determine if a specific lane is provided
@@ -260,11 +264,32 @@ class afcFunction:
         else:
             return True
 
-    def is_printing(self):
+    def is_moving(self):
+        '''
+        Helper function to return if the printer is moving or not. This is different from `is_printing` as it will return true if anything in the printer is moving.
+
+        :return boolean: True if anything in the printer is moving
+        '''
         eventtime = self.AFC.reactor.monotonic()
-        # idle_timeout = self.printer.lookup_object("idle_timeout")
+        idle_timeout = self.printer.lookup_object("idle_timeout")
+        return idle_timeout.get_status(eventtime)["state"] == "Printing"
+
+    def is_printing(self, check_movement=False):
+        '''
+        Helper function to return if the printer is printing an object.
+
+        :param check_movement: When set to True will also return True if anything in the printer is also moving
+
+        :return boolean: True if printer is printing an object or if printer is moving when `check_movement` is True
+        '''
+        eventtime = self.AFC.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
-        return print_stats.get_status(eventtime)["state"] == "printing"
+        moving = False
+
+        if check_movement:
+            moving = self.is_moving()
+
+        return print_stats.get_status(eventtime)["state"] == "printing" or moving
 
     def is_paused(self):
         eventtime = self.AFC.reactor.monotonic()
@@ -383,7 +408,7 @@ class afcFunction:
         msg += '\n// TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple'
         self.AFC.gcode.respond_raw(msg)
 
-    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=legN"
+    cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=laneN"
     def cmd_HUB_CUT_TEST(self, gcmd):
         """
         This function tests the cutting sequence of the hub cutter for a specified lane.
@@ -391,7 +416,7 @@ class afcFunction:
         and responds with the status of the operation.
 
         Usage: `HUB_CUT_TEST LANE=<lane>`
-        Example: `HUB_CUT_TEST LANE=leg1`
+        Example: `HUB_CUT_TEST LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -421,7 +446,7 @@ class afcFunction:
         3. Reports the status of each test step.
 
         Usage: `TEST LANE=<lane>`
-        Example: `TEST LANE=leg1`
+        Example: `TEST LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.

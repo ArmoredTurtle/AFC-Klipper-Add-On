@@ -6,6 +6,62 @@ The following commands are built-in the AFC-Klipper-Add-On and are available thr
 the Klipper console.
 
 NOTE: LANE/HUB/BUFFER etc. names are case sensitive and should exactly match the names defined in config files
+### AFC_CALIBRATION
+_Description_: Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
+allows the option to calibrate all lanes across all units.  
+Usage: ``AFC_CALIBRATION``  
+Example: ``AFC_CALIBRATION``  
+
+### ALL_CALIBRATION
+_Description_: Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to
+return to the previous menu.  
+Usage: ``ALL_CALIBRATION``  
+Example: ``ALL_CALIBRATION``  
+
+### CALIBRATE_AFC
+_Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
+(Automated Filament Control) system. The function uses precise movements to adjust the positions of the
+steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
+user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
+the option to calibrate the Bowden length for a particular lane, if specified.  
+Usage: ``CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
+Example: `CALIBRATE_AFC LANE=lane1`  
+
+### SET_BOWDEN_LENGTH
+_Description_: This function adjusts the length of the Bowden tube between the hub and the toolhead.
+It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified
+by the 'LENGTH' parameter. If the hub is not specified and a lane is currently loaded,
+it uses the hub of the current lane.  
+Usage: ``SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length>``  
+Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=100``  
+
+### HUB_CUT_TEST
+_Description_: This function tests the cutting sequence of the hub cutter for a specified lane.
+It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
+and responds with the status of the operation.  
+Usage: ``HUB_CUT_TEST LANE=<lane>``  
+Example: ``HUB_CUT_TEST LANE=lane1``  
+
+### TEST
+_Description_: This function tests the assist motors of a specified lane at various speeds.
+It performs the following steps:
+1. Retrieves the lane specified by the 'LANE' parameter.
+2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
+3. Reports the status of each test step.  
+Usage: ``TEST LANE=<lane>``  
+Example: ``TEST LANE=lane1``  
+
+### RESET_FAILURE
+_Description_: This function clears the error state of the AFC system by setting the error state to False.  
+Usage: ``RESET_FAILURE``  
+Example: ``RESET_FAILURE``  
+
+### AFC_RESUME
+_Description_: This function clears the error state of the AFC system, sets the in_toolchange flag to False,
+runs the resume script, and restores the toolhead position to the last saved position.  
+Usage: ``AFC_RESUME``  
+Example: ``AFC_RESUME``  
+
 ### SET_AFC_TOOLCHANGES
 _Description_: This macro can be used to set total number of toolchanges from slicer. AFC will keep track of tool changes and print out
 current tool change number when a T(n) command is called from gcode  
@@ -16,40 +72,73 @@ Example: ``SET_AFC_TOOLCHANGES TOOLCHANGES=100``
 _Description_: This function handles the loading of a specified lane into the hub. It performs
 several checks and movements to ensure the lane is properly loaded.  
 Usage: ``HUB_LOAD LANE=<lane>``  
-Example: ``HUB_LOAD LANE=leg1``  
+Example: ``HUB_LOAD LANE=lane1``  
 
 ### LANE_UNLOAD
 _Description_: This function handles the unloading of a specified lane from the extruder. It performs
 several checks and movements to ensure the lane is properly unloaded.  
 Usage: ``LANE_UNLOAD LANE=<lane>``  
-Example: ``LANE_UNLOAD LANE=leg1``  
+Example: ``LANE_UNLOAD LANE=lane1``  
 
 ### TOOL_LOAD
 _Description_: This function handles the loading of a specified lane into the tool. It retrieves
 the lane specified by the 'LANE' parameter and calls the TOOL_LOAD method to perform
 the loading process.  
 Usage: ``TOOL_LOAD LANE=<lane>``  
-Example: ``TOOL_LOAD LANE=leg1``  
+Example: ``TOOL_LOAD LANE=lane1``  
 
 ### TOOL_UNLOAD
 _Description_: This function handles the unloading of a specified lane from the tool head. It retrieves
 the lane specified by the 'LANE' parameter or uses the currently loaded lane if no parameter
 is provided, and calls the TOOL_UNLOAD method to perform the unloading process.  
 Usage: ``TOOL_UNLOAD [LANE=<lane>]``  
-Example: ``TOOL_UNLOAD LANE=leg1``  
+Example: ``TOOL_UNLOAD LANE=lane1``  
 
 ### CHANGE_TOOL
 _Description_: This function handles the tool change process. It retrieves the lane specified by the 'LANE' parameter,
 checks the filament sensor, saves the current position, and performs the tool change by unloading the
 current lane and loading the new lane.  
 Usage: ``CHANGE_TOOL LANE=<lane>``  
-Example: ``CHANGE_TOOL LANE=leg1``  
+Example: ``CHANGE_TOOL LANE=lane1``  
 
 ### AFC_STATUS
 _Description_: This function generates a status message for each unit and lane, indicating the preparation,
 loading, hub, and tool states. The status message is formatted with HTML tags for display.  
 Usage: ``AFC_STATUS``  
 Example: ``AFC_STATUS``  
+
+### UNIT_CALIBRATION
+_Description_: Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length
+for the selected unit. Provides buttons for lane calibration, Bowden length calibration, and a back option.  
+Usage: ``UNIT_CALIBRATION UNIT=<unit>``  
+Example: ``UNIT_CALIBRATION UNIT=Turtle_1``  
+
+### UNIT_LANE_CALIBRATION
+_Description_: Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons
+for each lane, grouped in sets of two, and allows calibration for all lanes or individual lanes.  
+Usage: ``UNIT_LANE_CALIBRATION UNIT=<unit>``  
+Example: ``UNIT_LANE_CALIBRATION UNIT=Turtle_1``  
+
+### UNIT_BOW_CALIBRATION
+_Description_: Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons
+for each lane, with a note to only calibrate one lane per unit.  
+Usage: ``UNIT_CALIBRATION UNIT=<unit>``  
+Example: ``UNIT_CALIBRATION UNIT=Turtle_1``  
+
+### TEST_AFC_TIP_FORMING
+_Description_: Gives ability to test AFC tip forming without doing a tool change  
+Usage: `TEST_AFC_TIP_FORMING`  
+Example: `TEST_AFC_TIP_FORMING`  
+
+### GET_TIP_FORMING
+_Description_: Shows the tip forming configuration  
+Usage: `GET_TIP_FORMING`  
+Example: `GET_TIP_FORMING`  
+
+### SET_TIP_FORMING
+_Description_: Sets the tip forming configuration  
+Usage: `SET_TIP_FORMING PARAMETER=VALUE ...`  
+Example: `SET_TIP_FORMING ramming_volume=20 toolchange_temp=220`  
 
 ### SET_MULTIPLIER
 _Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
@@ -78,106 +167,35 @@ works for your setup.
 Usage: `SET_BUFFER_VELOCITY BUFFER=<buffer_name> VELOCITY=<value>`  
 Example: `SET_BUFFER_VELOCITY BUFFER=TN2 VELOCITY=100`  
 
-### RESET_FAILURE
-_Description_: This function clears the error state of the AFC system by setting the error state to False.  
-Usage: ``RESET_FAILURE``  
-Example: ``RESET_FAILURE``  
-
-### AFC_RESUME
-_Description_: This function clears the error state of the AFC system, sets the in_toolchange flag to False,
-runs the resume script, and restores the toolhead position to the last saved position.  
-Usage: ``AFC_RESUME``  
-Example: ``AFC_RESUME``  
-
-### TEST_AFC_TIP_FORMING
-_Description_: Gives ability to test AFC tip forming without doing a tool change  
-Usage: `TEST_AFC_TIP_FORMING`  
-Example: `TEST_AFC_TIP_FORMING`  
-
-### GET_TIP_FORMING
-_Description_: Shows the tip forming configuration  
-Usage: `GET_TIP_FORMING`  
-Example: `GET_TIP_FORMING`  
-
-### SET_TIP_FORMING
-_Description_: Sets the tip forming configuration  
-Usage: `SET_TIP_FORMING PARAMETER=VALUE ...`  
-Example: `SET_TIP_FORMING ramming_volume=20 toolchange_temp=220`  
-
-### AFC_CALIBRATION
-_Description_: Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
-allows the option to calibrate all lanes across all units.  
-Usage: ``AFC_CALIBRATION``  
-Example: ``AFC_CALIBRATION``  
-
-### ALL_CALIBRATION
-_Description_: Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to
-return to the previous menu.  
-Usage: ``ALL_CALIBRATION``  
-Example: ``ALL_CALIBRATION``  
-
-### CALIBRATE_AFC
-_Description_: This function performs the calibration of the hub and Bowden length for one or more lanes within an AFC
-(Automated Filament Control) system. The function uses precise movements to adjust the positions of the
-steppers, check the state of the hubs and tools, and calculate distances for calibration based on the
-user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
-the option to calibrate the Bowden length for a particular lane, if specified.  
-Usage: ``CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>``  
-Example: `CALIBRATE_AFC LANE=leg1`  
-
-### SET_BOWDEN_LENGTH
-_Description_: This function adjusts the length of the Bowden tube between the hub and the toolhead.
-It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified
-by the 'LENGTH' parameter. If the hub is not specified and a lane is currently loaded,
-it uses the hub of the current lane.  
-Usage: ``SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length>``  
-Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=100``  
-
-### HUB_CUT_TEST
-_Description_: This function tests the cutting sequence of the hub cutter for a specified lane.
-It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
-and responds with the status of the operation.  
-Usage: ``HUB_CUT_TEST LANE=<lane>``  
-Example: ``HUB_CUT_TEST LANE=leg1``  
-
-### TEST
-_Description_: This function tests the assist motors of a specified lane at various speeds.
-It performs the following steps:
-1. Retrieves the lane specified by the 'LANE' parameter.
-2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
-3. Reports the status of each test step.  
-Usage: ``TEST LANE=<lane>``  
-Example: ``TEST LANE=leg1``  
-
 ### SET_MAP
 _Description_: This function handles changing the GCODE tool change command for a Lane.  
 Usage: ``SET_MAP LANE=<lane> MAP=<cmd>``  
-Example: ``SET_MAP LANE=leg1 MAP=T1``  
+Example: ``SET_MAP LANE=lane1 MAP=T1``  
 
 ### SET_COLOR
 _Description_: This function handles changing the color of a specified lane. It retrieves the lane
 specified by the 'LANE' parameter and sets its color to the value provided by the 'COLOR' parameter.  
 Usage: ``SET_COLOR LANE=<lane> COLOR=<color>``  
-Example: ``SET_COLOR LANE=leg1 COLOR=FF0000``  
+Example: ``SET_COLOR LANE=lane1 COLOR=FF0000``  
 
 ### SET_WEIGHT
 _Description_: This function handles changing the material of a specified lane. It retrieves the lane
 specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.  
 Usage: `SET_WEIGHT LANE=<lane> WEIGHT=<weight>`  
-Example: `SET_WEIGHT LANE=leg1 WEIGHT=850`  
+Example: `SET_WEIGHT LANE=lane1 WEIGHT=850`  
 
 ### SET_MATERIAL
 _Description_: This function handles changing the material of a specified lane. It retrieves the lane
 specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.  
 Usage: `SET_MATERIAL LANE=<lane> MATERIAL=<material>`  
-Example: `SET_MATERIAL LANE=leg1 MATERIAL=ABS`  
+Example: `SET_MATERIAL LANE=lane1 MATERIAL=ABS`  
 
 ### SET_SPOOL_ID
 _Description_: This function handles setting the spool ID for a specified lane. It retrieves the lane
 specified by the 'LANE' parameter and updates its spool ID, material, color, and weight
 based on the information retrieved from the Spoolman API.  
 Usage: ``SET_SPOOL_ID LANE=<lane> SPOOL_ID=<spool_id>``  
-Example: ``SET_SPOOL_ID LANE=leg1 SPOOL_ID=12345``  
+Example: ``SET_SPOOL_ID LANE=lane1 SPOOL_ID=12345``  
 
 ### SET_RUNOUT
 _Description_: This function handles setting the runout lane (infinite spool) for a specified lane. It retrieves the lane
@@ -190,24 +208,6 @@ Example: ``SET_RUNOUT LANE=lane1 RUNOUT=lane4``
 _Description_: This commands resets all tool lane mapping to the order that is setup in configuration.  
 Usage: `RESET_AFC_MAPPING`  
 Example: `RESET_AFC_MAPPING`  
-
-### UNIT_CALIBRATION
-_Description_: Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length
-for the selected unit. Provides buttons for lane calibration, Bowden length calibration, and a back option.  
-Usage: ``UNIT_CALIBRATION UNIT=<unit>``  
-Example: ``UNIT_CALIBRATION UNIT=Turtle_1``  
-
-### UNIT_LANE_CALIBRATION
-_Description_: Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons
-for each lane, grouped in sets of two, and allows calibration for all lanes or individual lanes.  
-Usage: ``UNIT_LANE_CALIBRATION UNIT=<unit>``  
-Example: ``UNIT_LANE_CALIBRATION UNIT=Turtle_1``  
-
-### UNIT_BOW_CALIBRATION
-_Description_: Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons
-for each lane, with a note to only calibrate one lane per unit.  
-Usage: ``UNIT_CALIBRATION UNIT=<unit>``  
-Example: ``UNIT_CALIBRATION UNIT=Turtle_1``  
 
 ## AFC Macros
 

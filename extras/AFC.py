@@ -53,7 +53,7 @@ class afc:
         self.next_lane_load = None
         self.error_state    = False
         self.current_state  = State.INIT
-        self.spoolman = None
+        self.spoolman       = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -80,6 +80,7 @@ class afc:
         self.absolute_coord = True
 
         # Config get section
+        self.moonraker_port = config.get("moonraker_port", None)                    # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
         self.unit_order_list = config.get('unit_order_list','')
         self.VarFile = config.get('VarFile','../printer_data/config/AFC/') 			# Path to the variables file for AFC configuration.
         self.cfgloc = self._remove_after_last(self.VarFile,"/")
@@ -199,10 +200,12 @@ class afc:
         and assigns it to the instance variable `self.toolhead`.
         """
         self.toolhead = self.printer.lookup_object('toolhead')
+        moonraker_port = ""
+        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
 
         # SPOOLMAN
         try:
-            self.moonraker = json.load(urlopen('http://localhost/server/config'))
+            self.moonraker = json.load(urlopen('http://localhost{port}/server/config'.format( port=moonraker_port )))
             self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         except:
             self.spoolman = None                      # set to none if not found
@@ -355,7 +358,7 @@ class afc:
         specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
 
         Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
-        Example: `LANE_MOVE LANE=leg1 DISTANCE=100`
+        Example: `LANE_MOVE LANE=lane1 DISTANCE=100`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -467,7 +470,7 @@ class afc:
         several checks and movements to ensure the lane is properly loaded.
 
         Usage: `HUB_LOAD LANE=<lane>`
-        Example: `HUB_LOAD LANE=leg1`
+        Example: `HUB_LOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -507,7 +510,7 @@ class afc:
         several checks and movements to ensure the lane is properly unloaded.
 
         Usage: `LANE_UNLOAD LANE=<lane>`
-        Example: `LANE_UNLOAD LANE=leg1`
+        Example: `LANE_UNLOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -563,12 +566,14 @@ class afc:
         the loading process.
 
         Usage: `TOOL_LOAD LANE=<lane>`
-        Example: `TOOL_LOAD LANE=leg1`
+        Example: `TOOL_LOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameter:
                   - LANE: The name of the lane to be loaded.
+                  - PURGE_LENGTH: The amount of filament to poop (optional).
+
 
         Returns:
             None
@@ -582,18 +587,23 @@ class afc:
         if CUR_LANE.extruder_obj.lane_loaded:
             self.ERROR.AFC_error("Cannot load {}, {} currently loaded".format(lane, CUR_LANE.extruder_obj.lane_loaded), pause=False)
             return
-        self.TOOL_LOAD(CUR_LANE)
 
-    def TOOL_LOAD(self, CUR_LANE):
+        purge_length = gcmd.get('PURGE_LENGTH', None)
+        
+        self.TOOL_LOAD(CUR_LANE, purge_length)
+
+    def TOOL_LOAD(self, CUR_LANE, purge_length=None):
         """
         This function handles the loading of a specified lane into the tool. It performs
         several checks and movements to ensure the lane is properly loaded.
 
         Usage: `TOOL_LOAD LANE=<lane>`
-        Example: `TOOL_LOAD LANE=leg1`
+        Example: `TOOL_LOAD LANE=lane1`
 
         Args:
             CUR_LANE: The lane object to be loaded into the tool.
+            purge_length: Amount of filament to poop (optional).
+
 
         Returns:
             bool: True if load was successful, False if an error occurred.
@@ -717,7 +727,10 @@ class afc:
             # Activate the tool-loaded LED and handle filament operations if enabled.
             self.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
             if self.poop:
-                self.gcode.run_script_from_command(self.poop_cmd)
+                if purge_length is not None:
+                    self.gcode.run_script_from_command("%s %s=%s" % (self.poop_cmd, 'PURGE_LENGTH', purge_length))
+                else:
+                    self.gcode.run_script_from_command(self.poop_cmd)
                 if self.wipe:
                     self.gcode.run_script_from_command(self.wipe_cmd)
             if self.kick:
@@ -753,7 +766,7 @@ class afc:
         is provided, and calls the TOOL_UNLOAD method to perform the unloading process.
 
         Usage: `TOOL_UNLOAD [LANE=<lane>]`
-        Example: `TOOL_UNLOAD LANE=leg1`
+        Example: `TOOL_UNLOAD LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
@@ -766,6 +779,9 @@ class afc:
 
         # TODO figure this out if moving to CUR_LANE.extruder_obj.lane_loaded structure, maybe get current extruder from toolhead?
         # How would you deal with multiple extruders....
+        # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
+        if self._check_bypass(unload=True): return False
+
         lane = gcmd.get('LANE', self.current)
         if lane == None:
             return
@@ -784,7 +800,7 @@ class afc:
         several checks and movements to ensure the lane is properly unloaded.
 
         Usage: `TOOL_UNLOAD LANE=<lane>`
-        Example: `TOOL_UNLOAD LANE=leg1`
+        Example: `TOOL_UNLOAD LANE=lane1`
         Args:
             CUR_LANE: The lane object to be unloaded from the tool.
 
@@ -969,12 +985,14 @@ class afc:
         current lane and loading the new lane.
 
         Usage: `CHANGE_TOOL LANE=<lane>`
-        Example: `CHANGE_TOOL LANE=leg1`
+        Example: `CHANGE_TOOL LANE=lane1`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameter:
                   - LANE: The name of the lane to be loaded.
+                  - PURGE_LENGTH: The amount of filament to poop (optional).
+
 
         Returns:
             None
@@ -987,24 +1005,35 @@ class afc:
             self.ERROR.AFC_error("Please home printer before doing a tool change", False)
             return
 
+        purge_length = gcmd.get('PURGE_LENGTH', None)
+
+        # Klipper macros that start with a single letter (ie T0) parse the parameter values with the equals sign
+        # for some sort of backwards compatibility, so for example: T0 PURGE_LENGTH=200, the purge_length would be
+        # equal to "=200". So run this check to remove it:
+        if purge_length is not None:
+            if purge_length.startswith('='):
+                purge_length = purge_length[1:]
+
+        command_line = gcmd.get_commandline()
+        command = command_line.split(' ')[0].upper()
         tmp = gcmd.get_commandline()
         cmd = tmp.upper()
         Tcmd = ''
-        if 'CHANGE' in cmd:
+        if 'CHANGE' in command:
             lane = gcmd.get('LANE', None)
             for key in self.tool_cmds.keys():
                 if self.tool_cmds[key].upper() == lane.upper():
                     Tcmd = key
                     break
         else:
-            Tcmd = cmd
+            Tcmd = command
 
         if Tcmd == '':
             self.gcode.respond_info("I did not understand the change -- " +cmd)
             return
-        self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]])
+        self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]], purge_length)
 
-    def CHANGE_TOOL(self, CUR_LANE):
+    def CHANGE_TOOL(self, CUR_LANE, purge_length):
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
@@ -1027,16 +1056,17 @@ class afc:
 
                 # If a current lane is loaded, unload it first.
                 if self.current is not None:
-                    if self.current not in self.lanes:
-                        self.gcode.respond_info('{} Unknown'.format(self.current))
+                    c_lane = self.current
+                    if c_lane not in self.lanes:
+                        self.gcode.respond_info('{} Unknown'.format(c_lane))
                         return
-                    if not self.TOOL_UNLOAD(self.lanes[self.current]):
+                    if not self.TOOL_UNLOAD(self.lanes[c_lane]):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
-                        self.ERROR.fix(msg, self.lanes[self.current])  #send to error handling
+                        self.ERROR.fix(msg, self.lanes[c_lane])  #send to error handling
                         return
             # Load the new lane and restore the toolhead position if successful.
-            if self.TOOL_LOAD(CUR_LANE) and not self.error_state:
+            if self.TOOL_LOAD(CUR_LANE, purge_length) and not self.error_state:
                 self.gcode.respond_info("{} is now loaded in toolhead".format(CUR_LANE.name))
                 self.restore_pos()
                 self.in_toolchange = False
@@ -1058,7 +1088,7 @@ class afc:
         str['current_state']            = self.current_state
         str["current_toolchange"]       = self.current_toolchange
         str["number_of_toolchanges"]    = self.number_of_toolchanges
-        str['spoolman']             = self.spoolman
+        str['spoolman']                 = self.spoolman
         unitdisplay =[]
         for UNIT in self.units.keys():
             CUR_UNIT=self.units[UNIT]
@@ -1087,19 +1117,20 @@ class afc:
                 str[unit.name][lane.name]=lane.get_status()
                 numoflanes +=1
                 name.append(lane.name)
-            str[unit.name]['system']['type'] = unit.type
+            str[unit.name]['system']['type']        = unit.type
             str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state if unit.hub_obj is not None else None
 
-        str["system"]={}
+        str["system"]                           = {}
         str["system"]['current_load']= self.FUNCTION.get_current_lane()
-        str["system"]['num_units'] = len(self.units)
-        str["system"]['num_lanes'] = numoflanes
-        str["system"]['num_extruders'] = len(self.tools)
-        str["system"]["extruders"]={}
-        str["system"]["hubs"] = {}
-        str["system"]["buffers"] = {}
-        str["current_toolchange"]       = self.current_toolchange
-        str["number_of_toolchanges"]    = self.number_of_toolchanges
+        str["system"]['num_units']              = len(self.units)
+        str["system"]['num_lanes']              = numoflanes
+        str["system"]['num_extruders']          = len(self.tools)
+        str["system"]['spoolman']               = self.spoolman
+        str["system"]["current_toolchange"]     = self.current_toolchange
+        str["system"]["number_of_toolchanges"]  = self.number_of_toolchanges
+        str["system"]["extruders"]              = {}
+        str["system"]["hubs"]                   = {}
+        str["system"]["buffers"]                = {}
 
         for extruder in self.tools.values():
             str["system"]["extruders"][extruder.name] = extruder.get_status()

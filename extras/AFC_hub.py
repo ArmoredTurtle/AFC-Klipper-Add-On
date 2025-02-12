@@ -36,7 +36,7 @@ class afc_hub:
 
         self.move_dis = config.getfloat("move_dis", 50)
 
-        self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 50)
+        self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 25)
         self.assisted_retract = config.getboolean("assisted_retract", False) # if True, retracts are assisted to prevent loose windings on the spool
         self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
         self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
