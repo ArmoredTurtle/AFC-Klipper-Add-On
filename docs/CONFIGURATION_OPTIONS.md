@@ -44,6 +44,7 @@
 - `trsync_update` (default: `False`): Set to true to enable updating trsync value in klipper mcu. Enabling this and updating the timeouts can help with Timer Too Close(TTC) errors
 - `trsync_timeout` (default: `0.05`): Timeout value to update in klipper mcu. Klippers default value is 0.025
 - `trsync_single_timeout` (default: `0.5`): Single timeout value to update in klipper mcu. Klippers default value is 0.250
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool
 
 ## AFC_buffer
 - `enable_sensors_in_gui` (default: `False`): Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
@@ -99,6 +100,7 @@
 - `assist_max_motor_rpm` (default: `500`): Max motor RPM
 - `rwd_speed_multiplier` (default: `0.5`): Multiplier to apply to rpm
 - `fwd_speed_multiplier` (default: `0.5`): Multiplier to apply to rpm
+- `assisted_unload` (default: `None`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
 ## AFC_BoxTurtle
 - `hub` (default: `None`): Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
@@ -117,6 +119,7 @@
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_move_dis` (default: `400`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
 - `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
 
 ## AFC_NightOwl
 - `hub` (default: `None`): Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
@@ -134,3 +137,4 @@
 - `short_moves_speed` (default: `25`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_move_dis` (default: `400`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
