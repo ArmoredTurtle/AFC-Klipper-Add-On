@@ -162,8 +162,8 @@ remove_afc_version() {
 }
 
 remove_vars_tool_file() {
-  if [ -f "${afc_config_dir}/AFC.vars.tool" ]; then
-    rm "${afc_config_dir}/AFC.vars.tool"
+  if [ -f "${afc_config_dir}/AFC.var.tool" ]; then
+    rm "${afc_config_dir}/AFC.var.tool"
   fi
 }
 
