@@ -6,6 +6,7 @@
 
 import math
 import chelper
+from contextlib import contextmanager
 from kinematics import extruder
 from . import AFC_assist
 from configfile import error
@@ -110,6 +111,8 @@ class AFCExtruderStepper:
         self.load_to_hub        = config.getboolean("load_to_hub", self.AFC.load_to_hub) # Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
         self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
         self.sensor_to_show     = config.get("sensor_to_show", None)                   # Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
+
+        self.assisted_unload = config.getboolean("assisted_unload", None) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
 
@@ -285,6 +288,8 @@ class AFCExtruderStepper:
         if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis
         if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
 
+        if self.assisted_unload is None: self.assisted_unload = self.unit_obj.assisted_unload
+
         # Send out event so that macros and be registered properly with valid lane names
         self.printer.send_event("afc_stepper:register_macros", self)
 
@@ -334,6 +339,34 @@ class AFCExtruderStepper:
         toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
 
+    @contextmanager
+    def assist_move(self, speed, rewind, assist_active=True):
+        """
+        Starts an assist move and returns a context manager that turns off the assist move when it exist.
+        :param speed:         The speed of the move
+        :param rewind:        True for a rewind, False for a forward assist
+        :param assist_active: Whether to assist
+        :return:              the Context manager
+        """
+        if assist_active:
+            if rewind:
+                # Calculate Rewind Speed
+                value = self.calculate_pwm_value(speed, True) * -1
+            else:
+                # Calculate Forward Assist Speed
+                value = self.calculate_pwm_value(speed)
+
+            # Clamp value to a maximum of 1
+            if value > 1:
+                value = 1
+
+            self.assist(value)
+        try:
+            yield
+        finally:
+            if assist_active:
+                self.assist(0)
+
     def _move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -347,38 +380,27 @@ class AFCExtruderStepper:
 
         if assist_active:
             self.update_remaining_weight(distance)
-            if distance < 0:
-                # Calculate Rewind Speed
-                value = self.calculate_pwm_value(speed, True) * -1
-            else:
-                # Calculate Forward Assist Speed
-                value = self.calculate_pwm_value(speed)
 
-            # Clamp value to a maximum of 1
-            if value > 1:
-                value = 1
-            self.assist(value)  # Activate assist motor with calculated value
-
-        toolhead = self.printer.lookup_object('toolhead')
-        toolhead.flush_step_generation()
-        prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
-        prev_trapq = self.extruder_stepper.stepper.set_trapq(self.trapq)
-        self.extruder_stepper.stepper.set_position((0., 0., 0.))
-        axis_r, accel_t, cruise_t, cruise_v = calc_move_time(distance, speed, accel)
-        print_time = toolhead.get_last_move_time()
-        self.trapq_append(self.trapq, print_time, accel_t, cruise_t, accel_t,
-                          0., 0., 0., axis_r, 0., 0., 0., cruise_v, accel)
-        print_time = print_time + accel_t + cruise_t + accel_t
-        self.extruder_stepper.stepper.generate_steps(print_time)
-        self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
-                                  print_time + 99999.9)
-        self.extruder_stepper.stepper.set_trapq(prev_trapq)
-        self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
-        toolhead.note_mcu_movequeue_activity(print_time)
-        toolhead.dwell(accel_t + cruise_t + accel_t)
-        toolhead.flush_step_generation()
-        toolhead.wait_moves()
-        if assist_active: self.assist(0)
+        with self.assist_move(speed, distance < 0, assist_active):
+            toolhead = self.printer.lookup_object('toolhead')
+            toolhead.flush_step_generation()
+            prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
+            prev_trapq = self.extruder_stepper.stepper.set_trapq(self.trapq)
+            self.extruder_stepper.stepper.set_position((0., 0., 0.))
+            axis_r, accel_t, cruise_t, cruise_v = calc_move_time(distance, speed, accel)
+            print_time = toolhead.get_last_move_time()
+            self.trapq_append(self.trapq, print_time, accel_t, cruise_t, accel_t,
+                              0., 0., 0., axis_r, 0., 0., 0., cruise_v, accel)
+            print_time = print_time + accel_t + cruise_t + accel_t
+            self.extruder_stepper.stepper.generate_steps(print_time)
+            self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
+                                      print_time + 99999.9)
+            self.extruder_stepper.stepper.set_trapq(prev_trapq)
+            self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
+            toolhead.note_mcu_movequeue_activity(print_time)
+            toolhead.dwell(accel_t + cruise_t + accel_t)
+            toolhead.flush_step_generation()
+            toolhead.wait_moves()
 
     def move(self, distance, speed, accel, assist_active=False):
 

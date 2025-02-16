@@ -44,6 +44,8 @@ class afcUnit:
         self.short_move_dis     = config.getfloat("short_move_dis",  self.AFC.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
         self.max_move_dis       = config.getfloat("max_move_dis", self.AFC.max_move_dis)            # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
 
+        self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+
     def handle_connect(self):
         """
         Handles klippy:connect event, and does error checking to make sure users have hub/extruder/buffers sections if these variables are defined at the unit level

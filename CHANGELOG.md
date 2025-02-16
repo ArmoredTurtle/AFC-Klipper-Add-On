@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-13]
+
+### Added
+- Assisted unload  
+  When enabled, the retracts out of the toolhead before the long, fast move back throught the bowden tube is assisted.
+  This helps with full spools where even a retract of a few centimeters can cause a loop to fall off the spool.
+
 ## [2025-02-04]
 
 ### Changed

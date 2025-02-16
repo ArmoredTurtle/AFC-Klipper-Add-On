@@ -129,15 +129,17 @@ class afc:
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)# Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks = config.getint('tool_max_load_checks', 4)        # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 
-        self.z_hop =config.getfloat("z_hop", 0)                                     # Height to move up before and after a tool change completes
-        self.xy_resume =config.getboolean("xy_resume", False)                       # Need description or remove as this is currently an unused variable
-        self.resume_speed =config.getfloat("resume_speed", 0)                       # Speed mm/s of resume move. Set to 0 to use gcode speed
+        self.z_hop = config.getfloat("z_hop", 0)                                     # Height to move up before and after a tool change completes
+        self.xy_resume = config.getboolean("xy_resume", False)                       # Need description or remove as this is currently an unused variable
+        self.resume_speed = config.getfloat("resume_speed", 0)                       # Speed mm/s of resume move. Set to 0 to use gcode speed
         self.resume_z_speed = config.getfloat("resume_z_speed", 0)                  # Speed mm/s of resume move in Z. Set to 0 to use gcode speed
 
         self.global_print_current = config.getfloat("global_print_current", None)   # Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly
 
         self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", False) # Set to True to show all sensor switches as filament sensors in mainsail/fluidd gui
-        self.load_to_hub        = config.getboolean("load_to_hub", True)            # Fast loads filament to hub when inserted, set to False to disable. This is a global setting and can be overridden at AFC_stepper
+        self.load_to_hub = config.getboolean("load_to_hub", True)            # Fast loads filament to hub when inserted, set to False to disable. This is a global setting and can be overridden at AFC_stepper
+        self.assisted_unload = config.getboolean("assisted_unload", False)   # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool
+
         self._update_trsync(config)
 
         # Get debug and cast to boolean
@@ -851,8 +853,9 @@ class afc:
             CUR_LANE.sync_to_extruder(False)
             pos = self.toolhead.get_position()
             pos[3] -= CUR_EXTRUDER.tool_stn_unload
-            self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
-            self.toolhead.wait_moves()
+            with CUR_LANE.assist_move(CUR_EXTRUDER.tool_unload_speed, True, CUR_LANE.assisted_unload):
+                self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
+                self.toolhead.wait_moves()
         else:
             while CUR_LANE.get_toolhead_sensor_state():
                 num_tries += 1
@@ -864,15 +867,17 @@ class afc:
                 CUR_LANE.sync_to_extruder()
                 pos = self.toolhead.get_position()
                 pos[3] -= CUR_EXTRUDER.tool_stn_unload
-                self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
-                self.toolhead.wait_moves()
+                with CUR_LANE.assist_move(CUR_EXTRUDER.tool_unload_speed, True, CUR_LANE.assisted_unload):
+                    self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
+                    self.toolhead.wait_moves()
 
         # Move filament past the sensor after the extruder, if applicable.
         if CUR_EXTRUDER.tool_sensor_after_extruder > 0:
             pos = self.toolhead.get_position()
             pos[3] -= CUR_EXTRUDER.tool_sensor_after_extruder
-            self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
-            self.toolhead.wait_moves()
+            with CUR_LANE.assist_move(CUR_EXTRUDER.tool_unload_speed, True, CUR_LANE.assisted_unload):
+                self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
+                self.toolhead.wait_moves()
         self.save_vars()
         # Synchronize and move filament out of the hub.
         CUR_LANE.unsync_to_extruder()
