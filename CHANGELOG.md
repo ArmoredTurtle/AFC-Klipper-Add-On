@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated the `install-afc.sh` script to prompt the user to install dependencies if they are not already installed instead of installing them automatically.
 
+## [2025-02-13]
+
+### Changed
+- The `install-afc.sh` install script will now remove the `AFC.var.tool` file if detected as it is no longer needed.
+
 ## [2025-02-04]
 
 ### Changed
