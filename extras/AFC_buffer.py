@@ -89,6 +89,8 @@ class AFCtrigger:
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.gcode.register_mux_command("QUERY_BUFFER",         "BUFFER", self.name, self.cmd_QUERY_BUFFER,         desc=self.cmd_QUERY_BUFFER_help)
         self.gcode.register_mux_command("SET_BUFFER_VELOCITY",  "BUFFER", self.name, self.cmd_SET_BUFFER_VELOCITY,  desc=self.cmd_SET_BUFFER_VELOCITY_help)
+        self.gcode.register_mux_command("ENABLE_BUFFER",        "BUFFER", self.name, self.cmd_ENABLE_BUFFER)
+        self.gcode.register_mux_command("DISABLE_BUFFER",       "BUFFER", self.name, self.cmd_DISABLE_BUFFER)
 
         # Belay Buffer
         if self.belay:
@@ -107,12 +109,18 @@ class AFCtrigger:
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
 
+        if self.led_index is not None:
+            # Verify that LED config is found
+            error_string, led = self.AFC.FUNCTION.verify_led_object(self.led_index)
+            if led is None:
+                raise error(error_string)
+
      # Belay Call back
     def belay_sensor_callback(self, eventime, state):
         if not self.last_state and state:
             if self.printer.state_message == 'Printer is ready' and self.enable:
-                if self.AFC.current is not None:
-                    CUR_LANE = self.AFC.lanes[self.AFC.current]
+                CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
+                if CUR_LANE is not None:
                     CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
                     if CUR_EXTRUDER.tool_start_state:
                         self.belay_move_lane(state)
@@ -120,10 +128,10 @@ class AFCtrigger:
 
     def belay_move_lane(self, state):
         if not self.enable: return
-        if self.AFC.current is None: return
+        LANE = self.AFC.FUNCTION.get_current_lane_obj()
+        if self.LANE is None: return
 
         if state:
-            LANE = self.AFC.lanes[self.AFC.current]
             if LANE.status != 'unloading':
                 if self.debug: self.gcode.respond_info("Buffer Triggered, Moving Lane {} forward {}mm".format(LANE.name, self.buffer_distance))
                 LANE.move(self.buffer_distance, self.velocity ,self.accel)
@@ -156,9 +164,9 @@ class AFCtrigger:
     # Turtleneck commands
     def set_multiplier(self, multiplier):
         if not self.enable: return
-        if self.AFC.current is None: return
+        cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+        if cur_stepper is None: return
 
-        cur_stepper = self.AFC.lanes[self.AFC.current]
         cur_stepper.update_rotation_distance( multiplier )
         if multiplier > 1:
             self.last_state = TRAILING_STATE_NAME
@@ -170,20 +178,23 @@ class AFCtrigger:
                 self.AFC.FUNCTION.afc_led(self.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
-            self.gcode.respond_info("New rotation distance after applying factor: {}".format(stepper.get_rotation_distance()[0]))
+            self.gcode.respond_info("New rotation distance after applying factor: {:.4f}".format(stepper.get_rotation_distance()[0]))
 
     def reset_multiplier(self):
         if self.debug: self.gcode.respond_info("Buffer multiplier reset")
 
-        cur_stepper = self.AFC.lanes[self.AFC.current]
+        cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+        if cur_stepper is None: return
+
         cur_stepper.update_rotation_distance( 1 )
-        self.gcode.respond_info("Rotation distance reset : {}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
+        self.gcode.respond_info("Rotation distance reset : {:.4f}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
 
     def advance_callback(self, eventime, state):
         self.advance_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
-            CUR_LANE = self.AFC.lanes[self.AFC.current]
-            if self.AFC.current != None and state:
+            CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
+
+            if CUR_LANE != None and state:
                 CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
                 self.reactor.pause(self.reactor.monotonic() + 1)
                 CUR_LANE.assist(0)
@@ -194,8 +205,9 @@ class AFCtrigger:
     def trailing_callback(self, eventime, state):
         self.trailing_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
-            CUR_LANE = self.AFC.lanes[self.AFC.current]
-            if self.AFC.current != None and state:
+            CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
+
+            if CUR_LANE != None and state:
                 CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
                 self.reactor.pause(self.reactor.monotonic() + 1)
                 CUR_LANE.assist(0)
@@ -234,7 +246,8 @@ class AFCtrigger:
             None
         """
         if self.turtleneck:
-            if self.AFC.current != None and self.enable:
+            cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+            if cur_stepper != None and self.enable:
                 chg_multiplier = gcmd.get('MULTIPLIER', None)
                 if chg_multiplier == None:
                     self.gcode.respond_info("Multiplier must be provided, HIGH or LOW")
@@ -282,7 +295,8 @@ class AFCtrigger:
             back through the G-code interface.
         """
         if self.turtleneck:
-            if self.AFC.current != None and self.enable:
+            cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+            if cur_stepper != None and self.enable:
                 change_factor = gcmd.get_float('FACTOR', 1.0)
                 if change_factor <= 0:
                     self.gcode.respond_info("FACTOR must be greater than 0")
@@ -323,10 +337,10 @@ class AFCtrigger:
         state_info += state_mapping.get(state_info, '')
         if self.turtleneck:
             if self.enable:
-                LANE = self.AFC.lanes[self.AFC.current]
+                LANE = self.AFC.FUNCTION.get_current_lane_obj()
                 stepper = LANE.extruder_stepper.stepper
                 rotation_dist = stepper.get_rotation_distance()[0]
-                state_info += ("\n{} Rotation distance: {}".format(LANE.name, rotation_dist))
+                state_info += ("\n{} Rotation distance: {:.4f}".format(LANE.name, rotation_dist))
 
         self.gcode.respond_info("{} : {}".format(self.name, state_info))
 
@@ -349,10 +363,17 @@ class AFCtrigger:
         self.velocity = gcmd.get_float('VELOCITY', 0.0)
         self.gcode.respond_info("VELOCITY for {} was updated from {} to {}".format(self.name, old_velocity, self.velocity))
 
+    def cmd_ENABLE_BUFFER(self, gcmd):
+        self.enable_buffer()
+
+    def cmd_DISABLE_BUFFER(self, gcmd):
+        self.disable_buffer()
+
     def get_status(self, eventtime=None):
         self.response = {}
         self.response['state'] = self.last_state
         self.response['lanes'] = [lane.name for lane in self.lanes.values()]
+        self.response['enabled'] = self.enable
         return self.response
 
 def load_config_prefix(config):

@@ -276,8 +276,7 @@ class afcSpool:
     def cmd_SET_RUNOUT(self, gcmd):
         """
         This function handles setting the runout lane (infinite spool) for a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and updates its the lane to use if filament is empty
-        based on the information retrieved from the Spoolman API.
+        specified by the 'LANE' parameter and updates its the lane to use if filament runs out by untriggering prep sensor
 
         Usage: `SET_RUNOUT LANE=<lane> RUNOUT=<lane>`
         Example: `SET_RUNOUT LANE=lane1 RUNOUT=lane4`

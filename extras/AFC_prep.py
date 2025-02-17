@@ -74,7 +74,9 @@ class afcPrep:
             self.AFC.tools[PrinterObject.name]=PrinterObject
             if 'system' in units:
                 # Check to see if lane_loaded is in dictionary and its its not an empty string
-                if 'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
+                if PrinterObject.name in units["system"]["extruders"] and \
+                  'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and \
+                  units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
                     PrinterObject.lane_loaded = units["system"]["extruders"][PrinterObject.name]['lane_loaded']
                     self.AFC.current = PrinterObject.lane_loaded
 
@@ -86,7 +88,7 @@ class afcPrep:
             if CUR_LANE.unit in units:
                 if CUR_LANE.name in units[CUR_LANE.unit]:
                     if 'spool_id' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.spool_id = units[CUR_LANE.unit][CUR_LANE.name]['spool_id']
-                    if self.AFC.spoolman !=None and CUR_LANE.spool_id:
+                    if self.AFC.spoolman != None and CUR_LANE.spool_id:
                         self.AFC.SPOOL.set_spoolID(CUR_LANE, CUR_LANE.spool_id, save_vars=False)
                     else:
                         if 'material' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.material = units[CUR_LANE.unit][CUR_LANE.name]['material']
@@ -102,7 +104,6 @@ class afcPrep:
                     # Check for loaded_to_hub as this is how its being saved version > 1030
                     if 'loaded_to_hub' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['loaded_to_hub']
                     if 'tool_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.tool_loaded = units[CUR_LANE.unit][CUR_LANE.name]['tool_loaded']
-                    if 'status' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.status = units[CUR_LANE.unit][CUR_LANE.name]['status']
 
         for UNIT in self.AFC.units.keys():
             try: CUR_UNIT = self.AFC.units[UNIT]
@@ -143,7 +144,7 @@ class afcPrep:
         # Setting value to False so the T commands don't try to get reassigned when users manually
         #   run PREP after it has already be ran once upon boot
         self.assignTcmd = False
-
+        self.AFC.prep_done = True
         self.AFC.save_vars()
 
 def load_config(config):

@@ -54,6 +54,237 @@ class afcFunction:
         self.AFC.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
         self.AFC.gcode.register_command('ALL_CALIBRATION', self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
 
+    def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
+        taskdone = False
+        sectionfound = False
+        # Creating regex pattern based off rawsection
+        pattern = re.compile("^\[\s*{}\s*\]".format(rawsection))
+        for filename in os.listdir(self.AFC.cfgloc):
+            file_path = os.path.join(self.AFC.cfgloc, filename)
+            if os.path.isfile(file_path) and filename.endswith(".cfg"):
+                with open(file_path, 'r') as f:
+                    dataout = ''
+                    for line in f:
+                        # If previous section found and line starts with bracket, means that this line is another section
+                        #  need to put sectionfound to false to not update wrong sections if rawkey is not found
+                        if sectionfound and line.startswith("["): sectionfound = False
+
+                        if re.match(pattern, line) is not None: sectionfound = True
+                        if sectionfound == True and line.startswith(rawkey):
+                            comments = ""
+                            try:
+                                comments = line.index('#')
+                            except:
+                                pass
+                            line = "{}: {}{}\n".format(rawkey, rawvalue, comments )
+                            sectionfound = False
+                            taskdone = True
+                        dataout += line
+                if taskdone:
+                    f=open(file_path, 'w')
+                    f.write(dataout)
+                    f.close
+                    taskdone = False
+                    msg +='\n<span class=info--text>Saved {}:{} in {} section to configuration file</span>'.format(rawkey, rawvalue, rawsection)
+                    self.AFC.gcode.respond_info(msg)
+                    return
+        msg +='\n<span class=info--text>Key {} not found in section {}, cannot update</span>'.format(rawkey, rawsection)
+        self.AFC.gcode.respond_info(msg)
+
+    def TcmdAssign(self, CUR_LANE):
+        if CUR_LANE.map == 'NONE' :
+            for x in range(99):
+                cmd = 'T'+str(x)
+                if cmd not in self.AFC.tool_cmds:
+                    CUR_LANE.map = cmd
+                    break
+        self.AFC.tool_cmds[CUR_LANE.map]=CUR_LANE.name
+        try:
+            self.AFC.gcode.register_command(CUR_LANE.map, self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
+        except:
+            self.AFC.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=CUR_LANE.map), )
+        self.AFC.save_vars()
+
+    def is_homed(self):
+        """
+        Helper function to determine if printer is currently homed
+
+        :return boolean: True if xyz is homed
+        """
+        curtime = self.AFC.reactor.monotonic()
+        kin_status = self.AFC.toolhead.get_kinematics().get_status(curtime)
+        if ('x' not in kin_status['homed_axes'] or 'y' not in kin_status['homed_axes'] or 'z' not in kin_status['homed_axes']):
+            return False
+        else:
+            return True
+
+    def is_moving(self):
+        '''
+        Helper function to return if the printer is moving or not. This is different from `is_printing` as it will return true if anything in the printer is moving.
+
+        :return boolean: True if anything in the printer is moving
+        '''
+        eventtime = self.AFC.reactor.monotonic()
+        idle_timeout = self.printer.lookup_object("idle_timeout")
+        return idle_timeout.get_status(eventtime)["state"] == "Printing"
+
+    def in_print(self):
+        """
+        Helper function to help determine if printer is in a print by checking print_stats object. Printer is printing if state is not in standby or error
+
+        :return boolean: True if state is not standby or error
+        """
+        print_stats_idle_states = ['standby', 'error']
+        eventtime = self.AFC.reactor.monotonic()
+        print_stats = self.printer.lookup_object("print_stats")
+        print_state = print_stats.get_status(eventtime)["state"]
+        return print_state not in print_stats_idle_states
+
+    def is_printing(self, check_movement=False):
+        '''
+        Helper function to return if the printer is printing an object.
+
+        :param check_movement: When set to True will also return True if anything in the printer is also moving
+
+        :return boolean: True if printer is printing an object or if printer is moving when `check_movement` is True
+        '''
+        eventtime = self.AFC.reactor.monotonic()
+        print_stats = self.printer.lookup_object("print_stats")
+        moving = False
+
+        if check_movement:
+            moving = self.is_moving()
+
+        return print_stats.get_status(eventtime)["state"] == "printing" or moving
+
+    def is_paused(self):
+        """
+        Helper function that returns true if printer is currently paused
+
+        :return boolean: True when printer is paused
+        """
+        eventtime = self.AFC.reactor.monotonic()
+        pause_resume = self.printer.lookup_object("pause_resume")
+        return bool(pause_resume.get_status(eventtime)["is_paused"])
+
+    def get_current_lane(self):
+        """
+        Helper function to lookup current lane name loaded into active toolhead
+
+        :return string: Current lane name that is loaded, None if nothing is loaded
+        """
+        if self.printer.state_message == 'Printer is ready':
+            current_extruder = self.AFC.toolhead.get_extruder().name
+            if current_extruder in self.AFC.tools:
+                return self.AFC.tools[current_extruder].lane_loaded
+        return None
+
+    def get_current_lane_obj(self):
+        """
+        Helper function to lookup and return current lane object that is loaded into the active toolhead
+
+        :return object: None if nothing is loaded, AFC_stepper object if a lane is currently loaded
+        """
+        curr_lane_obj = None
+        curr_lane = self.get_current_lane()
+        if curr_lane in self.AFC.lanes:
+            curr_lane_obj = self.AFC.lanes[curr_lane]
+        return curr_lane_obj
+
+    def verify_led_object(self, led_name):
+        """
+        Helper function to lookup AFC_led object.
+
+        :params led_name: name of AFC_led object to lookup
+
+        :return (string, object): error_string if AFC_led object is not found, led object if found
+        """
+        error_string = ""
+        led = None
+        afc_object = 'AFC_led '+ led_name.split(':')[0]
+        try:
+            led = self.printer.lookup_object(afc_object)
+        except:
+            error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, led_name.split(':')[-1])
+        return error_string, led
+
+    def afc_led (self, status, idx=None):
+        if idx == None:
+            return
+
+        error_string, led = self.verify_led_object(idx)
+        if led is not None:
+            led.led_change(int(idx.split(':')[1]), status)
+        else:
+            self.AFC.gcode.respond_info( error_string )
+
+    def get_filament_status(self, CUR_LANE):
+        if CUR_LANE.prep_state:
+            if CUR_LANE.load_state:
+                if CUR_LANE.extruder_obj is not None and CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
+                    return 'In Tool:' + self.HexConvert(CUR_LANE.led_tool_loaded).split(':')[-1]
+                return "Ready:" + self.HexConvert(CUR_LANE.led_ready).split(':')[-1]
+            return 'Prep:' + self.HexConvert(CUR_LANE.led_prep_loaded).split(':')[-1]
+        return 'Not Ready:' + self.HexConvert(CUR_LANE.led_not_ready).split(':')[-1]
+
+    def handle_activate_extruder(self):
+        """
+        Function used to deactivate lanes motors and buffers, then enables current extruders lane
+
+        This will also be tied to a callback once multiple extruders are implemented
+        """
+        cur_lane_loaded = self.get_current_lane_obj()
+
+        # Disable extruder steppers for non active lanes
+        for key, obj in self.AFC.lanes.items():
+            if cur_lane_loaded is None or key != cur_lane_loaded.name:
+                obj.do_enable(False)
+                obj.disable_buffer()
+                self.afc_led(obj.led_ready, obj.led_index)
+
+        # Exit early if lane is None
+        if cur_lane_loaded is None:
+            self.AFC.SPOOL.set_active_spool('')
+            return
+
+        # Switch spoolman ID
+        self.AFC.SPOOL.set_active_spool(cur_lane_loaded.spool_id)
+        # Set lanes tool loaded led
+        self.afc_led(cur_lane_loaded.led_tool_loaded, cur_lane_loaded.led_index)
+        # Enable stepper
+        cur_lane_loaded.do_enable(True)
+        # Enable buffer
+        cur_lane_loaded.enable_buffer()
+
+    def unset_lane_loaded(self):
+        """
+        Helper function to get current lane and unsync lane from toolhead extruder
+        """
+        cur_lane_loaded = self.get_current_lane_obj()
+        if cur_lane_loaded is not None:
+            cur_lane_loaded.unsync_to_extruder()
+            cur_lane_loaded.set_unloaded()
+            self.AFC.FUNCTION.handle_activate_extruder()
+            self.AFC.gcode.respond_info("Manually removing {} loaded from toolhead".format(cur_lane_loaded.name))
+            self.AFC.save_vars()
+
+    def HexConvert(self,tmp):
+        led=tmp.split(',')
+        if float(led[0])>0:
+            led[0]=int(255*float(led[0]))
+        else:
+            led[0]=0
+        if float(led[1])>0:
+            led[1]=int(255*float(led[1]))
+        else:
+            led[1]=0
+        if float(led[2])>0:
+            led[2]=int(255*float(led[2]))
+        else:
+            led[2]=0
+
+        return '#{:02x}{:02x}{:02x}'.format(*led)
+
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
         """
@@ -142,7 +373,7 @@ class afcFunction:
         lanes  = gcmd.get(      'LANE'     , None)
         unit   = gcmd.get(      'UNIT'     , None)
 
-        if self.AFC.current is not None:
+        if self.AFC.current is not None and afc_bl is not None:
             self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
             return
 
@@ -192,9 +423,11 @@ class afcFunction:
                         checked, msg = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
                         if(not checked): return
                         cal_msg += msg
-        else:
-            cal_msg +='No lanes selected to calibrate dist_hub'
 
+            self.AFC.gcode.respond_info("Lane calibration Done!")
+
+        else:
+            self.AFC.gcode.respond_info('No lanes selected to calibrate dist_hub')
 
         # Calibrate Bowden length with specified lane
         if afc_bl is not None:
@@ -203,136 +436,7 @@ class afcFunction:
             cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
             CUR_LANE=self.AFC.lanes[afc_bl]
             CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
-
-    def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
-        taskdone = False
-        sectionfound = False
-        # Creating regex pattern based off rawsection
-        pattern = re.compile("^\[\s*{}\s*\]".format(rawsection))
-        for filename in os.listdir(self.AFC.cfgloc):
-            file_path = os.path.join(self.AFC.cfgloc, filename)
-            if os.path.isfile(file_path) and filename.endswith(".cfg"):
-                with open(file_path, 'r') as f:
-                    dataout = ''
-                    for line in f:
-                        # If previous section found and line starts with bracket, means that this line is another section
-                        #  need to put sectionfound to false to not update wrong sections if rawkey is not found
-                        if sectionfound and line.startswith("["): sectionfound = False
-
-                        if re.match(pattern, line) is not None: sectionfound = True
-                        if sectionfound == True and line.startswith(rawkey):
-                            comments = ""
-                            try:
-                                comments = line.index('#')
-                            except:
-                                pass
-                            line = "{}: {}{}\n".format(rawkey, rawvalue, comments )
-                            sectionfound = False
-                            taskdone = True
-                        dataout += line
-                if taskdone:
-                    f=open(file_path, 'w')
-                    f.write(dataout)
-                    f.close
-                    taskdone = False
-                    msg +='\n<span class=info--text>Saved {}:{} in {} section to configuration file</span>'.format(rawkey, rawvalue, rawsection)
-                    self.AFC.gcode.respond_info(msg)
-                    return
-        msg +='\n<span class=info--text>Key {} not found in section {}, cannot update</span>'.format(rawkey, rawsection)
-        self.AFC.gcode.respond_info(msg)
-
-    def TcmdAssign(self, CUR_LANE):
-        if CUR_LANE.map == 'NONE' :
-            for x in range(99):
-                cmd = 'T'+str(x)
-                if cmd not in self.AFC.tool_cmds:
-                    CUR_LANE.map = cmd
-                    break
-        self.AFC.tool_cmds[CUR_LANE.map]=CUR_LANE.name
-        try:
-            self.AFC.gcode.register_command(CUR_LANE.map, self.AFC.cmd_CHANGE_TOOL, desc=self.AFC.cmd_CHANGE_TOOL_help)
-        except:
-            self.AFC.gcode.respond_info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[CUR_LANE.name], tool_macro=CUR_LANE.map), )
-        self.AFC.save_vars()
-
-    def is_homed(self):
-        curtime = self.AFC.reactor.monotonic()
-        kin_status = self.AFC.toolhead.get_kinematics().get_status(curtime)
-        if ('x' not in kin_status['homed_axes'] or 'y' not in kin_status['homed_axes'] or 'z' not in kin_status['homed_axes']):
-            return False
-        else:
-            return True
-
-    def is_moving(self):
-        '''
-        Helper function to return if the printer is moving or not. This is different from `is_printing` as it will return true if anything in the printer is moving.
-
-        :return boolean: True if anything in the printer is moving
-        '''
-        eventtime = self.AFC.reactor.monotonic()
-        idle_timeout = self.printer.lookup_object("idle_timeout")
-        return idle_timeout.get_status(eventtime)["state"] == "Printing"
-
-    def is_printing(self, check_movement=False):
-        '''
-        Helper function to return if the printer is printing an object.
-
-        :param check_movement: When set to True will also return True if anything in the printer is also moving
-
-        :return boolean: True if printer is printing an object or if printer is moving when `check_movement` is True
-        '''
-        eventtime = self.AFC.reactor.monotonic()
-        print_stats = self.printer.lookup_object("print_stats")
-        moving = False
-
-        if check_movement:
-            moving = self.is_moving()
-
-        return print_stats.get_status(eventtime)["state"] == "printing" or moving
-
-    def is_paused(self):
-        eventtime = self.AFC.reactor.monotonic()
-        pause_resume = self.printer.lookup_object("pause_resume")
-        return bool(pause_resume.get_status(eventtime)["is_paused"])
-
-    def afc_led (self, status, idx=None):
-        if idx == None:
-            return
-        # Try to find led object, if not found print error to console for user to see
-        afc_object = 'AFC_led '+ idx.split(':')[0]
-        try:
-            led = self.printer.lookup_object(afc_object)
-            led.led_change(int(idx.split(':')[1]), status)
-        except:
-            error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
-            self.AFC.gcode.respond_info( error_string)
-        led.led_change(int(idx.split(':')[1]), status)
-
-    def get_filament_status(self, CUR_LANE):
-        if CUR_LANE.prep_state:
-            if CUR_LANE.load_state:
-                if CUR_LANE.extruder_obj is not None and CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
-                    return 'In Tool:' + self.HexConvert(CUR_LANE.led_tool_loaded).split(':')[-1]
-                return "Ready:" + self.HexConvert(CUR_LANE.led_ready).split(':')[-1]
-            return 'Prep:' + self.HexConvert(CUR_LANE.led_prep_loaded).split(':')[-1]
-        return 'Not Ready:' + self.HexConvert(CUR_LANE.led_not_ready).split(':')[-1]
-
-    def HexConvert(self,tmp):
-        led=tmp.split(',')
-        if float(led[0])>0:
-            led[0]=int(255*float(led[0]))
-        else:
-            led[0]=0
-        if float(led[1])>0:
-            led[1]=int(255*float(led[1]))
-        else:
-            led[1]=0
-        if float(led[2])>0:
-            led[2]=int(255*float(led[2]))
-        else:
-            led[2]=0
-
-        return '#{:02x}{:02x}{:02x}'.format(*led)
+            self.AFC.gcode.respond_info("Bowden length calibration Done!")
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
