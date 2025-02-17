@@ -127,8 +127,9 @@ restart_klipper() {
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
     update_afc_version "$current_install_version"
-  restart_klipper
+    restart_klipper
   fi
+  remove_vars_tool_file
   exit 0
 }
 
@@ -158,6 +159,12 @@ update_afc_version() {
 
 remove_afc_version() {
   curl -s -XDELETE "localhost/server/database/item?namespace=afc-install&key=version" > /dev/null
+}
+
+remove_vars_tool_file() {
+  if [ -f "${afc_config_dir}/*.tool" ]; then
+    rm "${afc_config_dir}/*.tool"
+  fi
 }
 
 stop_service() {

@@ -89,7 +89,7 @@ class afcBoxTurtle(afcUnit):
                             CUR_LANE.enable_buffer()
                         else:
                             if CUR_LANE.get_toolhead_sensor_state() == True:
-                                msg +="<span class=error--text> error in ToolHead. \nLane identified as loaded in AFC.vars.unit file\n but not identified as loaded in AFC.var.tool file</span>"
+                                msg +="<span class=error--text> error in ToolHead. \nLane identified as loaded \n but not identified as loaded in extruder</span>"
                                 succeeded = False
                     else:
                         lane_check=self.AFC.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
