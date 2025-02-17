@@ -42,11 +42,12 @@ while getopts "k:s:m:b:p:u:th" arg; do
   esac
 done
 
-
-clear
 # Make sure necessary directories exist
+echo "Ensuring we are not running as root.."
 check_root
+echo "Ensuring no conflicting software is present.."
 check_for_hh
+echo "Checking to ensure crudini and jq are present.."
 check_for_prereqs
 if [ "$test_mode" == "False" ]; then
   clone_repo
@@ -57,5 +58,7 @@ check_version_and_set_force_update
 if [ "$force_update_no_version" == "False" ]; then
   check_version_and_set_force_update
 fi
-
+echo "Starting installation process.."
+sleep 2
+clear
 main_menu
