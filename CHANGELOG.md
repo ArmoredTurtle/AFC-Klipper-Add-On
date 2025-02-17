@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-17]
+
+### Changed
+- Updated the `install-afc.sh` script to prompt the user to install dependencies if they are not already installed instead of installing them automatically.
+
 ## [2025-02-13]
 
 ### Changed
@@ -71,7 +76,7 @@ but the configuration did not display this value. For future installations, this
 - Added `docs/CONFIGURATION_OPTIONS.md` file that describes the different config parameters, still a work in progress
 
 ### Changed
-- AFC-Klipper-Add-On now pulls spoolman ip/port from moonraker.conf file, please remove `spoolman_ip` and `spoolman_port` from `AFC/AFC.cfg` file
+- AFC-Klipper-Add-On now pulls spoolman ip/port from moonracker.conf file, please remove `spoolman_ip` and `spoolman_port` from `AFC/AFC.cfg` file
 
 
 ## [2025-01-11]
