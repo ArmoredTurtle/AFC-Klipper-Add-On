@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-16]
+
+### Added
+- Ability to manually set and unset lanes that are loaded in toolhead
+- Braking to n20 when stopping them. This was advised to implement from Isik to hopefully help reduce backfeeding from motors into MCU board when in coast mode
+- Default temperature value to default_material_temps list instead of using min_temp_val + 5
+- Check for printing for LANE_MOVE, HUB_LOAD and LANE_UNLOAD macros
+- Variable for prep done so save_vars function is not called before running prep function which would override the variables file before PREP could run
+- More guidance to error messages when errors happen during TOOL_LOAD and TOOL_UNLOAD
+- Helper function to get loaded lane for current extruder, help move the code towards working with multiple extruders
+- Debounce logic when triggering prep sensor so that it does not run more than once
+- Variable speed to LANE_MOVE move, run faster for distance over 200
+- Printout when trying to load and load sensor is already triggered
+- More printout to let user know when calibration is done
+- Printout when trying to unload but no lane is loaded
+
+### Changed
+- Updated documentation
+
+### Fixed
+- Error in prep when there are multiple extruders
+- Error when hub was not defined
+
 ## [2025-02-13]
 
 ### Added

@@ -43,8 +43,9 @@ class afcUnit:
         self.short_moves_accel  = config.getfloat("short_moves_accel",  self.AFC.short_moves_accel) # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
         self.short_move_dis     = config.getfloat("short_move_dis",  self.AFC.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
         self.max_move_dis       = config.getfloat("max_move_dis", self.AFC.max_move_dis)            # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
+        self.n20_break_delay_time = config.getfloat("n20_break_delay_time", self.AFC.n20_break_delay_time) # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
 
-        self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+        self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
 
     def handle_connect(self):
         """

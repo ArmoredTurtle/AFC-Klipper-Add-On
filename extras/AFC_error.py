@@ -97,8 +97,12 @@ class afcError:
         self.AFC.current_state = State.ERROR if state else State.IDLE
 
     def AFC_error(self, msg, pause=True):
+        import logging
+        # Print to logger since respond_raw does not write to logger
+        logging.warning(msg)
         # Handle AFC errors
-        self.AFC.gcode._respond_error( msg )
+        for line in msg.split("\n"):
+            self.AFC.gcode.respond_raw( "!! {}".format(line) )
         if pause: self.pause_print()
 
 

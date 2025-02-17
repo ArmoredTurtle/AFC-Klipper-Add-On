@@ -39,11 +39,11 @@ class afc:
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
-        self.SPOOL = self.printer.load_object(config,'AFC_spool')
-        self.ERROR = self.printer.load_object(config,'AFC_error')
-        self.FUNCTION = self.printer.load_object(config,'AFC_functions')
-        self.IDLE = self.printer.load_object(config,'idle_timeout')
-        self.gcode = self.printer.lookup_object('gcode')
+        self.SPOOL      = self.printer.load_object(config,'AFC_spool')
+        self.ERROR      = self.printer.load_object(config,'AFC_error')
+        self.FUNCTION   = self.printer.load_object(config,'AFC_functions')
+        self.IDLE       = self.printer.load_object(config,'idle_timeout')
+        self.gcode      = self.printer.lookup_object('gcode')
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
@@ -53,6 +53,7 @@ class afc:
         self.error_state    = False
         self.current_state  = State.INIT
         self.spoolman       = None
+        self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -84,6 +85,7 @@ class afc:
         self.VarFile = config.get('VarFile','../printer_data/config/AFC/') 			# Path to the variables file for AFC configuration.
         self.cfgloc = self._remove_after_last(self.VarFile,"/")
         self.default_material_temps = config.getlists("default_material_temps", None) # Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
+        self.default_material_temps = list(self.default_material_temps)
 
         #LED SETTINGS
         self.ind_lights = None
@@ -125,6 +127,7 @@ class afc:
         self.short_moves_accel  = config.getfloat("short_moves_accel", 400)         # Acceleration in mm/s squared when doing short moves
         self.short_move_dis     = config.getfloat("short_move_dis", 10)             # Move distance in mm for failsafe moves.
         self.max_move_dis       = config.getfloat("max_move_dis", 999999)           # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
+        self.n20_break_delay_time   = config.getfloat("n20_break_delay_time", 0.200)# Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
 
         self.tool_max_unload_attempts = config.getint('tool_max_unload_attempts', 2)# Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks = config.getint('tool_max_load_checks', 4)        # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
@@ -212,6 +215,7 @@ class afc:
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
+        self.gcode.register_command('UNSET_LANE_LOADED',    self.cmd_UNSET_LANE_LOADED,     desc=self.cmd_UNSET_LANE_LOADED_help)
         self.current_state = State.IDLE
 
     def print_version(self):
@@ -238,7 +242,12 @@ class afc:
         :return truple : float for temperature to heat extruder to,
                          bool True if user is using min_extruder_temp value
         """
-        temp_value = self.heater.min_extrude_temp + 5
+        try:
+            # Try to get default value from list, if it does not exist then default to min_extrude_temp + 5
+            temp_value = [val for val in self.default_material_temps if 'default' in val][0].split(":")[1]
+        except:
+            temp_value = self.heater.min_extrude_temp + 5
+
         using_min_value = True  # Set it true if default temp/spoolman temps are not being used
         if CUR_LANE.extruder_temp is not None:
             temp_value = CUR_LANE.extruder_temp
@@ -296,6 +305,25 @@ class afc:
             pass
         return False
 
+    cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
+    def cmd_UNSET_LANE_LOADED(self, gcmd):
+        """
+        Unsets current lane from AFC loaded status. Mainly this would be used if AFC thinks that there is a lane loaded into the toolhead
+        but nothing is actually loaded.
+
+        It retrieves the lane specified by the 'LANE' parameter and set the appropiate values in AFC to continue using the lane.
+
+        Usage: `UNSET_LANE_LOADED`
+        Example: `UNSET_LANE_LOADED`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+
+        Returns:
+            None
+        """
+        self.FUNCTION.unset_lane_loaded()
+
     cmd_SET_AFC_TOOLCHANGES_help = "Sets number of toolchanges for AFC to keep track of"
     def cmd_SET_AFC_TOOLCHANGES(self, gcmd):
         """
@@ -332,6 +360,8 @@ class afc:
         This function handles the manual movement of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
 
+        Distance's lower than 200 moves extruder at short_move_speed/accel, values above 200 move extruder at long_move_speed/accel
+
         Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
         Example: `LANE_MOVE LANE=lane1 DISTANCE=100`
 
@@ -346,6 +376,9 @@ class afc:
         Returns:
             None
         """
+        if self.FUNCTION.is_printing():
+            self.ERROR.AFC_error("Cannot move lane while printer is printing")
+            return
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
         if lane not in self.lanes:
@@ -353,9 +386,13 @@ class afc:
             return
         CUR_LANE = self.lanes[lane]
         self.current_state = State.MOVING_LANE
+
+        move_speed = CUR_LANE.long_moves_speed if distance >= 200 else CUR_LANE.short_moves_speed
+        move_accel = CUR_LANE.long_moves_accel if distance >= 200 else CUR_LANE.short_moves_accel
+
         CUR_LANE.set_load_current() # Making current is set correctly when doing lane moves
         CUR_LANE.do_enable(True)
-        CUR_LANE.move(distance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+        CUR_LANE.move(distance, move_speed, move_accel, True)
         CUR_LANE.do_enable(False)
         self.current_state = State.IDLE
 
@@ -412,6 +449,9 @@ class afc:
         save_vars function saves lane variables to var file and prints with indents to
                   make it more readable for users
         """
+
+        # Return early if prep is not done so that file is not overridden until prep is atleast done
+        if not self.prep_done: return
         str = {}
         for UNIT in self.units.keys():
             CUR_UNIT=self.units[UNIT]
@@ -455,6 +495,11 @@ class afc:
         Returns:
             None
         """
+
+        if self.FUNCTION.is_printing():
+            self.ERROR.AFC_error("Cannot load lane to hub while printer is printing")
+            return
+
         lane = gcmd.get('LANE', None)
         if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane))
@@ -495,6 +540,10 @@ class afc:
         Returns:
             None
         """
+        if self.FUNCTION.is_printing():
+            self.ERROR.AFC_error("Cannot eject lane while printer is printing")
+            return
+
         lane = gcmd.get('LANE', None)
         if lane not in self.lanes:
             self.gcode.respond_info('{} Unknown'.format(lane))
@@ -524,6 +573,7 @@ class afc:
             # Removing spool from vars since it was ejected
             self.SPOOL.set_spoolID( CUR_LANE, "")
             self.gcode.respond_info("LANE {} eject done".format(CUR_LANE.name))
+            self.FUNCTION.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
 
         elif CUR_LANE.name == self.current:
             self.gcode.respond_info("LANE {} is loaded in toolhead, can't unload.".format(CUR_LANE.name))
@@ -540,14 +590,16 @@ class afc:
         the lane specified by the 'LANE' parameter and calls the TOOL_LOAD method to perform
         the loading process.
 
-        Usage: `TOOL_LOAD LANE=<lane>`
-        Example: `TOOL_LOAD LANE=lane1`
+        Optionally setting PURGE_LENGTH parameter to pass a value into poop macro.
+
+        Usage: `TOOL_LOAD LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
+        Example: `TOOL_LOAD LANE=lane1 PURGE_LENGTH=80`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameter:
                   - LANE: The name of the lane to be loaded.
-                  - PURGE_LENGTH: The amount of filament to poop (optional).
+                  - PURGE_LENGTH(optional): The amount of filament to poop, this value is passed into your poop macro.
 
 
         Returns:
@@ -571,22 +623,17 @@ class afc:
         This function handles the loading of a specified lane into the tool. It performs
         several checks and movements to ensure the lane is properly loaded.
 
-        Usage: `TOOL_LOAD LANE=<lane>`
-        Example: `TOOL_LOAD LANE=lane1`
+        :param CUR_LANE: The lane object to be loaded into the tool.
+        :param purge_length: Amount of filament to poop (optional).
 
-        Args:
-            CUR_LANE: The lane object to be loaded into the tool.
-            purge_length: Amount of filament to poop (optional).
-
-
-        Returns:
-            bool: True if load was successful, False if an error occurred.
+        :return bool: True if load was successful, False if an error occurred.
         """
         if not self.FUNCTION.is_homed():
             self.ERROR.AFC_error("Please home printer before doing a tool load", False)
             return False
 
         if CUR_LANE is None:
+            self.ERROR.AFC_error("No lane provided to load, not loading any lane.", pause=False)
             # Exit early if no lane is provided.
             return False
 
@@ -630,7 +677,10 @@ class afc:
                     CUR_LANE.move(CUR_LANE.short_move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
                 hub_attempts += 1
                 if hub_attempts > 20:
-                    message = ('PAST HUB, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL')
+                    message = 'filament did not trigger hub sensor, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL.'
+                    if self.FUNCTION.in_print():
+                        message += '\n    Once issue is resolved please manually load {} with {} macro and click resume to continue printing.'.format(CUR_LANE.name, CUR_LANE.map)
+                        message += '\n    If you have to retract filament back, use LANE_MOVE macro for {}.'.format(CUR_LANE.name)
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
 
@@ -645,7 +695,12 @@ class afc:
                     tool_attempts += 1
                     CUR_LANE.move(CUR_LANE.short_move_dis, CUR_EXTRUDER.tool_load_speed, CUR_LANE.long_moves_accel)
                     if tool_attempts > 20:
-                        message = ('FAILED TO LOAD TO TOOL, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
+                        message = 'filament failed to trigger pre extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
+                        if self.FUNCTION.in_print():
+                            message += '\n    To resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
+                            message += '\n    Manually move filament with LANE_MOVE macro for {} until filament is right before toolhead extruder gears,'.format(CUR_LANE.name)
+                            message += '\n     then load into extruder gears with extrude button in your gui of choice until some filament comes out nozzle'
+                            message += '\n    Once filament is fully loaded click resume to continue printing'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
 
@@ -662,7 +717,11 @@ class afc:
                     self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_load_speed)
                     self.toolhead.wait_moves()
                     if tool_attempts > 20:
-                        message = ('FAILED TO LOAD TO TOOL END, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL')
+                        message = 'filament failed to trigger post extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
+                        if self.FUNCTION.in_print():
+                            message += '\n    To resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
+                            message += '\n    Also might be a good idea to verify that post extruder gear toolhead sensor is working.'
+                            message += '\n    Once issue is resolved click resume to continue printing'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
 
@@ -716,11 +775,16 @@ class afc:
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
             if CUR_HUB.state:
-                message = ('HUB NOT CLEAR WHEN TRYING TO LOAD\n||-----||----|x|-----||\nTRG   LOAD   HUB   TOOL')
+                message = 'Hub not clear when trying to load.\n    Please check that hub does not contain broken filament and is clear'
+                if self.FUNCTION.in_print():
+                    message += '\n    Once issue is resolved please manually load {} with {} macro and click resume to continue printing.'.format(CUR_LANE.name, CUR_LANE.map)
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
             if not CUR_LANE.load_state:
-                message = ('NOT READY, LOAD TRIGGER NOT TRIGGERED\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL')
+                message = 'Current lane not loaded, LOAD TRIGGER NOT TRIGGERED\n||==>--||----||-----||\nTRG   LOAD   HUB   TOOL'
+                message += '\n    Please load lane before continuing.'
+                if self.FUNCTION.in_print():
+                    message += '\n    Once issue is resolved please manually load {} with {} macro and click resume to continue printing.'.format(CUR_LANE.name, CUR_LANE.map)
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
         return True
@@ -732,7 +796,7 @@ class afc:
         the lane specified by the 'LANE' parameter or uses the currently loaded lane if no parameter
         is provided, and calls the TOOL_UNLOAD method to perform the unloading process.
 
-        Usage: `TOOL_UNLOAD [LANE=<lane>]`
+        Usage: `TOOL_UNLOAD LANE=<lane>`
         Example: `TOOL_UNLOAD LANE=lane1`
 
         Args:
@@ -763,13 +827,9 @@ class afc:
         This function handles the unloading of a specified lane from the tool. It performs
         several checks and movements to ensure the lane is properly unloaded.
 
-        Usage: `TOOL_UNLOAD LANE=<lane>`
-        Example: `TOOL_UNLOAD LANE=lane1`
-        Args:
-            CUR_LANE: The lane object to be unloaded from the tool.
+        :param CUR_LANE: The lane object to be unloaded from the tool.
 
-        Returns:
-            bool: True if unloading was successful, False if an error occurred.
+        :return bool: True if unloading was successful, False if an error occurred.
         """
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
         if self._check_bypass(unload=True): return False
@@ -780,6 +840,7 @@ class afc:
 
         if CUR_LANE is None:
             # If no lane is provided, exit the function early with a failure.
+            self.ERROR.AFC_error("No lane is currently loaded, nothing to unload", pause=False)
             return False
 
         self.current_state  = State.UNLOADING
@@ -861,7 +922,12 @@ class afc:
                 num_tries += 1
                 if num_tries > self.tool_max_unload_attempts:
                     # Handle failure if the filament cannot be unloaded.
-                    message = ('FAILED TO UNLOAD. FILAMENT STUCK IN TOOLHEAD.')
+                    message = 'Failed to unload filament from toolhead. Filament stuck in toolhead.'
+                    if self.FUNCTION.in_print():
+                        message += "\n    Retract filament fully with retract button in gui of choice to remove from extruder gears if needed,"
+                        message += "\n      and then use LANE_MOVE to fully retract behind hub so its not triggered anymore."
+                        message += "\n    Then manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
+                        message += "\n    Once lane is loaded click resume to continue printing"
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
                 CUR_LANE.sync_to_extruder()
@@ -898,7 +964,13 @@ class afc:
             num_tries += 1
             if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
                 # Handle failure if the filament doesn't clear the hub.
-                message = 'HUB NOT CLEARING\n'
+                message = 'Hub is not clearing, filament may be stuck in hub'
+                message += '\n    Please check to make sure filament has not broken off and caused the sensor to stay stuck'
+                message += '\n    If you have to retract filament back, use LANE_MOVE macro for {}.'.format(CUR_LANE.name)
+                if self.FUNCTION.in_print():
+                    message += "\n    Once hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
+                    message += "\n    Once lane is loaded click resume to continue printing"
+
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
 
@@ -945,14 +1017,16 @@ class afc:
         checks the filament sensor, saves the current position, and performs the tool change by unloading the
         current lane and loading the new lane.
 
-        Usage: `CHANGE_TOOL LANE=<lane>`
-        Example: `CHANGE_TOOL LANE=lane1`
+        Optionally setting PURGE_LENGTH parameter to pass a value into poop macro.
+
+        Usage: `CHANGE_TOOL LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
+        Example: `CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameter:
                   - LANE: The name of the lane to be loaded.
-                  - PURGE_LENGTH: The amount of filament to poop (optional).
+                  - PURGE_LENGTH(optional): The amount of filament to poop, this value is passed into your poop macro.
 
 
         Returns:
@@ -1076,7 +1150,7 @@ class afc:
                 numoflanes +=1
                 name.append(lane.name)
             str[unit.name]['system']['type']        = unit.type
-            str[unit.name]['system']['hub_loaded']  = unit.hub_obj.state
+            str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state if unit.hub_obj is not None else None
 
         str["system"]                           = {}
         str["system"]['current_load']           = self.current

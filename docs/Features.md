@@ -56,3 +56,14 @@ default_material_temps: PLA:210, ABS:235, ASA:235 # Default temperature to set e
 
 ## Loading filament to hub
 For users that have a hub not located in their Box Turtle, AFC has the ability to load filament to their hub once its inserted. This is turned on by default and this will happen even if your hub is located in your Box Turtle. This can be disabled by setting `load_to_hub: False` in your `AFC.cfg` file. Also individual lanes can be turn on/off by setting `load_to_hub: True/False` under `[AFC_stepper <lane_name>]` section in your config.
+
+## Variable purge length on filament change
+AFC has the ability to purge different lengths with orcas flush volumes when doing filament changes with T(n) macros. To use this feature update your Change Filament G-Code section in your orca slicer to the following:
+
+`T[next_extruder] PURGE_LENGTH=[flush_length]`
+
+Could also be added to your PRINT_START macro with a specific length, this would be ideal for if your first filament is not currently loaded as the PURGE_LENGTH from Orca for the first change would be zero
+
+`T{initial_tool} PURGE_LENGTH=100`
+
+**NOTE: If your first filament is not currently loaded and needs to change, `PURGE_LENGTH` will be zero and the poop macro will then use `variable_purge_length_minimum` from AFC_Macro_Vars.cfg file, so make sure this is set correctly for your printer**

@@ -126,7 +126,9 @@ def main():
                 cmd_functions = extract_cmd_functions(file_path)
                 all_cmd_functions.extend(cmd_functions)
 
+    all_cmd_functions.sort(key=lambda e: e[0])
     markdown_lines = format_markdown(all_cmd_functions)
+
     write_markdown_file(markdown_lines, output_file)
 
     macros = parse_macros('../config/macros/AFC_macros.cfg')
