@@ -7,9 +7,11 @@
 import json
 try:
     from urllib.request import urlopen
+    import urllib.parse as urlparse
 except:
     # Python 2.7 support
     from urllib2 import urlopen
+    import urlparse
 
 class afcSpool:
     def __init__(self, config):
@@ -248,7 +250,7 @@ class afcSpool:
         if self.AFC.spoolman !=None:
             if SpoolID !='':
                 try:
-                    url =  "{}{}".format(self.AFC.spoolman + '/api/v1/spool/', SpoolID)
+                    url =  urlparse.urljoin(self.AFC.spoolman, '/api/v1/spool/{}'.format(SpoolID))
                     result = json.load(urlopen(url))
                     CUR_LANE.spool_id = SpoolID
 

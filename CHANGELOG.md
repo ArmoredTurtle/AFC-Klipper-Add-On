@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-19]
+
+### Added
+- Clearing error_state when print starts, before this could be set before printing and would cause AFC to not save/restore position
+- Added 1 second time debounce to prep callback
+- Added abs function when determining speed for LANE_MOVE macro
+
+### Changed
+- Updated error print out messages when loading/unloading
+- The way error messages printed out so they are grouped together
+
+### Fixed
+- Issue where getting spoolman data would error out when server variable in moonraker ended in a slash
+- Issue where prep would no longer activate extruder motors when user rapidely triggered prep sensor
+
 ## [2025-02-16]
 
 ### Added
