@@ -51,7 +51,7 @@ class afcBoxTurtle(afcUnit):
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + delay)
             CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
         else:
-            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + delay)
+            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.7)
 
         if CUR_LANE.prep_state == False:
             if CUR_LANE.load_state == False:

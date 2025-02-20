@@ -89,7 +89,7 @@ class afcError:
         self.AFC.gcode.respond_info ('PAUSING')
         self.AFC.gcode.run_script_from_command('PAUSE')
 
-    def set_error_state(self, state):
+    def set_error_state(self, state=False):
         # Only save position on first error state call
         if state == True and self.AFC.error_state == False:
             self.AFC.save_pos()
@@ -101,8 +101,7 @@ class afcError:
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
-        for line in msg.split("\n"):
-            self.AFC.gcode.respond_raw( "!! {}".format(line) )
+        self.AFC.gcode.respond_raw( "!! {}".format(msg) )
         if pause: self.pause_print()
 
 
