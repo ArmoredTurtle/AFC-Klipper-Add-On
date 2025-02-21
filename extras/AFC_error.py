@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+import logging
 from extras.AFC import State
 
 def load_config(config):
@@ -90,6 +91,7 @@ class afcError:
         self.AFC.gcode.run_script_from_command('PAUSE')
 
     def set_error_state(self, state=False):
+        logging.warning("AFC debug: setting error state {}".format(state))
         # Only save position on first error state call
         if state == True and self.AFC.error_state == False:
             self.AFC.save_pos()
@@ -97,7 +99,6 @@ class afcError:
         self.AFC.current_state = State.ERROR if state else State.IDLE
 
     def AFC_error(self, msg, pause=True):
-        import logging
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
