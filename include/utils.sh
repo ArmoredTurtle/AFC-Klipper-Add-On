@@ -23,10 +23,11 @@ function show_help() {
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -p <printer config dir>     Specify the path to the printer config directory (default: ~/printer_data/config)"
   echo "  -b <branch>                 Specify the branch to use (default: main)"
+  echo "  -y <klipper venv dir>       Specify the klipper python venv dir (default: ~/klippy-env/bin)"
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-a <moonraker address>] [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-b <branch>] [-h] "
+  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
 }
 
 function copy_config() {
@@ -128,8 +129,9 @@ restart_klipper() {
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
     update_afc_version "$current_install_version"
-  restart_klipper
+    restart_klipper
   fi
+  remove_vars_tool_file
   exit 0
 }
 
@@ -159,6 +161,12 @@ update_afc_version() {
 
 remove_afc_version() {
   curl -s -XDELETE "$moonraker_address/server/database/item?namespace=afc-install&key=version" > /dev/null
+}
+
+remove_vars_tool_file() {
+  if [ -f "${afc_config_dir}/*.tool" ]; then
+    rm "${afc_config_dir}/*.tool"
+  fi
 }
 
 stop_service() {

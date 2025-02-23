@@ -11,7 +11,7 @@ check_klipper() {
   # If the service is found, it prints a success message.
   # If the service is not found, it prints an error message and exits with status 1.
 
-  if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "$klipper_service}.service"; then
+  if sudo systemctl list-units --full -all -t service --no-legend | grep -q -F "${klipper_service}.service"; then
     print_msg SUCCESS "  Klipper service found!"
   else
     print_msg ERROR "  Klipper service not found. Install Klipper first."
@@ -124,19 +124,6 @@ check_unzip() {
   fi
 }
 
-check_for_prereqs() {
-  if ! command -v jq &> /dev/null; then
-    print_msg INFO "  jq is not installed. Installing jq..."
-    sudo apt-get update &> /dev/null
-    sudo apt-get install -y jq &> /dev/null
-  fi
-  if ! command -v crudini &> /dev/null; then
-    print_msg INFO "  crudini is not installed. Installing crudini..."
-    sudo apt-get update &> /dev/null
-    sudo apt-get install -y crudini &> /dev/null
-  fi
-}
-
 query_printer_status() {
   local response
   local state
@@ -152,12 +139,42 @@ query_printer_status() {
 }
 
 check_for_prereqs() {
+  missing_dependencies=()
   if ! command -v jq &> /dev/null; then
-    sudo apt-get update &> /dev/null
-    sudo apt-get install -y jq &> /dev/null
+    missing_dependencies+=("jq")
   fi
   if ! command -v crudini &> /dev/null; then
-    sudo apt-get update &> /dev/null
-    sudo apt-get install -y crudini &> /dev/null
+    missing_dependencies+=("crudini")
   fi
+  if [ ${#missing_dependencies[@]} -ne 0 ]; then
+    echo "Missing software prerequisites. Please run the below command and re-run this install script."
+    echo "sudo apt-get install -y ${missing_dependencies[*]}"
+    exit 1
+  fi
+}
+
+check_python_version() {
+  local PYTHON
+  local VERSION
+  PYTHON="${klipper_venv}"/python
+
+  if [[ ! -x "$PYTHON" ]]; then
+      echo "Python not found at $PYTHON. Please double-check your klipper configuration or specify a directory with the -y flag."
+      return 1
+  fi
+
+  VERSION=$($PYTHON -c 'import sys; print(".".join(map(str, sys.version_info[:2])))' 2>/dev/null)
+
+  if [[ $? -ne 0 ]]; then
+      echo "Failed to determine Python version"
+      return 1
+  fi
+
+  if [[ ${VERSION%%.*} -lt 3 ]]; then
+      echo "Python version $VERSION is too old. Need at least Python 3.x."
+      exit 1
+  fi
+
+  echo "Python version $VERSION is OK."
+  return 0
 }
