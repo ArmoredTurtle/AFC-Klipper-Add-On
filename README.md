@@ -27,6 +27,7 @@ To install this plugin, you should have the following pre-requisites installed:
     ```bash
     sudo apt-get install jq crudini
     ```
+5. Python 3.x
    
 
 To install this plugin, you can use the following commands from the users home directory:

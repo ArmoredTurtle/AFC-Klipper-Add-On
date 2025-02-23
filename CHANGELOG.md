@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-23]
+
+### Changed
+- The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present. 
+
 ## [2025-02-17]
 
 ### Changed
