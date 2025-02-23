@@ -22,10 +22,11 @@ function show_help() {
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -p <printer config dir>     Specify the path to the printer config directory (default: ~/printer_data/config)"
   echo "  -b <branch>                 Specify the branch to use (default: main)"
+  echo "  -y <klipper venv dir>       Specify the klipper python venv dir (default: ~/klippy-env/bin)"
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-b <branch>] [-h] "
+  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
 }
 
 function copy_config() {

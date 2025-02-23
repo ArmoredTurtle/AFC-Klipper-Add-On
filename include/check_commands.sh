@@ -152,3 +152,29 @@ check_for_prereqs() {
     exit 1
   fi
 }
+
+check_python_version() {
+  local PYTHON
+  local VERSION
+  PYTHON="${klipper_venv}"/python
+
+  if [[ ! -x "$PYTHON" ]]; then
+      echo "Python not found at $PYTHON. Please double-check your klipper configuration or specify a directory with the -y flag."
+      return 1
+  fi
+
+  VERSION=$($PYTHON -c 'import sys; print(".".join(map(str, sys.version_info[:2])))' 2>/dev/null)
+
+  if [[ $? -ne 0 ]]; then
+      echo "Failed to determine Python version"
+      return 1
+  fi
+
+  if [[ ${VERSION%%.*} -lt 3 ]]; then
+      echo "Python version $VERSION is too old. Need at least Python 3.x."
+      exit 1
+  fi
+
+  echo "Python version $VERSION is OK."
+  return 0
+}
