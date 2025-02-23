@@ -9,6 +9,10 @@ try:
     from extras.AFC_unit import afcUnit
 except:
     raise error("Error trying to import AFC_unit, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+try:
+    from extras.AFC_respond import AFCprompt
+except:
+    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 class afcBoxTurtle(afcUnit):
     def __init__(self, config):
@@ -110,19 +114,39 @@ class afcBoxTurtle(afcUnit):
         CUR_EXTRUDER = CUR_LANE.extruder_obj
         CUR_HUB = CUR_LANE.hub_obj
         self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name))
-        self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol, CUR_LANE.short_move_dis)
+        hub_pos, cp, success = self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol,
+                                                     CUR_LANE.short_move_dis, CUR_LANE.dist_hub + 100, "Moving to hub")
+
+        if not success:
+            msg = 'Failed {} after {}mm'.format(cp, hub_pos)
+            return False, msg
+
         bow_pos = 0
         if CUR_EXTRUDER.tool_start:
             # Clear until toolhead sensor is clear
             while not CUR_LANE.get_toolhead_sensor_state():
+                fault_dis = CUR_HUB.afc_bowden_length + 100
                 CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
                 bow_pos += dis
                 self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+                if bow_pos >= fault_dis:
+                    msg = 'while moving to toolhead. Failed after {}mm'.format(bow_pos)
+                    return False, msg
 
-            bow_pos = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_sensor_state(), bow_pos, CUR_LANE.short_move_dis, tol)
+            bow_pos, cp, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_sensor_state(), bow_pos,
+                                                      CUR_LANE.short_move_dis, tol, 50, "retract from toolhead sensor")
+            
+            if not success:
+                msg = 'Failed {} after {}mm'.format(cp, bow_pos)
+                return False, msg
+
             CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
-            self.calibrate_hub( CUR_LANE, tol)
+            success, hub_dis = self.calibrate_hub(CUR_LANE, tol)
+
+            if not success:
+                msg = '{}'.format(hub_dis)
+                return False, msg
 
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
@@ -144,33 +168,69 @@ class afcBoxTurtle(afcUnit):
     # Helper functions for movement and calibration
     def calibrate_hub(self, CUR_LANE, tol):
         hub_pos = 0
-        hub_pos = self.move_until_state(CUR_LANE, lambda: CUR_LANE.hub_obj.state, CUR_LANE.hub_obj.move_dis, tol, CUR_LANE.short_move_dis, hub_pos)
-        tuned_hub_pos = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos, CUR_LANE.short_move_dis, tol)
-        return tuned_hub_pos
+        hub_fault_dis = CUR_LANE.dist_hub + 150
+        checkpoint = 'Hub calibration {}'.format(CUR_LANE.name)
+        hub_pos, checkpoint, success = self.move_until_state(CUR_LANE, lambda: CUR_LANE.hub_obj.state, CUR_LANE.hub_obj.move_dis,
+                                                             tol, CUR_LANE.short_move_dis, hub_pos, hub_fault_dis, checkpoint)
 
-    def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0):
+        if not success:
+            msg = 'failed {} after {}mm'.format(checkpoint, hub_pos)
+            return False, msg
+        
+        tuned_hub_pos, cp, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
+                                            CUR_LANE.short_move_dis, tol)
+        
+        if not success:
+            msg = 'failed {} after {}mm'.format(cp, tuned_hub_pos)
+            return False, msg
+        
+        return True, tuned_hub_pos
+
+    def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
         while state() == False:
             CUR_LANE.move(move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += move_dis
+            if pos >= fault_dis:
+                return fault_dis, checkpoint, False
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+
+        state_retracts = 0
         while state() == True:
+            state_retracts =+ 1
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move
+            cp = '{} switch did not go false, reset lane and check switch'.format(checkpoint)
+            if state_retracts >= 4:
+                f_dis = short_move * 4
+                return f_dis, cp, False
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+
         while state() == False:
             CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += tolerance
-        return pos
+            cp = '{} switch failed to become true during tolerance check, reset lane and check switch'.format(checkpoint)
+            if pos >= short_move * 2:
+                return fault_dis, cp, False
 
-    def calc_position(self,CUR_LANE, state, pos, short_move, tolerance):
+        return pos, checkpoint, True
+
+    def calc_position(self,CUR_LANE, state, pos, short_move, tolerance, fault_dis=250, checkpoint=None):
         while state():
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move
+            if pos >= fault_dis * -1:
+                return fault_dis, checkpoint, False
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
+
         while not state():
+            fault_dis = tolerance * short_move
             CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += tolerance
-        return pos
+            if pos >= fault_dis:
+                checkpoint += ' tolerance check'
+                return fault_dis, checkpoint, False
+
+        return pos, checkpoint, True
 
     def calibrate_lane(self, CUR_LANE, tol):
         CUR_HUB = CUR_LANE.hub_obj
@@ -183,18 +243,30 @@ class afcBoxTurtle(afcUnit):
 
         self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name))
         # reset to extruder
-        self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis, tol)
-        hub_pos = self.calibrate_hub(CUR_LANE, tol)
-        if CUR_HUB.state:
-            CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+        pos, cp, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis,
+                                              tol, CUR_LANE.dist_hub + 100, "Retract to extruder")
+        
+        if not success:
+            msg = 'Lane failed to calibrate {} after {}mm'.format(cp, pos)
+            return False, msg
+        
+        else:
+            success, hub_pos = self.calibrate_hub(CUR_LANE, tol)
 
-        cal_dist = hub_pos - CUR_HUB.hub_clear_move_dis
-        cal_msg = "\n{} dist_hub: New: {} Old: {}".format(CUR_LANE.name, cal_dist, CUR_LANE.dist_hub)
-        CUR_LANE.loaded_to_hub  = True
-        CUR_LANE.do_enable(False)
-        CUR_LANE.dist_hub = cal_dist
-        self.AFC.FUNCTION.ConfigRewrite(CUR_LANE.fullname, "dist_hub", cal_dist, cal_msg)
-        return True, cal_msg
+            if not success:
+                msg = 'Lane failed to calibrate {} after {}mm'.format(cp, pos)
+                return False, msg
+
+            if CUR_HUB.state:
+                CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+
+            cal_dist = hub_pos - CUR_HUB.hub_clear_move_dis
+            cal_msg = "\n{} dist_hub: New: {} Old: {}".format(CUR_LANE.name, cal_dist, CUR_LANE.dist_hub)
+            CUR_LANE.loaded_to_hub  = True
+            CUR_LANE.do_enable(False)
+            CUR_LANE.dist_hub = cal_dist
+            self.AFC.FUNCTION.ConfigRewrite(CUR_LANE.fullname, "dist_hub", cal_dist, cal_msg)
+            return True, cal_msg, True
 
 def load_config_prefix(config):
     return afcBoxTurtle(config)

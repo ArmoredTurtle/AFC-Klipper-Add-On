@@ -367,6 +367,7 @@ class afcFunction:
         Returns:
             None
         """
+        prompt = AFCprompt(gcmd)
         dis    = gcmd.get_float('DISTANCE' , 25)
         tol    = gcmd.get_float('TOLERANCE', 5)
         afc_bl = gcmd.get(      'BOWDEN'   , None)
@@ -374,46 +375,52 @@ class afcFunction:
         unit   = gcmd.get(      'UNIT'     , None)
 
         if self.AFC.current is not None and afc_bl is not None:
+            prompt.p_end()
             self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
             return
 
         cal_msg = ''
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:
+            prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)
             return
 
         if unit is not None and unit not in self.AFC.units:
+            prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid unit".format(unit), pause=False)
             return
 
         if afc_bl is not None and afc_bl not in self.AFC.lanes:
+            prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
 
         # Determine if a specific lane is provided
         if lanes is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
-            cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
             if unit is None:
                 if lanes != 'all':
                     CUR_LANE=self.AFC.lanes[lanes]
-                    checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
-                    if(not checked): return
-                    cal_msg += msg
+                    checked, msg= CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                    if(not checked):
+                        prompt.p_end()
+                        return
                 else:
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in self.AFC.lanes.values():
                         # Calibrate the specific lane
-                        checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
-                        if(not checked): return
-                        cal_msg += msg
+                        checked, msg= CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                        if(not checked):
+                            prompt.p_end()
+                            return
             else:
                 if lanes != 'all':
                     CUR_LANE=self.AFC.lanes[lanes]
-                    checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
-                    if(not checked): return
-                    cal_msg += msg
+                    checked, msg= CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                    if(not checked):
+                        prompt.p_end()
+                        return
                 else:
                     CUR_UNIT = self.AFC.units[unit]
                     self.AFC.gcode.respond_info('{}'.format(CUR_UNIT.name))
@@ -421,8 +428,9 @@ class afcFunction:
                     for CUR_LANE in CUR_UNIT.lanes.values():
                         # Calibrate the specific lane
                         checked, msg = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
-                        if(not checked): return
-                        cal_msg += msg
+                        if(not checked):
+                            prompt.p_end()
+                            return
 
             self.AFC.gcode.respond_info("Lane calibration Done!")
 
@@ -432,11 +440,34 @@ class afcFunction:
         # Calibrate Bowden length with specified lane
         if afc_bl is not None:
             self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
-            cal_msg += 'AFC Calibration distances +/-{}mm'.format(tol)
-            cal_msg += '\n<span class=info--text>Update values in AFC_Hardware.cfg</span>'
-            CUR_LANE=self.AFC.lanes[afc_bl]
-            CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
+
+            CUR_LANE = self.AFC.lanes[afc_bl]
+            checked, msg = CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
+            if not checked:
+                prompt.p_end()
+                self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
+                return
+
             self.AFC.gcode.respond_info("Bowden length calibration Done!")
+
+    cmd_AFC_CALI_COMP_help = 'open prompt to begin calibration by selecting Unit to calibrate'
+    def cmd_AFC_CALI_COMP(self, gcmd):
+        cali = gcmd.get("CALI", None)
+
+        prompt = AFCprompt(gcmd)
+        buttons = []
+        title = 'AFC Calibration Completed'
+        text = ('Calibration was completed for {}').format(cali)
+        for index, (key, item) in enumerate(self.AFC.units.items()):
+            # Create a button for each unit
+            button_label = "{}".format(key)
+            button_command = 'UNIT_CALIBRATION UNIT={}'.format(key)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            buttons.append((button_label, button_command, button_style))
+
+        bow_footer = [("All Lanes in all units", "ALL_CALIBRATION", "secondary")]
+        prompt.create_custom_p(title, text, buttons,
+                               True, None, bow_footer)
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
