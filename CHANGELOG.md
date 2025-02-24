@@ -5,11 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2025-02-21]
+## [2025-02-23]
 
 ### Added
 - Checking to make sure lane was not None in cmd_CHANGE_TOOL
 - Pauses in TOOL_LOAD/TOOL_UNLOAD/CHANGE_TOOL for early returns if printer is currently in a print
+
+### Changed
+- The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present.
 
 ### Fixed
 - Error in cmd_CHANGE_TOOL where change logic was being triggered if change was in a comment on the same line
@@ -37,6 +40,11 @@ can be adjusted for cases such as a remote moonraker installation, https, etc. T
 ### Fixed
 - Issue where getting spoolman data would error out when server variable in moonraker ended in a slash
 - Issue where prep would no longer activate extruder motors when user rapidely triggered prep sensor
+
+## [2025-02-17]
+
+### Changed
+- Updated the `install-afc.sh` script to prompt the user to install dependencies if they are not already installed instead of installing them automatically.
 
 ## [2025-02-16]
 
@@ -67,6 +75,9 @@ can be adjusted for cases such as a remote moonraker installation, https, etc. T
 - Assisted unload  
   When enabled, the retracts out of the toolhead before the long, fast move back throught the bowden tube is assisted.
   This helps with full spools where even a retract of a few centimeters can cause a loop to fall off the spool.
+
+### Changed
+- The `install-afc.sh` install script will now remove the `AFC.var.tool` file if detected as it is no longer needed.
 
 ## [2025-02-04]
 
