@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-02-23]
 
+### Added
+- Checking to make sure lane was not None in cmd_CHANGE_TOOL
+- Pauses in TOOL_LOAD/TOOL_UNLOAD/CHANGE_TOOL for early returns if printer is currently in a print
+
 ### Changed
 - The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present.
+
+### Fixed
+- Error in cmd_CHANGE_TOOL where change logic was being triggered if change was in a comment on the same line
+- Turned runout pause message into error message which also pauses printer
+- Error where infinite spool would crash klipper when calling change tool
 
 ## [2025-02-20]
 
