@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added installation type for NightOwl, currently only ERB2.0 board is supported
 - Moved MCU include from AFC.cfg to AFC_Turtle_1 or Nightowl respectively
 
+## [2025-02-23]
+
+### Changed
+- The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present. 
+
+## [2025-02-17]
+
+### Changed
+- Updated the `install-afc.sh` script to prompt the user to install dependencies if they are not already installed instead of installing them automatically.
+
+## [2025-02-13]
+
+### Changed
+- The `install-afc.sh` install script will now remove the `AFC.var.tool` file if detected as it is no longer needed.
+
 ## [2025-02-04]
 
 ### Changed
