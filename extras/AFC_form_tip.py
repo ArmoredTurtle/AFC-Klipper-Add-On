@@ -118,28 +118,28 @@ class afc_tip_form:
         if self.ramming_volume > 0:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Ramming')
             ratio = self.ramming_volume / 23
-            self.afc_extrude(0.5784 * ratio, 299)
-            self.afc_extrude(0.5834 * ratio, 302)
-            self.afc_extrude(0.5918 * ratio, 306)
-            self.afc_extrude(0.6169 * ratio, 319)
-            self.afc_extrude(0.3393 * ratio, 350)
-            self.afc_extrude(0.3363 * ratio, 350)
-            self.afc_extrude(0.7577 * ratio, 392)
-            self.afc_extrude(0.8382 * ratio, 434)
-            self.afc_extrude(0.7776 * ratio, 469)
-            self.afc_extrude(0.1293 * ratio, 469)
-            self.afc_extrude(0.9673 * ratio, 501)
-            self.afc_extrude(1.0176 * ratio, 527)
-            self.afc_extrude(0.5956 * ratio, 544)
-            self.afc_extrude(1.0662 * ratio, 552)
+            self.afc_extrude(0.5784 * ratio, 299 / 60)
+            self.afc_extrude(0.5834 * ratio, 302 / 60)
+            self.afc_extrude(0.5918 * ratio, 306 / 60)
+            self.afc_extrude(0.6169 * ratio, 319 / 60)
+            self.afc_extrude(0.3393 * ratio, 350 / 60)
+            self.afc_extrude(0.3363 * ratio, 350 / 60)
+            self.afc_extrude(0.7577 * ratio, 392 / 60)
+            self.afc_extrude(0.8382 * ratio, 434 / 60)
+            self.afc_extrude(0.7776 * ratio, 469 / 60)
+            self.afc_extrude(0.1293 * ratio, 469 / 60)
+            self.afc_extrude(0.9673 * ratio, 501 / 60)
+            self.afc_extrude(1.0176 * ratio, 527 / 60)
+            self.afc_extrude(0.5956 * ratio, 544 / 60)
+            self.afc_extrude(1.0662 * ratio, 552 / 60)
             step +=1
         self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Retraction & Nozzle Separation')
         total_retraction_distance = self.cooling_tube_position + self.cooling_tube_length - 15
-        self.afc_extrude(-15, self.unloading_speed_start * 60)
+        self.afc_extrude(-15, self.unloading_speed_start)
         if total_retraction_distance > 0:
-            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed * 60)
-            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed * 60)
-            self.afc_extrude(-.1 * total_retraction_distance, 0.3 * self.unloading_speed * 60)
+            self.afc_extrude(-.7 * total_retraction_distance, 1.0 * self.unloading_speed)
+            self.afc_extrude(-.2 * total_retraction_distance, 0.5 * self.unloading_speed)
+            self.afc_extrude(-.1 * total_retraction_distance, 0.3 * self.unloading_speed)
         if self.toolchange_temp > 0:
             if self.use_skinnydip:
                 wait = False
@@ -153,14 +153,14 @@ class afc_tip_form:
         speed_inc = (self.final_cooling_speed - self.initial_cooling_speed) / (2 * self.cooling_moves - 1)
         for move in range(self.cooling_moves):
             speed = self.initial_cooling_speed + speed_inc * move * 2
-            self.afc_extrude(self.cooling_tube_length, speed * 60)
-            self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc) * 60)
+            self.afc_extrude(self.cooling_tube_length, speed)
+            self.afc_extrude(self.cooling_tube_length * -1, (speed + speed_inc))
         step += 1
         if self.use_skinnydip:
             self.gcode.respond_info('AFC-TIP-FORM: Step ' + str(step) + ': Skinny Dipping')
-            self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed * 60)
+            self.afc_extrude(self.skinnydip_distance, self.dip_insertion_speed)
             self.reactor.pause(self.reactor.monotonic() + self.melt_zone_pause)
-            self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed * 60)
+            self.afc_extrude(self.skinnydip_distance * -1, self.dip_extraction_speed)
             self.reactor.pause(self.reactor.monotonic() + self.cooling_zone_pause)
 
         if extruder.get_heater().target_temp != current_temp:
