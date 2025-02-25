@@ -379,6 +379,8 @@ class afcFunction:
         lanes  = gcmd.get(      'LANE'     , None)
         unit   = gcmd.get(      'UNIT'     , None)
 
+        prompt.p_end()
+
         if self.AFC.current is not None and afc_bl is not None:
             prompt.p_end()
             self.AFC.gcode.respond_info('Tool must be unloaded to calibrate Bowden length')
@@ -404,7 +406,7 @@ class afcFunction:
 
         # Determine if a specific lane is provided
         if lanes is not None:
-            self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
+            self.AFC.gcode.respond_raw('<span class=info--text>Starting AFC distance Calibrations</span>')
             if unit is None:
                 if lanes != 'all':
                     CUR_LANE = self.AFC.lanes[lanes]
@@ -435,7 +437,7 @@ class afcFunction:
                     else: calibrated.append(lanes)
                 else:
                     CUR_UNIT = self.AFC.units[unit]
-                    self.AFC.gcode.respond_info('{}'.format(CUR_UNIT.name))
+                    self.AFC.gcode.respond_info('<span class=info--text>{}</span>'.format(CUR_UNIT.name))
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in CUR_UNIT.lanes.values():
                         # Calibrate the specific lane
@@ -453,7 +455,7 @@ class afcFunction:
 
         # Calibrate Bowden length with specified lane
         if afc_bl is not None:
-            self.AFC.gcode.respond_info('Starting AFC distance Calibrations')
+            self.AFC.gcode.respond_info('<span class=info--text>Starting AFC distance Calibrations</span>')
 
             CUR_LANE = self.AFC.lanes[afc_bl]
             checked, msg = CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
@@ -461,11 +463,11 @@ class afcFunction:
                 prompt.p_end()
                 self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
                 return
-            else: calibrated.append('Bowden length: {}'.append(afc_bl))
+            else: calibrated.append('Bowden length: {}'.format(afc_bl))
 
             self.AFC.gcode.respond_info("Bowden length calibration Done!")
-        
-        self.AFC.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(calibrated))
+        if checked:
+            self.AFC.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(calibrated))
 
     cmd_AFC_CALI_COMP_help = 'open prompt after calibration is complete'
     def cmd_AFC_CALI_COMP(self, gcmd):
@@ -521,15 +523,11 @@ class afcFunction:
 
         # Create buttons for each lane and group every 4 lanes together
         for index, LANE in enumerate(self.AFC.lanes.values()):
-            button_label = "{}".format(LANE)
-            button_command = "LANE_RESET LANE={}".format(LANE)
+            button_label = "{}".format(LANE.name)
+            self.AFC.gcode.respond_info('Button{}'.format(button_label))
+            button_command = "AFC_LANE_RESET LANE={}".format(LANE.name)
             button_style = "primary" if index % 2 == 0 else "secondary"
-            group_buttons.append((button_label, button_command, button_style))
-
-            # Add group to buttons list after every 4 lanes
-            if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
-                buttons.append(list(group_buttons))
-                group_buttons = []
+            buttons.append((button_label, button_command, button_style))
 
         prompt.create_custom_p(title, text, buttons,
                         True, None)
@@ -538,42 +536,47 @@ class afcFunction:
     def cmd_LANE_RESET(self, gcmd):
         prompt = AFCprompt(gcmd)
         lane = gcmd.get('LANE', None)
-        CUR_HUB = lane.hub_obj
-        short_move = lane.short_move_dis
+        CUR_LANE = self.AFC.lanes[lane]
+        CUR_HUB = CUR_LANE.hub_obj
+        short_move = CUR_LANE.short_move_dis
 
         if lane is not None and lane not in self.AFC.lanes:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
             return
         
-        if not lane.hub_obj.state():
+        if CUR_HUB.state == False:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("Hub is already clear while trying to reset '{}'".format(lane), pause=False)
             return
+        
+        if (tool_load := self.get_current_lane_obj()) is not None:
+            prompt.p_end()
+            self.AFC.ERROR.AFC_error("Toolhead is loaded with '{}', unload or check sensor before resetting lane".format(tool_load.name), pause=False)
 
         prompt.p_end()
-        self.AFC.gcode.resond_info('Resetting {} to hub'.format(lane))
+        self.AFC.gcode.respond_info('Resetting {} to hub'.format(lane))
         pos = 0
         fail_state_msg = "'{}' failed to reset to hub, {} switch became false during reset"
-        while lane.hub_obj.state == True:
-            lane.move(short_move * -1, lane.short_moves_speed, lane.short_moves_accel, True)
+        while CUR_HUB.state == True:
+            CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move
 
-            if not lane.load_state():
-                self.AFC.ERROR.AFC_error(fail_state_msg.format(lane, "load"), pause=False)
+            if CUR_LANE.load_state == False:
+                self.AFC.ERROR.AFC_error(fail_state_msg.format(CUR_LANE, "load"), pause=False)
                 return
             
-            if not lane.prep_state():
-                self.AFC.ERROR.AFC_error(fail_state_msg.format(lane, "prep"), pause=False)
+            if CUR_LANE.prep_state == False:
+                self.AFC.ERROR.AFC_error(fail_state_msg.format(CUR_LANE, "prep"), pause=False)
                 return
             
-            if abs(pos) >= self.AFC.afc_bowden_length:
-                self.AFC.ERROR.AFC_error("'{}' failed to reset to hub".format(lane), pause=False)
+            if abs(pos) >= CUR_HUB.afc_bowden_length:
+                self.AFC.ERROR.AFC_error("'{}' failed to reset to hub".format(CUR_LANE), pause=False)
                 return
 
-        lane.move(CUR_HUB.move_dis * -1, lane.short_moves_speed, lane.short_moves_accel, True)
-        lane.loaded_to_hub  = True
-        lane.do_enable(False)
+        CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+        CUR_LANE.loaded_to_hub  = True
+        CUR_LANE.do_enable(False)
 
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
