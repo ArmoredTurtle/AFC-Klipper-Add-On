@@ -56,6 +56,8 @@ class afcFunction:
         self.AFC.gcode.register_command('AFC_CALI_COMP'  , self.cmd_AFC_CALI_COMP  , desc=self.cmd_AFC_CALI_COMP_help)
         self.AFC.gcode.register_command('AFC_CALI_FAIL'  , self.cmd_AFC_CALI_FAIL  , desc=self.cmd_AFC_CALI_FAIL_help)
         self.AFC.gcode.register_command('AFC_HAPPY_P'    , self.cmd_AFC_HAPPY_P    , desc=self.cmd_AFC_HAPPY_P_help)
+        self.AFC.gcode.register_command('AFC_RESET'      , self.cmd_AFC_RESET      , desc=self.cmd_AFC_RESET_help)
+        self.AFC.gcode.register_command('AFC_LANE_RESET' , self.cmd_LANE_RESET     , desc=self.cmd_LANE_RESET_help)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=None):
         taskdone = False
@@ -503,16 +505,76 @@ class afcFunction:
         footer = []
         title = 'AFC Calibration Failed'
         text = ('Calibration failed {}, reset lane, adjust config values if needed and re-run colibration.').format(cali)
-        buttons.append(("Reset lane", "AFC_RESET LANE={}", "primary"))
+        buttons.append(("Reset lane", "AFC_RESET", "primary"))
         footer.append(('EXIT', 'prompt_end', 'info'))
 
         # bow_footer = [("All Lanes in all units", "ALL_CALIBRATION", "secondary")]
         prompt.create_custom_p(title, text, buttons,
                                True, None)
 
-    cmd_AFC_RESET_help = 'reset lane based on provided reset point'
+    cmd_AFC_RESET_help = 'Open prompt to select lane to reset.'
     def cmd_AFC_RESET(self, gcmd):
-        pass
+        prompt = AFCprompt(gcmd)
+        buttons = []
+        title = 'AFC RESET'
+        text = ('Select lane to reset')
+
+        # Create buttons for each lane and group every 4 lanes together
+        for index, LANE in enumerate(self.AFC.lanes.values()):
+            button_label = "{}".format(LANE)
+            button_command = "LANE_RESET LANE={}".format(LANE)
+            button_style = "primary" if index % 2 == 0 else "secondary"
+            group_buttons.append((button_label, button_command, button_style))
+
+            # Add group to buttons list after every 4 lanes
+            if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                buttons.append(list(group_buttons))
+                group_buttons = []
+
+        prompt.create_custom_p(title, text, buttons,
+                        True, None)
+
+    cmd_LANE_RESET_help = 'reset lane based on provided reset point'
+    def cmd_LANE_RESET(self, gcmd):
+        prompt = AFCprompt(gcmd)
+        lane = gcmd.get('LANE', None)
+        CUR_HUB = lane.hub_obj
+        short_move = lane.short_move_dis
+
+        if lane is not None and lane not in self.AFC.lanes:
+            prompt.p_end()
+            self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
+            return
+        
+        if not lane.hub_obj.state():
+            prompt.p_end()
+            self.AFC.ERROR.AFC_error("Hub is already clear while trying to reset '{}'".format(lane), pause=False)
+            return
+
+        prompt.p_end()
+        self.AFC.gcode.resond_info('Resetting {} to hub'.format(lane))
+        pos = 0
+        fail_state_msg = "'{}' failed to reset to hub, {} switch became false during reset"
+        while lane.hub_obj.state == True:
+            lane.move(short_move * -1, lane.short_moves_speed, lane.short_moves_accel, True)
+            pos -= short_move
+
+            if not lane.load_state():
+                self.AFC.ERROR.AFC_error(fail_state_msg.format(lane, "load"), pause=False)
+                return
+            
+            if not lane.prep_state():
+                self.AFC.ERROR.AFC_error(fail_state_msg.format(lane, "prep"), pause=False)
+                return
+            
+            if abs(pos) >= self.AFC.afc_bowden_length:
+                self.AFC.ERROR.AFC_error("'{}' failed to reset to hub".format(lane), pause=False)
+                return
+
+        lane.move(CUR_HUB.move_dis * -1, lane.short_moves_speed, lane.short_moves_accel, True)
+        lane.loaded_to_hub  = True
+        lane.do_enable(False)
+
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):

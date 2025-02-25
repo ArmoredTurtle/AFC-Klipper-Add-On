@@ -115,7 +115,7 @@ class afcBoxTurtle(afcUnit):
         CUR_HUB = CUR_LANE.hub_obj
         self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name))
         hub_pos, cp, success = self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol,
-                                                     CUR_LANE.short_move_dis, 0, CUR_LANE.dist_hub + 100, "Moving to hub")
+                                                     CUR_LANE.short_move_dis, 0, CUR_LANE.dist_hub + 500, "Moving to hub")
 
         if not success:
             msg = 'Failed {} after {}mm'.format(cp, hub_pos)
@@ -178,7 +178,7 @@ class afcBoxTurtle(afcUnit):
             return False, msg
         
         tuned_hub_pos, cp, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
-                                            CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 50, checkpoint)
+                                            CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 500, checkpoint)
         
         if not success:
             msg = 'failed {} after {}mm'.format(cp, tuned_hub_pos)
