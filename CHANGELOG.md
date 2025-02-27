@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-28]
+
+### Added
+- Logging of delta time and total time for how long toolchanges take
+- Logging for AFC now logs to AFC.log file
+- Ability to turn off/on AFC leds with `TURN_OFF_AFC_LED`/`TURN_ON_AFC_LED`
+- `default_material_type` variable to assign to spool when loaded into lane
+- `pause_when_bypass_active` variable to pause print if bypass is active, defaults to false
+- `unload_on_runout variable` to unload lane when runout happens and another lane is not setup to change to, default to false
+- Updated calibration to use buffer as tool_pin_start if only tool_pin_end is defined and buffer is also defined
+- Ability to change tool_stn/tool_stn_unload/tool_sensor_after_extruder without restarting
+
+### Fixed
+- Issue where filament was not unloading correctly when only tool_pin_end is defined
+- Issue where prep logic would try to unload forever if only tool_pin_end was defined
+
 ## [2025-02-25]
 
 ### Fixed

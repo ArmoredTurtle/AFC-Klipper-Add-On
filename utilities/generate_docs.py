@@ -76,10 +76,10 @@ def format_markdown(cmd_functions):
         "\n"
     ]
     for name, docstring in cmd_functions:
-        description = docstring.split('\n\n')[0]
+        description = docstring.split('\n\n')[0].replace("<nl>", "")
         command_name = name[4:].upper()  # Remove 'cmd_' prefix and convert to uppercase
         markdown_lines.append(f"### {command_name}\n")
-        markdown_lines.append(f"_Description_: {description}  \n")
+        markdown_lines.append(f"_Description_: {description}  \n  \n")
 
         # Extract usage and example from docstring if available
         usage = ""

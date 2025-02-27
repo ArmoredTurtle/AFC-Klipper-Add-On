@@ -24,10 +24,11 @@ class afcSpool:
         This function is called when the printer connects. It looks up the AFC object
         and assigns it to the instance variable `self.AFC`.
         """
-        self.AFC = self.printer.lookup_object('AFC')
-        self.ERROR = self.AFC.ERROR
-        self.reactor = self.AFC.reactor
-        self.gcode = self.AFC.gcode
+        self.AFC        = self.printer.lookup_object('AFC')
+        self.ERROR      = self.AFC.ERROR
+        self.reactor    = self.AFC.reactor
+        self.gcode      = self.AFC.gcode
+        self.logger     = self.AFC.logger
 
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
@@ -67,13 +68,13 @@ class afcSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.gcode.respond_info("No LANE Defined")
+            self.logger.info("No LANE Defined")
             return
         map_cmd = gcmd.get('MAP', None)
         lane_switch=self.AFC.tool_cmds[map_cmd]
-        self.gcode.respond_info("lane to switch is " + lane_switch)
+        self.logger.debug("lane to switch is " + lane_switch)
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
+            self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         self.AFC.tool_cmds[map_cmd]=lane
@@ -105,11 +106,11 @@ class afcSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.gcode.respond_info("No LANE Defined")
+            self.logger.info("No LANE Defined")
             return
         color = gcmd.get('COLOR', '#000000')
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
+            self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.color = '#' + color
@@ -136,11 +137,11 @@ class afcSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.gcode.respond_info("No LANE Defined")
+            self.logger.info("No LANE Defined")
             return
         weight = gcmd.get('WEIGHT', '')
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
+            self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.weight = weight
@@ -167,11 +168,11 @@ class afcSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.gcode.respond_info("No LANE Defined")
+            self.logger.info("No LANE Defined")
             return
         material = gcmd.get('MATERIAL', '')
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
+            self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.material = material
@@ -188,7 +189,7 @@ class afcSpool:
             try:
                 webhooks.call_remote_method("spoolman_set_active_spool", **args)
             except self.printer.command_error as e:
-                self.gcode._respond_error("Error trying to set active spool \n{}".format(e))
+                self.logger.error("Error trying to set active spool \n{}".format(e))
 
     cmd_SET_SPOOL_ID_help = "Set lanes spoolman ID"
     def cmd_SET_SPOOL_ID(self, gcmd):
@@ -212,11 +213,11 @@ class afcSpool:
         if self.AFC.spoolman !=None:
             lane = gcmd.get('LANE', None)
             if lane == None:
-                self.gcode.respond_info("No LANE Defined")
+                self.logger.info("No LANE Defined")
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
             if lane not in self.AFC.lanes:
-                self.AFC.gcode.respond_info('{} Unknown'.format(lane))
+                self.logger.info('{} Unknown'.format(lane))
                 return
             CUR_LANE = self.AFC.lanes[lane]
             self.set_spoolID(CUR_LANE, SpoolID)
@@ -294,11 +295,11 @@ class afcSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
-            self.gcode.respond_info("No LANE Defined")
+            self.logger.info("No LANE Defined")
             return
         runout = gcmd.get('RUNOUT', '')
         if lane not in self.AFC.lanes:
-            self.AFC.gcode.respond_info('{} Unknown'.format(lane))
+            self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.runout_lane = runout
@@ -307,9 +308,7 @@ class afcSpool:
     cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
     def cmd_RESET_AFC_MAPPING(self, gcmd):
         """
-        This commands resets all tool lane mapping to the order that is setup in configuration.
-
-        Useful to put in your PRINT_END macro to reset mapping
+        This commands resets all tool lane mapping to the order that is setup in configuration. Useful to put in your PRINT_END macro to reset mapping
 
         Usage: RESET_AFC_MAPPING
 
@@ -324,7 +323,7 @@ class afcSpool:
                 t_index += 1
 
         self.AFC.save_vars()
-        self.AFC.gcode.respond_info("Tool mappings reset")
+        self.logger.info("Tool mappings reset")
 
 def load_config(config):
     return afcSpool(config)

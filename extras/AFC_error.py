@@ -24,6 +24,7 @@ class afcError:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
+        self.logger = self.AFC.logger
         # Constant variable for renaming RESUME macro
         self.BASE_RESUME_NAME       = 'RESUME'
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_{}_'.format(self.BASE_RESUME_NAME)
@@ -47,7 +48,7 @@ class afcError:
         return error_handled
 
     def ToolHeadFix(self, CUR_LANE):
-        if CUR_LANE.get_toolhead_sensor_state():   #toolhead has filament
+        if CUR_LANE.get_toolhead_pre_sensor_state():   #toolhead has filament
             if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:   #var has right lane loaded
                 if CUR_LANE.load_state == False: #Lane has filament
                     self.PauseUserIntervention('Filament not loaded in Lane')
@@ -75,7 +76,7 @@ class afcError:
 
     def PauseUserIntervention(self,message):
         #pause for user intervention
-        self.AFC.gcode._respond_error(message)
+        self.logger.error(message)
         if self.AFC.FUNCTION.is_homed() and not self.AFC.FUNCTION.is_paused():
             self.AFC.save_pos()
             if self.pause:
@@ -87,8 +88,10 @@ class afcError:
         the base pause command
         """
         self.set_error_state( True )
-        self.AFC.gcode.respond_info ('PAUSING')
+        self.logger.info ('PAUSING')
         self.AFC.gcode.run_script_from_command('PAUSE')
+        self.logger.debug("After User Pause")
+        self.AFC.FUNCTION.log_toolhead_pos()
 
     def set_error_state(self, state=False):
         logging.warning("AFC debug: setting error state {}".format(state))
@@ -102,7 +105,7 @@ class afcError:
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
-        self.AFC.gcode.respond_raw( "!! {}".format(msg) )
+        self.logger.error( "{}".format(msg) )
         if pause: self.pause_print()
 
 
@@ -139,6 +142,8 @@ class afcError:
             None
         """
         self.AFC.in_toolchange = False
+        self.logger.debug("Before User Restore")
+        self.AFC.FUNCTION.log_toolhead_pos()
         self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
 
         #The only time our resume should restore position is if there was an error that caused the pause
