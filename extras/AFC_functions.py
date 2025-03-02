@@ -411,32 +411,33 @@ class afcFunction:
             if unit is None:
                 if lanes != 'all':
                     CUR_LANE = self.AFC.lanes[lanes]
-                    checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                    checked, msg, pos = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                     if(not checked):
                         prompt.p_end()
                         self.AFC.ERROR.AFC_error(msg, False)
-                        self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
+                        if pos > 0:
+                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(CUR_LANE, pos))
                         return
                     else: calibrated.append(lanes)
                 else:
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in self.AFC.lanes.values():
                         # Calibrate the specific lane
-                        checked, msg = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                        checked, msg, pos = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                         if(not checked):
                             prompt.p_end()
                             self.AFC.ERROR.AFC_error(msg, False)
-                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
+                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(CUR_LANE, pos))
                             return
                         else: calibrated.append(CUR_LANE.name)
             else:
                 if lanes != 'all':
-                    CUR_LANE=self.AFC.lanes[lanes]
-                    checked, msg= CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
+                    CUR_LANE = self.AFC.lanes[lanes]
+                    checked, msg, pos = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                     if(not checked):
                         prompt.p_end()
                         self.AFC.ERROR.AFC_error(msg, False)
-                        self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
+                        self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(CUR_LANE, pos))
                         return
                     else: calibrated.append(lanes)
                 else:
@@ -445,11 +446,11 @@ class afcFunction:
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in CUR_UNIT.lanes.values():
                         # Calibrate the specific lane
-                        checked, msg = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
+                        checked, msg, pos = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
                         if(not checked):
                             prompt.p_end()
                             self.AFC.ERROR.AFC_error(msg, False)
-                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
+                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(CUR_LANE, pos))
                             return
                         else: calibrated.append(CUR_LANE.name)
 
@@ -464,11 +465,11 @@ class afcFunction:
             prompt.p_end
 
             CUR_LANE = self.AFC.lanes[afc_bl]
-            checked, msg = CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
+            checked, msg, pos = CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
             if not checked:
                 prompt.p_end()
                 self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
-                self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(afc_bl))
+                self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(afc_bl, pos))
                 return
             else: calibrated.append('Bowden length: {}'.format(afc_bl))
 
@@ -508,33 +509,38 @@ class afcFunction:
     cmd_AFC_CALI_FAIL_help = 'open prompt after calibration fails'
     def cmd_AFC_CALI_FAIL(self, gcmd):
         cali = gcmd.get("FAIL", None)
+        dis = gcmd.get("DISTANCE", None)
 
         prompt = AFCprompt(gcmd)
         buttons = []
         footer = []
         title = 'AFC Calibration Failed'
-        text = ('Calibration failed {}, reset lane, adjust config values if needed and re-run colibration.').format(cali)
-        buttons.append(("Reset lane", "AFC_RESET", "primary"))
+        text = ('Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.').format(cali)
+        buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
         footer.append(('EXIT', 'prompt_end', 'info'))
 
-        # bow_footer = [("All Lanes in all units", "ALL_CALIBRATION", "secondary")]
         prompt.create_custom_p(title, text, buttons,
                                True, None)
 
     cmd_AFC_RESET_help = 'Open prompt to select lane to reset.'
     def cmd_AFC_RESET(self, gcmd):
         prompt = AFCprompt(gcmd)
+        dis = gcmd.get("DISTANCE", None)
         buttons = []
         title = 'AFC RESET'
-        text = ('Select lane to reset')
+        text = ('Select a loaded lane to reset')
 
-        # Create buttons for each lane and group every 4 lanes together
+        # Create buttons for each loaded lane
         for index, LANE in enumerate(self.AFC.lanes.values()):
-            button_label = "{}".format(LANE.name)
-            self.AFC.gcode.respond_info('Button{}'.format(button_label))
-            button_command = "AFC_LANE_RESET LANE={}".format(LANE.name)
-            button_style = "primary" if index % 2 == 0 else "secondary"
-            buttons.append((button_label, button_command, button_style))
+            if LANE.load_state:
+                button_label = "{}".format(LANE.name)
+                button_command = "AFC_LANE_RESET LANE={} DISTANCE={}".format(LANE.name, dis)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                buttons.append((button_label, button_command, button_style))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons == 0:
+            text = 'No lanes are loaded, a lane must be loaded to be reset'
 
         prompt.create_custom_p(title, text, buttons,
                         True, None)
@@ -543,9 +549,10 @@ class afcFunction:
     def cmd_LANE_RESET(self, gcmd):
         prompt = AFCprompt(gcmd)
         lane = gcmd.get('LANE', None)
+        long_dis = gcmd.get('DISTANCE', None)
         CUR_LANE = self.AFC.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
-        short_move = CUR_LANE.short_move_disn * 2
+        short_move = CUR_LANE.short_move_dis * 2
 
         if lane is not None and lane not in self.AFC.lanes:
             prompt.p_end()
@@ -565,6 +572,10 @@ class afcFunction:
         self.AFC.gcode.respond_info('Resetting {} to hub'.format(lane))
         pos = 0
         fail_state_msg = "'{}' failed to reset to hub, {} switch became false during reset"
+
+        if long_dis is not None:
+            CUR_LANE.move(float(long_dis) * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
+
         while CUR_HUB.state == True:
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move

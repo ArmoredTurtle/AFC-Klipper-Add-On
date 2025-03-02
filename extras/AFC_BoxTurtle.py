@@ -119,7 +119,7 @@ class afcBoxTurtle(afcUnit):
 
         if not success:
             msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
-            return False, msg
+            return False, msg, hub_pos
 
         bow_pos = 0
         if CUR_EXTRUDER.tool_start:
@@ -134,22 +134,22 @@ class afcBoxTurtle(afcUnit):
                     msg += '\n if filament stopped short of the toolhead sensor/ramming during calibration'
                     msg += '\n use the following command to increase bowden length'
                     msg += '\n SET_BOWDEN_LENGTH HUB={} LENGTH=+(distance the filament was short from the toolhead)'.format(CUR_HUB.name)
-                    return False, msg
+                    return False, msg, bow_pos
 
             bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_sensor_state(), bow_pos,
                                                       CUR_LANE.short_move_dis, tol, 100, "retract from toolhead sensor")
             
             if not success:
                 msg = 'Failed {} after {}mm'.format(checkpoint, bow_pos)
-                return False, msg
+                return False, msg, bow_pos
 
             CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
-            success, hub_dis = self.calibrate_hub(CUR_LANE, tol)
+            success, hub_dis, pos = self.calibrate_hub(CUR_LANE, tol)
 
             if not success:
                 msg = '{}'.format(hub_dis)
-                return False, msg
+                return False, msg, pos
 
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
@@ -179,14 +179,14 @@ class afcBoxTurtle(afcUnit):
 
         if not success:
             msg = 'failed {} after {}mm'.format(checkpoint, hub_pos)
-            return False, msg
+            return False, msg, hub_pos
         
         tuned_hub_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
                                             CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 500, checkpoint)
         
         if not success:
             msg = 'failed {} after {}mm'.format(checkpoint, tuned_hub_pos)
-            return False, msg
+            return False, msg, tuned_hub_pos
         
         return True, tuned_hub_pos
 
@@ -248,13 +248,13 @@ class afcBoxTurtle(afcUnit):
         CUR_HUB = CUR_LANE.hub_obj
         if CUR_HUB.state:
             msg = 'Hub is not clear, check before calibration'
-            return False, msg
+            return False, msg, 0
         if not CUR_LANE.load_state:
             msg = '{} not loaded, load before calibration'.format(CUR_LANE.name)
-            return False, msg
+            return False, msg, 0
         if not CUR_LANE.prep_state:
             msg = '{} is loaded but not prepped, check prep before calibration'.format(CUR_LANE.name)
-            return False, msg
+            return False, msg, 0
 
         self.AFC.gcode.respond_raw('<span class=info--text>Calibrating {}</span>'.format(CUR_LANE.name))
         # reset to extruder
@@ -263,14 +263,14 @@ class afcBoxTurtle(afcUnit):
         
         if not success:
             msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
-            return False, msg
+            return False, msg, 0
         
         else:
             success, hub_pos = self.calibrate_hub(CUR_LANE, tol)
 
             if not success:
                 msg = '{}'.format(hub_pos)
-                return False, msg
+                return False, msg, hub_pos
 
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
