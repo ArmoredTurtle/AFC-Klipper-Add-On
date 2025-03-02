@@ -13,6 +13,14 @@ allows the option to calibrate all lanes across all units.
 Usage: ``AFC_CALIBRATION``  
 Example: ``AFC_CALIBRATION``  
 
+### AFC_RESET
+_Description_: This function opens a prompt allowing the user to select a loaded lane for reset. It displays a list of loaded lanes
+and provides a reset button for each lane. If no lanes are loaded, an informative message is displayed indicating
+that a lane must be loaded to proceed with resetting.  
+  
+Usage: ``AFC_RESET DISTANCE=<distance>``  
+Example: `AFC_RESET LANE=lane1`  
+
 ### AFC_RESUME
 _Description_: This function clears the error state of the AFC system, sets the in_toolchange flag to False,
 runs the resume script, and restores the toolhead position to the last saved position.  
@@ -74,6 +82,14 @@ several checks and movements to ensure the lane is properly loaded.
 Usage: ``HUB_LOAD LANE=<lane>``  
 Example: ``HUB_LOAD LANE=lane1``  
 
+### LANE_RESET
+_Description_: This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
+such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
+hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.  
+  
+Usage: ``LANE_RESET LANE=<lane> DISTANCE=<distance>``  
+Example: `LANE_RESET LANE=lane1`  
+
 ### LANE_UNLOAD
 _Description_: This function handles the unloading of a specified lane from the extruder. It performs
 several checks and movements to ensure the lane is properly unloaded.  
@@ -123,7 +139,7 @@ Example: ``SET_AFC_TOOLCHANGES TOOLCHANGES=100``
 
 ### SET_BOWDEN_LENGTH
 _Description_: This function adjusts the length of the Bowden tube between the hub and the toolhead.
-It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified
+It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified++
 by the 'LENGTH' parameter. If the hub is not specified and a lane is currently loaded,
 it uses the hub of the current lane.  
   

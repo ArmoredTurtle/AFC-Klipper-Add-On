@@ -406,17 +406,14 @@ class afcFunction:
         calibrated = []
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:
-            prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)
             return
 
         if unit is not None and unit not in self.AFC.units:
-            prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid unit".format(unit), pause=False)
             return
 
         if afc_bl is not None and afc_bl not in self.AFC.lanes:
-            prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
 
@@ -448,7 +445,6 @@ class afcFunction:
                     CUR_LANE = self.AFC.lanes[lanes]
                     checked, msg, pos = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                     if(not checked):
-                        prompt.p_end()
                         self.AFC.ERROR.AFC_error(msg, False)
                         self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(CUR_LANE, pos))
                         return
@@ -461,7 +457,6 @@ class afcFunction:
                         # Calibrate the specific lane
                         checked, msg, pos = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
                         if(not checked):
-                            prompt.p_end()
                             self.AFC.ERROR.AFC_error(msg, False)
                             self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(CUR_LANE, pos))
                             return
@@ -478,8 +473,8 @@ class afcFunction:
             CUR_LANE=self.AFC.lanes[afc_bl]
 
             # Setting tool start to buffer if only tool_end is set and user has buffer so calibration can run
-            if CUR_LANE.extruder_obj.tool_start is None and CUR_LANE.extruder_obj.tool_end is not None:
-                if CUR_LANE.buffer_obj is not None:
+            if CUR_LANE.extruder_obj.tool_start is None:
+                if CUR_LANE.extruder_obj.tool_end is not None and CUR_LANE.buffer_obj is not None:
                     self.logger.info("Cannot run calibration using post extruder sensor, using buffer to calibrate bowden length")
                     CUR_LANE.extruder_obj.tool_start = "buffer"
                     set_tool_start_back_to_none = True
@@ -492,7 +487,6 @@ class afcFunction:
 
             checked, msg, pos = CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
             if not checked:
-                prompt.p_end()
                 self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
                 self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(afc_bl, pos))
                 return

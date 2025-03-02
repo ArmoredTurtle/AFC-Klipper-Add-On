@@ -136,8 +136,9 @@ class afcBoxTurtle(afcUnit):
                     msg += '\n SET_BOWDEN_LENGTH HUB={} LENGTH=+(distance the filament was short from the toolhead)'.format(CUR_HUB.name)
                     return False, msg, bow_pos
 
-            bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_pre_sensor_state(), bow_pos,
-                                                      CUR_LANE.short_move_dis, tol, 100, "retract from toolhead sensor")
+            if CUR_EXTRUDER.tool_start != 'buffer':
+                bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_pre_sensor_state(), bow_pos,
+                                                        CUR_LANE.short_move_dis, tol, 100, "retract from toolhead sensor")
             
             if not success:
                 msg = 'Failed {} after {}mm'.format(checkpoint, bow_pos)
@@ -165,7 +166,7 @@ class afcBoxTurtle(afcUnit):
             self.AFC.FUNCTION.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bowden_dist, cal_msg)
             CUR_LANE.do_enable(False)
             self.AFC.save_vars()
-            return True, "afc_bowden_length successful"
+            return True, "afc_bowden_length successful", bowden_dist
         else:
             self.logger.info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
@@ -188,7 +189,7 @@ class afcBoxTurtle(afcUnit):
             msg = 'failed {} after {}mm'.format(checkpoint, tuned_hub_pos)
             return False, msg, tuned_hub_pos
         
-        return True, tuned_hub_pos
+        return True, tuned_hub_pos, tuned_hub_pos
 
     def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
         while state() == False:
