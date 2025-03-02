@@ -9,10 +9,6 @@ try:
     from extras.AFC_unit import afcUnit
 except:
     raise error("Error trying to import AFC_unit, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
-try:
-    from extras.AFC_respond import AFCprompt
-except:
-    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 class afcBoxTurtle(afcUnit):
     def __init__(self, config):
@@ -139,7 +135,7 @@ class afcBoxTurtle(afcUnit):
             if CUR_EXTRUDER.tool_start != 'buffer':
                 bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_pre_sensor_state(), bow_pos,
                                                         CUR_LANE.short_move_dis, tol, 100, "retract from toolhead sensor")
-            
+
             if not success:
                 msg = 'Failed {} after {}mm'.format(checkpoint, bow_pos)
                 return False, msg, bow_pos
@@ -184,11 +180,11 @@ class afcBoxTurtle(afcUnit):
         
         tuned_hub_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
                                             CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 500, checkpoint)
-        
+
         if not success:
             msg = 'failed {} after {}mm'.format(checkpoint, tuned_hub_pos)
             return False, msg, tuned_hub_pos
-        
+
         return True, tuned_hub_pos, tuned_hub_pos
 
     def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
@@ -261,11 +257,11 @@ class afcBoxTurtle(afcUnit):
         # reset to extruder
         pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis,
                                               tol, CUR_LANE.dist_hub + 100, "retract to extruder")
-        
+
         if not success:
             msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
             return False, msg, 0
-        
+
         else:
             success, hub_pos = self.calibrate_hub(CUR_LANE, tol)
 
