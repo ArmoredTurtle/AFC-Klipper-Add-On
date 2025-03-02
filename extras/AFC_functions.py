@@ -402,7 +402,6 @@ class afcFunction:
             self.logger.info('Tool must be unloaded to calibrate Bowden length')
             return
 
-        cal_msg = ''
         calibrated = []
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:

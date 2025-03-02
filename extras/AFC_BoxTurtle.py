@@ -177,7 +177,7 @@ class afcBoxTurtle(afcUnit):
         if not success:
             msg = 'failed {} after {}mm'.format(checkpoint, hub_pos)
             return False, msg, hub_pos
-        
+
         tuned_hub_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
                                             CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 500, checkpoint)
 
