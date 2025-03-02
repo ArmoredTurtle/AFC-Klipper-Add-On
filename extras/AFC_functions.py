@@ -407,6 +407,7 @@ class afcFunction:
         # Determine if a specific lane is provided
         if lanes is not None:
             self.AFC.gcode.respond_raw('<span class=info--text>Starting AFC distance Calibrations</span>')
+            prompt.p_end
             if unit is None:
                 if lanes != 'all':
                     CUR_LANE = self.AFC.lanes[lanes]
@@ -414,6 +415,7 @@ class afcFunction:
                     if(not checked):
                         prompt.p_end()
                         self.AFC.ERROR.AFC_error(msg, False)
+                        self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
                         return
                     else: calibrated.append(lanes)
                 else:
@@ -424,6 +426,7 @@ class afcFunction:
                         if(not checked):
                             prompt.p_end()
                             self.AFC.ERROR.AFC_error(msg, False)
+                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
                             return
                         else: calibrated.append(CUR_LANE.name)
             else:
@@ -433,6 +436,7 @@ class afcFunction:
                     if(not checked):
                         prompt.p_end()
                         self.AFC.ERROR.AFC_error(msg, False)
+                        self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
                         return
                     else: calibrated.append(lanes)
                 else:
@@ -445,6 +449,7 @@ class afcFunction:
                         if(not checked):
                             prompt.p_end()
                             self.AFC.ERROR.AFC_error(msg, False)
+                            self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(CUR_LANE))
                             return
                         else: calibrated.append(CUR_LANE.name)
 
@@ -456,12 +461,14 @@ class afcFunction:
         # Calibrate Bowden length with specified lane
         if afc_bl is not None:
             self.AFC.gcode.respond_info('<span class=info--text>Starting AFC distance Calibrations</span>')
+            prompt.p_end
 
             CUR_LANE = self.AFC.lanes[afc_bl]
             checked, msg = CUR_LANE.unit_obj.calibrate_bowden(CUR_LANE, dis, tol)
             if not checked:
                 prompt.p_end()
                 self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
+                self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={}'.format(afc_bl))
                 return
             else: calibrated.append('Bowden length: {}'.format(afc_bl))
 
@@ -532,13 +539,13 @@ class afcFunction:
         prompt.create_custom_p(title, text, buttons,
                         True, None)
 
-    cmd_LANE_RESET_help = 'reset lane based on provided reset point'
+    cmd_LANE_RESET_help = 'reset lane to hub'
     def cmd_LANE_RESET(self, gcmd):
         prompt = AFCprompt(gcmd)
         lane = gcmd.get('LANE', None)
         CUR_LANE = self.AFC.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
-        short_move = CUR_LANE.short_move_dis
+        short_move = CUR_LANE.short_move_disn * 2
 
         if lane is not None and lane not in self.AFC.lanes:
             prompt.p_end()
@@ -577,6 +584,8 @@ class afcFunction:
         CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
         CUR_LANE.loaded_to_hub  = True
         CUR_LANE.do_enable(False)
+
+        self.AFC.gcode.respond_info('{} reset to hub, take nessecary action'.format(lane))
 
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
