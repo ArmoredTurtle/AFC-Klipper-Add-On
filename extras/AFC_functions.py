@@ -389,7 +389,7 @@ class afcFunction:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         dis    = gcmd.get_float('DISTANCE' , 25)
         tol    = gcmd.get_float('TOLERANCE', 5)
         afc_bl = gcmd.get(      'BOWDEN'   , None)
@@ -478,14 +478,15 @@ class afcFunction:
             CUR_LANE=self.AFC.lanes[afc_bl]
 
             # Setting tool start to buffer if only tool_end is set and user has buffer so calibration can run
-            if CUR_LANE.extruder_obj.tool_start is None and CUR_LANE.extruder_obj.tool_end is not None and CUR_LANE.buffer_obj is not None:
-                self.logger.info("Cannot run calibration using post extruder sensor, using buffer to calibrate bowden length")
-                CUR_LANE.extruder_obj.tool_start = "buffer"
-                set_tool_start_back_to_none = True
-            else:
-                # Cannot calibrate
-                self.AFC.ERROR.AFC_error("Cannot calibrate with only post extruder sensor and no turtleneck buffer defined in config", pause=False)
-                return
+            if CUR_LANE.extruder_obj.tool_start is None and CUR_LANE.extruder_obj.tool_end is not None:
+                if CUR_LANE.buffer_obj is not None:
+                    self.logger.info("Cannot run calibration using post extruder sensor, using buffer to calibrate bowden length")
+                    CUR_LANE.extruder_obj.tool_start = "buffer"
+                    set_tool_start_back_to_none = True
+                else:
+                    # Cannot calibrate
+                    self.AFC.ERROR.AFC_error("Cannot calibrate with only post extruder sensor and no turtleneck buffer defined in config", pause=False)
+                    return
 
             self.logger.info('Starting AFC distance Calibrations')
 
@@ -505,11 +506,30 @@ class afcFunction:
         if checked:
             self.AFC.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(calibrated))
 
-    cmd_AFC_CALI_COMP_help = 'open prompt after calibration is complete'
+    cmd_AFC_CALI_COMP_help = 'Opens prompt after calibration is complete'
     def cmd_AFC_CALI_COMP(self, gcmd):
+        """
+        This function handles the completion of the AFC calibration process by displaying a prompt to the user, asking
+        whether they want to perform more calibrations.
+
+        Usage: `AFC_CALI_COMP CALI=<calibration context>`
+
+        Examples:
+            - `AFC_CALI_COMP CALI=lane1` (Shows a prompt indicating that calibration for 'lane1' has been completed)
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Parameters:
+                - CALI: Specifies the calibration context that was completed, such as a specific lane or all lanes.
+
+        Returns:
+            None
+        NO_DOC: True
+        """
+
         cali = gcmd.get("CALI", None)
 
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         title = 'AFC Calibration Completed'
         text = ('Calibration was completed for {}, would you like to do more calibrations?').format(cali)
@@ -519,11 +539,30 @@ class afcFunction:
         prompt.create_custom_p(title, text, buttons,
                                True, None)
 
-    cmd_AFC_HAPPY_P_help = 'open prompt after calibration is complete'
+    cmd_AFC_HAPPY_P_help = 'Opens prompt after calibration is complete'
     def cmd_AFC_HAPPY_P(self, gcmd):
+        """
+        This function opens a prompt after calibration is complete, displaying a message to the user that the calibration
+        step has been successfully completed.
+
+        Usage: `AFC_HAPPY_P STEP=<step>`
+
+        Examples:
+            - `AFC_HAPPY_P STEP='AFC Calibration lane3'` (Shows the completion message for AFC Calibration)
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Parameters:
+                - STEP: Specifies the step that has been completed (e.g., AFC Calibration, Extruder Calibration).
+
+        Returns:
+            None
+        NO_DOC: True
+        """
+
         step = gcmd.get("STEP", None)
 
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = None
         footer = []
         title = '{} Completed'.format(step)
@@ -534,12 +573,33 @@ class afcFunction:
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 3)
         self.AFC.gcode.respond_raw("// action:prompt_end")
 
-    cmd_AFC_CALI_FAIL_help = 'open prompt after calibration fails'
+    cmd_AFC_CALI_FAIL_help = 'Opens prompt after calibration fails'
     def cmd_AFC_CALI_FAIL(self, gcmd):
+        """
+        This function opens a prompt after an AFC calibration failure. It informs the user about the failure and provides
+        instructions to reset the lane and review the error messages in the console. The user is prompted to take corrective
+        action and re-run the calibration.
+
+        Usage: `AFC_CALI_FAIL FAIL=<lane> DISTANCE=<distance>`
+
+        Examples:
+            - `AFC_CALI_FAIL FAIL=lane1 DISTANCE=30` (Indicates that the calibration for lane1 failed at a 30mm distance)
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Parameters:
+                - FAIL: Specifies the lane where the calibration failed.
+                - DISTANCE: The distance value that caused the failure (optional).
+
+        Returns:
+            None
+        NO_DOC: True
+        """
+
         cali = gcmd.get("FAIL", None)
         dis = gcmd.get("DISTANCE", None)
 
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         footer = []
         title = 'AFC Calibration Failed'
@@ -550,9 +610,29 @@ class afcFunction:
         prompt.create_custom_p(title, text, buttons,
                                True, None)
 
-    cmd_AFC_RESET_help = 'Open prompt to select lane to reset.'
+    cmd_AFC_RESET_help = 'Opens prompt to select lane to reset.'
     def cmd_AFC_RESET(self, gcmd):
-        prompt = AFCprompt(gcmd)
+        """
+        This function opens a prompt allowing the user to select a loaded lane for reset. It displays a list of loaded lanes
+        and provides a reset button for each lane. If no lanes are loaded, an informative message is displayed indicating
+        that a lane must be loaded to proceed with resetting.
+
+        Usage: `AFC_RESET DISTANCE=<distance>`
+
+        Examples:
+            - `AFC_RESET DISTANCE=30` (Shows the prompt for resetting lanes with a distance value of 30mm)
+            - `AFC_RESET` (Shows the prompt for resetting lanes without specifying a distance)
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Parameters:
+                - DISTANCE: The distance value to use for resetting the lanes (optional).
+
+        Returns:
+            None
+        """
+
+        prompt = AFCprompt(gcmd, self.logger)
         dis = gcmd.get("DISTANCE", None)
         buttons = []
         title = 'AFC RESET'
@@ -573,9 +653,30 @@ class afcFunction:
         prompt.create_custom_p(title, text, buttons,
                         True, None)
 
-    cmd_LANE_RESET_help = 'reset lane to hub'
+    cmd_LANE_RESET_help = 'reset a loaded lane to hub'
     def cmd_LANE_RESET(self, gcmd):
-        prompt = AFCprompt(gcmd)
+        """
+        This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
+        such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
+        hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.
+
+        Usage: `LANE_RESET LANE=<lane> DISTANCE=<distance>`
+
+        Examples:
+            - `LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
+            - `LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Parameters:
+                - LANE: The lane to reset. Must be a valid lane in the AFC system.
+                - DISTANCE: The distance to move during the reset (optional, defaults to the AFC settings).
+
+        Returns:
+            None
+        """
+
+        prompt = AFCprompt(gcmd, self.logger)
         lane = gcmd.get('LANE', None)
         long_dis = gcmd.get('DISTANCE', None)
         CUR_LANE = self.AFC.lanes[lane]
@@ -586,12 +687,12 @@ class afcFunction:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
             return
-        
+
         if CUR_HUB.state == False:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("Hub is already clear while trying to reset '{}'".format(lane), pause=False)
             return
-        
+
         if (tool_load := self.get_current_lane_obj()) is not None:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("Toolhead is loaded with '{}', unload or check sensor before resetting lane".format(tool_load.name), pause=False)
@@ -611,17 +712,17 @@ class afcFunction:
             if CUR_LANE.load_state == False:
                 self.AFC.ERROR.AFC_error(fail_state_msg.format(CUR_LANE, "load"), pause=False)
                 return
-            
+
             if CUR_LANE.prep_state == False:
                 self.AFC.ERROR.AFC_error(fail_state_msg.format(CUR_LANE, "prep"), pause=False)
                 return
-            
+
             if abs(pos) >= CUR_HUB.afc_bowden_length:
                 self.AFC.ERROR.AFC_error("'{}' failed to reset to hub".format(CUR_LANE), pause=False)
                 return
 
         CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
-        CUR_LANE.loaded_to_hub  = True
+        CUR_LANE.loaded_to_hub = True
         CUR_LANE.do_enable(False)
 
         self.AFC.gcode.respond_info('{} reset to hub, take nessecary action'.format(lane))

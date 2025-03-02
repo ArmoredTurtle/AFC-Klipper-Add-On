@@ -5,7 +5,10 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configfile import error
-from extras.AFC_respond import AFCprompt
+try:
+    from extras.AFC_respond import AFCprompt
+except:
+    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 class afcUnit:
     def __init__(self, config):
@@ -119,7 +122,7 @@ class afcUnit:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         title = '{} Calibration'.format(self.name)
         text = 'Select to calibrate the distance from extruder to hub or bowden length'
@@ -146,7 +149,7 @@ class afcUnit:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
         title = '{} Lane Calibration'.format(self.name)
@@ -199,7 +202,7 @@ class afcUnit:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
         title = 'Bowden Calibration {}'.format(self.name)
