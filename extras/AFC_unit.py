@@ -9,10 +9,11 @@ from extras.AFC_respond import AFCprompt
 
 class afcUnit:
     def __init__(self, config):
-        self.printer    = config.get_printer()
-        self.gcode      = self.printer.lookup_object('gcode')
+        self.printer        = config.get_printer()
+        self.gcode          = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        self.AFC = self.printer.lookup_object('AFC')
+        self.AFC            = self.printer.lookup_object('AFC')
+        self.logger         = self.AFC.logger
 
         self.lanes      = {}
 
@@ -46,6 +47,7 @@ class afcUnit:
         self.n20_break_delay_time = config.getfloat("n20_break_delay_time", self.AFC.n20_break_delay_time) # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
 
         self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+        self.unload_on_runout   = config.getboolean("unload_on_runout", self.AFC.unload_on_runout)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
 
     def handle_connect(self):
         """

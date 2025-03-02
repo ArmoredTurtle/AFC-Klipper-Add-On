@@ -76,7 +76,7 @@ class afcBoxTurtle(afcUnit):
                 msg +="<span class=success--text> AND LOADED</span>"
 
                 if CUR_LANE.tool_loaded:
-                    if CUR_LANE.get_toolhead_sensor_state() == True or CUR_LANE.extruder_obj.tool_start == "buffer":
+                    if CUR_LANE.get_toolhead_pre_sensor_state() == True or CUR_LANE.extruder_obj.tool_start == "buffer" or CUR_LANE.extruder_obj.tool_end_state:
                         if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
                             self.AFC.current = CUR_LANE.name
                             CUR_LANE.sync_to_extruder()
@@ -91,7 +91,7 @@ class afcBoxTurtle(afcUnit):
 
                             CUR_LANE.enable_buffer()
                         else:
-                            if CUR_LANE.get_toolhead_sensor_state() == True:
+                            if CUR_LANE.get_toolhead_pre_sensor_state() == True or CUR_LANE.extruder_obj.tool_end_state:
                                 msg +="<span class=error--text> error in ToolHead. \nLane identified as loaded \n but not identified as loaded in extruder</span>"
                                 succeeded = False
                     else:
@@ -101,7 +101,7 @@ class afcBoxTurtle(afcUnit):
 
         if assignTcmd: self.AFC.FUNCTION.TcmdAssign(CUR_LANE)
         CUR_LANE.do_enable(False)
-        self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name, tcmd=CUR_LANE.map, msg=msg))
+        self.logger.info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name, tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()
 
         return succeeded
@@ -109,17 +109,17 @@ class afcBoxTurtle(afcUnit):
     def calibrate_bowden(self, CUR_LANE, dis, tol):
         CUR_EXTRUDER = CUR_LANE.extruder_obj
         CUR_HUB = CUR_LANE.hub_obj
-        self.AFC.gcode.respond_info('Calibrating Bowden Length with {}'.format(CUR_LANE.name))
+        self.logger.info('Calibrating Bowden Length with {}'.format(CUR_LANE.name))
         self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol, CUR_LANE.short_move_dis)
         bow_pos = 0
         if CUR_EXTRUDER.tool_start:
             # Clear until toolhead sensor is clear
-            while not CUR_LANE.get_toolhead_sensor_state():
+            while not CUR_LANE.get_toolhead_pre_sensor_state():
                 CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
                 bow_pos += dis
                 self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
 
-            bow_pos = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_sensor_state(), bow_pos, CUR_LANE.short_move_dis, tol)
+            bow_pos = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_pre_sensor_state(), bow_pos, CUR_LANE.short_move_dis, tol)
             CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
             self.calibrate_hub( CUR_LANE, tol)
@@ -138,7 +138,7 @@ class afcBoxTurtle(afcUnit):
             self.AFC.FUNCTION.ConfigRewrite(CUR_HUB.fullname, "afc_bowden_length", bowden_dist, cal_msg)
             CUR_LANE.do_enable(False)
         else:
-            self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
+            self.logger.info('CALIBRATE_AFC is not currently supported without tool start sensor')
         self.AFC.save_vars()
 
     # Helper functions for movement and calibration
@@ -175,13 +175,13 @@ class afcBoxTurtle(afcUnit):
     def calibrate_lane(self, CUR_LANE, tol):
         CUR_HUB = CUR_LANE.hub_obj
         if CUR_HUB.state:
-            self.AFC.gcode.respond_info('Hub is not clear, check before calibration')
+            self.logger.info('Hub is not clear, check before calibration')
             return False, ""
         if not CUR_LANE.load_state:
-            self.AFC.gcode.respond_info('{} not loaded, load before calibration'.format(CUR_LANE.name))
+            self.logger.info('{} not loaded, load before calibration'.format(CUR_LANE.name))
             return True, ""
 
-        self.AFC.gcode.respond_info('Calibrating {}'.format(CUR_LANE.name))
+        self.logger.info('Calibrating {}'.format(CUR_LANE.name))
         # reset to extruder
         self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis, tol)
         hub_pos = self.calibrate_hub(CUR_LANE, tol)

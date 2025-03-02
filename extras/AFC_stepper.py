@@ -52,17 +52,18 @@ def calc_move_time(dist, speed, accel):
 
 class AFCExtruderStepper:
     def __init__(self, config):
-        self.printer = config.get_printer()
+        self.printer            = config.get_printer()
+        self.AFC                = self.printer.lookup_object('AFC')
+        self.gcode              = self.printer.lookup_object('gcode')
+        self.reactor            = self.printer.get_reactor()
+        self.extruder_stepper   = extruder.ExtruderStepper(config)
+        self.logger             = self.AFC.logger
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        self.AFC = self.printer.lookup_object('AFC')
-        self.gcode = self.printer.lookup_object('gcode')
-        self.reactor = self.printer.get_reactor()
-        self.extruder_stepper = extruder.ExtruderStepper(config)
 
-        self.unit_obj       = None
-        self.hub_obj        = None
-        self.buffer_obj     = None
-        self.extruder_obj   = None
+        self.unit_obj           = None
+        self.hub_obj            = None
+        self.buffer_obj         = None
+        self.extruder_obj       = None
 
         #stored status variables
         self.fullname           = config.get_name()
@@ -274,8 +275,12 @@ class AFCExtruderStepper:
                 error_string = 'Error: Buffer was defined as tool_start in [AFC_extruder {extruder}] config, but buffer variable has not been configured. Please add buffer variable to either [AFC_extruder {extruder}], [AFC_stepper {name}] or [AFC_{unit_type} {unit_name}] section in your config file'.format(
                     extruder=self.extruder_obj.name, name=self.name, unit_type=self.unit_obj.type.replace("_", ""), unit_name=self.unit_obj.name )
                 raise error(error_string)
+
         # Valid to not have a buffer defined, check to make sure object exists before adding lane to buffer
         if self.buffer_obj is not None:
+            if self.extruder_obj.tool_start == "buffer" and self.buffer_obj.belay:
+                raise error("Belay cannot be used in place of a toolhead sensor, only turtleneck buffer can do this.")
+
             self.buffer_obj.lanes[self.name] = self
             # Assigning buffer name just in case stepper is using buffer defined in units/extruder config
             self.buffer_name = self.buffer_obj.name
@@ -501,6 +506,7 @@ class AFCExtruderStepper:
                     #   This is only really a issue when using direct and still using load sensor
                     if self.hub == 'direct' and self.prep_state:
                         self.AFC.TOOL_LOAD(self)
+                        self.material = self.AFC.default_material_type
                         break
 
                     # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
@@ -512,13 +518,14 @@ class AFCExtruderStepper:
                     if self.load_state == True and self.prep_state == True:
                         self.status = 'Loaded'
                         self.AFC.FUNCTION.afc_led(self.AFC.led_ready, self.led_index)
+                        self.material = self.AFC.default_material_type
 
                 elif self.prep_state == False and self.name == self.AFC.current and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
                         self.status = None
                         self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-                        self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
+                        self.logger.info("Infinite Spool triggered for {}".format(self.name))
                         empty_LANE = self.AFC.lanes[self.AFC.current]
                         change_LANE = self.AFC.lanes[self.runout_lane]
                         # Pause printer
@@ -534,6 +541,11 @@ class AFCExtruderStepper:
                         # Set LED to not ready
                         self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
                     else:
+                        # Unload if user has set AFC to unload on runout
+                        if self.unit_obj.unload_on_runout:
+                            # Pause printer
+                            self.gcode.run_script_from_command('PAUSE')
+                            self.AFC.TOOL_UNLOAD(self)
                         # Pause print
                         self.status = None
                         msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
@@ -721,11 +733,11 @@ class AFCExtruderStepper:
 
         else: return None
 
-    def get_toolhead_sensor_state(self):
+    def get_toolhead_pre_sensor_state(self):
         """
-        Helper function that returns current state of toolhead sensor or buffer if user has extruder setup for ramming
+        Helper function that returns current state of toolhead pre sensor or buffer if user has extruder setup for ramming
 
-        returns Status of toolhead sensor or the current buffer advance state
+        returns Status of toolhead pre sensor or the current buffer advance state
         """
         if self.extruder_obj.tool_start == "buffer":
             return self.buffer_obj.advance_state
@@ -745,9 +757,8 @@ class AFCExtruderStepper:
         """
         This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
         during prints after AFC detects an error when loading/unloading and pauses. If there is a lane already loaded this macro
-        will also desync that lane extruder from the toolhead extruder and set its values and led appropriately.
-
-        It retrieves the lane specified by the 'LANE' parameter and set the appropiate values in AFC to continue using the lane.
+        will also desync that lane extruder from the toolhead extruder and set its values and led appropriately.  <nl>
+        Retrieves the lane specified by the 'LANE' parameter and set the appropriate values in AFC to continue using the lane.
 
         Usage: `SET_LANE_LOADED LANE=<lane>`
         Example: `SET_LANE_LOADED LANE=lane1`
@@ -770,7 +781,7 @@ class AFCExtruderStepper:
         self.sync_to_extruder()
         self.AFC.FUNCTION.handle_activate_extruder()
         self.AFC.save_vars()
-        self.AFC.gcode.respond_info("Manually set {} loaded to toolhead".format(self.name))
+        self.logger.info("Manually set {} loaded to toolhead".format(self.name))
 
     def get_status(self, eventtime=None):
         response = {}
