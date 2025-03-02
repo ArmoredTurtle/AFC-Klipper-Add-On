@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-02-28]
+
+### Added
+- Logging of delta time and total time for how long toolchanges take
+- Logging for AFC now logs to AFC.log file
+- Ability to turn off/on AFC leds with `TURN_OFF_AFC_LED`/`TURN_ON_AFC_LED`
+- `default_material_type` variable to assign to spool when loaded into lane
+- `pause_when_bypass_active` variable to pause print if bypass is active, defaults to false
+- `unload_on_runout variable` to unload lane when runout happens and another lane is not setup to change to, default to false
+- Updated calibration to use buffer as tool_pin_start if only tool_pin_end is defined and buffer is also defined
+- Ability to change tool_stn/tool_stn_unload/tool_sensor_after_extruder without restarting
+
+### Fixed
+- Issue where filament was not unloading correctly when only tool_pin_end is defined
+- Issue where prep logic would try to unload forever if only tool_pin_end was defined
+
+## [2025-02-25]
+
+### Fixed
+
+- Tip forming was multiplying all speeds with a factor of 60 by mistake. Existing configuration might need to be adapted
+  to compensate for this fix.
+
+## [2025-02-23]
+
+### Added
+- Checking to make sure lane was not None in cmd_CHANGE_TOOL
+- Pauses in TOOL_LOAD/TOOL_UNLOAD/CHANGE_TOOL for early returns if printer is currently in a print
+
+### Changed
+- The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present.
+
+### Fixed
+- Error in cmd_CHANGE_TOOL where change logic was being triggered if change was in a comment on the same line
+- Turned runout pause message into error message which also pauses printer
+- Error where infinite spool would crash klipper when calling change tool
+
+## [2025-02-20]
+
+### Added
+
+- Users are now able to specify a non default moonraker address when using the `install-afc.sh` script. This value defaults to `http://localhost` but
+can be adjusted for cases such as a remote moonraker installation, https, etc. This value can be set during the installation process by using the `-a <address>` flag.
+
+## [2025-02-19]
+
+### Added
+- Clearing error_state when print starts, before this could be set before printing and would cause AFC to not save/restore position
+- Added 1 second time debounce to prep callback
+- Added abs function when determining speed for LANE_MOVE macro
+
+### Changed
+- Updated error print out messages when loading/unloading
+- The way error messages printed out so they are grouped together
+
+### Fixed
+- Issue where getting spoolman data would error out when server variable in moonraker ended in a slash
+- Issue where prep would no longer activate extruder motors when user rapidely triggered prep sensor
+
+## [2025-02-17]
+
+### Changed
+- Updated the `install-afc.sh` script to prompt the user to install dependencies if they are not already installed instead of installing them automatically.
+
 ## [2025-02-16]
 
 ### Added
@@ -34,6 +98,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Assisted unload  
   When enabled, the retracts out of the toolhead before the long, fast move back throught the bowden tube is assisted.
   This helps with full spools where even a retract of a few centimeters can cause a loop to fall off the spool.
+
+### Changed
+- The `install-afc.sh` install script will now remove the `AFC.var.tool` file if detected as it is no longer needed.
 
 ## [2025-02-04]
 

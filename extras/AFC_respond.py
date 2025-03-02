@@ -5,49 +5,50 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 class AFCprompt:
-    def __init__(self, gcmd):
+    def __init__(self, gcmd, logger):
         self.gcode = gcmd
+        self.logger     = logger
 
     # Prompt begin action
     def p_begin(self, prompt_name):
-        self.gcode.respond_raw("// action:prompt_begin {}".format(prompt_name))
+        self.logger.raw("// action:prompt_begin {}".format(prompt_name))
 
     # Prompt text action
     def p_text(self, text):
-        self.gcode.respond_raw("// action:prompt_text {}".format(text))
+        self.logger.raw("// action:prompt_text {}".format(text))
 
     # Prompt button action (with style options)
     def p_button(self, label, command, style=None):
         if style:
-            self.gcode.respond_raw("// action:prompt_button {}|{}|{}".format(label, command, style))
+            self.logger.raw("// action:prompt_button {}|{}|{}".format(label, command, style))
         else:
-            self.gcode.respond_raw("// action:prompt_button {}|{}".format(label, command))
+            self.logger.raw("// action:prompt_button {}|{}".format(label, command))
 
     # Prompt footer button action (4 max allowed)
     def p_footer_button(self, label, command, style=None):
         if style:
-            self.gcode.respond_raw("// action:prompt_footer_button {}|{}|{}".format(label, command, style))
+            self.logger.raw("// action:prompt_footer_button {}|{}|{}".format(label, command, style))
         else:
-            self.gcode.respond_raw("// action:prompt_footer_button {}|{}".format(label, command))
+            self.logger.raw("// action:prompt_footer_button {}|{}".format(label, command))
 
     def p_cancel_button(self):
         self.p_footer_button('Cancel', "RESPOND TYPE=command MSG=action:prompt_end", 'warning')
 
     # Show prompt action
     def p_show(self):
-        self.gcode.respond_raw("// action:prompt_show")
+        self.logger.raw("// action:prompt_show")
 
     # Close prompt action
     def p_end(self):
-        self.gcode.respond_raw("// action:prompt_end")
+        self.logger.raw("// action:prompt_end")
 
     # Button group start
     def p_button_group_start(self):
-        self.gcode.respond_raw("// action:prompt_button_group_start")
+        self.logger.raw("// action:prompt_button_group_start")
 
     # Button group end
     def p_button_group_end(self):
-        self.gcode.respond_raw("// action:prompt_button_group_end")
+        self.logger.raw("// action:prompt_button_group_end")
 
     # Method to create a custom prompt
     def create_custom_p(self, prompt_name, text=None, buttons=None, cancel=False, groups=None, footer_buttons=None):

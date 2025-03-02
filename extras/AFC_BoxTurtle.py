@@ -55,7 +55,7 @@ class afcBoxTurtle(afcUnit):
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + delay)
             CUR_LANE.move( -5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
         else:
-            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + delay)
+            self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.7)
 
         if CUR_LANE.prep_state == False:
             if CUR_LANE.load_state == False:
@@ -80,7 +80,7 @@ class afcBoxTurtle(afcUnit):
                 msg +="<span class=success--text> AND LOADED</span>"
 
                 if CUR_LANE.tool_loaded:
-                    if CUR_LANE.get_toolhead_sensor_state() == True or CUR_LANE.extruder_obj.tool_start == "buffer":
+                    if CUR_LANE.get_toolhead_pre_sensor_state() == True or CUR_LANE.extruder_obj.tool_start == "buffer" or CUR_LANE.extruder_obj.tool_end_state:
                         if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
                             self.AFC.current = CUR_LANE.name
                             CUR_LANE.sync_to_extruder()
@@ -95,8 +95,8 @@ class afcBoxTurtle(afcUnit):
 
                             CUR_LANE.enable_buffer()
                         else:
-                            if CUR_LANE.get_toolhead_sensor_state() == True:
-                                msg +="<span class=error--text> error in ToolHead. \nLane identified as loaded in AFC.vars.unit file\n but not identified as loaded in AFC.var.tool file</span>"
+                            if CUR_LANE.get_toolhead_pre_sensor_state() == True or CUR_LANE.extruder_obj.tool_end_state:
+                                msg +="<span class=error--text> error in ToolHead. \nLane identified as loaded \n but not identified as loaded in extruder</span>"
                                 succeeded = False
                     else:
                         lane_check=self.AFC.ERROR.fix('toolhead',CUR_LANE)  #send to error handling
@@ -105,7 +105,7 @@ class afcBoxTurtle(afcUnit):
 
         if assignTcmd: self.AFC.FUNCTION.TcmdAssign(CUR_LANE)
         CUR_LANE.do_enable(False)
-        self.AFC.gcode.respond_info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name, tcmd=CUR_LANE.map, msg=msg))
+        self.logger.info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=CUR_LANE.name, tcmd=CUR_LANE.map, msg=msg))
         CUR_LANE.set_afc_prep_done()
 
         return succeeded
@@ -113,7 +113,7 @@ class afcBoxTurtle(afcUnit):
     def calibrate_bowden(self, CUR_LANE, dis, tol):
         CUR_EXTRUDER = CUR_LANE.extruder_obj
         CUR_HUB = CUR_LANE.hub_obj
-        self.AFC.gcode.respond_raw('<span class=info--text>Calibrating Bowden Length with {}</span>'.format(CUR_LANE.name))
+        self.logger.raw('Calibrating Bowden Length with {}'.format(CUR_LANE.name))
         hub_pos, checkpoint, success = self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol,
                                                      CUR_LANE.short_move_dis, 0, CUR_LANE.dist_hub + 200, "Moving to hub")
 
@@ -124,7 +124,7 @@ class afcBoxTurtle(afcUnit):
         bow_pos = 0
         if CUR_EXTRUDER.tool_start:
             # Clear until toolhead sensor is clear
-            while not CUR_LANE.get_toolhead_sensor_state():
+            while not CUR_LANE.get_toolhead_pre_sensor_state():
                 fault_dis = CUR_HUB.afc_bowden_length + 500
                 CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
                 bow_pos += dis
@@ -136,7 +136,7 @@ class afcBoxTurtle(afcUnit):
                     msg += '\n SET_BOWDEN_LENGTH HUB={} LENGTH=+(distance the filament was short from the toolhead)'.format(CUR_HUB.name)
                     return False, msg, bow_pos
 
-            bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_sensor_state(), bow_pos,
+            bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_pre_sensor_state(), bow_pos,
                                                       CUR_LANE.short_move_dis, tol, 100, "retract from toolhead sensor")
             
             if not success:
@@ -167,7 +167,7 @@ class afcBoxTurtle(afcUnit):
             self.AFC.save_vars()
             return True, "afc_bowden_length successful"
         else:
-            self.AFC.gcode.respond_info('CALIBRATE_AFC is not currently supported without tool start sensor')
+            self.logger.info('CALIBRATE_AFC is not currently supported without tool start sensor')
 
     # Helper functions for movement and calibration
     def calibrate_hub(self, CUR_LANE, tol):
@@ -256,7 +256,7 @@ class afcBoxTurtle(afcUnit):
             msg = '{} is loaded but not prepped, check prep before calibration'.format(CUR_LANE.name)
             return False, msg, 0
 
-        self.AFC.gcode.respond_raw('<span class=info--text>Calibrating {}</span>'.format(CUR_LANE.name))
+        self.logger.info('Calibrating {}'.format(CUR_LANE.name))
         # reset to extruder
         pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis,
                                               tol, CUR_LANE.dist_hub + 100, "retract to extruder")

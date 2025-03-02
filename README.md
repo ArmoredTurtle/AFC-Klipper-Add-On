@@ -21,6 +21,14 @@ To install this plugin, you should have the following pre-requisites installed:
 1. Klipper
 2. Moonraker
 3. WebUI (Mainsail or Fluidd)
+4. Both `jq` and `crudini` should be installed on your RaspPi (or equivalent). This can typically be accomplished with
+    the following commands:
+    
+    ```bash
+    sudo apt-get install jq crudini
+    ```
+5. Python 3.x
+   
 
 To install this plugin, you can use the following commands from the users home directory:
 
@@ -113,7 +121,7 @@ Prior to operation, the following checks / updates **MUST** be made to your syst
 1.  Update the following values in the `~/printer_data/config/AFC/AFC_Hardware-{board}.cfg` file:  
     *default name with AFC-lite will be AFC_Hardware-AFC.cfg*
 
-    - tool_stn: This value is the length from your toolhead sensor to nozzle
+    - tool_stn: This value is the length from your toolhead sensor to nozzle, if `tool_end` is defined then distance is from this sensor
     - tool_stn_unload: This value is the amount to unload from extruder when doing a filament change.
 
 2.  Update the following in the `~/printer_data/config/AFC/AFC_Turtle_{n}.cfg` file:  

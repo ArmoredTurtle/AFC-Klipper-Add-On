@@ -28,13 +28,15 @@ source include/utils.sh
 
 ###################### Main script logic below ######################
 
-while getopts "k:s:m:b:p:u:th" arg; do
+while getopts "a:k:s:m:b:p:y:u:th" arg; do
   case ${arg} in
+  a) moonraker_address=${OPTARG} ;;
   k) klipper_dir=${OPTARG} ;;
   m) moonraker_config_file=${OPTARG} ;;
   s) klipper_service=${OPTARG} ;;
   b) branch=${OPTARG} ;;
   p) printer_config_dir=${OPTARG} ;;
+  y) klipper_venv=${OPTARG} ;;
   t) test_mode=True ;;
   h) show_help
     exit 0 ;;
@@ -42,12 +44,14 @@ while getopts "k:s:m:b:p:u:th" arg; do
   esac
 done
 
-
-clear
 # Make sure necessary directories exist
+echo "Ensuring we are not running as root.."
 check_root
+echo "Ensuring no conflicting software is present.."
 check_for_hh
+echo "Checking to ensure crudini and jq are present.."
 check_for_prereqs
+check_python_version
 if [ "$test_mode" == "False" ]; then
   clone_repo
 fi
@@ -57,5 +61,7 @@ check_version_and_set_force_update
 if [ "$force_update_no_version" == "False" ]; then
   check_version_and_set_force_update
 fi
-
+echo "Starting installation process.."
+sleep 2
+clear
 main_menu
