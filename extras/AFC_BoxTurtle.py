@@ -110,22 +110,25 @@ class afcBoxTurtle(afcUnit):
         CUR_EXTRUDER = CUR_LANE.extruder_obj
         CUR_HUB = CUR_LANE.hub_obj
         self.logger.raw('Calibrating Bowden Length with {}'.format(CUR_LANE.name))
+        # move to hub and retrieve that distance, the checkpoint returned and if successful
         hub_pos, checkpoint, success = self.move_until_state(CUR_LANE, lambda: CUR_HUB.state, CUR_HUB.move_dis, tol,
                                                      CUR_LANE.short_move_dis, 0, CUR_LANE.dist_hub + 200, "Moving to hub")
 
         if not success:
+            # if movement does not suceed fault and return values to calibration macro
             msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
             return False, msg, hub_pos
 
         bow_pos = 0
         if CUR_EXTRUDER.tool_start:
-            # Clear until toolhead sensor is clear
+            # if tool_start is defined move and confirm distance
             while not CUR_LANE.get_toolhead_pre_sensor_state():
                 fault_dis = CUR_HUB.afc_bowden_length + 500
                 CUR_LANE.move(dis, self.short_moves_speed, self.short_moves_accel)
                 bow_pos += dis
                 self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
                 if bow_pos >= fault_dis:
+                    # fault if move to bowden length does not reach toolhead sensor return to calibration macro
                     msg = 'while moving to toolhead. Failed after {}mm'.format(bow_pos)
                     msg += '\n if filament stopped short of the toolhead sensor/ramming during calibration'
                     msg += '\n use the following command to increase bowden length'
@@ -133,10 +136,12 @@ class afcBoxTurtle(afcUnit):
                     return False, msg, bow_pos
 
             if CUR_EXTRUDER.tool_start != 'buffer':
+                # is using ramming, only use first trigger of sensor
                 bow_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.get_toolhead_pre_sensor_state(), bow_pos,
                                                         CUR_LANE.short_move_dis, tol, 100, "retract from toolhead sensor")
 
             if not success:
+                # fault if check is not successful
                 msg = 'Failed {} after {}mm'.format(checkpoint, bow_pos)
                 return False, msg, bow_pos
 
@@ -149,6 +154,7 @@ class afcBoxTurtle(afcUnit):
                 return False, msg, pos
 
             if CUR_HUB.state:
+                # reset at hub
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
 
             bowden_dist = 0
@@ -171,77 +177,92 @@ class afcBoxTurtle(afcUnit):
         hub_pos = 0
         hub_fault_dis = CUR_LANE.dist_hub + 150
         checkpoint = 'hub calibration {}'.format(CUR_LANE.name)
+        # move until hub sensor is triggered and get information
         hub_pos, checkpoint, success = self.move_until_state(CUR_LANE, lambda: CUR_LANE.hub_obj.state, CUR_LANE.hub_obj.move_dis,
                                                              tol, CUR_LANE.short_move_dis, hub_pos, hub_fault_dis, checkpoint)
 
         if not success:
+            # fault if check is not successful
             msg = 'failed {} after {}mm'.format(checkpoint, hub_pos)
             return False, msg, hub_pos
 
+        # verify hub distance
         tuned_hub_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
                                             CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 500, checkpoint)
 
         if not success:
+            # fault if check is not successful
             msg = 'failed {} after {}mm'.format(checkpoint, tuned_hub_pos)
             return False, msg, tuned_hub_pos
 
+        # when successful return values to calibration macro
         return True, tuned_hub_pos, tuned_hub_pos
 
     def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
+        # moves filament until specified sensor, returns values for further czlibration
         while state() == False:
             CUR_LANE.move(move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += move_dis
-            # self.AFC.gcode.respond_info('{}, {}'.format(checkpoint, pos))
             if pos >= fault_dis:
+                # return if pos exceeds fault_dis
                 return fault_dis, checkpoint, False
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
 
         state_retracts = 0
         while state() == True:
+            # retract off of sensor
             state_retracts =+ 1
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move
             check_p = '{} switch did not go false, reset lane and check switch'.format(checkpoint)
             if state_retracts >= 4:
+                # fault if it takes more than 4 attempts
                 f_dis = short_move * 4
                 return f_dis, check_p, False
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
 
         tol_checks = 0
         while state() == False:
+            # move back to sensor in short steps
             tol_checks += 1
             CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += tolerance
             check_p = '{} switch failed to become true during tolerance check, reset lane and check switch'.format(checkpoint)
             if tol_checks >= 15:
+                # fault if tol_checks exceed 15
                 return fault_dis, check_p, False
 
         return pos, checkpoint, True
 
     def calc_position(self, CUR_LANE, state, pos, short_move, tolerance, fault_dis=250, checkpoint=None):
+        # move off and back on to sensor to calculate end position of calibration
         check_pos = 0
         while state():
+            # retract from sensor
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move
             check_pos -= short_move
-            # self.AFC.gcode.respond_info('{}, {}'.format(checkpoint, pos))
             if abs(check_pos) >= fault_dis:
+                # fault if absolute value you check_pos exceeds fault_dis
                 return fault_dis, checkpoint, False
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
 
         checkpoint += ', tolerance check,'
         tol_checks = 0
         while not state():
+            #move back to sensor to confirm distance
             tol_checks += 1
             CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += tolerance
-            # self.AFC.gcode.respond_info('{}, {}'.format(checkpoint, pos))
+
             if tol_checks >= 15:
+                # fault if tol_checks exceeds 15
                 return pos, checkpoint, False
 
         return pos, checkpoint, True
 
     def calibrate_lane(self, CUR_LANE, tol):
+        # function to calibrate distance from secondary extruder to hub
         CUR_HUB = CUR_LANE.hub_obj
         if CUR_HUB.state:
             msg = 'Hub is not clear, check before calibration'
@@ -278,7 +299,7 @@ class afcBoxTurtle(afcUnit):
             CUR_LANE.do_enable(False)
             CUR_LANE.dist_hub = cal_dist
             self.AFC.FUNCTION.ConfigRewrite(CUR_LANE.fullname, "dist_hub", cal_dist, cal_msg)
-            return True, cal_msg
+            return True, cal_msg, cal_dist
 
 def load_config_prefix(config):
     return afcBoxTurtle(config)
