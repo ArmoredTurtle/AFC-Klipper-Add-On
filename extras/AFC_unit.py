@@ -5,7 +5,10 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configfile import error
-from extras.AFC_respond import AFCprompt
+try:
+    from extras.AFC_respond import AFCprompt
+except:
+    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 class afcUnit:
     def __init__(self, config):
@@ -119,7 +122,7 @@ class afcUnit:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         title = '{} Calibration'.format(self.name)
         text = 'Select to calibrate the distance from extruder to hub or bowden length'
@@ -146,26 +149,38 @@ class afcUnit:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
         title = '{} Lane Calibration'.format(self.name)
-        text  = ('Select a lane from {} to calibrate length from extruder to hub. '
+        text  = ('Select a loaded lane from {} to calibrate length from extruder to hub. '
                  'Config option: dist_hub').format(self.name)
 
         # Create buttons for each lane and group every 4 lanes together
         for index, LANE in enumerate(self.lanes):
-            button_label = "{}".format(LANE)
-            button_command = "CALIBRATE_AFC LANE={}".format(LANE)
-            button_style = "primary" if index % 2 == 0 else "secondary"
-            group_buttons.append((button_label, button_command, button_style))
+            CUR_LANE = self.lanes[LANE]
+            if CUR_LANE.load_state:
+                button_label = "{}".format(LANE)
+                button_command = "CALIBRATE_AFC LANE={}".format(LANE)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                group_buttons.append((button_label, button_command, button_style))
 
-            # Add group to buttons list after every 4 lanes
-            if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
-                buttons.append(list(group_buttons))
-                group_buttons = []
+                # Add group to buttons list after every 4 lanes
+                if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                    buttons.append(list(group_buttons))
+                    group_buttons = []
 
-        all_lanes = [('All lanes', 'CALIBRATE_AFC LANE=all UNIT={}'.format(self.name), 'default')]
+        if group_buttons:
+            buttons.append(list(group_buttons))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons > 1:
+            all_lanes = [('All lanes', 'CALIBRATE_AFC LANE=all UNIT={}'.format(self.name), 'default')]
+        else:
+            all_lanes = None
+        if total_buttons == 0:
+            text = 'No lanes are loaded, please load before calibration'
+
         # 'Back' button
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
 
@@ -187,25 +202,34 @@ class afcUnit:
         Returns:
             None
         """
-        prompt = AFCprompt(gcmd)
+        prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
         title = 'Bowden Calibration {}'.format(self.name)
-        text = ('Select a lane from {} to measure Bowden length. '
+        text = ('Select a loaded lane from {} to measure Bowden length. '
                 'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT. '
                 'Config option: afc_bowden_length').format(self.name)
 
         for index, LANE in enumerate(self.lanes):
-            # Create a button for each lane
-            button_label = "{}".format(LANE)
-            button_command = "CALIBRATE_AFC BOWDEN={}".format(LANE)
-            button_style = "primary" if index % 2 == 0 else "secondary"
-            group_buttons.append((button_label, button_command, button_style))
+            CUR_LANE = self.lanes[LANE]
+            if CUR_LANE.load_state:
+                # Create a button for each lane
+                button_label = "{}".format(LANE)
+                button_command = "CALIBRATE_AFC BOWDEN={}".format(LANE)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                group_buttons.append((button_label, button_command, button_style))
 
-            # Add group to buttons list after every 4 lanes
-            if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
-                buttons.append(list(group_buttons))
-                group_buttons = []
+                # Add group to buttons list after every 4 lanes
+                if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                    buttons.append(list(group_buttons))
+                    group_buttons = []
+
+        if group_buttons:
+            buttons.append(list(group_buttons))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons == 0:
+            text = 'No lanes are loaded, please load before calibration'
 
         back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
 
