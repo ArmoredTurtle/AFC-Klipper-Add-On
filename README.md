@@ -278,6 +278,16 @@ For additional information and the steps for manual calibration, can be found in
 
 ## Troubleshooting
 
+A debug script is available to be run that can assist the Armored Turtle support team on their Discord channel. To run the script, simply use the following commands:
+
+```bash
+cd ~/AFC-Klipper-Add-On/troubleshooting
+./afc-debug.sh
+```
+
+This script will collect some basic information about your system to include Klipper logs, device information, CAN network information, and your AFC
+configuration files. This information will be uploaded to termbin.com and the resulting link can be used to share this information with the Armored Turtle team.
+
 Debug information about the respooler system can be found by visiting the following URL in your browser:
 
 `{ip address}/printer/afc/status`
