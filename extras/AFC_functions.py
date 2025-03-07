@@ -403,6 +403,7 @@ class afcFunction:
             return
 
         calibrated = []
+        checked    = False
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.AFC.lanes:
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)

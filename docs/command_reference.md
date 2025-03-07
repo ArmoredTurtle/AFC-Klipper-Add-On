@@ -139,7 +139,7 @@ Example: ``SET_AFC_TOOLCHANGES TOOLCHANGES=100``
 
 ### SET_BOWDEN_LENGTH
 _Description_: This function adjusts the length of the Bowden tube between the hub and the toolhead.
-It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified++
+It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified
 by the 'LENGTH' parameter. If the hub is not specified and a lane is currently loaded,
 it uses the hub of the current lane.  
   

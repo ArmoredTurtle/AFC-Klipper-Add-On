@@ -57,7 +57,7 @@ class afc:
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         # Registering for sdcard reset file so that error_state can be reset when starting a print
-        self.printer.register_event_handler("virtual_sdcard:reset_file",self.ERROR.set_error_state)
+        self.printer.register_event_handler("virtual_sdcard:reset_file",self.ERROR.reset_failure)
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
@@ -68,6 +68,7 @@ class afc:
         self.next_lane_load = None
         self.error_state    = False
         self.current_state  = State.INIT
+        self.position_saved = False
         self.spoolman       = None
         self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
 
@@ -152,8 +153,8 @@ class afc:
 
         self.z_hop                  = config.getfloat("z_hop", 0)                   # Height to move up before and after a tool change completes
         self.xy_resume              = config.getboolean("xy_resume", False)         # Need description or remove as this is currently an unused variable
-        self.resume_speed           = config.getfloat("resume_speed", 0)            # Speed mm/s of resume move. Set to 0 to use gcode speed
-        self.resume_z_speed         = config.getfloat("resume_z_speed", 0)          # Speed mm/s of resume move in Z. Set to 0 to use gcode speed
+        self.resume_speed           = config.getfloat("resume_speed", self.speed)   # Speed mm/s of resume move. Set to 0 to use gcode speed
+        self.resume_z_speed         = config.getfloat("resume_z_speed", self.speed) # Speed mm/s of resume move in Z. Set to 0 to use gcode speed
 
         self.global_print_current   = config.getfloat("global_print_current", None) # Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly
 
@@ -436,16 +437,33 @@ class afc:
         CUR_LANE.do_enable(False)
         self.current_state = State.IDLE
 
+    def _move_z_pos(self, z_amount):
+        """
+        Common function helper to move z, also does a check for max z so toolhead does not exceed max height
+
+        :param base_pos: position to apply z amount to
+        :param z_amount: amount to add to the base position
+        """
+        max_z = self.toolhead.get_status(0)['axis_maximum'][2]
+        newpos = self.toolhead.get_position()
+
+        # Determine z movement, get the min value to not exceed max z movement
+        newpos[2] = min(max_z, z_amount)
+        
+        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.gcode_move.speed
+        self.gcode_move.move_with_transform(newpos, speedz)
+
     def save_pos(self):
         """
         Only save previous location on the first toolchange call to keep an error state from overwriting the location
         """
         if self.in_toolchange == False:
-            if self.error_state == False:
+            if self.error_state == False and self.FUNCTION.is_paused() == False and self.position_saved == False:
+                self.position_saved         = True
                 self.last_toolhead_position = self.toolhead.get_position()
-                self.base_position          = self.gcode_move.base_position
-                self.last_gcode_position    = self.gcode_move.last_position
-                self.homing_position        = self.gcode_move.homing_position
+                self.base_position          = list(self.gcode_move.base_position)
+                self.last_gcode_position    = list(self.gcode_move.last_position)
+                self.homing_position        = list(self.gcode_move.homing_position)
                 self.speed                  = self.gcode_move.speed
                 self.absolute_coord         = self.gcode_move.absolute_coord
                 msg = "Saving position {}".format(self.last_toolhead_position)
@@ -456,10 +474,12 @@ class afc:
                 msg += " absolute_coord: {}\n".format(self.absolute_coord)
                 self.logger.debug(msg)
 
-    def restore_pos(self):
+    def restore_pos(self, move_z_first=True):
         """
         restore_pos function restores the previous saved position, speed and coord type. The resume uses
         the z_hop value to lift, move to previous x,y coords, then lower to saved z position.
+
+        :param move_z_first: Enable to move z before moving x,y
         """
         msg = "Restoring Postion {}".format(self.last_toolhead_position)
         msg += " Base position: {}".format(self.base_position)
@@ -471,13 +491,12 @@ class afc:
 
         self.current_state = State.RESTORING_POS
         newpos = self.toolhead.get_position()
-        newpos[2] = self.last_gcode_position[2] + self.z_hop
 
         # Restore absolute coords
         self.gcode_move.absolute_coord = self.absolute_coord
 
-        speed = self.resume_speed if self.resume_speed > 0 else self.speed
-        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.speed
+        speed = self.resume_speed if self.resume_speed > 0 else self.gcode_move.speed
+        speedz = self.resume_z_speed if self.resume_z_speed > 0 else self.gcode_move.speed
         # Update GCODE STATE variables
         self.gcode_move.base_position = self.base_position
         self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
@@ -488,7 +507,8 @@ class afc:
         self.gcode_move.base_position[3] += e_diff
 
         # Move toolhead to previous z location with zhop added
-        self.gcode_move.move_with_transform(newpos, speedz)
+        if move_z_first:
+            self._move_z_pos(self.last_gcode_position[2] + self.z_hop)
 
         # Move to previous x,y location
         newpos[:2] = self.last_gcode_position[:2]
@@ -498,6 +518,7 @@ class afc:
         newpos[2] = self.last_gcode_position[2]
         self.gcode_move.move_with_transform(newpos, speedz)
         self.current_state = State.IDLE
+        self.position_saved = False
 
     def save_vars(self):
         """
@@ -604,6 +625,9 @@ class afc:
             self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.lanes[lane]
+        self.LANE_UNLOAD( CUR_LANE )
+
+    def LANE_UNLOAD(self, CUR_LANE):
         CUR_HUB = CUR_LANE.hub_obj
 
         self.current_state = State.EJECTING_LANE
@@ -945,7 +969,7 @@ class afc:
 
         # Perform Z-hop to avoid collisions during unloading.
         pos[2] += self.z_hop
-        self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
+        self._move_z_pos(pos[2])
         self.toolhead.wait_moves()
 
         # Disable the buffer if it's active.
@@ -1048,7 +1072,7 @@ class afc:
         # Synchronize and move filament out of the hub.
         CUR_LANE.unsync_to_extruder()
         if CUR_LANE.hub !='direct':
-            CUR_LANE.move(CUR_HUB.afc_bowden_length * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
+            CUR_LANE.move(CUR_HUB.afc_unload_bowden_length * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
         else:
             CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, CUR_LANE.dist_hub > 200)
 
@@ -1064,7 +1088,7 @@ class afc:
         while CUR_HUB.state:
             CUR_LANE.move(CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             num_tries += 1
-            if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
+            if num_tries > (CUR_HUB.afc_unload_bowden_length / CUR_LANE.short_move_dis):
                 # Handle failure if the filament doesn't clear the hub.
                 message = 'Hub is not clearing, filament may be stuck in hub'
                 message += '\nPlease check to make sure filament has not broken off and caused the sensor to stay stuck'
@@ -1094,7 +1118,7 @@ class afc:
                     CUR_LANE.move(CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
                     num_tries += 1
                     # TODO: Figure out max number of tries
-                    if num_tries > (CUR_HUB.afc_bowden_length / CUR_LANE.short_move_dis):
+                    if num_tries > (CUR_HUB.afc_unload_bowden_length / CUR_LANE.short_move_dis):
                         message = 'HUB NOT CLEARING after hub cut\n'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
@@ -1178,7 +1202,7 @@ class afc:
 
         self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]], purge_length)
 
-    def CHANGE_TOOL(self, CUR_LANE, purge_length=None):
+    def CHANGE_TOOL(self, CUR_LANE, purge_length=None, restore_pos=True):
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
@@ -1214,7 +1238,8 @@ class afc:
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(CUR_LANE, purge_length) and not self.error_state:
                 self.afcDeltaTime.log_total_time("Total change time:")
-                self.restore_pos()
+                if restore_pos: 
+                    self.restore_pos()
                 self.in_toolchange = False
                 # Setting next lane load as none since toolchange was successful
                 self.next_lane_load = None
@@ -1237,6 +1262,7 @@ class afc:
         str['spoolman']                 = self.spoolman
         str['error_state']              = self.error_state
         str["bypass_state"]             = bool(self._get_bypass_state())
+        str["position_saved"]           = self.position_saved
 
         unitdisplay =[]
         for UNIT in self.units.keys():

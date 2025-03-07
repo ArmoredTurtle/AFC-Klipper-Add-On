@@ -40,21 +40,23 @@ class afcPrep:
             pdesc = "Renamed builtin of '%s'" % (base_name,)
             self.AFC.gcode.register_command(rename_name, prev_cmd, desc=pdesc)
         else:
-            self.logger.info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
+            self.logger.debug("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
         self.AFC.gcode.register_command(base_name, rename_macro, desc=rename_help)
 
     def _rename_macros(self):
         """
         Helper function to rename multiple macros and substitute with AFC macros.
-        - Replaces stock RESUME macro and reassigns to AFC_resume function
+        - Replaces stock RESUME macro and reassigns to AFC_RESUME function
         - Replaces stock UNLOAD macro and reassigns to TOOL_UNLOAD function. This can be disabled in AFC_prep config
+        - Replaces stock/users PAUSE macro and reassigns to AFC_PAUSE function.
         """
         # Checking to see if rename has already been done, don't want to rename again if prep was already ran
         if not self.rename_occurred:
             self.rename_occurred = True
             self._rename( self.AFC.ERROR.BASE_RESUME_NAME, self.AFC.ERROR.AFC_RENAME_RESUME_NAME, self.AFC.ERROR.cmd_AFC_RESUME, self.AFC.ERROR.cmd_AFC_RESUME_help )
+            self._rename( self.AFC.ERROR.BASE_PAUSE_NAME,  self.AFC.ERROR.AFC_RENAME_PAUSE_NAME,  self.AFC.ERROR.cmd_AFC_PAUSE,  self.AFC.ERROR.cmd_AFC_RESUME_help )
 
-            # Check to see if the user does not want to rename UNLOAD_FILAMENT macor
+            # Check to see if the user does not want to rename UNLOAD_FILAMENT macro
             if not self.dis_unload_macro:
                 self._rename( self.AFC.BASE_UNLOAD_FILAMENT,   self.AFC.RENAMED_UNLOAD_FILAMENT,      self.AFC.cmd_TOOL_UNLOAD,      self.AFC.cmd_TOOL_UNLOAD_help )
 

@@ -107,6 +107,9 @@ class AFCtrigger:
 
         self.AFC.buffers[self.name] = self
 
+    def __str__(self):
+        return self.name
+
     def _handle_ready(self):
         self.min_event_systime = self.reactor.monotonic() + 2.
 

@@ -26,6 +26,7 @@ class afc_hub:
         self.switch_pin             = config.get('switch_pin', None)                # Pin hub sensor it connected to
         self.hub_clear_move_dis     = config.getfloat("hub_clear_move_dis", 25)     # How far to move filament so that it's not block the hub exit
         self.afc_bowden_length      = config.getfloat("afc_bowden_length", 900)     # Length of the Bowden tube from the hub to the toolhead sensor in mm.
+        self.afc_unload_bowden_length= config.getfloat("afc_unload_bowden_length", self.afc_bowden_length) # Length to unload when retracting back from toolhead to hub in mm. Defaults to afc_bowden_length
         self.assisted_retract       = config.getboolean("assisted_retract", False)  # if True, retracts are assisted to prevent loose windings on the spool
         self.move_dis               = config.getfloat("move_dis", 50)               # Distance to move the filament within the hub in mm.
         # Servo settings
@@ -55,6 +56,9 @@ class afc_hub:
 
         # Adding self to AFC hubs
         self.AFC.hubs[self.name]=self
+
+    def __str__(self):
+        return self.name
 
     def handle_connect(self):
         """

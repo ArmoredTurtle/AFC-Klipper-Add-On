@@ -52,6 +52,9 @@ class afcUnit:
         self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
         self.unload_on_runout   = config.getboolean("unload_on_runout", self.AFC.unload_on_runout)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
 
+    def __str__(self):
+        return self.name
+
     def handle_connect(self):
         """
         Handles klippy:connect event, and does error checking to make sure users have hub/extruder/buffers sections if these variables are defined at the unit level
