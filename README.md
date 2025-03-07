@@ -63,7 +63,7 @@ Once the plugin is updated, please uncomment the lines in your `printer.cfg` fil
 
 The `install-afc.sh` script will automatically install the majority of the plugin for you.
 
-Prior to starting Klipper, please review the configuration located at `~/printer_data/config/AFC/AFC_Hardware.cfg` and ensure all pins are correct for your specific hardware.
+Prior to starting Klipper, please review the configuration located at `~/printer_data/config/AFC/AFC_Turtle_(n).cfg` and ensure all pins are correct for your specific hardware.
 
 Additionally, review the following files for any changes that may be required:
 
@@ -284,7 +284,7 @@ Debug information about the respooler system can be found by visiting the follow
 
 ## LEDs not displaying correct color
 
-If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
+If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_Turtle_(n).cfg` file.
 
 - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
 

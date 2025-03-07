@@ -53,6 +53,9 @@ class AFCextruder:
 
         self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
 
+    def __str__(self):
+        return self.name
+
     def handle_connect(self):
         """
         Handle the connection event.

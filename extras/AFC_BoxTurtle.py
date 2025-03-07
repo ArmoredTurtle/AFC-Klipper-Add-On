@@ -147,11 +147,10 @@ class afcBoxTurtle(afcUnit):
 
             CUR_LANE.move(bow_pos * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
-            success, hub_dis, pos = self.calibrate_hub(CUR_LANE, tol)
+            success, message, hub_dis = self.calibrate_hub(CUR_LANE, tol)
 
             if not success:
-                msg = '{}'.format(hub_dis)
-                return False, msg, pos
+                return False, message, hub_dis
 
             if CUR_HUB.state:
                 # reset at hub
@@ -175,6 +174,7 @@ class afcBoxTurtle(afcUnit):
     # Helper functions for movement and calibration
     def calibrate_hub(self, CUR_LANE, tol):
         hub_pos = 0
+        msg = ''
         hub_fault_dis = CUR_LANE.dist_hub + 150
         checkpoint = 'hub calibration {}'.format(CUR_LANE.name)
         # move until hub sensor is triggered and get information
@@ -196,7 +196,7 @@ class afcBoxTurtle(afcUnit):
             return False, msg, tuned_hub_pos
 
         # when successful return values to calibration macro
-        return True, tuned_hub_pos, tuned_hub_pos
+        return True, msg, tuned_hub_pos
 
     def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
         # moves filament until specified sensor, returns values for further czlibration
@@ -284,11 +284,10 @@ class afcBoxTurtle(afcUnit):
             return False, msg, 0
 
         else:
-            success, hub_pos = self.calibrate_hub(CUR_LANE, tol)
+            success, message, hub_pos = self.calibrate_hub(CUR_LANE, tol)
 
             if not success:
-                msg = '{}'.format(hub_pos)
-                return False, msg, hub_pos
+                return False, message, hub_pos
 
             if CUR_HUB.state:
                 CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
