@@ -137,7 +137,7 @@ remove_t_macros() {
   local t_macro
   local t_macros
 
-  t_macros=$(grep -o -E 'T[0-9]+' "${afc_config_dir}/macros/AFC_macros.cfg")
+  t_macros=$(grep -o -E 'T[0-9]+' "${afc_config_dir}/macros/AFC_macros.cfg" || true)
 
   for t_macro in $t_macros; do
     crudini --del "${afc_config_dir}"/macros/AFC_macros.cfg "gcode_macro $t_macro"
