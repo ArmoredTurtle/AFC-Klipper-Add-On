@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-03-07]
+### Added
+- Added error checking to spool runout, before if a error happened during unload it could keep running the print
+- Added lane ejection when runout detected but rollover not setup
+- Added AFC_PAUSE function to override users pause macro so that necessary measures could be added to move in Z to avoid
+  hitting part if users pause macro moves toolhead
+- Added `afc_unload_bowden_length` parameter
+- Added moving Z to previous saved position +z hop when resuming to avoid hitting part when moving back
+
+### Fixed
+- Fixed error when trying to turn of LEDs
+- Fixed saving position as it was not saving correctly
+- Reworked rollover logic to restore position after lane has been ejected fully so that nozzle does not sit
+  on part while ejecting spool
+- Fixed error where user could put wrong lane for rollover and it would not error until runout logic is triggered
+- Fixed errors found in calibration routines
+
+
 ## [2025-03-02]
 
 ### Fixed

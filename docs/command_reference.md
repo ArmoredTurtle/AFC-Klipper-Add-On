@@ -139,12 +139,14 @@ Example: ``SET_AFC_TOOLCHANGES TOOLCHANGES=100``
 
 ### SET_BOWDEN_LENGTH
 _Description_: This function adjusts the length of the Bowden tube between the hub and the toolhead.
-It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified++
-by the 'LENGTH' parameter. If the hub is not specified and a lane is currently loaded,
-it uses the hub of the current lane.  
+It retrieves the hub specified by the 'HUB' parameter and the length adjustment specified
+by the 'LENGTH' parameter. UNLOAD_LENGTH adjusts unload Bowden length. If the hub is not specified
+and a lane is currently loaded, it uses the hub of the current lane. To reset length back to config
+value, pass in `reset` for each length to reset to value in config file. Adding +/- in front of the
+length will increase/decrease bowden length by that amount.  
   
-Usage: ``SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length>``  
-Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=100``  
+Usage: ``SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length> UNLOAD_LENGTH=<length>``  
+Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100``  
 
 ### SET_BUFFER_VELOCITY
 _Description_: Allows users to tweak buffer velocity setting while printing. This setting is not

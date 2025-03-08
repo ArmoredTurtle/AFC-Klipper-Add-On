@@ -135,7 +135,7 @@ class AFCled:
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 
     def turn_off_leds(self):
-        for i in range(self.led_helper.get_led_count()):
+        for i in range(self.led_helper.led_count):
             self.led_change( i, "0,0,0,0", False)
         self.keep_leds_off = True
 

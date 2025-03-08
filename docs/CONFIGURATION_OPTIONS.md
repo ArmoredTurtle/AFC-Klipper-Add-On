@@ -38,8 +38,8 @@
 - `tool_max_load_checks` (default: `4`): Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 - `z_hop` (default: `0`): Height to move up before and after a tool change completes
 - `xy_resume` (default: `False`): Need description or remove as this is currently an unused variable
-- `resume_speed` (default: `0`): Speed mm/s of resume move. Set to 0 to use gcode speed
-- `resume_z_speed` (default: `0`): Speed mm/s of resume move in Z. Set to 0 to use gcode speed
+- `resume_speed` (default: `25`): Speed mm/s of resume move. Set to 0 to use gcode speed
+- `resume_z_speed` (default: `25`): Speed mm/s of resume move in Z. Set to 0 to use gcode speed
 - `global_print_current` (default: `None`): Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly
 - `enable_sensors_in_gui` (default: `False`): Set to True to show all sensor switches as filament sensors in mainsail/fluidd gui
 - `load_to_hub` (default: `True`): Fast loads filament to hub when inserted, set to False to disable. This is a global setting and can be overridden at AFC_stepper
@@ -71,6 +71,7 @@
 - `switch_pin` (default: `None`): Pin hub sensor it connected to
 - `hub_clear_move_dis` (default: `25`): How far to move filament so that it's not block the hub exit
 - `afc_bowden_length` (default: `900`): Length of the Bowden tube from the hub to the toolhead sensor in mm.
+- `afc_unload_bowden_length` (default: `afc_bowden_length`): Length to unload when retracting back from toolhead to hub in mm. Defaults to afc_bowden_length
 - `assisted_retract` (default: `False`): if True, retracts are assisted to prevent loose windings on the spool
 - `move_dis` (default: `50`): Distance to move the filament within the hub in mm.
 - `cut` (default: `False`): Set True if Hub cutter installed (e.g. Snappy)

@@ -297,10 +297,21 @@ class afcSpool:
         if lane == None:
             self.logger.info("No LANE Defined")
             return
+
         runout = gcmd.get('RUNOUT', '')
-        if lane not in self.AFC.lanes:
-            self.logger.info('{} Unknown'.format(lane))
+        # Check to make sure runout does not equal lane
+        if lane == runout:
+            self.logger.error("Lane({}) and runout({}) cannot be the same".format(lane, runout))
             return
+        # Check to make sure specified lane exists
+        if lane not in self.AFC.lanes:
+            self.logger.error('Unknown lane: {}'.format(lane))
+            return
+        # Check to make sure specified runout lane exists as long as runout is not set as 'NONE'
+        if runout != 'NONE' and runout not in self.AFC.lanes:
+            self.logger.error('Unknown runout lane: {}'.format(runout))
+            return
+
         CUR_LANE = self.AFC.lanes[lane]
         CUR_LANE.runout_lane = runout
         self.AFC.save_vars()
