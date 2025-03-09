@@ -433,6 +433,9 @@ class afcFunction:
                 else:
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in self.AFC.lanes.values():
+                        if not CUR_LANE.load_state or not CUR_LANE.prep_state:
+                            self.logger.info("{} not loaded skipping to next loaded lane".format(CUR_LANE.name))
+                            continue
                         # Calibrate the specific lane
                         checked, msg, pos = CUR_LANE.unit_obj.calibrate_lane(CUR_LANE, tol)
                         if(not checked):
@@ -454,6 +457,9 @@ class afcFunction:
                     self.logger.info('{}'.format(CUR_UNIT.name))
                     # Calibrate all lanes if no specific lane is provided
                     for CUR_LANE in CUR_UNIT.lanes.values():
+                        if not CUR_LANE.load_state or  not CUR_LANE.prep_state:
+                            self.logger.info("{} not loaded skipping to next loaded lane".format(CUR_LANE.name))
+                            continue
                         # Calibrate the specific lane
                         checked, msg, pos = CUR_UNIT.calibrate_lane(CUR_LANE, tol)
                         if(not checked):
@@ -498,7 +504,8 @@ class afcFunction:
                 CUR_LANE.extruder_obj.tool_start = None
 
         if checked:
-            self.AFC.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(calibrated))
+            lanes_calibrated = ','.join(calibrated)
+            self.AFC.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(lanes_calibrated))
 
     cmd_AFC_CALI_COMP_help = 'Opens prompt after calibration is complete'
     def cmd_AFC_CALI_COMP(self, gcmd):

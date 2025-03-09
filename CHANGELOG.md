@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-03-07]
 ### Added
+- Added variable_z_purge_move to Poop macro. Setting this to False will allow pooping with no z movement
+- Added variable_z_move to brush macro. this value will set a positive Z move at the end of the brush to move the nozzle away from the brush
+
+### Fixed
+- Fixed error that occurs when all lanes are calibrated
+
+## [2025-03-07]
+### Added
 - Added error checking to spool runout, before if a error happened during unload it could keep running the print
 - Added lane ejection when runout detected but rollover not setup
 - Added AFC_PAUSE function to override users pause macro so that necessary measures could be added to move in Z to avoid
