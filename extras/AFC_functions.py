@@ -744,8 +744,12 @@ class afcFunction:
             bowden_length = config_length
         else:
             if new_length[0] in ('+', '-'):
-                bowden_value = float(new_length)
-                bowden_length = current_length + bowden_value
+                try:
+                    bowden_value = float(new_length)
+                    bowden_length = current_length + bowden_value
+                except ValueError:
+                    bowden_length = current_length
+                    self.logger.error("Invalid length: {}".format(new_length))
             else:
                 bowden_length = float(new_length)
 
