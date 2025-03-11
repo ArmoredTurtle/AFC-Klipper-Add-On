@@ -24,7 +24,7 @@ try:
 except:
     raise error("Error trying to import afcDeltaTime, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.0"
+AFC_VERSION="1.0.1"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -46,12 +46,11 @@ class afc:
         self.reactor = self.printer.get_reactor()
         self.webhooks = self.printer.lookup_object('webhooks')
         self.printer.register_event_handler("klippy:connect",self.handle_connect)
-        self.logger  = AFC_logger(self.printer)
+        self.logger  = AFC_logger(self.printer, self)
 
         self.SPOOL      = self.printer.load_object(config,'AFC_spool')
         self.ERROR      = self.printer.load_object(config,'AFC_error')
         self.FUNCTION   = self.printer.load_object(config,'AFC_functions')
-        self.IDLE       = self.printer.load_object(config,'idle_timeout')
         self.gcode      = self.printer.lookup_object('gcode')
 
         # Registering stepper callback so that mux macro can be set properly with valid lane names
@@ -60,8 +59,6 @@ class afc:
         self.printer.register_event_handler("virtual_sdcard:reset_file",self.ERROR.reset_failure)
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
-
-        self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
         self.current        = None
         self.current_loading= None
@@ -80,6 +77,7 @@ class afc:
         self.buffers    = {}
         self.tool_cmds  = {}
         self.led_obj    = {}
+        self.message    = ("", "")
         self.monitoring = False
         self.number_of_toolchanges  = 0
         self.current_toolchange     = 0
@@ -222,7 +220,10 @@ class afc:
         This function is called when the printer connects. It looks up the toolhead object
         and assigns it to the instance variable `self.toolhead`.
         """
-        self.toolhead = self.printer.lookup_object('toolhead')
+        self.toolhead   = self.printer.lookup_object('toolhead')
+        self.IDLE       = self.printer.lookup_object('idle_timeout')
+        self.gcode_move = self.printer.lookup_object('gcode_move')
+
         moonraker_port = ""
         if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
 
@@ -455,14 +456,18 @@ class afc:
 
         :param base_pos: position to apply z amount to
         :param z_amount: amount to add to the base position
+
+        :return newpos: Position list with updated z position
         """
         max_z = self.toolhead.get_status(0)['axis_maximum'][2]
         newpos = self.toolhead.get_position()
 
         # Determine z movement, get the min value to not exceed max z movement
-        newpos[2] = min(max_z, z_amount)
+        newpos[2] = min(max_z - 1, z_amount)
 
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
+
+        return newpos[2]
 
     def save_pos(self):
         """
@@ -517,7 +522,7 @@ class afc:
 
         # Move toolhead to previous z location with zhop added
         if move_z_first:
-            self._move_z_pos(self.last_gcode_position[2] + self.z_hop)
+            newpos[2] = self._move_z_pos(self.last_gcode_position[2] + self.z_hop)
 
         # Move to previous x,y location
         newpos[:2] = self.last_gcode_position[:2]
@@ -1283,6 +1288,7 @@ class afc:
         str["extruders"] = list(self.tools.keys())
         str["hubs"] = list(self.hubs.keys())
         str["buffers"] = list(self.buffers.keys())
+        str["message"] = {"message":self.message[0], "type":self.message[1]}
         return str
 
     def _webhooks_status(self, web_request):
