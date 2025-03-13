@@ -86,7 +86,7 @@ class AFC_logger:
             self.logger.error( self._format("ERROR: {}".format(line)))
         self.send_callback( "!! {}".format(message) )
 
-        self.AFC.message = (message, "error")
+        self.AFC.message_queue.append( (message, "error") )
 
     def set_debug(self, debug ):
         self.print_debug_console = debug

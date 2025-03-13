@@ -179,8 +179,6 @@ class afcError:
         self.pause_resume.send_pause_command()
         # Move Z up by z-hop value
         self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
-        # Update gcode move last position to current position
-        self.AFC.gcode_move.reset_last_position()
         # Call users PAUSE
         self.AFC.gcode.run_script_from_command(self.AFC_RENAME_PAUSE_NAME)
         # Set Idle timeout to 10 hours

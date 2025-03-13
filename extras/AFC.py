@@ -14,17 +14,16 @@ except:
     # Python 2.7 support
     from urllib2 import urlopen
 
-try:
-    from extras.AFC_logger import AFC_logger
-except:
-    raise error("Error trying to import AFC_logger, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+try: from extras.AFC_logger import AFC_logger
+except: raise error("Error trying to import AFC_logger, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-try:
-    from extras.AFC_functions import afcDeltaTime
-except:
-    raise error("Error trying to import afcDeltaTime, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+try: from extras.AFC_functions import afcDeltaTime
+except: raise error("Error trying to import afcDeltaTime, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.1"
+try: from extras.AFC_utils import add_filament_switch
+except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+AFC_VERSION="1.0.2"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -77,7 +76,9 @@ class afc:
         self.buffers    = {}
         self.tool_cmds  = {}
         self.led_obj    = {}
-        self.message    = ("", "")
+        self.bypass     = None
+        self.bypass_last_state = False
+        self.message_queue = []
         self.monitoring = False
         self.number_of_toolchanges  = 0
         self.current_toolchange     = 0
@@ -167,6 +168,8 @@ class afc:
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
 
+        # Setup pin so a virtual filament sensor can be added for bypass
+        self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
 
         # Printing here will not display in console but it will go to klippy.log
         self.print_version()
@@ -202,6 +205,10 @@ class afc:
             except Exception as e:
                 self.logger.info("Unable to update TRSYNC_TIMEOUT: {}".format(e))
 
+    def register_config_callback(self, option):
+        # Function needed for virtual pins, does nothing
+        return
+
     def register_lane_macros(self, lane_obj):
         """
         Callback function to register macros with proper lane names so that klipper errors out correctly when users supply lanes that
@@ -233,6 +240,12 @@ class afc:
             self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         except:
             self.spoolman = None                      # set to none if not found
+
+        # Check if hardware bypass is configured, if not create a virtual bypass sensor
+        try:
+            self.bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
+        except:
+            self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
 
         # GCODE REGISTERS
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
@@ -322,9 +335,19 @@ class afc:
         :return Returns current state of bypass sensor. If bypass sensor does not exist, always returns False
         """
         bypass_state = False
+
         try:
-            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-            bypass_state = bypass.filament_present
+            if 'virtual' in self.bypass.name:
+                bypass_state = self.bypass.sensor_enabled
+                # Update filament present to match enable button so it updates in guis
+                self.bypass.filament_present = bypass_state
+
+                if self.bypass_last_state != bypass_state:
+                    self.bypass_last_state = bypass_state
+                    self.save_vars()
+
+            else:
+                bypass_state = self.bypass.filament_present
         except:
             pass
 
@@ -466,6 +489,8 @@ class afc:
         newpos[2] = min(max_z - 1, z_amount)
 
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
+        # Update gcode move last position to current position
+        self.gcode_move.reset_last_position()
 
         return newpos[2]
 
@@ -558,6 +583,7 @@ class afc:
         str["system"]['num_lanes'] = len(self.lanes)
         str["system"]['num_extruders'] = len(self.tools)
         str["system"]["extruders"]={}
+        str["system"]["bypass"] = {"enabled": self._get_bypass_state() }
 
         for EXTRUDE in self.tools.keys():
             CUR_EXTRUDER = self.tools[EXTRUDE]
@@ -1262,6 +1288,18 @@ class afc:
             if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
                 self.current_toolchange += 1
 
+    def _get_message(self):
+        """
+        Helper function to return a message from the error message queue
+        : return Dictionary in {"message":"", "type":""} format
+        """
+        message = {"message":"", "type":""}
+        try:
+            message['message'], message["type"] = self.message_queue.pop(0)
+        except IndexError:
+            pass
+        return message
+
     def get_status(self, eventtime=None):
         """
         Displays current status of AFC for webhooks
@@ -1288,7 +1326,7 @@ class afc:
         str["extruders"] = list(self.tools.keys())
         str["hubs"] = list(self.hubs.keys())
         str["buffers"] = list(self.buffers.keys())
-        str["message"] = {"message":self.message[0], "type":self.message[1]}
+        str["message"] = self._get_message()
         return str
 
     def _webhooks_status(self, web_request):
