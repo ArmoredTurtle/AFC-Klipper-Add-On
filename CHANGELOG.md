@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-03-12]
+### Added
+- Virtual bypass sensor, AFC adds this sensor if hardware bypass is not detected
+
+### Fixed
+- Issue where z would move back down when calling cut macro after z hop from AFC
+
 ## [2025-03-10]
 ### Added
 - Reporting error messages in AFC status so they can be shown in AFC integration panel

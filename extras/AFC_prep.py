@@ -143,6 +143,11 @@ class afcPrep:
         except:
             pass
 
+        # Restore previous bypass state if virtual bypass is active
+        if 'virtual' in self.AFC.bypass.name:
+            if 'bypass' in units["system"]:
+                self.AFC.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.AFC.current is None:
             self.AFC.SPOOL.set_active_spool( None )

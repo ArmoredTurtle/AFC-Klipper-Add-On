@@ -6,13 +6,17 @@ This file goes over the features that can be found in Armored Turtle Automated F
 AFC allows the use of using the TurtleNeck Buffers as a ram sensor for detecting when filament is loaded to the toolhead extruder. This can be used inplace of a toolhead filament sensor. To learn more about this feature please see [Buffer Ram Sensor](Buffer_Ram_Sensor.md) document
 
 ## Bypass
-You can enable AFC bypass by printing out [bypass](https://github.com/ArmoredTurtle/AFC-Accessories/tree/main/AFC_Bypass) accessory, connecting inline after your buffer and adding a bypass filament sensor to klipper config like below. Once filament is inserted into the bypass side, the switch disables AFC functionality so you can print like normal.
+By default if a hardware sensor is not setup for a bypass AFC will create a virtual bypass filament sensor. Enabling the virtual filament sensor disables AFC functionality and enabled state persists across reboots.
+
+You can also enable AFC bypass with a hardware sensor by printing out [bypass](https://github.com/ArmoredTurtle/AFC-Accessories/tree/main/AFC_Bypass) accessory, connecting inline after your buffer and adding a bypass filament sensor to klipper config like below. Once filament is inserted into the bypass side, the switch disables AFC functionality so you can print like normal.
 
 ```
 [filament_switch_sensor bypass]
 switch_pin: <replace with MCU pin that switch is connected to>
 pause_on_runout: False
 ```
+
+When either bypass is enabled/filament detect all AFC functionality with loading to the toolhead is disabled. Calling the `TOOL_UNLOAD` macro will call the `UNLOAD_FILAMENT` macro if it exists so that filament can still be manually unload from the toolhead.
 
 ## Lower stepper current when printing
 For longer prints you may want to have the ability to lower BoxTurtles steppers current as they can get hot when engaged for a long period of time.
