@@ -281,8 +281,8 @@ class afcFunction:
             self.logger.info("Manually removing {} loaded from toolhead".format(cur_lane_loaded.name))
             self.AFC.save_vars()
 
-    def log_toolhead_pos(self):
-        msg = "Position: {}".format(self.AFC.toolhead.get_position())
+    def log_toolhead_pos(self, move_pre):
+        msg = "{}Position: {}".format(move_pre, self.AFC.toolhead.get_position())
         msg += " base_position: {}".format(self.AFC.gcode_move.base_position)
         msg += " last_position: {}".format(self.AFC.gcode_move.last_position)
         msg += " homing_position: {}".format(self.AFC.gcode_move.homing_position)
