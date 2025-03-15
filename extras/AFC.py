@@ -491,6 +491,7 @@ class afc:
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
         # Update gcode move last position to current position
         self.gcode_move.reset_last_position()
+        self.FUNCTION.log_toolhead_pos("_move_z_pos: ")
 
         return newpos[2]
 
@@ -522,28 +523,20 @@ class afc:
 
         :param move_z_first: Enable to move z before moving x,y
         """
-        msg = "Restoring Postion {}".format(self.last_toolhead_position)
+        msg = "Restoring Position {}".format(self.last_toolhead_position)
         msg += " Base position: {}".format(self.base_position)
         msg += " last_gcode_position: {}".format(self.last_gcode_position)
         msg += " homing_position: {}".format(self.homing_position)
         msg += " speed: {}".format(self.speed)
         msg += " absolute_coord: {}\n".format(self.absolute_coord)
         self.logger.debug(msg)
+        self.FUNCTION.log_toolhead_pos("Resume initial pos: ")
 
         self.current_state = State.RESTORING_POS
         newpos = self.toolhead.get_position()
 
         # Restore absolute coords
         self.gcode_move.absolute_coord = self.absolute_coord
-
-        # Update GCODE STATE variables
-        self.gcode_move.base_position = self.base_position
-        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
-        self.gcode_move.homing_position = self.homing_position
-
-        # Restore the relative E position
-        e_diff = newpos[3] - self.last_gcode_position[3]
-        self.gcode_move.base_position[3] += e_diff
 
         # Move toolhead to previous z location with zhop added
         if move_z_first:
@@ -552,10 +545,19 @@ class afc:
         # Move to previous x,y location
         newpos[:2] = self.last_gcode_position[:2]
         self.gcode_move.move_with_transform(newpos, self._get_resume_speed() )
+        self.FUNCTION.log_toolhead_pos("Resume prev xy: ")
 
-        # Drop to previous z
-        newpos[2] = self.last_gcode_position[2]
-        self.gcode_move.move_with_transform(newpos, self._get_resume_speedz() )
+        # Update GCODE STATE variables
+        self.gcode_move.base_position = list(self.base_position)
+        self.gcode_move.homing_position = list(self.homing_position)
+        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
+
+        # Restore the relative E position
+        e_diff = newpos[3] - self.last_gcode_position[3]
+        self.gcode_move.base_position[3] += e_diff
+        # Return to previous xyz
+        self.gcode_move.move_with_transform(self.gcode_move.last_position, self._get_resume_speedz() )
+        self.FUNCTION.log_toolhead_pos("Resume final z: ")
         self.current_state = State.IDLE
         self.position_saved = False
 
