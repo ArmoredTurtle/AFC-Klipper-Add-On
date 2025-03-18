@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-03-17]
+### Added
+- Added `SET_SPEED_MULTIPLIER` macro to allow user to change fwd/rwd speed multipliers during prints
+- Added `SAVE_SPEED_MULTIPLIER` macro to save updated multiplier to config file for specified lane
+
+### Fixed
+- Added check to AFC pause/resume functions to make sure printer was not paused/paused before doing any actions
+- Fixed issue where macro variables were not passed from AFC_PAUSE/AFC_RESUME to PAUSE/RESUME macros if user passed in variables when calling these macros  
+
 ## [2025-03-12]
 ### Added
 - Virtual bypass sensor, AFC adds this sensor if hardware bypass is not detected

@@ -103,7 +103,7 @@ class AFCtrigger:
             self.buttons.register_buttons([self.trailing_pin], self.trailing_callback)
 
             self.gcode.register_mux_command("SET_ROTATION_FACTOR",      "BUFFER", self.name, self.cmd_SET_ROTATION_FACTOR,  desc=self.cmd_LANE_ROT_FACTOR_help)
-            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER",    "BUFFER", self.name, self.cmd_SET_MULTIPLIER,       desc=self.cmd_SET_MULTIPLIER_help)
+            self.gcode.register_mux_command("SET_BUFFER_MULTIPLIER",    "BUFFER", self.name, self.cmd_SET_BUFFER_MULTIPLIER,desc=self.cmd_SET_BUFFER_MULTIPLIER_help)
 
         self.AFC.buffers[self.name] = self
 
@@ -230,8 +230,8 @@ class AFCtrigger:
                 state_info += "expanded"
         return state_info
 
-    cmd_SET_MULTIPLIER_help = "live adjust buffer high and low multiplier"
-    def cmd_SET_MULTIPLIER(self, gcmd):
+    cmd_SET_BUFFER_MULTIPLIER_help = "live adjust buffer high and low multiplier"
+    def cmd_SET_BUFFER_MULTIPLIER(self, gcmd):
         """
         This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
         It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function

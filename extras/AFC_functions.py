@@ -809,7 +809,7 @@ class afcFunction:
         msg += '//   Config Bowden Length:   {}\n'.format(CUR_HUB.config_unload_bowden_length)
         msg += '//   Previous Bowden Length: {}\n'.format(cur_unload_bowden_len)
         msg += '//   New Bowden Length:      {}\n'.format(CUR_HUB.afc_unload_bowden_length)
-        msg += '\n// TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Hardware.cfg for each hub if there are multiple'
+        msg += '\n// TO SAVE BOWDEN LENGTH afc_bowden_length MUST BE UPDATED IN AFC_Turtle_(n).cfg for each AFC_hub if there are multiple'
         self.logger.raw(msg)
 
     cmd_HUB_CUT_TEST_help = "Test the cutting sequence of the hub cutter, expects LANE=laneN"

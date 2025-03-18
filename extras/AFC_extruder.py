@@ -124,12 +124,12 @@ class AFCextruder:
         """
         Macro call to adjust `tool_stn`\`tool_stn_unload`\`tool_sensor_after_extruder` lengths for specified extruder without having to update config file and restart klipper.  <nl>
           <nl>
-        tool_stn length is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
+        `tool_stn length` is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
         is set then the value if from tool_end sensor.  <nl>
           <nl>
-        tool_stn_unload length is the length to unload so that filament is not in extruder gears anymore.  <nl>
+        `tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore.  <nl>
           <nl>
-        tool_sensor_after_extruder length is mainly used for those that have a filament sensor after extruder gears, target this
+        `tool_sensor_after_extruder` length is mainly used for those that have a filament sensor after extruder gears, target this
         length to retract filament enough so that it's not in the extruder gears anymore.  <nl>
           <nl>
         Please pause print if you need to adjust this value while printing
@@ -169,7 +169,6 @@ class AFCextruder:
             gcmd: The G-code command object containing the parameters for the command.
                   Expected parameters:
                   - EXTRUDER: The name of the extruder to save values to in config file.
-                  - LENGTH: The length adjustment value.
 
         Returns:
             None

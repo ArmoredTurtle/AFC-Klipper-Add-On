@@ -151,6 +151,10 @@ class afcError:
         Returns:
             None
         """
+        if not self.AFC.FUNCTION.is_paused():
+            self.logger.debug("AFC_RESUME: Printer not paused, not executing resume code")
+            return
+
         # Save current pause state
         temp_is_paused = self.AFC.FUNCTION.is_paused()
         curr_pos = self.AFC.toolhead.get_position()
@@ -160,9 +164,9 @@ class afcError:
         if (curr_pos[2] <= self.AFC.last_gcode_position[2]):
             self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
 
-        self.logger.debug("Before User Restore")
+        self.logger.debug("AFC_RESUME: Before User Restore")
         self.AFC.FUNCTION.log_toolhead_pos()
-        self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
+        self.AFC.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_RESUME_NAME, user_params=gcmd.get_raw_command_parameters()))
 
         #The only time our resume should restore position is if there was an error that caused the pause
         if self.AFC.error_state or temp_is_paused or self.AFC.position_saved:
@@ -172,17 +176,22 @@ class afcError:
 
     cmd_AFC_RESUME_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
     def cmd_AFC_PAUSE(self, gcmd):
-        self.logger.debug("AFC_PAUSE")
-        # Save position
-        self.AFC.save_pos()
-        # Need to pause as soon as possible to stop more gcode from executing, this needs to be done before movement in Z
-        self.pause_resume.send_pause_command()
-        # Move Z up by z-hop value
-        self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
-        # Call users PAUSE
-        self.AFC.gcode.run_script_from_command(self.AFC_RENAME_PAUSE_NAME)
-        # Set Idle timeout to 10 hours
-        self.AFC.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT=36000")
+        # Check to make sure printer is not already paused
+        if not self.AFC.FUNCTION.is_paused():
+            self.logger.debug("AFC_PAUSE: Pausing")
+            # Save position
+            self.AFC.save_pos()
+            # Need to pause as soon as possible to stop more gcode from executing, this needs to be done before movement in Z
+            self.pause_resume.send_pause_command()
+            # Move Z up by z-hop value
+            self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
+            # Call users PAUSE
+            self.AFC.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
+            # Set Idle timeout to 10 hours
+            self.AFC.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT=36000")
+        else:
+            self.logger.debug("AFC_PAUSE: Not Pausing")
+
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message, pause=True):
