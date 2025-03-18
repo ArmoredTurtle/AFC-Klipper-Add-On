@@ -122,6 +122,12 @@ _Description_: Macro call to write tool_stn, tool_stn_unload and tool_sensor_aft
 Usage: ``SAVE_EXTRUDER_VALUES EXTRUDER=<extruder>``  
 Example: ``SAVE_EXTRUDER_VALUES EXTRUDER=extruder``  
 
+### SAVE_SPEED_MULTIPLIER
+_Description_: Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.  
+  
+Usage: ``SAVE_SPEED_MULTIPLIER LANE=<lane_name>``  
+Example: ``SAVE_SPEED_MULTIPLIER LANE=lane1``  
+
 ### SET_AFC_TOOLCHANGES
 _Description_: This macro can be used to set total number of toolchanges from slicer. AFC will keep track of tool changes and print out
 current tool change number when a T(n) command is called from gcode.  
@@ -147,6 +153,14 @@ length will increase/decrease bowden length by that amount.
   
 Usage: ``SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length> UNLOAD_LENGTH=<length>``  
 Example: ``SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100``  
+
+### SET_BUFFER_MULTIPLIER
+_Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
+It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
+ensures that the factor is valid and updates the corresponding multiplier.  
+  
+Usage: `SET_BUFFER_MULTIPLIER BUFFER=<buffer_name> MULTIPLIER=<HIGH/LOW> FACTOR=<factor>`  
+Example: `SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2`  
 
 ### SET_BUFFER_VELOCITY
 _Description_: Allows users to tweak buffer velocity setting while printing. This setting is not
@@ -185,14 +199,6 @@ specified by the 'LANE' parameter and sets its material to the value provided by
 Usage: `SET_MATERIAL LANE=<lane> MATERIAL=<material>`  
 Example: `SET_MATERIAL LANE=lane1 MATERIAL=ABS`  
 
-### SET_MULTIPLIER
-_Description_: This function handles the adjustment of the buffer multipliers for the turtleneck buffer.
-It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
-ensures that the factor is valid and updates the corresponding multiplier.  
-  
-Usage: `SET_BUFFER_MULTIPLIER BUFFER=<buffer_name> MULTIPLIER=<HIGH/LOW> FACTOR=<factor>`  
-Example: `SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2`  
-
 ### SET_ROTATION_FACTOR
 _Description_: Adjusts the rotation distance of the current AFC stepper motor by applying a
 specified factor. If no factor is provided, it defaults to 1.0, which resets
@@ -207,6 +213,17 @@ specified by the 'LANE' parameter and updates its the lane to use if filament ru
   
 Usage: ``SET_RUNOUT LANE=<lane> RUNOUT=<lane>``  
 Example: ``SET_RUNOUT LANE=lane1 RUNOUT=lane4``  
+
+### SET_SPEED_MULTIPLIER
+_Description_: Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
+these values while printing. Multiplier values must be between 0.0 - 1.0  
+  
+Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  
+  
+After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file  
+  
+Usage: ``SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>``  
+Example: ``SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9``  
 
 ### SET_SPOOL_ID
 _Description_: This function handles setting the spool ID for a specified lane. It retrieves the lane
@@ -309,12 +326,12 @@ Example: ``UNSET_LANE_LOADED``
 ### UPDATE_TOOLHEAD_SENSORS
 _Description_: Macro call to adjust `tool_stn`\`tool_stn_unload`\`tool_sensor_after_extruder` lengths for specified extruder without having to update config file and restart klipper.  
   
-tool_stn length is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
+`tool_stn length` is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
 is set then the value if from tool_end sensor.  
   
-tool_stn_unload length is the length to unload so that filament is not in extruder gears anymore.  
+`tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore.  
   
-tool_sensor_after_extruder length is mainly used for those that have a filament sensor after extruder gears, target this
+`tool_sensor_after_extruder` length is mainly used for those that have a filament sensor after extruder gears, target this
 length to retract filament enough so that it's not in the extruder gears anymore.  
   
 Please pause print if you need to adjust this value while printing  

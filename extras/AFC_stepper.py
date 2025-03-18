@@ -308,6 +308,9 @@ class AFCExtruderStepper:
         # Register macros
         self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
 
+        self.AFC.gcode.register_mux_command('SET_SPEED_MULTIPLIER',  "LANE", self.name, self.cmd_SET_SPEED_MULTIPLIER,   desc=self.cmd_SET_SPEED_MULTIPLIER_help)
+        self.AFC.gcode.register_mux_command('SAVE_SPEED_MULTIPLIER', "LANE", self.name, self.cmd_SAVE_SPEED_MULTIPLIER,  desc=self.cmd_SAVE_SPEED_MULTIPLIER_help)
+
         if self.assisted_unload is None: self.assisted_unload = self.unit_obj.assisted_unload
 
         # Send out event so that macros and be registered properly with valid lane names
@@ -796,6 +799,66 @@ class AFCExtruderStepper:
         self.AFC.FUNCTION.handle_activate_extruder()
         self.AFC.save_vars()
         self.logger.info("Manually set {} loaded to toolhead".format(self.name))
+
+    cmd_SET_SPEED_MULTIPLIER_help = "Gives ability to set fwd_speed_multiplier or rwd_speed_multiplier values without having to update config and restart"
+    def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
+        """
+            Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
+            these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
+              <nl>
+            Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
+              <nl>
+            After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
+
+            Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
+            Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+
+            Args:
+                gcmd: The G-code command object containing the parameters for the command.
+                    Expected parameters:
+                    - LANE: The name of the lane to adjust value for.
+                    - FWD: The forward multiplier adjustment value.
+                    - RWS: The reverse multiplier adjustment value.
+
+            Returns:
+                None
+        """
+        updated = False
+        old_fwd_value = self.fwd_speed_multi
+        old_rwd_value = self.rwd_speed_multi
+
+        self.fwd_speed_multi = gcmd.get_float("FWD", self.fwd_speed_multi, minval=0.0, maxval=1.0)
+        self.rwd_speed_multi = gcmd.get_float("RWD", self.rwd_speed_multi, minval=0.0, maxval=1.0)
+
+        if self.fwd_speed_multi != old_fwd_value:
+            self.logger.info("{name} forward speed multiplier set, New: {new}, Old: {old}".format(name=self.name, new=self.fwd_speed_multi, old=old_fwd_value))
+            updated = True
+
+        if self.rwd_speed_multi != old_rwd_value:
+            self.logger.info("{name} reverse speed multiplier set, New: {new}, Old: {old}".format(name=self.name, new=self.rwd_speed_multi, old=old_rwd_value))
+            updated = True
+
+        if updated:
+            self.logger.info("Run SAVE_SPEED_MULTIPLIER LANE={} to save values to config file".format(self.name))
+
+    cmd_SAVE_SPEED_MULTIPLIER_help = "Saves fwd_speed_multiplier and rwd_speed_multiplier values to config file "
+    def cmd_SAVE_SPEED_MULTIPLIER(self, gcmd):
+        """
+        Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.
+
+        Usage: `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
+        Example: `SAVE_SPEED_MULTIPLIER LANE=lane1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane to save values to in config file.
+
+        Returns:
+            None
+        """
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
 
     def get_status(self, eventtime=None):
         response = {}
