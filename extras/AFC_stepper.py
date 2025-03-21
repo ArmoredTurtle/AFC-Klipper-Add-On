@@ -118,6 +118,8 @@ class AFCExtruderStepper:
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
 
+        self.config_dist_hub = self.dist_hub
+
         self.motion_queue = None
         self.next_cmd_time = 0.
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -310,6 +312,8 @@ class AFCExtruderStepper:
 
         self.AFC.gcode.register_mux_command('SET_SPEED_MULTIPLIER',  "LANE", self.name, self.cmd_SET_SPEED_MULTIPLIER,   desc=self.cmd_SET_SPEED_MULTIPLIER_help)
         self.AFC.gcode.register_mux_command('SAVE_SPEED_MULTIPLIER', "LANE", self.name, self.cmd_SAVE_SPEED_MULTIPLIER,  desc=self.cmd_SAVE_SPEED_MULTIPLIER_help)
+        self.AFC.gcode.register_mux_command('SET_HUB_DIST',          "LANE", self.name, self.cmd_SET_HUB_DIST,           desc=self.cmd_SET_HUB_DIST_help)
+        self.AFC.gcode.register_mux_command('SAVE_HUB_DIST',         "LANE", self.name, self.cmd_SAVE_HUB_DIST,          desc=self.cmd_SAVE_HUB_DIST_help)
 
         if self.assisted_unload is None: self.assisted_unload = self.unit_obj.assisted_unload
 
@@ -803,25 +807,25 @@ class AFCExtruderStepper:
     cmd_SET_SPEED_MULTIPLIER_help = "Gives ability to set fwd_speed_multiplier or rwd_speed_multiplier values without having to update config and restart"
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
         """
-            Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
-            these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
-              <nl>
-            Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
-              <nl>
-            After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
+        Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
+        these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
+            <nl>
+        Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
+            <nl>
+        After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
 
-            Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
-            Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+        Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
+        Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
 
-            Args:
-                gcmd: The G-code command object containing the parameters for the command.
-                    Expected parameters:
-                    - LANE: The name of the lane to adjust value for.
-                    - FWD: The forward multiplier adjustment value.
-                    - RWS: The reverse multiplier adjustment value.
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Expected parameters:
+                - LANE: The name of the lane to adjust value for.
+                - FWD: The forward multiplier adjustment value.
+                - RWS: The reverse multiplier adjustment value.
 
-            Returns:
-                None
+        Returns:
+            None
         """
         updated = False
         old_fwd_value = self.fwd_speed_multi
@@ -859,6 +863,56 @@ class AFCExtruderStepper:
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
+
+    cmd_SET_HUB_DIST_help = "Helper to dynamically set distance between a lanes extruder and hub"
+    def cmd_SET_HUB_DIST(self, gcmd):
+        """
+        This function adjusts the distance between a lanes extruder and hub. Adding +/- in front of the length will
+        increase/decrease length by that amount. To reset length back to config value, pass in `reset` for length to
+        reset to value in config file.
+
+        Usage: `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
+        Example: `SET_HUB_DIST LANE=lane1 LENGTH=+100`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Expected parameters:
+                - LANE: The name of the lane to adjust value for.
+                - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
+
+        Returns:
+            None
+        """
+        old_dist_hub = self.dist_hub
+
+        length = gcmd.get("LENGTH", self.dist_hub)
+
+        if length != old_dist_hub:
+            self.dist_hub = self.AFC.FUNCTION._calc_length(self.config_dist_hub, self.dist_hub, length)
+        msg =  "//{} dist_hub:\n".format(self.name)
+        msg += '//   Config Length:   {}\n'.format(self.config_dist_hub)
+        msg += '//   Previous Length: {}\n'.format(old_dist_hub)
+        msg += '//   New Length:      {}\n'.format(self.dist_hub)
+        self.logger.raw(msg)
+        self.logger.info("Run SAVE_HUB_DIST LANE={} to save value to config file".format(self.name))
+
+    cmd_SAVE_HUB_DIST_help = "Saves dist_hub value to config file "
+    def cmd_SAVE_HUB_DIST(self, gcmd):
+        """
+        Macro call to write dist_hub variable to config file for specified lane.
+
+        Usage: `SAVE_HUB_DIST LANE=<lane_name>`
+        Example: `SAVE_HUB_DIST LANE=lane1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane to save values to in config file.
+
+        Returns:
+            None
+        """
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'dist_hub',  self.dist_hub, '')
 
     def get_status(self, eventtime=None):
         response = {}

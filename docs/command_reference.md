@@ -122,6 +122,12 @@ _Description_: Macro call to write tool_stn, tool_stn_unload and tool_sensor_aft
 Usage: ``SAVE_EXTRUDER_VALUES EXTRUDER=<extruder>``  
 Example: ``SAVE_EXTRUDER_VALUES EXTRUDER=extruder``  
 
+### SAVE_HUB_DIST
+_Description_: Macro call to write dist_hub variable to config file for specified lane.  
+  
+Usage: ``SAVE_HUB_DIST LANE=<lane_name>``  
+Example: ``SAVE_HUB_DIST LANE=lane1``  
+
 ### SAVE_SPEED_MULTIPLIER
 _Description_: Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.  
   
@@ -177,6 +183,14 @@ specified by the 'LANE' parameter and sets its color to the value provided by th
 Usage: ``SET_COLOR LANE=<lane> COLOR=<color>``  
 Example: ``SET_COLOR LANE=lane1 COLOR=FF0000``  
 
+### SET_HUB_DIST
+_Description_: This function adjusts the distance between a lanes extruder and hub. Adding +/- in front of the length will
+increase/decrease length by that amount. To reset length back to config value, pass in `reset` for length to
+reset to value in config file.  
+  
+Usage: ``SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>``  
+Example: ``SET_HUB_DIST LANE=lane1 LENGTH=+100``  
+
 ### SET_LANE_LOADED
 _Description_: This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
 during prints after AFC detects an error when loading/unloading and pauses. If there is a lane already loaded this macro
@@ -217,9 +231,9 @@ Example: ``SET_RUNOUT LANE=lane1 RUNOUT=lane4``
 ### SET_SPEED_MULTIPLIER
 _Description_: Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
 these values while printing. Multiplier values must be between 0.0 - 1.0  
-  
+    
 Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  
-  
+    
 After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file  
   
 Usage: ``SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>``  

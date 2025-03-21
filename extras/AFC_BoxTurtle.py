@@ -183,12 +183,15 @@ class afcBoxTurtle(afcUnit):
 
         if not success:
             # fault if check is not successful
-            msg = 'failed {} after {}mm'.format(checkpoint, hub_pos)
+            msg = 'Failed to calibrate dist_hub for {}. Failed after {}mm'.format(CUR_LANE.name, hub_fault_dis)
+            msg += '\n if filament stopped short of the hub during calibration use the following command to increase dist_hub value'
+            msg += '\n SET_HUB_DIST LANE={} LENGTH=+(distance the filament was short from the hub)'.format(CUR_LANE.name)
             return False, msg, hub_pos
 
+        hub_dist = CUR_LANE.dist_hub + 500
         # verify hub distance
         tuned_hub_pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.hub_obj.state, hub_pos,
-                                            CUR_LANE.short_move_dis, tol, CUR_LANE.dist_hub + 500, checkpoint)
+                                            CUR_LANE.short_move_dis, tol, hub_dist, checkpoint)
 
         if not success:
             # fault if check is not successful
