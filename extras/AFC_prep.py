@@ -11,9 +11,9 @@ class afcPrep:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        self.delay = config.getfloat('delay_time', 0.1, minval=0.0)                 # Time to delay when moving extruders and spoolers during PREP routine
-        self.enable = config.getboolean("enable", False)                            # Set True to disable PREP checks
-        self.dis_unload_macro = config.getboolean("disable_unload_filament_remapping", False) # Set to True to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD macro
+        self.delay              = config.getfloat('delay_time', 0.1, minval=0.0)                # Time to delay when moving extruders and spoolers during PREP routine
+        self.enable             = config.getboolean("enable", False)                            # Set True to disable PREP checks
+        self.dis_unload_macro   = config.getboolean("disable_unload_filament_remapping", False) # Set to True to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD macro
 
         # Flag to set once resume rename as occurred for the first time
         self.rename_occurred = False
@@ -28,6 +28,7 @@ class afcPrep:
         """
         self.AFC = self.printer.lookup_object('AFC')
         self.AFC.gcode.register_command('PREP', self.PREP, desc=None)
+        self.logger = self.AFC.logger
 
     def _rename(self, base_name, rename_name, rename_macro, rename_help):
         """
@@ -39,21 +40,23 @@ class afcPrep:
             pdesc = "Renamed builtin of '%s'" % (base_name,)
             self.AFC.gcode.register_command(rename_name, prev_cmd, desc=pdesc)
         else:
-            self.AFC.gcode.respond_info("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
+            self.logger.debug("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
         self.AFC.gcode.register_command(base_name, rename_macro, desc=rename_help)
 
     def _rename_macros(self):
         """
         Helper function to rename multiple macros and substitute with AFC macros.
-        - Replaces stock RESUME macro and reassigns to AFC_resume function
+        - Replaces stock RESUME macro and reassigns to AFC_RESUME function
         - Replaces stock UNLOAD macro and reassigns to TOOL_UNLOAD function. This can be disabled in AFC_prep config
+        - Replaces stock/users PAUSE macro and reassigns to AFC_PAUSE function.
         """
         # Checking to see if rename has already been done, don't want to rename again if prep was already ran
         if not self.rename_occurred:
             self.rename_occurred = True
             self._rename( self.AFC.ERROR.BASE_RESUME_NAME, self.AFC.ERROR.AFC_RENAME_RESUME_NAME, self.AFC.ERROR.cmd_AFC_RESUME, self.AFC.ERROR.cmd_AFC_RESUME_help )
+            self._rename( self.AFC.ERROR.BASE_PAUSE_NAME,  self.AFC.ERROR.AFC_RENAME_PAUSE_NAME,  self.AFC.ERROR.cmd_AFC_PAUSE,  self.AFC.ERROR.cmd_AFC_RESUME_help )
 
-            # Check to see if the user does not want to rename UNLOAD_FILAMENT macor
+            # Check to see if the user does not want to rename UNLOAD_FILAMENT macro
             if not self.dis_unload_macro:
                 self._rename( self.AFC.BASE_UNLOAD_FILAMENT,   self.AFC.RENAMED_UNLOAD_FILAMENT,      self.AFC.cmd_TOOL_UNLOAD,      self.AFC.cmd_TOOL_UNLOAD_help )
 
@@ -61,7 +64,7 @@ class afcPrep:
         while self.printer.state_message != 'Printer is ready':
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
         self._rename_macros()
-        self.AFC.print_version()
+        self.AFC.print_version(console_only=True)
 
         ## load Unit stored variables
         units={}
@@ -72,9 +75,11 @@ class afcPrep:
         for EXTRUDER in self.AFC.tools.keys():
             PrinterObject=self.AFC.tools[EXTRUDER]
             self.AFC.tools[PrinterObject.name]=PrinterObject
-            if 'system' in units:
+            if 'system' in units and "extruders" in units["system"]:
                 # Check to see if lane_loaded is in dictionary and its its not an empty string
-                if 'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
+                if PrinterObject.name in units["system"]["extruders"] and \
+                  'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and \
+                  units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
                     PrinterObject.lane_loaded = units["system"]["extruders"][PrinterObject.name]['lane_loaded']
                     self.AFC.current = PrinterObject.lane_loaded
 
@@ -86,7 +91,7 @@ class afcPrep:
             if CUR_LANE.unit in units:
                 if CUR_LANE.name in units[CUR_LANE.unit]:
                     if 'spool_id' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.spool_id = units[CUR_LANE.unit][CUR_LANE.name]['spool_id']
-                    if self.AFC.spoolman !=None and CUR_LANE.spool_id:
+                    if self.AFC.spoolman != None and CUR_LANE.spool_id:
                         self.AFC.SPOOL.set_spoolID(CUR_LANE, CUR_LANE.spool_id, save_vars=False)
                     else:
                         if 'material' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.material = units[CUR_LANE.unit][CUR_LANE.name]['material']
@@ -102,7 +107,8 @@ class afcPrep:
                     # Check for loaded_to_hub as this is how its being saved version > 1030
                     if 'loaded_to_hub' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.loaded_to_hub = units[CUR_LANE.unit][CUR_LANE.name]['loaded_to_hub']
                     if 'tool_loaded' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.tool_loaded = units[CUR_LANE.unit][CUR_LANE.name]['tool_loaded']
-                    if 'status' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.status = units[CUR_LANE.unit][CUR_LANE.name]['status']
+                    # Commenting out until there is better handling of this variable as it could cause someone to not be able to load their lane if klipper crashes
+                    # if 'status' in units[CUR_LANE.unit][CUR_LANE.name]: CUR_LANE.status = units[CUR_LANE.unit][CUR_LANE.name]['status']
 
         for UNIT in self.AFC.units.keys():
             try: CUR_UNIT = self.AFC.units[UNIT]
@@ -110,7 +116,7 @@ class afcPrep:
                 error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
                 self.AFC.ERROR.AFC_error(error_string, False)
                 return
-            self.AFC.gcode.respond_info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
+            self.logger.info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
             lanes_for_first_hub = []
             hub_name = ""
             LaneCheck = True
@@ -124,18 +130,23 @@ class afcPrep:
                     LaneCheck = False
             # Warn user if multiple hubs were found and hub was not assigned to unit/stepper
             if len(lanes_for_first_hub) != 0:
-                self.AFC.gcode.respond_raw("<span class=warning--text>No hub defined in lanes or unit for {unit}. Defaulting to {hub}</span>".format(
+                self.logger.raw("<span class=warning--text>No hub defined in lanes or unit for {unit}. Defaulting to {hub}</span>".format(
                                             unit=" ".join(CUR_UNIT.full_name), hub=hub_name))
 
             if LaneCheck:
-                self.AFC.gcode.respond_raw(CUR_UNIT.logo)
+                self.logger.raw(CUR_UNIT.logo)
             else:
-                self.AFC.gcode.respond_raw(CUR_UNIT.logo_error)
+                self.logger.raw(CUR_UNIT.logo_error)
         try:
-            bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
-            if bypass.filament_present == True:
-              self.AFC.gcode.respond_info("Filament loaded in bypass, not doing toolchange")
-        except: bypass = None
+            if self.AFC._get_bypass_state():
+                self.logger.info("Filament loaded in bypass, toolchanges deactivated")
+        except:
+            pass
+
+        # Restore previous bypass state if virtual bypass is active
+        if 'virtual' in self.AFC.bypass.name:
+            if "system" in units and 'bypass' in units["system"]:
+                self.AFC.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.AFC.current is None:
@@ -143,7 +154,7 @@ class afcPrep:
         # Setting value to False so the T commands don't try to get reassigned when users manually
         #   run PREP after it has already be ran once upon boot
         self.assignTcmd = False
-
+        self.AFC.prep_done = True
         self.AFC.save_vars()
 
 def load_config(config):

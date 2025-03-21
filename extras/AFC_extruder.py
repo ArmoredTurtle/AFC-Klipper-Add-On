@@ -11,30 +11,32 @@ except:
 
 class AFCextruder:
     def __init__(self, config):
-        self.printer = config.get_printer()
+        self.printer    = config.get_printer()
+        buttons         = self.printer.load_object(config, "buttons")
+        self.AFC        = self.printer.lookup_object('AFC')
+        self.gcode      = self.printer.lookup_object('gcode')
+        self.logger     = self.AFC.logger
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        buttons = self.printer.load_object(config, "buttons")
-        self.AFC = self.printer.lookup_object('AFC')
 
-        self.name = config.get_name().split(' ')[-1]
-        self.tool_stn = config.getfloat("tool_stn", 72)
-        self.tool_stn_unload = config.getfloat("tool_stn_unload", 100)
-        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)
-        self.tool_unload_speed = config.getfloat("tool_unload_speed", 25)
-        self.tool_load_speed = config.getfloat("tool_load_speed", 25)
-        self.tool_start = config.get('pin_tool_start', None)
-        self.tool_end = config.get('pin_tool_end', None)
-        self.lane_loaded = None
-        self.lanes = {}
-        self.buffer_name = config.get('buffer', None)
+        self.fullname                   = config.get_name()
+        self.name                       = self.fullname.split(' ')[-1]
+        self.tool_start                 = config.get('pin_tool_start', None)                                            # Pin for sensor before(pre) extruder gears
+        self.tool_end                   = config.get('pin_tool_end', None)                                              # Pin for sensor after(post) extruder gears (optional)
+        self.tool_stn                   = config.getfloat("tool_stn", 72)                                               # Distance in mm from the toolhead sensor to the tip of the nozzle in mm, if `tool_end` is defined then distance is from this sensor
+        self.tool_stn_unload            = config.getfloat("tool_stn_unload", 100)                                       # Distance to move in mm while unloading toolhead
+        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)                              # Extra distance to move in mm once pre/post sensors are clear. Useful for when only using post sensor, so this distance can be the amout to move to clear extruder gears
+        self.tool_unload_speed          = config.getfloat("tool_unload_speed", 25)                                      # Unload speed in mm/s when unloading toolhead. Default is 25mm/s.
+        self.tool_load_speed            = config.getfloat("tool_load_speed", 25)                                        # Load speed in mm/s when unloading toolhead. Default is 25mm/s.
+        self.buffer_name                = config.get('buffer', None)                                                    # Buffer to use for extruder, this variable can be overridden per lane
+        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 
-        self.gcode = self.printer.lookup_object('gcode')
-        self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.lane_loaded                = None
+        self.lanes                      = {}
 
         self.tool_start_state = False
         if self.tool_start is not None:
             if self.tool_start == "buffer":
-                self.gcode.respond_info("Setting up as buffer")
+                self.logger.info("Setting up as buffer")
             else:
                 self.tool_start_state = False
                 buttons.register_buttons([self.tool_start], self.tool_start_callback)
@@ -48,6 +50,12 @@ class AFCextruder:
             if self.enable_sensors_in_gui:
                 self.tool_end_state_filament_switch_name = "filament_switch_sensor {}".format("tool_end")
                 self.fila_avd = add_filament_switch(self.tool_end_state_filament_switch_name, self.tool_end, self.printer )
+
+        self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
+
+    def __str__(self):
+        return self.name
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -57,6 +65,9 @@ class AFCextruder:
         self.reactor = self.AFC.reactor
         self.AFC.tools[self.name] = self
 
+        self.AFC.gcode.register_mux_command('UPDATE_TOOLHEAD_SENSORS',  "EXTRUDER", self.name, self.cmd_UPDATE_TOOLHEAD_SENSORS,desc=self.cmd_UPDATE_TOOLHEAD_SENSORS_help)
+        self.AFC.gcode.register_mux_command('SAVE_EXTRUDER_VALUES',     "EXTRUDER", self.name, self.cmd_SAVE_EXTRUDER_VALUES,   desc=self.cmd_SAVE_EXTRUDER_VALUES_help)
+
     def tool_start_callback(self, eventtime, state):
         self.tool_start_state = state
 
@@ -65,6 +76,106 @@ class AFCextruder:
 
     def tool_end_callback(self, eventtime, state):
         self.tool_end_state = state
+
+    def _update_tool_stn(self, length):
+        """
+        Helper function to set tool_stn length
+
+        :param length: Length to set to tool_stn parameter
+        """
+        if length > 0:
+            msg = "tool_stn updated old: {}, new: {}".format(self.tool_stn, length)
+            msg += self.common_save_msg
+            self.tool_stn = length
+            self.logger.info(msg)
+        else:
+            self.logger.error("tool_stn length should be greater than zero")
+
+    def _update_tool_stn_unload(self, length):
+        """
+        Helper function to set tool_stn_unload length
+
+        :param length: Length to set to tool_stn_unload parameter
+        """
+        if length > 0:
+            msg = "tool_stn_unload updated old: {}, new: {}".format(self.tool_stn_unload, length)
+            msg += self.common_save_msg
+            self.tool_stn_unload = length
+            self.logger.info(msg)
+        else:
+            self.logger.error("tool_stn_unload length should be greater than zero")
+
+    def _update_tool_after_extr(self, length):
+        """
+        Helper function to set tool_sensor_after_extruder length
+
+        :param length: Length to set to tool_sensor_after_extruder parameter
+        """
+        if length > 0:
+            msg = "tool_sensor_after_extruder updated old: {}, new: {}".format(self.tool_sensor_after_extruder, length)
+            msg += self.common_save_msg
+            self.tool_sensor_after_extruder = length
+            self.logger.info(msg)
+        else:
+            self.logger.error("tool_sensor_after_extruder length should be greater than zero")
+
+    cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn\tool_stn_unload\tool_sensor_after_extruder values without restarting klipper"
+    def cmd_UPDATE_TOOLHEAD_SENSORS(self, gcmd):
+        """
+        Macro call to adjust `tool_stn`\`tool_stn_unload`\`tool_sensor_after_extruder` lengths for specified extruder without having to update config file and restart klipper.  <nl>
+          <nl>
+        `tool_stn length` is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
+        is set then the value if from tool_end sensor.  <nl>
+          <nl>
+        `tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore.  <nl>
+          <nl>
+        `tool_sensor_after_extruder` length is mainly used for those that have a filament sensor after extruder gears, target this
+        length to retract filament enough so that it's not in the extruder gears anymore.  <nl>
+          <nl>
+        Please pause print if you need to adjust this value while printing
+
+        Usage: `UPDATE_TOOLHEAD_SENSORS EXTRUDER=<extruder> TOOL_STN=<length> TOOL_STN_UNLOAD=<length> TOOL_AFTER_EXTRUDER=<length>`
+        Example: `UPDATE_TOOLHEAD_SENSORS EXTRUDER=extruder TOOL_STN=100`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - EXTRUDER: The name of the extruder to adjust value for.
+                  - LENGTH: The length adjustment value.
+
+        Returns:
+            None
+        """
+        tool_stn                    = gcmd.get_float("TOOL_STN",            self.tool_stn)
+        tool_stn_unload             = gcmd.get_float("TOOL_STN_UNLOAD",     self.tool_stn_unload)
+        tool_sensor_after_extruder  = gcmd.get_float("TOOL_AFTER_EXTRUDER", self.tool_sensor_after_extruder)
+
+        if tool_stn != self.tool_stn:
+            self._update_tool_stn( tool_stn )
+        if tool_stn_unload != self.tool_stn_unload:
+            self._update_tool_stn_unload( tool_stn_unload )
+        if tool_sensor_after_extruder != self.tool_sensor_after_extruder:
+            self._update_tool_after_extr( tool_sensor_after_extruder )
+
+    cmd_SAVE_EXTRUDER_VALUES_help = "Saves tool_stn, tool_stn_unload and tool_sensor_after_extruder values to config file "
+    def cmd_SAVE_EXTRUDER_VALUES(self, gcmd):
+        """
+        Macro call to write tool_stn, tool_stn_unload and tool_sensor_after_extruder variables to config file for specified extruder.
+
+        Usage: `SAVE_EXTRUDER_VALUES EXTRUDER=<extruder>`
+        Example: `SAVE_EXTRUDER_VALUES EXTRUDER=extruder`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - EXTRUDER: The name of the extruder to save values to in config file.
+
+        Returns:
+            None
+        """
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn',                   self.tool_stn, '')
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn_unload',            self.tool_stn_unload, '')
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_sensor_after_extruder', self.tool_sensor_after_extruder, '')
 
     def get_status(self, eventtime=None):
         self.response = {}

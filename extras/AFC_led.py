@@ -12,8 +12,12 @@ RESET_MIN_TIME = .000050
 MAX_MCU_SIZE = 500  # Sanity check on LED chain length
 class AFCled:
     def __init__(self, config):
-        self.printer = printer = config.get_printer()
-        self.mutex = printer.get_reactor().mutex()
+        self.printer    = printer = config.get_printer()
+        self.mutex      = printer.get_reactor().mutex()
+        self.fullname   = config.get_name()
+        self.name       = self.fullname.split()[-1]
+        self.AFC        = self.printer.lookup_object('AFC')
+        self.AFC.led_obj[self.name] = self
         # Configure neopixel
         ppins = printer.lookup_object('pins')
         pin_params = ppins.lookup_pin(config.get('pin'))
@@ -44,6 +48,8 @@ class AFCled:
         self.old_color_data = bytearray([d ^ 1 for d in self.color_data])
         # Register callbacks
         printer.register_event_handler("klippy:connect", self.send_data)
+        self.last_led_color = {}
+        self.keep_leds_off = False
 
     def build_config(self):
         bmt = self.mcu.seconds_to_clock(BIT_MAX_TIME)
@@ -109,7 +115,10 @@ class AFCled:
     def get_status(self, eventtime=None):
         return self.led_helper.get_status(eventtime)
 
-    def led_change(self, index, status):
+    def led_change(self, index, status, update_last=True):
+        if update_last: self.last_led_color[str(index)] = status
+        if self.keep_leds_off: return
+
         colors=list(map(float,status.split(',')))
         transmit = 1
         def lookahead_bgfunc(print_time):
@@ -124,6 +133,16 @@ class AFCled:
                 check_transmit_fn(print_time)
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
+
+    def turn_off_leds(self):
+        for i in range(self.led_helper.led_count):
+            self.led_change( i, "0,0,0,0", False)
+        self.keep_leds_off = True
+
+    def turn_on_leds(self):
+        self.keep_leds_off = False
+        for index, value in self.last_led_color.items():
+            self.led_change( int(index), value, False )
 
 def load_config_prefix(config):
     return AFCled(config)

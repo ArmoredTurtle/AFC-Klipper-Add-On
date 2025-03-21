@@ -4,6 +4,7 @@
 - `moonraker_port` (default: `None`): Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
 - `VarFile` (default: `'../printer_data/config/AFC/'`): Path to the variables file for AFC configuration.
 - `default_material_temps` (default: `None`): Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
+- `default_material_type` (default: `None`): Default material type to assign to a spool once loaded into a lane
 - `led_fault` (default: `'1,0,0,0'`): LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
 - `led_ready` (default: `'1,1,1,1'`): LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness.
 - `led_not_ready` (default: `'1,1,0,0'`): LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness.
@@ -32,29 +33,58 @@
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves
 - `short_move_dis` (default: `10`): Move distance in mm for failsafe moves.
 - `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
+- `n20_break_delay_time` (default: `0.200`): Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
 - `tool_max_unload_attempts` (default: `2`): Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
 - `tool_max_load_checks` (default: `4`): Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 - `z_hop` (default: `0`): Height to move up before and after a tool change completes
 - `xy_resume` (default: `False`): Need description or remove as this is currently an unused variable
-- `resume_speed` (default: `0`): Speed mm/s of resume move. Set to 0 to use gcode speed
-- `resume_z_speed` (default: `0`): Speed mm/s of resume move in Z. Set to 0 to use gcode speed
+- `resume_speed` (default: `25`): Speed mm/s of resume move. Set to 0 to use gcode speed
+- `resume_z_speed` (default: `25`): Speed mm/s of resume move in Z. Set to 0 to use gcode speed
 - `global_print_current` (default: `None`): Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly
 - `enable_sensors_in_gui` (default: `False`): Set to True to show all sensor switches as filament sensors in mainsail/fluidd gui
 - `load_to_hub` (default: `True`): Fast loads filament to hub when inserted, set to False to disable. This is a global setting and can be overridden at AFC_stepper
+- `assisted_unload` (default: `True`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool
+- `pause_when_bypass_active` (default: `False`): When true AFC pauses print when change tool is called and bypass is loaded
+- `unload_on_runout` (default: `False`): When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
+- `debug` (default: `False`): Setting to True turns on more debugging to show on console
 - `trsync_update` (default: `False`): Set to true to enable updating trsync value in klipper mcu. Enabling this and updating the timeouts can help with Timer Too Close(TTC) errors
 - `trsync_timeout` (default: `0.05`): Timeout value to update in klipper mcu. Klippers default value is 0.025
 - `trsync_single_timeout` (default: `0.5`): Single timeout value to update in klipper mcu. Klippers default value is 0.250
 
 ## AFC_buffer
 - `enable_sensors_in_gui` (default: `False`): Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+- `velocity` (default: `0`): Velocity for forward assist
 - `accel` (default: `0`): Error if buffer is not configured correctly
-- `velocity` (default: `0`): Set buffer velocity for forward assist.
 
 ## AFC_extruder
+- `pin_tool_start` (default: `None`): Pin for sensor before(pre) extruder gears
+- `pin_tool_end` (default: `None`): Pin for sensor after(post) extruder gears (optional)
+- `tool_stn` (default: `72`): Distance in mm from the toolhead sensor to the tip of the nozzle in mm, if `tool_end` is defined then distance is from this sensor
+- `tool_stn_unload` (default: `100`): Distance to move in mm while unloading toolhead
+- `tool_sensor_after_extruder` (default: `0`): Extra distance to move in mm once pre/post sensors are clear. Useful for when only using post sensor, so this distance can be the amout to move to clear extruder gears
+- `tool_unload_speed` (default: `25`): Unload speed in mm/s when unloading toolhead. Default is 25mm/s.
+- `tool_load_speed` (default: `25`): Load speed in mm/s when unloading toolhead. Default is 25mm/s.
+- `buffer` (default: `None`): Buffer to use for extruder, this variable can be overridden per lane
 - `enable_sensors_in_gui` (default: `False`): Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 
 ## AFC_hub
+- `switch_pin` (default: `None`): Pin hub sensor it connected to
+- `hub_clear_move_dis` (default: `25`): How far to move filament so that it's not block the hub exit
+- `afc_bowden_length` (default: `900`): Length of the Bowden tube from the hub to the toolhead sensor in mm.
+- `afc_unload_bowden_length` (default: `afc_bowden_length`): Length to unload when retracting back from toolhead to hub in mm. Defaults to afc_bowden_length
 - `assisted_retract` (default: `False`): if True, retracts are assisted to prevent loose windings on the spool
+- `move_dis` (default: `50`): Distance to move the filament within the hub in mm.
+- `cut` (default: `False`): Set True if Hub cutter installed (e.g. Snappy)
+- `cut_cmd` (default: `None`): Macro to use for cut.
+- `cut_servo_name` (default: `'cut'`): Name of servo to use for cutting
+- `cut_dist` (default: `50`): How much filament to cut off (in mm).
+- `cut_clear` (default: `120`): How far the filament should retract back from the hub (in mm).
+- `cut_min_length` (default: `200`): Minimum length of filament to cut off
+- `cut_servo_pass_angle` (default: `0`): Servo angle to align the Bowden tube with the hole for loading the toolhead.
+- `cut_servo_clip_angle` (default: `160`): Servo angle for cutting the filament.
+- `cut_servo_prep_angle` (default: `75`): Servo angle to prepare the filament for cutting (aligning the exit hole).
+- `cut_confirm` (default: `0`): Set True to cut filament twice
+- `enable_sensors_in_gui` (default: `False`): Set to True to show hub sensor switche as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
 
 ## AFC_prep
 - `delay_time` (default: `0.1, minval=0.0`): Time to delay when moving extruders and spoolers during PREP routine
@@ -79,11 +109,13 @@
 - `short_moves_accel` (default: `None`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `short_move_dis` (default: `None`): Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `n20_break_delay_time` (default: `0.200`): Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `dist_hub` (default: `60`): Bowden distance between Box Turtle extruder and hub
 - `park_dist` (default: `10`): Currently unused
 - `load_to_hub` (default: `True`): Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
 - `enable_sensors_in_gui` (default: `False`): Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 - `sensor_to_show` (default: `None`): Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 - `prep` (default: `None`): MCU pin for prep trigger
 - `load` (default: `None`): MCU pin load trigger
 - `afc_motor_rwd` (default: `None`): Reverse pin on MCU for spoolers
@@ -117,6 +149,9 @@
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_move_dis` (default: `400`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
 - `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+- `n20_break_delay_time` (default: `0.200`): Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
+- `unload_on_runout` (default: `False`): When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
 
 ## AFC_NightOwl
 - `hub` (default: `None`): Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
@@ -134,3 +169,6 @@
 - `short_moves_speed` (default: `25`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
 - `short_move_dis` (default: `400`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+- `n20_break_delay_time` (default: `0.200`): Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
+- `unload_on_runout` (default: `False`): When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file

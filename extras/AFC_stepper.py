@@ -6,6 +6,7 @@
 
 import math
 import chelper
+from contextlib import contextmanager
 from kinematics import extruder
 from . import AFC_assist
 from configfile import error
@@ -51,17 +52,18 @@ def calc_move_time(dist, speed, accel):
 
 class AFCExtruderStepper:
     def __init__(self, config):
-        self.printer = config.get_printer()
+        self.printer            = config.get_printer()
+        self.AFC                = self.printer.lookup_object('AFC')
+        self.gcode              = self.printer.lookup_object('gcode')
+        self.reactor            = self.printer.get_reactor()
+        self.extruder_stepper   = extruder.ExtruderStepper(config)
+        self.logger             = self.AFC.logger
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        self.AFC = self.printer.lookup_object('AFC')
-        self.gcode = self.printer.lookup_object('gcode')
-        self.reactor = self.printer.get_reactor()
-        self.extruder_stepper = extruder.ExtruderStepper(config)
 
-        self.unit_obj       = None
-        self.hub_obj        = None
-        self.buffer_obj     = None
-        self.extruder_obj   = None
+        self.unit_obj           = None
+        self.hub_obj            = None
+        self.buffer_obj         = None
+        self.extruder_obj       = None
 
         #stored status variables
         self.fullname           = config.get_name()
@@ -102,16 +104,21 @@ class AFCExtruderStepper:
         self.short_moves_speed 	= config.getfloat("short_moves_speed", None)            # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.short_moves_accel	= config.getfloat("short_moves_accel", None)            # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.short_move_dis 	= config.getfloat("short_move_dis", None)               # Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.max_move_dis       = config.getfloat("max_move_dis", 999999)               # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
 
         self.load_to_hub        = config.getboolean("load_to_hub", self.AFC.load_to_hub) # Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
-        self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
-        self.sensor_to_show     = config.get("sensor_to_show", None)                   # Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
+        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.sensor_to_show         = config.get("sensor_to_show", None)                # Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
+
+        self.assisted_unload = config.getboolean("assisted_unload", None) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
+
+        self.config_dist_hub = self.dist_hub
 
         self.motion_queue = None
         self.next_cmd_time = 0.
@@ -179,6 +186,11 @@ class AFCExtruderStepper:
                 self.load_filament_switch_name = "filament_switch_sensor {}_load".format(self.name)
                 self.fila_load = add_filament_switch(self.load_filament_switch_name, self.load, self.printer )
         self.connect_done = False
+        self.prep_active = False
+        self.last_prep_time = 0
+
+    def __str__(self):
+        return self.name
 
     def _handle_ready(self):
         """
@@ -186,6 +198,12 @@ class AFCExtruderStepper:
         """
         if self.unit_obj is None:
             raise error("Unit {unit} is not defined in your configuration file. Please defined unit ex. [AFC_BoxTurtle {unit}]".format(unit=self.unit))
+
+        if self.led_index is not None:
+            # Verify that LED config is found
+            error_string, led = self.AFC.FUNCTION.verify_led_object(self.led_index)
+            if led is None:
+                raise error(error_string)
 
     def handle_unit_connect(self, unit_obj):
         """
@@ -200,28 +218,27 @@ class AFCExtruderStepper:
         self.AFC.lanes[self.name] = self
 
         self.hub_obj = self.unit_obj.hub_obj
-        # TODO: once supported add check if users is not using a hub
-        if self.hub is not None and self.hub !='direct':
-            try:
-                self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
-            except:
-                error_string = 'Error: No config found for hub: {hub} in [AFC_stepper {stepper}]. Please make sure [AFC_hub {hub}] section exists in your config'.format(
-                hub=self.hub, stepper=self.name )
-                raise error(error_string)
-        elif self.hub_obj is None:
-            # Check to make sure at least 1 hub exists in config, if not error out with message
-            if len(self.AFC.hubs) == 0:
-                error_string = "Error: AFC_hub not found in configuration please make sure there is a [AFC_hub <hub_name>] defined in your configuration"
-                raise error(error_string)
-            # Setting hub to first hub in AFC hubs dictionary
-            if len(self.AFC.hubs) > 0:
-                self.hub_obj = next(iter(self.AFC.hubs.values()))
-            # Set flag to warn during prep that multiple hubs were found
-            if len(self.AFC.hubs) > 1:
-                self.multi_hubs_found = True
+        if self.hub != 'direct':
+            if self.hub is not None:
+                try:
+                    self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
+                except:
+                    error_string = 'Error: No config found for hub: {hub} in [AFC_stepper {stepper}]. Please make sure [AFC_hub {hub}] section exists in your config'.format(
+                    hub=self.hub, stepper=self.name )
+                    raise error(error_string)
+            elif self.hub_obj is None:
+                # Check to make sure at least 1 hub exists in config, if not error out with message
+                if len(self.AFC.hubs) == 0:
+                    error_string = "Error: AFC_hub not found in configuration please make sure there is a [AFC_hub <hub_name>] defined in your configuration"
+                    raise error(error_string)
+                # Setting hub to first hub in AFC hubs dictionary
+                if len(self.AFC.hubs) > 0:
+                    self.hub_obj = next(iter(self.AFC.hubs.values()))
+                # Set flag to warn during prep that multiple hubs were found
+                if len(self.AFC.hubs) > 1:
+                    self.multi_hubs_found = True
 
-        # Assigning hub name just in case stepper is using hub defined in units config
-        if self.hub !='direct':
+            # Assigning hub name just in case stepper is using hub defined in units config
             self.hub = self.hub_obj.name
             self.hub_obj.lanes[self.name] = self
         else:
@@ -263,8 +280,12 @@ class AFCExtruderStepper:
                 error_string = 'Error: Buffer was defined as tool_start in [AFC_extruder {extruder}] config, but buffer variable has not been configured. Please add buffer variable to either [AFC_extruder {extruder}], [AFC_stepper {name}] or [AFC_{unit_type} {unit_name}] section in your config file'.format(
                     extruder=self.extruder_obj.name, name=self.name, unit_type=self.unit_obj.type.replace("_", ""), unit_name=self.unit_obj.name )
                 raise error(error_string)
+
         # Valid to not have a buffer defined, check to make sure object exists before adding lane to buffer
         if self.buffer_obj is not None:
+            if self.extruder_obj.tool_start == "buffer" and self.buffer_obj.belay:
+                raise error("Belay cannot be used in place of a toolhead sensor, only turtleneck buffer can do this.")
+
             self.buffer_obj.lanes[self.name] = self
             # Assigning buffer name just in case stepper is using buffer defined in units/extruder config
             self.buffer_name = self.buffer_obj.name
@@ -284,6 +305,17 @@ class AFCExtruderStepper:
         if self.short_moves_accel is None: self.short_moves_accel = self.unit_obj.short_moves_accel
         if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis
         if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
+        if self.n20_break_delay_time is None: self.n20_break_delay_time = self.unit_obj.n20_break_delay_time
+
+        # Register macros
+        self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
+
+        self.AFC.gcode.register_mux_command('SET_SPEED_MULTIPLIER',  "LANE", self.name, self.cmd_SET_SPEED_MULTIPLIER,   desc=self.cmd_SET_SPEED_MULTIPLIER_help)
+        self.AFC.gcode.register_mux_command('SAVE_SPEED_MULTIPLIER', "LANE", self.name, self.cmd_SAVE_SPEED_MULTIPLIER,  desc=self.cmd_SAVE_SPEED_MULTIPLIER_help)
+        self.AFC.gcode.register_mux_command('SET_HUB_DIST',          "LANE", self.name, self.cmd_SET_HUB_DIST,           desc=self.cmd_SET_HUB_DIST_help)
+        self.AFC.gcode.register_mux_command('SAVE_HUB_DIST',         "LANE", self.name, self.cmd_SAVE_HUB_DIST,          desc=self.cmd_SAVE_HUB_DIST_help)
+
+        if self.assisted_unload is None: self.assisted_unload = self.unit_obj.assisted_unload
 
         # Send out event so that macros and be registered properly with valid lane names
         self.printer.send_event("afc_stepper:register_macros", self)
@@ -301,6 +333,22 @@ class AFCExtruderStepper:
 
         self.tmc_load_current = self.tmc_driver.getfloat('run_current')
 
+    def brake_n20(self):
+        '''
+        Helper function to "brake" n20 motors to hopefully help with keeping down backfeeding into MCU board
+        '''
+        self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, 1))
+        self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_enb._set_pin(print_time, 1))
+        if self.afc_motor_fwd is not None:
+            self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, 1))
+
+        self.AFC.reactor.pause(self.AFC.reactor.monotonic() + self.n20_break_delay_time)
+
+        self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, 0))
+        self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_enb._set_pin(print_time, 0))
+        if self.afc_motor_fwd is not None:
+            self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, 0))
+
     def assist(self, value, is_resend=False):
         if self.afc_motor_rwd is None:
             return
@@ -309,30 +357,58 @@ class AFCExtruderStepper:
             assit_motor=self.afc_motor_rwd
         elif value > 0:
             if self.afc_motor_fwd is None:
-                    return
+                return
             else:
                 assit_motor=self.afc_motor_fwd
         elif value == 0:
-            toolhead = self.printer.lookup_object('toolhead')
-            toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, value))
-            if self.afc_motor_fwd is not None:
-                toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, value))
+            if self.afc_motor_enb is not None:
+                self.brake_n20()
+            else:
+                self.AFC.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, value))
+
             return
         value /= assit_motor.scale
         if not assit_motor.is_pwm and value not in [0., 1.]:
             if value > 0:
                 value = 1
-        # Obtain print_time and apply requested settings
-        toolhead = self.printer.lookup_object('toolhead')
         if self.afc_motor_enb is not None:
             if value != 0:
                 enable = 1
             else:
                 enable = 0
-            toolhead.register_lookahead_callback(
+            self.AFC.toolhead.register_lookahead_callback(
             lambda print_time: self.afc_motor_enb._set_pin(print_time, enable))
-        toolhead.register_lookahead_callback(
+
+        self.AFC.toolhead.register_lookahead_callback(
             lambda print_time: assit_motor._set_pin(print_time, value))
+
+    @contextmanager
+    def assist_move(self, speed, rewind, assist_active=True):
+        """
+        Starts an assist move and returns a context manager that turns off the assist move when it exist.
+        :param speed:         The speed of the move
+        :param rewind:        True for a rewind, False for a forward assist
+        :param assist_active: Whether to assist
+        :return:              the Context manager
+        """
+        if assist_active:
+            if rewind:
+                # Calculate Rewind Speed
+                value = self.calculate_pwm_value(speed, True) * -1
+            else:
+                # Calculate Forward Assist Speed
+                value = self.calculate_pwm_value(speed)
+
+            # Clamp value to a maximum of 1
+            if value > 1:
+                value = 1
+
+            self.assist(value)
+        try:
+            yield
+        finally:
+            if assist_active:
+                self.assist(0)
 
     def _move(self, distance, speed, accel, assist_active=False):
         """
@@ -347,38 +423,27 @@ class AFCExtruderStepper:
 
         if assist_active:
             self.update_remaining_weight(distance)
-            if distance < 0:
-                # Calculate Rewind Speed
-                value = self.calculate_pwm_value(speed, True) * -1
-            else:
-                # Calculate Forward Assist Speed
-                value = self.calculate_pwm_value(speed)
 
-            # Clamp value to a maximum of 1
-            if value > 1:
-                value = 1
-            self.assist(value)  # Activate assist motor with calculated value
-
-        toolhead = self.printer.lookup_object('toolhead')
-        toolhead.flush_step_generation()
-        prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
-        prev_trapq = self.extruder_stepper.stepper.set_trapq(self.trapq)
-        self.extruder_stepper.stepper.set_position((0., 0., 0.))
-        axis_r, accel_t, cruise_t, cruise_v = calc_move_time(distance, speed, accel)
-        print_time = toolhead.get_last_move_time()
-        self.trapq_append(self.trapq, print_time, accel_t, cruise_t, accel_t,
-                          0., 0., 0., axis_r, 0., 0., 0., cruise_v, accel)
-        print_time = print_time + accel_t + cruise_t + accel_t
-        self.extruder_stepper.stepper.generate_steps(print_time)
-        self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
-                                  print_time + 99999.9)
-        self.extruder_stepper.stepper.set_trapq(prev_trapq)
-        self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
-        toolhead.note_mcu_movequeue_activity(print_time)
-        toolhead.dwell(accel_t + cruise_t + accel_t)
-        toolhead.flush_step_generation()
-        toolhead.wait_moves()
-        if assist_active: self.assist(0)
+        with self.assist_move(speed, distance < 0, assist_active):
+            toolhead = self.printer.lookup_object('toolhead')
+            toolhead.flush_step_generation()
+            prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
+            prev_trapq = self.extruder_stepper.stepper.set_trapq(self.trapq)
+            self.extruder_stepper.stepper.set_position((0., 0., 0.))
+            axis_r, accel_t, cruise_t, cruise_v = calc_move_time(distance, speed, accel)
+            print_time = toolhead.get_last_move_time()
+            self.trapq_append(self.trapq, print_time, accel_t, cruise_t, accel_t,
+                              0., 0., 0., axis_r, 0., 0., 0., cruise_v, accel)
+            print_time = print_time + accel_t + cruise_t + accel_t
+            self.extruder_stepper.stepper.generate_steps(print_time)
+            self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
+                                      print_time + 99999.9)
+            self.extruder_stepper.stepper.set_trapq(prev_trapq)
+            self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
+            toolhead.note_mcu_movequeue_activity(print_time)
+            toolhead.dwell(accel_t + cruise_t + accel_t)
+            toolhead.flush_step_generation()
+            toolhead.wait_moves()
 
     def move(self, distance, speed, accel, assist_active=False):
 
@@ -401,78 +466,127 @@ class AFCExtruderStepper:
             now load once filament is inserted.
         """
         self._afc_prep_done = True
+
     def load_callback(self, eventtime, state):
         self.load_state = state
 
     def prep_callback(self, eventtime, state):
         self.prep_state = state
+
+        delta_time = eventtime - self.last_prep_time
+        self.last_prep_time = eventtime
+
+        if self.prep_active:
+            return
+
+        self.prep_active = True
+
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
-        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
-            # Only try to load when load state trigger is false
-            if self.prep_state == True and self.load_state == False:
-                x = 0
-                # Check to see if the printer is printing or moving, as trying to load while printer is doing something will crash klipper
-                if self.AFC.FUNCTION.is_printing(check_movement=True):
-                    self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
-                    return
-                while self.load_state == False and self.prep_state == True and self.load != None:
-                    x += 1
-                    self.do_enable(True)
-                    self.move(10,500,400)
-                    self.reactor.pause(self.reactor.monotonic() + 0.1)
-                    if x> 40:
-                        msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
-                        self.AFC.ERROR.AFC_error(msg, False)
-                        self.AFC.FUNCTION.afc_led(self.AFC.led_fault, self.led_index)
-                        self.status=''
+        for i in range(1):
+        # Hacky way for do{}while(0) loop, DO NOT return from this for loop, use break instead so that self.prep_state variable gets sets correctly
+        #  before exiting function
+            if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
+                # Only try to load when load state trigger is false
+                if self.prep_state == True and self.load_state == False:
+                    x = 0
+                    # Checking to make sure last time prep switch was activated was less than 1 second, returning to keep is printing message from spamming
+                    # the console since it takes klipper some time to transition to idle when idle_resume=printing
+                    if delta_time < 1.0:
                         break
-                self.status=''
 
-                if self.hub == 'direct':
-                    self.AFC.TOOL_LOAD(self)
-                    return
-                # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
-                if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state:
-                    self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
-                    self.loaded_to_hub = True
+                    # Check to see if the printer is printing or moving, as trying to load while printer is doing something will crash klipper
+                    if self.AFC.FUNCTION.is_printing(check_movement=True):
+                        self.AFC.ERROR.AFC_error("Cannot load spools while printer is actively moving or homing", False)
+                        break
 
-                self.do_enable(False)
-                if self.load_state == True and self.prep_state == True:
-                    self.status = 'Loaded'
-                    self.AFC.FUNCTION.afc_led(self.AFC.led_ready, self.led_index)
+                    while self.load_state == False and self.prep_state == True and self.load != None:
+                        x += 1
+                        self.do_enable(True)
+                        self.move(10,500,400)
+                        self.reactor.pause(self.reactor.monotonic() + 0.1)
+                        if x> 40:
+                            msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                            self.AFC.ERROR.AFC_error(msg, False)
+                            self.AFC.FUNCTION.afc_led(self.AFC.led_fault, self.led_index)
+                            self.status=''
+                            break
+                    self.status=''
 
-            elif self.prep_state == False and self.name == self.AFC.current and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
-                # Checking to make sure runout_lane is set and does not equal 'NONE'
-                if  self.runout_lane != 'NONE':
-                    self.status = None
-                    self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-                    self.AFC.gcode.respond_info("Infinite Spool triggered for {}".format(self.name))
-                    empty_LANE = self.AFC.lanes[self.AFC.current]
-                    change_LANE = self.AFC.lanes[self.runout_lane]
-                    # Pause printer
-                    self.gcode.run_script_from_command('PAUSE')
-					# Change Tool
-                    self.AFC.CHANGE_TOOL(change_LANE)
-                    # Change Mapping
-                    self.gcode.run_script_from_command('SET_MAP LANE={} MAP={}'.format(change_LANE.name, empty_LANE.map))
-                    # Eject lane from BT
-                    self.gcode.run_script_from_command('LANE_UNLOAD LANE={}'.format(empty_LANE.name))
-                    # Resume
-                    self.gcode.run_script_from_command('RESUME')
-                    # Set LED to not ready
-                    self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
+                    # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
+                    #   This is only really a issue when using direct and still using load sensor
+                    if self.hub == 'direct' and self.prep_state:
+                        self.AFC.TOOL_LOAD(self)
+                        self.material = self.AFC.default_material_type
+                        break
+
+                    # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
+                    if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state:
+                        self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
+                        self.loaded_to_hub = True
+
+                    self.do_enable(False)
+                    if self.load_state == True and self.prep_state == True:
+                        self.status = 'Loaded'
+                        self.AFC.FUNCTION.afc_led(self.AFC.led_ready, self.led_index)
+                        self.material = self.AFC.default_material_type
+
+                elif self.prep_state == False and self.name == self.AFC.current and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
+                    # Checking to make sure runout_lane is set and does not equal 'NONE'
+                    if  self.runout_lane != 'NONE':
+                        self.status = None
+                        self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
+                        self.logger.info("Infinite Spool triggered for {}".format(self.name))
+                        empty_LANE = self.AFC.lanes[self.AFC.current]
+                        change_LANE = self.AFC.lanes[self.runout_lane]
+                        # Pause printer with manual command
+                        self.AFC.ERROR.pause_resume.send_pause_command()
+                        # Saving position after printer is paused
+                        self.AFC.save_pos()
+                        # Change Tool and don't restore position. Position will be restored after lane is unloaded
+                        #  so that nozzle does not sit on print while lane is unloading
+                        self.AFC.CHANGE_TOOL(change_LANE, restore_pos=False)
+                        # Change Mapping
+                        self.gcode.run_script_from_command('SET_MAP LANE={} MAP={}'.format(change_LANE.name, empty_LANE.map))
+                        # Only continue if a error did not happen
+                        if not self.AFC.error_state:
+                            # Eject lane from BT
+                            self.gcode.run_script_from_command('LANE_UNLOAD LANE={}'.format(empty_LANE.name))
+                            # Resume pos
+                            self.AFC.restore_pos()
+                            # Resume with manual issued command
+                            self.AFC.ERROR.pause_resume.send_resume_command()
+                            # Set LED to not ready
+                            self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
+                    else:
+                        # Unload if user has set AFC to unload on runout
+                        if self.unit_obj.unload_on_runout:
+                            # Pause printer
+                            self.AFC.ERROR.pause_resume.send_pause_command()
+                            self.AFC.save_pos()
+                            # self.gcode.run_script_from_command('PAUSE')
+                            self.AFC.TOOL_UNLOAD(self)
+                            if not self.AFC.error_state:
+                                self.AFC.LANE_UNLOAD(self)
+                        # Pause print
+                        self.status = None
+                        msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
+                        msg += "\nPlease manually load next spool into toolhead and then hit resume to continue"
+                        self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
+                        self.AFC.ERROR.AFC_error(msg)
+
+                elif self.prep_state == True and self.load_state == True and not self.AFC.FUNCTION.is_printing():
+                    message = 'Cannot load {} load sensor is triggered.'.format(self.name)
+                    message += '\n    Make sure filament is not stuck in load sensor or check to make sure load sensor is not stuck triggered.'
+                    message += '\n    Once cleared try loading again'
+                    self.AFC.ERROR.AFC_error(message, pause=False)
                 else:
-                    # Pause print
                     self.status = None
+                    self.loaded_to_hub = False
+                    self.AFC.SPOOL._clear_values(self)
                     self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-                    self.AFC.gcode.respond_info("Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name))
-                    self.AFC.ERROR.pause_print()
-            else:
-                self.status = None
-                self.loaded_to_hub = False
-                self.AFC.SPOOL._clear_values(self)
-                self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-            self.AFC.save_vars()
+
+        self.prep_active = False
+        self.AFC.save_vars()
 
     def do_enable(self, enable):
         self.sync_print_time()
@@ -640,16 +754,17 @@ class AFCExtruderStepper:
 
         else: return None
 
-    def get_toolhead_sensor_state(self):
+    def get_toolhead_pre_sensor_state(self):
         """
-        Helper function that returns current state of toolhead sensor or buffer if user has extruder setup for ramming
+        Helper function that returns current state of toolhead pre sensor or buffer if user has extruder setup for ramming
 
-        returns Status of toolhead sensor or the current buffer advance state
+        returns Status of toolhead pre sensor or the current buffer advance state
         """
         if self.extruder_obj.tool_start == "buffer":
             return self.buffer_obj.advance_state
         else:
             return self.extruder_obj.tool_start_state
+
     def get_trailing(self):
         """
         Helper function to get trailing status, returns none if buffer is not defined
@@ -657,6 +772,147 @@ class AFCExtruderStepper:
         if self.buffer_obj is not None:
             return self.buffer_obj.trailing_state
         else: return None
+
+    cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
+    def cmd_SET_LANE_LOADED(self, gcmd):
+        """
+        This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
+        during prints after AFC detects an error when loading/unloading and pauses. If there is a lane already loaded this macro
+        will also desync that lane extruder from the toolhead extruder and set its values and led appropriately.  <nl>
+        Retrieves the lane specified by the 'LANE' parameter and set the appropriate values in AFC to continue using the lane.
+
+        Usage: `SET_LANE_LOADED LANE=<lane>`
+        Example: `SET_LANE_LOADED LANE=lane1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane to be moved.
+
+        Returns:
+            None
+        """
+        if not self.load_state:
+            self.AFC.ERROR.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)
+            return
+
+        self.AFC.FUNCTION.unset_lane_loaded()
+
+        self.set_loaded()
+        self.sync_to_extruder()
+        self.AFC.FUNCTION.handle_activate_extruder()
+        self.AFC.save_vars()
+        self.logger.info("Manually set {} loaded to toolhead".format(self.name))
+
+    cmd_SET_SPEED_MULTIPLIER_help = "Gives ability to set fwd_speed_multiplier or rwd_speed_multiplier values without having to update config and restart"
+    def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
+        """
+        Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
+        these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
+            <nl>
+        Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
+            <nl>
+        After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
+
+        Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
+        Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Expected parameters:
+                - LANE: The name of the lane to adjust value for.
+                - FWD: The forward multiplier adjustment value.
+                - RWS: The reverse multiplier adjustment value.
+
+        Returns:
+            None
+        """
+        updated = False
+        old_fwd_value = self.fwd_speed_multi
+        old_rwd_value = self.rwd_speed_multi
+
+        self.fwd_speed_multi = gcmd.get_float("FWD", self.fwd_speed_multi, minval=0.0, maxval=1.0)
+        self.rwd_speed_multi = gcmd.get_float("RWD", self.rwd_speed_multi, minval=0.0, maxval=1.0)
+
+        if self.fwd_speed_multi != old_fwd_value:
+            self.logger.info("{name} forward speed multiplier set, New: {new}, Old: {old}".format(name=self.name, new=self.fwd_speed_multi, old=old_fwd_value))
+            updated = True
+
+        if self.rwd_speed_multi != old_rwd_value:
+            self.logger.info("{name} reverse speed multiplier set, New: {new}, Old: {old}".format(name=self.name, new=self.rwd_speed_multi, old=old_rwd_value))
+            updated = True
+
+        if updated:
+            self.logger.info("Run SAVE_SPEED_MULTIPLIER LANE={} to save values to config file".format(self.name))
+
+    cmd_SAVE_SPEED_MULTIPLIER_help = "Saves fwd_speed_multiplier and rwd_speed_multiplier values to config file "
+    def cmd_SAVE_SPEED_MULTIPLIER(self, gcmd):
+        """
+        Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.
+
+        Usage: `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
+        Example: `SAVE_SPEED_MULTIPLIER LANE=lane1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane to save values to in config file.
+
+        Returns:
+            None
+        """
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
+
+    cmd_SET_HUB_DIST_help = "Helper to dynamically set distance between a lanes extruder and hub"
+    def cmd_SET_HUB_DIST(self, gcmd):
+        """
+        This function adjusts the distance between a lanes extruder and hub. Adding +/- in front of the length will
+        increase/decrease length by that amount. To reset length back to config value, pass in `reset` for length to
+        reset to value in config file.
+
+        Usage: `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
+        Example: `SET_HUB_DIST LANE=lane1 LENGTH=+100`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                Expected parameters:
+                - LANE: The name of the lane to adjust value for.
+                - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
+
+        Returns:
+            None
+        """
+        old_dist_hub = self.dist_hub
+
+        length = gcmd.get("LENGTH", self.dist_hub)
+
+        if length != old_dist_hub:
+            self.dist_hub = self.AFC.FUNCTION._calc_length(self.config_dist_hub, self.dist_hub, length)
+        msg =  "//{} dist_hub:\n".format(self.name)
+        msg += '//   Config Length:   {}\n'.format(self.config_dist_hub)
+        msg += '//   Previous Length: {}\n'.format(old_dist_hub)
+        msg += '//   New Length:      {}\n'.format(self.dist_hub)
+        self.logger.raw(msg)
+        self.logger.info("Run SAVE_HUB_DIST LANE={} to save value to config file".format(self.name))
+
+    cmd_SAVE_HUB_DIST_help = "Saves dist_hub value to config file "
+    def cmd_SAVE_HUB_DIST(self, gcmd):
+        """
+        Macro call to write dist_hub variable to config file for specified lane.
+
+        Usage: `SAVE_HUB_DIST LANE=<lane_name>`
+        Example: `SAVE_HUB_DIST LANE=lane1`
+
+        Args:
+            gcmd: The G-code command object containing the parameters for the command.
+                  Expected parameters:
+                  - LANE: The name of the lane to save values to in config file.
+
+        Returns:
+            None
+        """
+        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'dist_hub',  self.dist_hub, '')
 
     def get_status(self, eventtime=None):
         response = {}
