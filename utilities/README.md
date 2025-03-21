@@ -45,7 +45,7 @@ Adding `NO_DOC: True` in the docstring will cause no documentation to be generat
         specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
 
         Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
-        Example: `LANE_MOVE LANE=leg1 DISTANCE=100`
+        Example: `LANE_MOVE LANE=lane1 DISTANCE=100`
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.

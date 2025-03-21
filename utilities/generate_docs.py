@@ -76,10 +76,10 @@ def format_markdown(cmd_functions):
         "\n"
     ]
     for name, docstring in cmd_functions:
-        description = docstring.split('\n\n')[0]
+        description = docstring.split('\n\n')[0].replace("<nl>", "")
         command_name = name[4:].upper()  # Remove 'cmd_' prefix and convert to uppercase
         markdown_lines.append(f"### {command_name}\n")
-        markdown_lines.append(f"_Description_: {description}  \n")
+        markdown_lines.append(f"_Description_: {description}  \n  \n")
 
         # Extract usage and example from docstring if available
         usage = ""
@@ -98,7 +98,7 @@ def format_markdown(cmd_functions):
         if example:
             markdown_lines.append(f"Example: `{example}`  \n")
         else:
-            markdown_lines.append(f"Example: `{command_name} LANE=leg1`  \n")
+            markdown_lines.append(f"Example: `{command_name} LANE=lane1`  \n")
 
         markdown_lines.append("\n")  # Add an extra newline for separation
     return markdown_lines
@@ -126,7 +126,9 @@ def main():
                 cmd_functions = extract_cmd_functions(file_path)
                 all_cmd_functions.extend(cmd_functions)
 
+    all_cmd_functions.sort(key=lambda e: e[0])
     markdown_lines = format_markdown(all_cmd_functions)
+
     write_markdown_file(markdown_lines, output_file)
 
     macros = parse_macros('../config/macros/AFC_macros.cfg')

@@ -9,6 +9,8 @@
 The function `CALIBRATE_AFC` can be called in the console to calibrate distances.  
 _distances will be calibrated to have ~1 short move after the move distance_
 
+**NOTE: If using Turtleneck buffer please hold hold shut until filament reaches toolhead, once buffer start expanding slowly release. Doing this will keep the calibration from falsely triggering before fully reaching toolhead. Also pay attention and make sure the neck is not fully extended and triggering the advance sensor.**
+
 ### Definitions
 
 - `dist_hub` for each lane is the distance from the load switch at the extruder to the hub

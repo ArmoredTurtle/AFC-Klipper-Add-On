@@ -128,7 +128,7 @@ query_printer_status() {
   local response
   local state
 
-  response=$(curl -s http://localhost/printer/objects/query?idle_timeout)
+  response=$(curl -s "$moonraker_address"/printer/objects/query?idle_timeout)
   state=$(echo "$response" | jq -r '.result.status.idle_timeout.state')
 
   if [ "$state" == "Ready" ]; then

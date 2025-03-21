@@ -6,10 +6,12 @@
 
 class afc_poop:
     def __init__(self, config):
-        self.config = config
-        self.printer = config.get_printer()
-        self.reactor = self.printer.get_reactor()
-        self.gcode = self.printer.lookup_object('gcode')
+        self.config     = config
+        self.printer    = config.get_printer()
+        self.AFC        = self.printer.lookup_object('AFC')
+        self.reactor    = self.printer.get_reactor()
+        self.gcode      = self.printer.lookup_object('gcode')
+        self.logger     = self.AFC.logger
 
         self.verbose = config.getboolean('verbose', False)
         self.purge_loc_xy = config.get('purge_loc_xy')
@@ -31,7 +33,7 @@ class afc_poop:
         self.toolhead = self.printer.lookup_object('toolhead')
         step = 1
         if self.verbose:
-            self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Move To Purge Location')
+            self.logger.info('AFC_Poop: ' + str(step) + ' Move To Purge Location')
         pooppos = self.toolhead.get_position()
         pooppos[0] = float(self.purge_loc_xy.split(',')[0])
         pooppos[1] = float(self.purge_loc_xy.split(',')[1])
@@ -43,14 +45,14 @@ class afc_poop:
         step +=1
         if self.full_fan:
             if self.verbose:
-                self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Set Cooling Fan to Full Speed')
+                self.logger.info('AFC_Poop: ' + str(step) + ' Set Cooling Fan to Full Speed')
             # save fan current speed
             self.gcode.run_script_from_command('M106 S255')
             step += 1
         iteration=0
         while iteration < int(self.purge_length / self.max_iteration_length ):
             if self.verbose:
-                self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Purge Iteration '+ str(iteration))
+                self.logger.info('AFC_Poop: ' + str(step) + ' Purge Iteration '+ str(iteration))
             purge_amount_left = self.purge_length - (self.max_iteration_length * iteration)
             extrude_amount = purge_amount_left / self.max_iteration_length
             extrude_ratio = extrude_amount / self.max_iteration_length
@@ -67,7 +69,7 @@ class afc_poop:
             iteration += 1
         step += 1
         if self.verbose:
-            self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Fast Z Lift to keep poop from sticking')
+            self.logger.info('AFC_Poop: ' + str(step) + ' Fast Z Lift to keep poop from sticking')
         pooppos = self.toolhead.get_position()
         pooppos[2] = self.z_lift
         self.toolhead.manual_move(pooppos, self.fast_z)
@@ -75,7 +77,7 @@ class afc_poop:
         step += 1
         if self.full_fan:
             if self.verbose:
-                self.gcode.respond_info('AFC_Poop: ' + str(step) + ' Restore fan speed and feedrate')
+                self.logger.info('AFC_Poop: ' + str(step) + ' Restore fan speed and feedrate')
                 self.gcode.run_script_from_command('M106 S0')
 
 def load_config(config):

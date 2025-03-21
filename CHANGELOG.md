@@ -5,17 +5,156 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-03-17]
+### Added
+- Added `SET_SPEED_MULTIPLIER` macro to allow user to change fwd/rwd speed multipliers during prints
+- Added `SAVE_SPEED_MULTIPLIER` macro to save updated multiplier to config file for specified lane
+
+### Fixed
+- Added check to AFC pause/resume functions to make sure printer was not paused/paused before doing any actions
+- Fixed issue where macro variables were not passed from AFC_PAUSE/AFC_RESUME to PAUSE/RESUME macros if user passed in variables when calling these macros  
+
+## [2025-03-12]
+### Added
+- Virtual bypass sensor, AFC adds this sensor if hardware bypass is not detected
+
+### Fixed
+- Issue where z would move back down when calling cut macro after z hop from AFC
+
+## [2025-03-10]
+### Added
+- Reporting error messages in AFC status so they can be shown in AFC integration panel
+
+### Fixed
+- Issue where resuming position could crash into object/purge tower
+- Issue where creating filament_switch_sensor in AFC would cause klipper to error out when AFC include is before `[pause_resume]` and user has `recover_velocity` defined
+- Issue where passing in `+-<number>` for length when calling `SET_BOWDEN_LENGTH` would crash klipper 
+
+## [2025-03-07]
+### Added
+- Added variable_z_purge_move to Poop macro. Setting this to False will allow pooping with no z movement
+- Added variable_z_move to brush macro. this value will set a positive Z move at the end of the brush to move the nozzle away from the brush
+
+### Fixed
+- Fixed error that occurs when all lanes are calibrated
+
+## [2025-03-07]
+### Added
+- Added error checking to spool runout, before if a error happened during unload it could keep running the print
+- Added lane ejection when runout detected but rollover not setup
+- Added AFC_PAUSE function to override users pause macro so that necessary measures could be added to move in Z to avoid
+  hitting part if users pause macro moves toolhead
+- Added `afc_unload_bowden_length` parameter
+- Added moving Z to previous saved position +z hop when resuming to avoid hitting part when moving back
+
+### Fixed
+- Fixed error when trying to turn of LEDs
+- Fixed saving position as it was not saving correctly
+- Reworked rollover logic to restore position after lane has been ejected fully so that nozzle does not sit
+  on part while ejecting spool
+- Fixed error where user could put wrong lane for rollover and it would not error until runout logic is triggered
+- Fixed errors found in calibration routines
+
+
+## [2025-03-02]
+
+### Fixed
+- Fixed calibration to error out at excessive distances
+    - Calibration uses default config values plus fixed distances to be able to error out distances
+
+## [2025-02-28]
+
+### Added
+- Logging of delta time and total time for how long toolchanges take
+- Logging for AFC now logs to AFC.log file
+- Ability to turn off/on AFC leds with `TURN_OFF_AFC_LED`/`TURN_ON_AFC_LED`
+- `default_material_type` variable to assign to spool when loaded into lane
+- `pause_when_bypass_active` variable to pause print if bypass is active, defaults to false
+- `unload_on_runout variable` to unload lane when runout happens and another lane is not setup to change to, default to false
+- Updated calibration to use buffer as tool_pin_start if only tool_pin_end is defined and buffer is also defined
+- Ability to change tool_stn/tool_stn_unload/tool_sensor_after_extruder without restarting
+
+### Fixed
+- Issue where filament was not unloading correctly when only tool_pin_end is defined
+- Issue where prep logic would try to unload forever if only tool_pin_end was defined
+
+## [2025-02-25]
+
+### Fixed
+
+- Tip forming was multiplying all speeds with a factor of 60 by mistake. Existing configuration might need to be adapted
+  to compensate for this fix.
+
 ## [2025-02-23]
 
+### Added
+- Checking to make sure lane was not None in cmd_CHANGE_TOOL
+- Pauses in TOOL_LOAD/TOOL_UNLOAD/CHANGE_TOOL for early returns if printer is currently in a print
+
 ### Changed
-- The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present. 
+- The `install-afc.sh` script will now check for a supported version of python and fail the installation if it is not present.
+
+### Fixed
+- Error in cmd_CHANGE_TOOL where change logic was being triggered if change was in a comment on the same line
+- Turned runout pause message into error message which also pauses printer
+- Error where infinite spool would crash klipper when calling change tool
+
+## [2025-02-20]
+
+### Added
+
+- Users are now able to specify a non default moonraker address when using the `install-afc.sh` script. This value defaults to `http://localhost` but
+can be adjusted for cases such as a remote moonraker installation, https, etc. This value can be set during the installation process by using the `-a <address>` flag.
+
+## [2025-02-19]
+
+### Added
+- Clearing error_state when print starts, before this could be set before printing and would cause AFC to not save/restore position
+- Added 1 second time debounce to prep callback
+- Added abs function when determining speed for LANE_MOVE macro
+
+### Changed
+- Updated error print out messages when loading/unloading
+- The way error messages printed out so they are grouped together
+
+### Fixed
+- Issue where getting spoolman data would error out when server variable in moonraker ended in a slash
+- Issue where prep would no longer activate extruder motors when user rapidely triggered prep sensor
 
 ## [2025-02-17]
 
 ### Changed
 - Updated the `install-afc.sh` script to prompt the user to install dependencies if they are not already installed instead of installing them automatically.
 
+## [2025-02-16]
+
+### Added
+- Ability to manually set and unset lanes that are loaded in toolhead
+- Braking to n20 when stopping them. This was advised to implement from Isik to hopefully help reduce backfeeding from motors into MCU board when in coast mode
+- Default temperature value to default_material_temps list instead of using min_temp_val + 5
+- Check for printing for LANE_MOVE, HUB_LOAD and LANE_UNLOAD macros
+- Variable for prep done so save_vars function is not called before running prep function which would override the variables file before PREP could run
+- More guidance to error messages when errors happen during TOOL_LOAD and TOOL_UNLOAD
+- Helper function to get loaded lane for current extruder, help move the code towards working with multiple extruders
+- Debounce logic when triggering prep sensor so that it does not run more than once
+- Variable speed to LANE_MOVE move, run faster for distance over 200
+- Printout when trying to load and load sensor is already triggered
+- More printout to let user know when calibration is done
+- Printout when trying to unload but no lane is loaded
+
+### Changed
+- Updated documentation
+
+### Fixed
+- Error in prep when there are multiple extruders
+- Error when hub was not defined
+
 ## [2025-02-13]
+
+### Added
+- Assisted unload  
+  When enabled, the retracts out of the toolhead before the long, fast move back throught the bowden tube is assisted.
+  This helps with full spools where even a retract of a few centimeters can cause a loop to fall off the spool.
 
 ### Changed
 - The `install-afc.sh` install script will now remove the `AFC.var.tool` file if detected as it is no longer needed.
