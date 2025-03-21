@@ -728,32 +728,32 @@ class afcFunction:
 
         self.AFC.gcode.respond_info('{} reset to hub, take necessary action'.format(lane))
 
-    def _calc_bowden_length(self, config_length, current_length, new_length):
+    def _calc_length(self, config_length, current_length, new_length):
         """
-        Common function to calculate bowden length for afc_bowden_length and afc_unload_bowden_length
+        Common function to calculate length for afc_bowden_length, afc_unload_bowden_length, and hub_dist
 
         :param config_length: Current configuration length thats in config file
-        :param current_length: Current length for bowden
+        :param current_length: Current length for bowden or hub_dist
         :param new_length: New length to set, increase(+), decrease(-), or reset to config value
 
-        :returns bowden_length: Calculated bowden length value
+        :returns length: Calculated length value
         """
-        bowden_length = 0.0
+        length = 0.0
 
         if new_length.lower() == 'reset':
-            bowden_length = config_length
+            length = config_length
         else:
             if new_length[0] in ('+', '-'):
                 try:
                     bowden_value = float(new_length)
-                    bowden_length = current_length + bowden_value
+                    length = current_length + bowden_value
                 except ValueError:
-                    bowden_length = current_length
+                    length = current_length
                     self.logger.error("Invalid length: {}".format(new_length))
             else:
-                bowden_length = float(new_length)
+                length = float(new_length)
 
-        return bowden_length
+        return length
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
     def cmd_SET_BOWDEN_LENGTH(self, gcmd):
@@ -795,10 +795,10 @@ class afcFunction:
         cur_unload_bowden_len   = CUR_HUB.afc_unload_bowden_length
 
         if length_param is not None:
-            CUR_HUB.afc_bowden_length = self._calc_bowden_length(CUR_HUB.config_bowden_length, cur_bowden_len, length_param)
+            CUR_HUB.afc_bowden_length = self._calc_length(CUR_HUB.config_bowden_length, cur_bowden_len, length_param)
 
         if unload_length is not None:
-            CUR_HUB.afc_unload_bowden_length = self._calc_bowden_length(CUR_HUB.config_unload_bowden_length, cur_unload_bowden_len, unload_length)
+            CUR_HUB.afc_unload_bowden_length = self._calc_length(CUR_HUB.config_unload_bowden_length, cur_unload_bowden_len, unload_length)
 
         msg =  '// Hub : {}\n'.format( hub )
         msg += '// afc_bowden_length:\n'
