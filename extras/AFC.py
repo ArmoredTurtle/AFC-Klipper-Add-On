@@ -319,12 +319,13 @@ class afc:
             return
         target_temp, using_min_value = self._get_default_material_temps(CUR_LANE)
 
-        current_temp = self.heater.get_temperature()
+        current_temp = self.heater.get_temp(self.reactor.monotonic())
 
         # Check if the current temp is below the set temp, if it is heat to set temp
-        if current_temp <= self.heater.target_temp:
+        if current_temp[0] < (self.heater.target_temp-5):
             wait = False
-            pheaters.set_temperature(extruder.get_heater(), current_temp, wait=wait)
+            pheaters.set_temperature(extruder.get_heater(), current_temp[0], wait=wait)
+            self.logger.info('Current temp {:.1f} is below set temp {}'.format(current_temp[0], target_temp))
 
         # Check to make sure temp is with +/-5 of target temp, not setting if temp is over target temp and using min_extrude_temp value
         if self.heater.target_temp <= (target_temp-5) or (self.heater.target_temp >= (target_temp+5) and not using_min_value):
