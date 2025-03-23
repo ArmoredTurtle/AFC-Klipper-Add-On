@@ -113,7 +113,8 @@ is_system_service: False
 info_tags:
     desc=AFC Klipper Add On
 ```
-
+## Initial Startup Guide
+If this is your first time setting up a Box Turtle please follow the [initial startup guide](https://github.com/ArmoredTurtle/BoxTurtle/blob/main/Initial_Startup.md#install-the-afc-klipper-add-on)
 ## Mandatory Configuration Changes (All)
 
 Prior to operation, the following checks / updates **MUST** be made to your system:
