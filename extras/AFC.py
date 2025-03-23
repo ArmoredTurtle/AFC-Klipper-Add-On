@@ -23,7 +23,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.4"
+AFC_VERSION="1.0.5"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -318,6 +318,13 @@ class afc:
         if self.heater.can_extrude and self.FUNCTION.is_printing():
             return
         target_temp, using_min_value = self._get_default_material_temps(CUR_LANE)
+
+        current_temp = self.heater.get_temperature()
+
+        # Check if the current temp is below the set temp, if it is heat to set temp
+        if current_temp <= self.heater.target_temp:
+            wait = False
+            pheaters.set_temperature(extruder.get_heater(), current_temp, wait=wait)
 
         # Check to make sure temp is with +/-5 of target temp, not setting if temp is over target temp and using min_extrude_temp value
         if self.heater.target_temp <= (target_temp-5) or (self.heater.target_temp >= (target_temp+5) and not using_min_value):
