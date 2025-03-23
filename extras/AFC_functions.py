@@ -496,7 +496,7 @@ class afcFunction:
                 self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
                 self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(afc_bl, pos))
                 return
-            else: calibrated.append('Bowden length: {}'.format(afc_bl))
+            else: calibrated.append('Bowden_length:_{}'.format(afc_bl))
 
             self.logger.info("Bowden length calibration Done!")
 
