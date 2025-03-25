@@ -28,8 +28,9 @@ source include/utils.sh
 
 ###################### Main script logic below ######################
 
-while getopts "k:s:m:b:p:y:u:th" arg; do
+while getopts "a:k:s:m:b:p:y:u:th" arg; do
   case ${arg} in
+  a) moonraker_address=${OPTARG} ;;
   k) klipper_dir=${OPTARG} ;;
   m) moonraker_config_file=${OPTARG} ;;
   s) klipper_service=${OPTARG} ;;

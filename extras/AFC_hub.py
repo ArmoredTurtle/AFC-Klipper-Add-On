@@ -23,30 +23,33 @@ class afc_hub:
 
         # HUB Cut variables
         # Next two variables are used in AFC
-        self.cut = config.getboolean("cut", False)
-        self.cut_cmd = config.get('cut_cmd', None)
-        self.cut_servo_name = config.get('cut_servo_name', 'cut')
-        self.cut_dist = config.getfloat("cut_dist", 50)
-        self.cut_clear = config.getfloat("cut_clear", 120)
-        self.cut_min_length = config.getfloat("cut_min_length", 200)
-        self.cut_servo_pass_angle = config.getfloat("cut_servo_pass_angle", 0)
-        self.cut_servo_clip_angle = config.getfloat("cut_servo_clip_angle", 160)
-        self.cut_servo_prep_angle = config.getfloat("cut_servo_prep_angle", 75)
-        self.cut_confirm = config.getboolean("cut_confirm", 0)
+        self.switch_pin             = config.get('switch_pin', None)                # Pin hub sensor it connected to
+        self.hub_clear_move_dis     = config.getfloat("hub_clear_move_dis", 25)     # How far to move filament so that it's not block the hub exit
+        self.afc_bowden_length      = config.getfloat("afc_bowden_length", 900)     # Length of the Bowden tube from the hub to the toolhead sensor in mm.
+        self.afc_unload_bowden_length= config.getfloat("afc_unload_bowden_length", self.afc_bowden_length) # Length to unload when retracting back from toolhead to hub in mm. Defaults to afc_bowden_length
+        self.assisted_retract       = config.getboolean("assisted_retract", False)  # if True, retracts are assisted to prevent loose windings on the spool
+        self.move_dis               = config.getfloat("move_dis", 50)               # Distance to move the filament within the hub in mm.
+        # Servo settings
+        self.cut                    = config.getboolean("cut", False)               # Set True if Hub cutter installed (e.g. Snappy)
+        self.cut_cmd                = config.get('cut_cmd', None)                   # Macro to use for cut.
+        self.cut_servo_name         = config.get('cut_servo_name', 'cut')           # Name of servo to use for cutting
+        self.cut_dist               = config.getfloat("cut_dist", 50)               # How much filament to cut off (in mm).
+        self.cut_clear              = config.getfloat("cut_clear", 120)             # How far the filament should retract back from the hub (in mm).
+        self.cut_min_length         = config.getfloat("cut_min_length", 200)        # Minimum length of filament to cut off
+        self.cut_servo_pass_angle   = config.getfloat("cut_servo_pass_angle", 0)    # Servo angle to align the Bowden tube with the hole for loading the toolhead.
+        self.cut_servo_clip_angle   = config.getfloat("cut_servo_clip_angle", 160)  # Servo angle for cutting the filament.
+        self.cut_servo_prep_angle   = config.getfloat("cut_servo_prep_angle", 75)   # Servo angle to prepare the filament for cutting (aligning the exit hole).
+        self.cut_confirm            = config.getboolean("cut_confirm", 0)           # Set True to cut filament twice
 
-        self.move_dis = config.getfloat("move_dis", 50)
+        self.config_bowden_length   = self.afc_bowden_length                        # Used by SET_BOWDEN_LENGTH macro
+        self.config_unload_bowden_length = self.afc_unload_bowden_length
+        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True to show hub sensor switche as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
 
-        self.hub_clear_move_dis = config.getfloat("hub_clear_move_dis", 25)
-        self.assisted_retract = config.getboolean("assisted_retract", False) # if True, retracts are assisted to prevent loose windings on the spool
-        self.afc_bowden_length = config.getfloat("afc_bowden_length", 900)
-        self.config_bowden_length = self.afc_bowden_length                          # Used by SET_BOWDEN_LENGTH macro
         buttons = self.printer.load_object(config, "buttons")
-        self.switch_pin = config.get('switch_pin', None)
         if self.switch_pin is not None:
             self.state = False
             buttons.register_buttons([self.switch_pin], self.switch_pin_callback)
 
-        self.enable_sensors_in_gui = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui)
 
         if self.enable_sensors_in_gui:
             self.filament_switch_name = "filament_switch_sensor {}_Hub".format(self.name)
@@ -54,6 +57,9 @@ class afc_hub:
 
         # Adding self to AFC hubs
         self.AFC.hubs[self.name]=self
+
+    def __str__(self):
+        return self.name
 
     def handle_connect(self):
         """
@@ -120,6 +126,7 @@ class afc_hub:
         self.response['cut_servo_clip_angle'] = self.cut_servo_clip_angle
         self.response['cut_servo_prep_angle'] = self.cut_servo_prep_angle
         self.response['lanes'] = [lane.name for lane in self.lanes.values()]
+        self.response['afc_bowden_length'] = self.afc_bowden_length
 
         return self.response
 

@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+import logging
 from extras.AFC import State
 
 def load_config(config):
@@ -22,10 +23,14 @@ class afcError:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.AFC = self.printer.lookup_object('AFC')
+        self.AFC            = self.printer.lookup_object('AFC')
+        self.pause_resume   = self.printer.lookup_object("pause_resume")
+        self.logger = self.AFC.logger
         # Constant variable for renaming RESUME macro
         self.BASE_RESUME_NAME       = 'RESUME'
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_{}_'.format(self.BASE_RESUME_NAME)
+        self.BASE_PAUSE_NAME        = 'PAUSE'
+        self.AFC_RENAME_PAUSE_NAME  = '_AFC_RENAMED_{}_'.format(self.BASE_PAUSE_NAME)
 
         self.AFC.gcode.register_command('RESET_FAILURE', self.cmd_RESET_FAILURE, desc=self.cmd_RESET_FAILURE_help)
         self.AFC.gcode.register_command('AFC_RESUME', self.cmd_AFC_RESUME, desc=self.cmd_AFC_RESUME_help)
@@ -46,7 +51,7 @@ class afcError:
         return error_handled
 
     def ToolHeadFix(self, CUR_LANE):
-        if CUR_LANE.get_toolhead_sensor_state():   #toolhead has filament
+        if CUR_LANE.get_toolhead_pre_sensor_state():   #toolhead has filament
             if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:   #var has right lane loaded
                 if CUR_LANE.load_state == False: #Lane has filament
                     self.PauseUserIntervention('Filament not loaded in Lane')
@@ -74,7 +79,7 @@ class afcError:
 
     def PauseUserIntervention(self,message):
         #pause for user intervention
-        self.AFC.gcode._respond_error(message)
+        self.logger.error(message)
         if self.AFC.FUNCTION.is_homed() and not self.AFC.FUNCTION.is_paused():
             self.AFC.save_pos()
             if self.pause:
@@ -86,10 +91,13 @@ class afcError:
         the base pause command
         """
         self.set_error_state( True )
-        self.AFC.gcode.respond_info ('PAUSING')
+        self.logger.info ('PAUSING')
         self.AFC.gcode.run_script_from_command('PAUSE')
+        self.logger.debug("After User Pause")
+        self.AFC.FUNCTION.log_toolhead_pos()
 
-    def set_error_state(self, state):
+    def set_error_state(self, state=False):
+        logging.warning("AFC debug: setting error state {}".format(state))
         # Only save position on first error state call
         if state == True and self.AFC.error_state == False:
             self.AFC.save_pos()
@@ -97,8 +105,10 @@ class afcError:
         self.AFC.current_state = State.ERROR if state else State.IDLE
 
     def AFC_error(self, msg, pause=True):
+        # Print to logger since respond_raw does not write to logger
+        logging.warning(msg)
         # Handle AFC errors
-        self.AFC.gcode._respond_error( msg )
+        self.logger.error( "{}".format(msg) )
         if pause: self.pause_print()
 
 
@@ -116,8 +126,15 @@ class afcError:
         Returns:
             None
         """
+        self.reset_failure()
+
+    def reset_failure(self):
+        """
+        Common function to reset error_state, pause, and position_saved variables
+        """
         self.set_error_state(False)
-        self.pause = False
+        self.pause              = False
+        self.AFC.position_saved = False
 
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
@@ -134,14 +151,47 @@ class afcError:
         Returns:
             None
         """
-        self.AFC.in_toolchange = False
-        self.AFC.gcode.run_script_from_command(self.AFC_RENAME_RESUME_NAME)
+        if not self.AFC.FUNCTION.is_paused():
+            self.logger.debug("AFC_RESUME: Printer not paused, not executing resume code")
+            return
+
+        # Save current pause state
+        temp_is_paused = self.AFC.FUNCTION.is_paused()
+        curr_pos = self.AFC.toolhead.get_position()
+
+        # Check if current position is below saved gcode position, if its lower first raise z above last saved
+        #   position so that toolhead does not crash into part
+        if (curr_pos[2] <= self.AFC.last_gcode_position[2]):
+            self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
+
+        self.logger.debug("AFC_RESUME: Before User Restore")
+        self.AFC.FUNCTION.log_toolhead_pos()
+        self.AFC.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_RESUME_NAME, user_params=gcmd.get_raw_command_parameters()))
 
         #The only time our resume should restore position is if there was an error that caused the pause
-        if self.AFC.error_state:
+        if self.AFC.error_state or temp_is_paused or self.AFC.position_saved:
             self.set_error_state(False)
-            self.AFC.restore_pos()
+            self.AFC.restore_pos(False)
             self.pause = False
+
+    cmd_AFC_RESUME_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
+    def cmd_AFC_PAUSE(self, gcmd):
+        # Check to make sure printer is not already paused
+        if not self.AFC.FUNCTION.is_paused():
+            self.logger.debug("AFC_PAUSE: Pausing")
+            # Save position
+            self.AFC.save_pos()
+            # Need to pause as soon as possible to stop more gcode from executing, this needs to be done before movement in Z
+            self.pause_resume.send_pause_command()
+            # Move Z up by z-hop value
+            self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
+            # Call users PAUSE
+            self.AFC.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
+            # Set Idle timeout to 10 hours
+            self.AFC.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT=36000")
+        else:
+            self.logger.debug("AFC_PAUSE: Not Pausing")
+
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
     def handle_lane_failure(self, CUR_LANE, message, pause=True):

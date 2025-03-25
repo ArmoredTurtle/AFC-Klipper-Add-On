@@ -63,7 +63,7 @@ Once the plugin is updated, please uncomment the lines in your `printer.cfg` fil
 
 The `install-afc.sh` script will automatically install the majority of the plugin for you.
 
-Prior to starting Klipper, please review the configuration located at `~/printer_data/config/AFC/AFC_Hardware.cfg` and ensure all pins are correct for your specific hardware.
+Prior to starting Klipper, please review the configuration located at `~/printer_data/config/AFC/AFC_Turtle_(n).cfg` and ensure all pins are correct for your specific hardware.
 
 Additionally, review the following files for any changes that may be required:
 
@@ -113,7 +113,8 @@ is_system_service: False
 info_tags:
     desc=AFC Klipper Add On
 ```
-
+## Initial Startup Guide
+If this is your first time setting up a Box Turtle please follow the [initial startup guide](https://github.com/ArmoredTurtle/BoxTurtle/blob/main/Initial_Startup.md#install-the-afc-klipper-add-on)
 ## Mandatory Configuration Changes (All)
 
 Prior to operation, the following checks / updates **MUST** be made to your system:
@@ -121,7 +122,7 @@ Prior to operation, the following checks / updates **MUST** be made to your syst
 1.  Update the following values in the `~/printer_data/config/AFC/AFC_Hardware-{board}.cfg` file:  
     *default name with AFC-lite will be AFC_Hardware-AFC.cfg*
 
-    - tool_stn: This value is the length from your toolhead sensor to nozzle
+    - tool_stn: This value is the length from your toolhead sensor to nozzle, if `tool_end` is defined then distance is from this sensor
     - tool_stn_unload: This value is the amount to unload from extruder when doing a filament change.
 
 2.  Update the following in the `~/printer_data/config/AFC/AFC_Turtle_{n}.cfg` file:  
@@ -294,7 +295,7 @@ Debug information about the respooler system can be found by visiting the follow
 
 ## LEDs not displaying correct color
 
-If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_hardware.cfg` file.
+If your leds are not displaying the correct color update the following value under your `AFC_led` section in `~/printer_data/config/AFC/AFC_Turtle_(n).cfg` file.
 
 - color_order: change to match the color order for you leds. Different color orders are: RGB, RGBW, GRB, GRBW
 
