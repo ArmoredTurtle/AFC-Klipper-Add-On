@@ -113,7 +113,7 @@ class afcSpool:
             self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
-        CUR_LANE.color = '#' + color
+        CUR_LANE.color = '#' + color.replace('#','')
         self.AFC.save_vars()
 
     cmd_SET_WEIGHT_help = "Sets filaments weight for a lane"
