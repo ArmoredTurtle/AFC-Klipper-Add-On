@@ -23,7 +23,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.5"
+AFC_VERSION="1.0.6"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -444,8 +444,6 @@ class afc:
                   - LANE: The name of the lane to be moved.
                   - DISTANCE: The distance to move the lane.
 
-        NO_DOC: True
-
         Returns:
             None
         """
@@ -523,6 +521,11 @@ class afc:
                 msg += " speed: {}".format(self.speed)
                 msg += " absolute_coord: {}\n".format(self.absolute_coord)
                 self.logger.debug(msg)
+            else:
+                self.FUNCTION.log_toolhead_pos("Not Saving, Error State: {}, Is Paused {}, Position_saved {}, POS: ".format(self.error_state, self.FUNCTION.is_paused(), self.position_saved ))
+        else:
+            self.FUNCTION.log_toolhead_pos("Not Saving In a toolchange, Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
+                self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
 
     def restore_pos(self, move_z_first=True):
         """
@@ -565,7 +568,7 @@ class afc:
         self.gcode_move.base_position[3] += e_diff
         # Return to previous xyz
         self.gcode_move.move_with_transform(self.gcode_move.last_position, self._get_resume_speedz() )
-        self.FUNCTION.log_toolhead_pos("Resume final z: ")
+        self.FUNCTION.log_toolhead_pos("Resume final z, Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
         self.current_state = State.IDLE
         self.position_saved = False
 
@@ -1297,6 +1300,9 @@ class afc:
             self.logger.info("{} already loaded".format(CUR_LANE.name))
             if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
                 self.current_toolchange += 1
+
+        self.FUNCTION.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
+                self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
 
     def _get_message(self):
         """

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-03-27]
+### Added
+- AWD variable to CUT macro so increased current applies to all X motors
+- Updated cut variable retract to 20 and pushback to 15
+
+### Fixed
+- Resetting `in_toolchange` variable when resuming from failure, fixes problems with returning to correct z hight on the next in_toolchange
+- Fixed issued with `AFC_reset` macro when distance was not supplied macro call would crash klipper
+
 ## [2025-03-22]
 ### Fixed
 - Fixed possible error if hotend current temp is below current temp. 

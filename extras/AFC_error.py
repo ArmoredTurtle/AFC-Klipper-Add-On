@@ -132,9 +132,11 @@ class afcError:
         """
         Common function to reset error_state, pause, and position_saved variables
         """
+        self.logger.debug("Resetting failures")
         self.set_error_state(False)
         self.pause              = False
         self.AFC.position_saved = False
+        self.AFC.in_toolchange  = False
 
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
@@ -151,6 +153,7 @@ class afcError:
         Returns:
             None
         """
+        self.AFC.in_toolchange = False
         if not self.AFC.FUNCTION.is_paused():
             self.logger.debug("AFC_RESUME: Printer not paused, not executing resume code")
             return
@@ -173,6 +176,9 @@ class afcError:
             self.set_error_state(False)
             self.AFC.restore_pos(False)
             self.pause = False
+
+        self.logger.debug("Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}".format(
+            self.AFC.error_state, self.AFC.FUNCTION.is_paused(), self.AFC.position_saved, self.AFC.in_toolchange ))
 
     cmd_AFC_RESUME_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
     def cmd_AFC_PAUSE(self, gcmd):
