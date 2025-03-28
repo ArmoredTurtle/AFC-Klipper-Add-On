@@ -6,7 +6,7 @@ This file describes the `AFC_buffer` module, part of the Armored Turtle Automate
 
 The `AFC_buffer` module is responsible for handling two types of buffers: [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck), [TurtleNeck 2.0](https://github.com/ArmoredTurtle/TurtleNeck2.0) and [Annex Engineering Belay](https://github.com/Annex-Engineering/Belay). The Turtleneck buffer involves two sensors (advance and trailing), while the Belay buffer uses a single sensor to control filament movement.
 
-The buffer adjusts the filament movement based on sensor inputs and can either compress or expand to manage filament feeding properly. Each buffer type has unique configuration options and behaviors.
+The buffer adjusts rotation distance for active Box Turtle extruder(lane) based on sensor inputs and can either compress or expand to manage filament feeding properly. Each buffer type has unique configuration options and behaviors.
 
 ### Basic Functionality
 
@@ -33,7 +33,9 @@ Two sensor TurtleNeck-style buffers are used to modulate the rotation distance o
 
 ## Belay Style buffer
 
-With the current implementation of `AFC_buffer` support for Belay is limited. Belay will still help to keep even tension on the primary extruder but in a different way. First, the AFC rotation distance has to be greater than the rotation distance of the primary extruder. While printing, the AFC will be pushing slightly less filament than the primary extruder, this will cause the Belay to become compressed toward the switch. When the switch is reached the AFC will make a configured amount of material to expand the Belay. This will continue for the duration of the print.
+~~With the current implementation of `AFC_buffer` support for Belay is limited. Belay will still help to keep even tension on the primary extruder but in a different way. First, the AFC rotation distance has to be greater than the rotation distance of the primary extruder. While printing, the AFC will be pushing slightly less filament than the primary extruder, this will cause the Belay to become compressed toward the switch. When the switch is reached the AFC will make a configured amount of material to expand the Belay. This will continue for the duration of the print.~~
+
+Belay style buffer is not longer supported, please use Turtleneck as a buffer for AFC-Klipper-Add-On
 
 ## Configuration
 

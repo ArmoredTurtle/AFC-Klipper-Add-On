@@ -59,7 +59,7 @@ class afcFunction:
         self.AFC.gcode.register_command('AFC_CALI_FAIL'  , self.cmd_AFC_CALI_FAIL  , desc=self.cmd_AFC_CALI_FAIL_help)
         self.AFC.gcode.register_command('AFC_HAPPY_P'    , self.cmd_AFC_HAPPY_P    , desc=self.cmd_AFC_HAPPY_P_help)
         self.AFC.gcode.register_command('AFC_RESET'      , self.cmd_AFC_RESET      , desc=self.cmd_AFC_RESET_help)
-        self.AFC.gcode.register_command('AFC_LANE_RESET' , self.cmd_LANE_RESET     , desc=self.cmd_LANE_RESET_help)
+        self.AFC.gcode.register_command('AFC_LANE_RESET' , self.cmd_AFC_LANE_RESET , desc=self.cmd_AFC_LANE_RESET_help)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -643,7 +643,11 @@ class afcFunction:
         for index, LANE in enumerate(self.AFC.lanes.values()):
             if LANE.load_state:
                 button_label = "{}".format(LANE.name)
-                button_command = "AFC_LANE_RESET LANE={} DISTANCE={}".format(LANE.name, dis)
+                if dis is not None:
+                    button_command = "AFC_LANE_RESET LANE={} DISTANCE={}".format(LANE.name, dis)
+                else:
+                    button_command = "AFC_LANE_RESET LANE={}".format(LANE.name)
+
                 button_style = "primary" if index % 2 == 0 else "secondary"
                 buttons.append((button_label, button_command, button_style))
 
@@ -654,18 +658,18 @@ class afcFunction:
         prompt.create_custom_p(title, text, buttons,
                         True, None)
 
-    cmd_LANE_RESET_help = 'reset a loaded lane to hub'
-    def cmd_LANE_RESET(self, gcmd):
+    cmd_AFC_LANE_RESET_help = 'reset a loaded lane to hub'
+    def cmd_AFC_LANE_RESET(self, gcmd):
         """
         This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
         such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
         hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.
 
-        Usage: `LANE_RESET LANE=<lane> DISTANCE=<distance>`
+        Usage: `AFC_LANE_RESET LANE=<lane> DISTANCE=<distance>`
 
         Examples:
-            - `LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
-            - `LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
+            - `AFC_LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
+            - `AFC_LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
 
         Args:
             gcmd: The G-code command object containing the parameters for the command.

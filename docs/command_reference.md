@@ -13,6 +13,14 @@ allows the option to calibrate all lanes across all units.
 Usage: ``AFC_CALIBRATION``  
 Example: ``AFC_CALIBRATION``  
 
+### AFC_LANE_RESET
+_Description_: This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
+such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
+hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.  
+  
+Usage: ``AFC_LANE_RESET LANE=<lane> DISTANCE=<distance>``  
+Example: `AFC_LANE_RESET LANE=lane1`  
+
 ### AFC_RESET
 _Description_: This function opens a prompt allowing the user to select a loaded lane for reset. It displays a list of loaded lanes
 and provides a reset button for each lane. If no lanes are loaded, an informative message is displayed indicating
@@ -82,13 +90,13 @@ several checks and movements to ensure the lane is properly loaded.
 Usage: ``HUB_LOAD LANE=<lane>``  
 Example: ``HUB_LOAD LANE=lane1``  
 
-### LANE_RESET
-_Description_: This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
-such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
-hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.  
+### LANE_MOVE
+_Description_: This function handles the manual movement of a specified lane. It retrieves the lane
+specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.  
+Distance's lower than 200 moves extruder at short_move_speed/accel, values above 200 move extruder at long_move_speed/accel  
   
-Usage: ``LANE_RESET LANE=<lane> DISTANCE=<distance>``  
-Example: `LANE_RESET LANE=lane1`  
+Usage: ``LANE_MOVE LANE=<lane> DISTANCE=<distance>``  
+Example: ``LANE_MOVE LANE=lane1 DISTANCE=100``  
 
 ### LANE_UNLOAD
 _Description_: This function handles the unloading of a specified lane from the extruder. It performs
@@ -360,14 +368,14 @@ These macros can be executed either from the console, called from another macro,
 the Mainsail or Fluidd web interfaces.
 
 ### BT_TOOL_UNLOAD
-_Description_: Unload the currently loaded lane
+_Description_: Unloads the currently loaded lane
 ### BT_CHANGE_TOOL
-_Description_: Switch to a new lane by ejecting the previously loaded one
+_Description_: Switch to a new lane by ejecting the previously loaded one and then load the lane specified by LANE parameter. Lane parameter is an integer and defaults to 1. ex. `BT_CHANGE_TOOL LANE=2`
 ### BT_LANE_EJECT
-_Description_: Fully eject the filament from the lane
+_Description_: Fully eject the filament from the lane so spool can be removed. Lane parameter is an integer and defaults to 1. ex. `BT_LANE_EJECT LANE=2`
 ### BT_LANE_MOVE
-_Description_: Move the specified lane the specified amount
+_Description_: Move the specified lane the specified amount. Lane parameter is an integer and defaults to 1. Distance parameter is and integer and defaults to 20. Distance over 200 uses long load speeds. ex `BT_LANE_MOVE LANE=2 DISTANCE=100`
 ### BT_RESUME
-_Description_: Resume the print after an error
+_Description_: Resume the print after an error, using normal resume will also call AFC_RESUME
 ### BT_PREP
 _Description_: Run the AFC PREP sequence
