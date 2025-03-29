@@ -48,6 +48,7 @@ while getopts "a:k:s:m:n:b:p:y:u:th" arg; do
   esac
 done
 
+moonraker="${moonraker_address}:${moonraker_port}"
 # Make sure necessary directories exist
 echo "Ensuring we are not running as root.."
 check_root

@@ -18,7 +18,9 @@ klipper_venv="$HOME/klippy-env/bin"
 # Service related constants
 klipper_service="klipper"
 moonraker_port="7125"
-moonraker_address="http://localhost:$moonraker_port"
+moonraker_address="http://localhost"
+moonraker="${moonraker_address}:${moonraker_port}"
+
 
 # Git related constants
 gitrepo="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"

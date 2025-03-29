@@ -146,7 +146,7 @@ function auto_update() {
 
 check_version_and_set_force_update() {
   local current_version
-  current_version=$(curl -s "$moonraker_address/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
+  current_version=$(curl -s "$moonraker/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
   if [[ -z "$current_version" || "$current_version" == "null" || "$current_version" < "$min_version" ]]; then
     force_update=True
   else
@@ -157,11 +157,11 @@ check_version_and_set_force_update() {
 update_afc_version() {
   local version_update
   version_update=$1
-  curl -s -XPOST "$moonraker_address/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
+  curl -s -XPOST "$moonraker/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
 }
 
 remove_afc_version() {
-  curl -s -XDELETE "$moonraker_address/server/database/item?namespace=afc-install&key=version" > /dev/null
+  curl -s -XDELETE "$moonraker/server/database/item?namespace=afc-install&key=version" > /dev/null
 }
 
 remove_vars_tool_file() {
