@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `install-afc.sh` script now has the ability to install NightOwl units. Thanks to @thomasfjen for the contribution.
 - The `install-afc.sh` script now has the ability to help install multiple units.
 
+### Fixed
+- The `install-afc.sh` script now correctly checked for a Python version >= Python 3.8.
 
 ## [2025-03-27]
 ### Added

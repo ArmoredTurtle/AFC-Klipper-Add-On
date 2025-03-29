@@ -170,8 +170,8 @@ check_python_version() {
       return 1
   fi
 
-  if [[ ${VERSION%%.*} -lt 3 ]]; then
-      echo "Python version $VERSION is too old. Need at least Python 3.x."
+  if [[ ${VERSION%%.*} -lt ${minimum_python_minor} || ( ${VERSION%%.*} -eq ${minimum_python_major} && ${VERSION##*.} -lt $minimum_python_minor ) ]]; then
+      echo "Your available Klipper venv Python version $VERSION is too old. The BoxTurtle AFC software requires at least Python ${minimum_python_major}.${minimum_python_minor}."
       exit 1
   fi
 
