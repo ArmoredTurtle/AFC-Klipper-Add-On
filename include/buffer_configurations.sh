@@ -95,8 +95,6 @@ add_buffer_to_extruder() {
     # Print all lines
     { print $0 }
   ' "$file_path" > "$file_path.tmp" && mv "$file_path.tmp" "$file_path"
-
-  print_msg WARNING "Added '$buffer_line' to the '$section' section in $file_path"
 }
 
 query_tn_pins() {

@@ -39,6 +39,12 @@ cd AFC-Klipper-Add-On
 ./install-afc.sh
 ```
 
+Full options for the `install-afc.sh` script can be found by running the following command:
+
+```bash
+./install-afc.sh -h
+```
+
 ## Updates
 
 To update the AFC plugin software, you can simply run the following command:

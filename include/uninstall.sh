@@ -13,6 +13,12 @@ uninstall_afc() {
   restart_klipper
   message="""
   AFC has been uninstalled successfully.
+
+  Please restart your printer to complete the uninstallation process.
+
+  We always welcome feedback on the software on our Discord channel at
+
+  https://discord.gg/armoredturtle.
   """
   export message
 }
