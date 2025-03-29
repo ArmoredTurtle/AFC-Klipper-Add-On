@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-03-29]
+### Added
+- The `install-afc.sh` script now has the ability to rename existing units.
+- The `install-afc.sh` script now has the ability to install NightOwl units. Thanks to @thomasfjen for the contribution.
+- The `install-afc.sh` script now has the ability to help install multiple units.
+
+
 ## [2025-03-27]
 ### Added
 - AWD variable to CUT macro so increased current applies to all X motors

@@ -60,15 +60,16 @@ completed you will not be able to use this assisted process for any future updat
     printf "${MENU_GREEN}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${RESET} \n"
     echo ""
     if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
-      printf "I. Install AFC Klipper Add-on\n"
+      printf "I. Install New System\n"
     elif [ "$prior_installation" == "False" ] && [ "$files_updated_or_installed" == "False" ]; then
-      printf "I. Install AFC Klipper Add-On\n"
+      printf "I. Install New System\n"
     fi
     if [ "$prior_installation" == "True" ] && [ "$force_update" == "False" ]; then
       printf "U. Update AFC Klipper Add-On\n"
     fi
+    printf "A. Install Additional System\n"
+    printf "C. Utilities\n"
     printf "R. Remove AFC Klipper Add-On\n"
-    #printf "A. Add new unit type\n"
     echo "Q. Exit"
     echo ""
     read -p "Enter your choice: " choice
@@ -96,8 +97,10 @@ completed you will not be able to use this assisted process for any future updat
         update_menu ;;
       R)
         uninstall_afc ;;
+      C)
+        utilities_menu ;;
       A)
-        add_unit ;;
+        additional_system_menu ;;
       Q)
         exit_afc_install ;;
       *)

@@ -5,10 +5,15 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-install_menu() {
+additional_system_menu() {
   local message
   local choice
   local counter
+  message="This menu allows you to add ADDITIONAL unit types. It should NOT be used for your first unit.\n"
+  message+="This is a best effort in adding an additional unit. You will probably be required\n"
+  message+="to manually edit the configuration files to ensure proper operation.\n"
+  # Override the default boxturtle_name to prevent conflicts with the default name.
+  boxturtle_name="Turtle_2"
   counter=0
   while true; do
     clear
@@ -17,9 +22,9 @@ install_menu() {
                           \e[49m                                    \e[m
                           \e[49m                                    \e[m
                           \e[49m                                    \e[m
-                          \e[49m            \e[38;5;3;49m▄\e[38;5;101;49m▄▄▄\e[38;5;101;48;5;101m▄▄▄\e[38;5;101;48;5;243m▄\e[38;5;101;49m▄▄▄\e[38;5;65;49m▄\e[49m            \e[m
-                          \e[49m         \e[38;5;65;49m▄▄\e[38;5;239;48;5;236m▄\e[38;5;238;48;5;240m▄\e[48;5;101m           \e[38;5;101;48;5;101m▄▄▄\e[38;5;101;49m▄\e[49m        \e[m
-                          \e[49m       \e[38;5;101;49m▄\e[38;5;101;48;5;101m▄\e[38;5;241;48;5;101m▄\e[38;5;236;48;5;241m▄\e[38;5;239;48;5;236m▄\e[38;5;242;48;5;236m▄\e[38;5;239;48;5;238m▄\e[38;5;236;48;5;241m▄\e[38;5;237;48;5;101m▄\e[38;5;59;48;5;101m▄\e[48;5;101m           \e[38;5;239;48;5;242m▄\e[38;5;236;49m▄\e[49m      \e[m
+       \e[38;5;231;48;5;16m╭───────────╮      \e[m \e[49m            \e[38;5;3;49m▄\e[38;5;101;49m▄▄▄\e[38;5;101;48;5;101m▄▄▄\e[38;5;101;48;5;243m▄\e[38;5;101;49m▄▄▄\e[38;5;65;49m▄\e[49m            \e[m
+       \e[38;5;231;48;5;16m│ Mooaaarrr │      \e[m \e[49m         \e[38;5;65;49m▄▄\e[38;5;239;48;5;236m▄\e[38;5;238;48;5;240m▄\e[48;5;101m           \e[38;5;101;48;5;101m▄▄▄\e[38;5;101;49m▄\e[49m        \e[m
+       \e[38;5;231;48;5;16m╰───────────╯      \e[m \e[49m       \e[38;5;101;49m▄\e[38;5;101;48;5;101m▄\e[38;5;241;48;5;101m▄\e[38;5;236;48;5;241m▄\e[38;5;239;48;5;236m▄\e[38;5;242;48;5;236m▄\e[38;5;239;48;5;238m▄\e[38;5;236;48;5;241m▄\e[38;5;237;48;5;101m▄\e[38;5;59;48;5;101m▄\e[48;5;101m           \e[38;5;239;48;5;242m▄\e[38;5;236;49m▄\e[49m      \e[m
                           \e[49m  \e[38;5;149;49m▄\e[38;5;149;48;5;149m▄▄▄\e[48;5;149m  \e[38;5;149;48;5;143m▄\e[38;5;149;48;5;239m▄\e[38;5;143;48;5;240m▄\e[38;5;101;48;5;101m▄\e[48;5;101m  \e[38;5;101;48;5;65m▄\e[38;5;101;48;5;59m▄\e[38;5;101;48;5;237m▄\e[38;5;59;48;5;237m▄\e[38;5;236;48;5;240m▄\e[38;5;237;48;5;101m▄\e[38;5;239;48;5;101m▄▄▄\e[38;5;238;48;5;101m▄\e[38;5;237;48;5;101m▄▄▄▄\e[38;5;236;48;5;237m▄\e[38;5;65;48;5;240m▄\e[38;5;65;48;5;242m▄\e[38;5;65;49m▄\e[49m    \e[m
                           \e[38;5;149;49m▄\e[38;5;149;48;5;149m▄▄\e[38;5;107;48;5;149m▄\e[38;5;149;48;5;149m▄\e[48;5;149m   \e[38;5;143;48;5;149m▄▄\e[48;5;149m \e[38;5;149;48;5;149m▄\e[38;5;143;48;5;101m▄\e[38;5;101;48;5;101m▄\e[48;5;101m    \e[38;5;101;48;5;242m▄\e[38;5;238;48;5;237m▄\e[38;5;239;48;5;236m▄\e[38;5;101;48;5;238m▄\e[38;5;101;48;5;239m▄▄▄▄▄▄\e[38;5;238;48;5;236m▄\e[38;5;237;48;5;242m▄\e[48;5;101m \e[38;5;101;48;5;101m▄\e[38;5;65;49m▄\e[49m   \e[m
                           \e[38;5;149;48;5;149m▄\e[48;5;149m \e[38;5;238;48;5;241m▄\e[48;5;236m \e[38;5;242;48;5;101m▄\e[48;5;149m  \e[38;5;101;48;5;101m▄\e[48;5;236m \e[38;5;236;48;5;239m▄\e[38;5;149;48;5;149m▄\e[48;5;149m  \e[38;5;149;48;5;107m▄\e[38;5;101;48;5;101m▄\e[48;5;101m    \e[38;5;238;48;5;238m▄\e[38;5;239;48;5;239m▄\e[48;5;101m       \e[38;5;101;48;5;242m▄\e[38;5;239;48;5;236m▄\e[38;5;237;48;5;241m▄\e[48;5;101m \e[38;5;65;48;5;101m▄\e[38;5;149;48;5;149m▄▄▄\e[m
@@ -67,32 +72,19 @@ fi
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
     printf "%b\n" "$message"
     printf "%b▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n" "$MENU_GREEN"
-    printf "█%b            Please review the following options to configure your system%b             █\n" "$RESET" "$MENU_GREEN"
+    printf "█%b         Please review the following options to add an additional unit type%b          █\n" "$RESET" "$MENU_GREEN"
     printf "█%b           Type a number or letter and press Enter/Return to toggle choice%b           █\n" "$RESET" "$MENU_GREEN"
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
     if [ "$files_updated_or_installed" == "False" ]; then
       printf "T. Installation Type: %s \n" "$installation_type"
-      printf "1. Add the AFC includes to the your printer.cfg automatically? : %s \n" "$afc_includes"
-      printf "2. Enable tip-forming? : %s \n" "$tip_forming"
-      printf "3. Enable a toolhead cutter? : %s \n" "$toolhead_cutter"
-      printf "4. Enable a hub cutter? : %s \n" "$hub_cutter"
-      printf "5. Enable the kick macro? : %s \n" "$kick_macro"
-      printf "6. Enable Park Macro? : %s \n" "$park_macro"
-      printf "7. Enable Poop Macro? : %s \n" "$poop_macro"
-      printf "8. Enable Wipe Macro? : %s \n" "$wipe_macro"
-      printf "9. Use a toolhead sensor or ramming with a TN/TN2 buffer? : %s \n" "$toolhead_sensor"
-      if [ "$toolhead_sensor" == "Sensor" ]; then
-        if [ "$toolhead_sensor_pin" == "Unknown" ]; then
-          printf "A. Toolhead sensor pin: ${RED}%s${RESET} \n" "$toolhead_sensor_pin"
-        else
-          printf "A. Toolhead sensor pin: %s \n" "$toolhead_sensor_pin"
-        fi
-      fi
-      if [ "$installation_type" != "NightOwl" ]; then
-        printf "B. Buffer type: %s \n" "$buffer_type"
-      fi
       if [ "$installation_type" == "BoxTurtle (4-Lane)" ] || [ "$installation_type" == "BoxTurtle (8-Lane)" ]; then
-        printf "C. BoxTurtle Name: %s \n" "$boxturtle_name"
+        if [ "$turtle_renamed" != "True" ]; then
+          boxturtle_name="Turtle_2"
+        fi
+        printf "1. BoxTurtle Name: %s \n" "$boxturtle_name"
+      elif [ "$installation_type" == "NightOwl" ]; then
+        boxturtle_name="NightOwl_2"
+        printf "1. NightOwl Name: %s \n" "$boxturtle_name"
       fi
     fi
     echo ""
@@ -118,61 +110,20 @@ fi
         message="Installation Type: $installation_type"
         export message ;;
       1)
-        afc_includes=$([ "$afc_includes" == "True" ] && echo "False" || echo "True")
-        message="AFC Includes $([ "$afc_includes" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      2)
-        tip_forming=$([ "$tip_forming" == "True" ] && echo "False" || echo "True")
-        message="Tip Forming $([ "$tip_forming" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      3)
-        toolhead_cutter=$([ "$toolhead_cutter" == "True" ] && echo "False" || echo "True")
-        message="Toolhead Cutter $([ "$toolhead_cutter" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      4)
-        hub_cutter=$([ "$hub_cutter" == "True" ] && echo "False" || echo "True")
-        message="Hub Cutter $([ "$hub_cutter" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      5)
-        kick_macro=$([ "$kick_macro" == "True" ] && echo "False" || echo "True")
-        message="Kick Macro $([ "$kick_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      6)
-        park_macro=$([ "$park_macro" == "True" ] && echo "False" || echo "True")
-        message="Park Macro $([ "$park_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      7)
-        poop_macro=$([ "$poop_macro" == "True" ] && echo "False" || echo "True")
-        message="Poop Macro $([ "$poop_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      8)
-        wipe_macro=$([ "$wipe_macro" == "True" ] && echo "False" || echo "True")
-        message="Wipe Macro $([ "$wipe_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      9)
-        toolhead_sensor=$([ "$toolhead_sensor" == "Sensor" ] && echo "Ramming" || echo "Sensor")
-        message=$([ "$toolhead_sensor" == "Sensor" ] && echo "Using toolhead sensor" || echo "Using ramming with a TN/TN2 buffer")
-        export message ;;
-      A)
-        read -p "Enter toolhead sensor pin (Example: nhk:gpio13): " toolhead_sensor_pin
-        message="Toolhead sensor pin set to $toolhead_sensor_pin"
-        export message ;;
-      B)
-        buffer_type=$(
-          case "$buffer_type" in
-            "TurtleNeck") echo "TurtleNeckV2" ;;
-            "TurtleNeckV2") echo "None" ;;
-            "None" | *) echo "TurtleNeck" ;;
-          esac
-        )
-        message="Buffer Type: $buffer_type"
-        export message ;;
-      C)
-        name_unit
+        name_additional_unit
         export message ;;
       Q) exit_afc_install ;;
       M) main_menu ;;
-      I) install_afc ;;
+      I)
+        verify_name_not_in_use ${boxturtle_name}
+        if [ "$invalid_name" == "False" ]; then
+          install_additional_unit
+          message="${boxturtle_name} created successfully, please look over config file and update lane numbers."
+          message+="\nAdditionally, please ensure any MCU connections are updated in the appropriate files (CANBus, serial, etc)"
+          message+="\nThis is not a 100% turn-key solution and will require some manual configuration based on your specific setup."
+          export message
+        fi
+        ;;
       *) echo "Invalid selection" ;;
     esac
   done

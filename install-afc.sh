@@ -14,6 +14,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source include/menus/main_menu.sh
 source include/menus/install_menu.sh
 source include/menus/update_menu.sh
+source include/menus/utilities_menu.sh
+source include/menus/additional_system_menu.sh
 
 # Install / Update functions
 source include/buffer_configurations.sh
@@ -25,6 +27,7 @@ source include/uninstall.sh
 source include/update_commands.sh
 source include/update_functions.sh
 source include/utils.sh
+source include/unit_functions.sh
 
 ###################### Main script logic below ######################
 
@@ -51,8 +54,8 @@ echo "Ensuring no conflicting software is present.."
 check_for_hh
 echo "Checking to ensure crudini and jq are present.."
 check_for_prereqs
-check_python_version
 if [ "$test_mode" == "False" ]; then
+  check_python_version
   clone_repo
 fi
 check_existing_install
