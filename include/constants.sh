@@ -38,6 +38,8 @@ files_updated_or_installed="False"
 test_mode="False"
 installation_options=("BoxTurtle (4-Lane)" "NightOwl")
 invalid_name="False"
+minimum_python_major="3"
+minimum_python_minor="8"
 
 # AFC default configs
 park_macro="True"
