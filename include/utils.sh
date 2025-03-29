@@ -20,6 +20,7 @@ function show_help() {
   echo "  -a <moonraker address>      Specify the address of the Moonraker server (default: http://localhost)"
   echo "  -k <path>                   Specify the path to the Klipper directory"
   echo "  -m <moonraker config path>  Specify the path to the Moonraker config file (default: ~/printer_data/config/moonraker.conf)"
+  echo "  -n <moonraker port>         Specify the port of the Moonraker server (default: 7125)"
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -p <printer config dir>     Specify the path to the printer config directory (default: ~/printer_data/config)"
   echo "  -b <branch>                 Specify the branch to use (default: main)"
@@ -27,7 +28,7 @@ function show_help() {
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-a <moonraker address>] [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
+  echo " $0 [-a <moonraker address>] [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-n <moonraker_port>] [-p <printer_config_dir>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
 }
 
 function copy_config() {

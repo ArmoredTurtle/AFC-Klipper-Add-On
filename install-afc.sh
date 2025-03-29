@@ -31,11 +31,12 @@ source include/unit_functions.sh
 
 ###################### Main script logic below ######################
 
-while getopts "a:k:s:m:b:p:y:u:th" arg; do
+while getopts "a:k:s:m:n:b:p:y:u:th" arg; do
   case ${arg} in
   a) moonraker_address=${OPTARG} ;;
   k) klipper_dir=${OPTARG} ;;
   m) moonraker_config_file=${OPTARG} ;;
+  n) moonraker_port=${OPTARG} ;;
   s) klipper_service=${OPTARG} ;;
   b) branch=${OPTARG} ;;
   p) printer_config_dir=${OPTARG} ;;

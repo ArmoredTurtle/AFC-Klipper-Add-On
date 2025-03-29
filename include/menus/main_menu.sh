@@ -87,7 +87,8 @@ completed you will not be able to use this assisted process for any future updat
       5)
         export message="To change the branch, please re-run this script with a '-b <branch>' option." ;;
       6)
-        export message="To change the moonraker address, please re-run this script with a '-a <address>' option." ;;
+        export message="To change the moonraker address, please re-run this script with a '-a <address>' option.\n"
+        export message+="To change the moonraker port, please re-run this script with a '-n <moonraker port>' option." ;;
       I)
         if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
           backup_afc_config
