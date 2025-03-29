@@ -653,10 +653,9 @@ class AFCExtruderStepper:
 
         # Calculate the cross-sectional area of the filament
         density_g_mm3 = self.filament_density / 1000.0
-        filament_cross_section_mm2 = 3.14159 * (self.filament_diameter / 2) ** 2
         filament_volume_mm3 = weight_g / density_g_mm3
-        filament_length_mm = filament_volume_mm3 / filament_cross_section_mm2
-        filament_area_mm2 = filament_length_mm * self.filament_diameter / spool_width_mm
+        package_corrected_volume_mm3 = filament_volume_mm3 / 0.785
+        filament_area_mm2 = package_corrected_volume_mm3 / spool_width_mm
         spool_outer_diameter_mm2 = (4 * filament_area_mm2 / 3.14159) + self.inner_diameter ** 2
         spool_outer_diameter_mm = spool_outer_diameter_mm2 ** 0.5
 
