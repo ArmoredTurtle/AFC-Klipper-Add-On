@@ -1,0 +1,26 @@
+:root  > * {
+  --md-primary-fg-color:        #333333;
+  --md-primary-fg-color--light: #3b7843;
+  --md-primary-fg-color--dark: #ffffff;
+  --md-typeset-a-color--light: #2c3ebc;
+  --md-typeset-a-color--dark: #B9A46A;
+  --md-typeset-a-color: #B9A46A;
+}
+
+.md-header__ellipsis {
+    color: #B9A46A;
+    --md-text-font: "Apex Mk2";
+    text-transform: uppercase;
+    vertical-align: auto;
+}
+
+.md-header__button.md-logo img {
+    width: 60px;
+    height: auto;
+    vertical-align: bottom;
+}
+
+@font-face {
+  font-family: "Apex Mk2";
+  src: url("../assets/fonts/ApexMk2-Regular.woff2");
+}

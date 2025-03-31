@@ -9,7 +9,7 @@ try:
 except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-class AFCextruder:
+class AFCExtruder:
     def __init__(self, config):
         self.printer    = config.get_printer()
         buttons         = self.printer.load_object(config, "buttons")
@@ -122,29 +122,27 @@ class AFCextruder:
     cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn\tool_stn_unload\tool_sensor_after_extruder values without restarting klipper"
     def cmd_UPDATE_TOOLHEAD_SENSORS(self, gcmd):
         """
-        Macro call to adjust `tool_stn`\`tool_stn_unload`\`tool_sensor_after_extruder` lengths for specified extruder without having to update config file and restart klipper.  <nl>
-          <nl>
+        Macro call to adjust `tool_stn` `tool_stn_unload` `tool_sensor_after_extruder` lengths for specified extruder without having to
+        update config file and restart klipper.
+
         `tool_stn length` is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
-        is set then the value if from tool_end sensor.  <nl>
-          <nl>
-        `tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore.  <nl>
-          <nl>
+        is set then the value if from tool_end sensor.
+
+        `tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore.
+
         `tool_sensor_after_extruder` length is mainly used for those that have a filament sensor after extruder gears, target this
         length to retract filament enough so that it's not in the extruder gears anymore.  <nl>
-          <nl>
+
         Please pause print if you need to adjust this value while printing
 
-        Usage: `UPDATE_TOOLHEAD_SENSORS EXTRUDER=<extruder> TOOL_STN=<length> TOOL_STN_UNLOAD=<length> TOOL_AFTER_EXTRUDER=<length>`
-        Example: `UPDATE_TOOLHEAD_SENSORS EXTRUDER=extruder TOOL_STN=100`
+        Usage
+        -----
+        `UPDATE_TOOLHEAD_SENSORS EXTRUDER=<extruder> TOOL_STN=<length> TOOL_STN_UNLOAD=<length> TOOL_AFTER_EXTRUDER=<length>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - EXTRUDER: The name of the extruder to adjust value for.
-                  - LENGTH: The length adjustment value.
+        Example
+        -----
+        `UPDATE_TOOLHEAD_SENSORS EXTRUDER=extruder TOOL_STN=100`
 
-        Returns:
-            None
         """
         tool_stn                    = gcmd.get_float("TOOL_STN",            self.tool_stn)
         tool_stn_unload             = gcmd.get_float("TOOL_STN_UNLOAD",     self.tool_stn_unload)
@@ -162,16 +160,13 @@ class AFCextruder:
         """
         Macro call to write tool_stn, tool_stn_unload and tool_sensor_after_extruder variables to config file for specified extruder.
 
-        Usage: `SAVE_EXTRUDER_VALUES EXTRUDER=<extruder>`
-        Example: `SAVE_EXTRUDER_VALUES EXTRUDER=extruder`
+        Usage
+        -----
+        `SAVE_EXTRUDER_VALUES EXTRUDER=<extruder>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - EXTRUDER: The name of the extruder to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        `SAVE_EXTRUDER_VALUES EXTRUDER=extruder`
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn',                   self.tool_stn, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn_unload',            self.tool_stn_unload, '')
@@ -194,4 +189,4 @@ class AFCextruder:
         return self.response
 
 def load_config_prefix(config):
-    return AFCextruder(config)
+    return AFCExtruder(config)

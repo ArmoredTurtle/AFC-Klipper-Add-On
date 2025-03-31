@@ -117,14 +117,13 @@ class afcError:
         """
         This function clears the error state of the AFC system by setting the error state to False.
 
-        Usage: `RESET_FAILURE`
-        Example: `RESET_FAILURE`
+        Usage
+        -----
+        `RESET_FAILURE`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-
-        Returns:
-            None
+        Example
+        -----
+        `RESET_FAILURE`
         """
         self.reset_failure()
 
@@ -144,14 +143,13 @@ class afcError:
         This function clears the error state of the AFC system, sets the in_toolchange flag to False,
         runs the resume script, and restores the toolhead position to the last saved position.
 
-        Usage: `AFC_RESUME`
-        Example: `AFC_RESUME`
+        Usage
+        -----
+        `AFC_RESUME`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-
-        Returns:
-            None
+        Example
+        -----
+        `AFC_RESUME`
         """
         self.AFC.in_toolchange = False
         if not self.AFC.FUNCTION.is_paused():
@@ -180,7 +178,7 @@ class afcError:
         self.logger.debug("Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}".format(
             self.AFC.error_state, self.AFC.FUNCTION.is_paused(), self.AFC.position_saved, self.AFC.in_toolchange ))
 
-    cmd_AFC_RESUME_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
+    cmd_AFC_PAUSE_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
     def cmd_AFC_PAUSE(self, gcmd):
         # Check to make sure printer is not already paused
         if not self.AFC.FUNCTION.is_paused():

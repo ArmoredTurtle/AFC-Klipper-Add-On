@@ -1,0 +1,5 @@
+site/
+.git
+.cache/
+.idea/
+.venv/
