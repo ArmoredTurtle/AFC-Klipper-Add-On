@@ -13,7 +13,7 @@ except:
 ADVANCE_STATE_NAME = "Trailing"
 TRAILING_STATE_NAME = "Advancing"
 
-class AFCtrigger:
+class AFCTrigger:
 
     def __init__(self, config):
         self.printer    = config.get_printer()
@@ -382,4 +382,4 @@ class AFCtrigger:
         return self.response
 
 def load_config_prefix(config):
-    return AFCtrigger(config)
+    return AFCTrigger(config)

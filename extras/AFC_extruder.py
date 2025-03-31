@@ -9,7 +9,7 @@ try:
 except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-class AFCextruder:
+class AFCExtruder:
     def __init__(self, config):
         self.printer    = config.get_printer()
         buttons         = self.printer.load_object(config, "buttons")
@@ -122,7 +122,7 @@ class AFCextruder:
     cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn\tool_stn_unload\tool_sensor_after_extruder values without restarting klipper"
     def cmd_UPDATE_TOOLHEAD_SENSORS(self, gcmd):
         """
-        Macro call to adjust `tool_stn`\`tool_stn_unload`\`tool_sensor_after_extruder` lengths for specified extruder without having to update config file and restart klipper.  <nl>
+        Macro call to adjust `tool_stn` `tool_stn_unload` `tool_sensor_after_extruder` lengths for specified extruder without having to update config file and restart klipper.  <nl>
           <nl>
         `tool_stn length` is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
         is set then the value if from tool_end sensor.  <nl>
@@ -194,4 +194,4 @@ class AFCextruder:
         return self.response
 
 def load_config_prefix(config):
-    return AFCextruder(config)
+    return AFCExtruder(config)

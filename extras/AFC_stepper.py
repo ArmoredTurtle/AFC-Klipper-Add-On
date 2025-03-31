@@ -776,20 +776,20 @@ class AFCExtruderStepper:
     def cmd_SET_LANE_LOADED(self, gcmd):
         """
         This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
-        during prints after AFC detects an error when loading/unloading and pauses. If there is a lane already loaded this macro
-        will also desync that lane extruder from the toolhead extruder and set its values and led appropriately.  <nl>
-        Retrieves the lane specified by the 'LANE' parameter and set the appropriate values in AFC to continue using the lane.
+        during prints after AFC detects an error when loading/unloading and pauses.
 
-        Usage: `SET_LANE_LOADED LANE=<lane>`
-        Example: `SET_LANE_LOADED LANE=lane1`
+        If there is a lane already loaded this macro will also desync that lane extruder from the toolhead extruder
+        and set its values and led appropriately.
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to be moved.
+        Retrieves the lane specified by the 'LANE' parameter and sets the appropriate values in AFC to continue using the lane.
 
-        Returns:
-            None
+        Usage
+        -----
+        `SET_LANE_LOADED LANE=<lane>`
+
+        Example
+        -------
+        SET_LANE_LOADED LANE=lane1
         """
         if not self.load_state:
             self.AFC.ERROR.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)

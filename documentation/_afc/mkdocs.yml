@@ -1,0 +1,116 @@
+site_name: AFC-Klipper-Add-On Documentation
+site_description: "A guide to the AFC Klipper Add-On Software"
+site_url: https://armoredturtle.xyz/docs/
+repo_url: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On
+repo_name: ArmoredTurtle/AFC-Klipper-Add-On
+use_directory_urls: False
+docs_dir: '../'
+site_dir: '../../site/'
+
+nav:
+  - Home: index.md
+  - Installation / Getting Started:
+    - Installation: installation/getting-started.md
+    - Runtime Options: installation/runtime-options.md
+    - Menus:
+      - Main Menu: installation/main-menu.md
+      - Install Menu: installation/install-menu.md
+  - Configuration:
+    - Configuration: configuration/configuration.md
+    - Configuration Options: configuration/configuration_options.md
+    - Configuration Examples: configuration/configuration_examples.md
+  - Klipper / Macros:
+      - Command Reference: klipper/command_reference.md
+      - Macros:
+          - Macro Overview: klipper/macros.md
+          - Internal Macros: klipper/internal_macros.md
+          - External Macros: klipper/external_macros.md
+  - Troubleshooting:
+    - Troubleshooting: troubleshooting/troubleshooting.md
+    - FAQ: troubleshooting/faq.md
+
+
+theme:
+  icon:
+    repo: fontawesome/brands/github
+  name: material
+  logo: assets/logo.png
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  primary: custom
+
+  features:
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    - search.share
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.path
+
+plugins:
+  - search:
+      lang: en
+  - mkdocs-simple-hooks:
+      hooks:
+        on_post_page: "mkdoc_hooks:post_page"
+        on_serve: "mkdocs_hook:force_reload"
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: false
+          paths: [../../extras/]
+
+
+markdown_extensions:
+- admonition
+- attr_list
+- md_in_html
+- pymdownx.blocks.caption
+- pymdownx.details
+- pymdownx.tabbed:
+    alternate_style: true
+- pymdownx.highlight:
+    anchor_linenums: true
+    line_spans: __span
+    pygments_lang_class: true
+- pymdownx.inlinehilite
+- pymdownx.snippets
+- pymdownx.superfences
+- toc:
+    permalink: true
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  consent:
+    title: Cookie consent
+    description: >- 
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+
+copyright: >
+  Copyright &copy; 2024 - 2025 Armored Turtle –
+  <a href="#__consent">Change cookie settings</a>
