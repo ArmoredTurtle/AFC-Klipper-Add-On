@@ -313,13 +313,13 @@ class afcFunction:
         Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
         allows the option to calibrate all lanes across all units.
 
-        Usage:`AFC_CALIBRATION`
-        Example: `AFC_CALIBRATION`
-        Args:
-            None
+        Usage
+        -----
+        `AFC_CALIBRATION`
 
-        Returns:
-            None
+        Example
+        -----
+        `AFC_CALIBRATION`
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -344,13 +344,13 @@ class afcFunction:
         Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to
         return to the previous menu.
 
-        Usage:`ALL_CALIBRATION`
-        Example: `ALL_CALIBRATION`
-        Args:
-            None
+        Usage
+        -----
+        `ALL_CALIBRATION`
 
-        Returns:
-            None
+        Example
+        -----
+        `ALL_CALIBRATION`
         """
         prompt = AFCprompt(gcmd, self.logger)
         footer = []
@@ -372,22 +372,21 @@ class afcFunction:
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
 
-        Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
-        Examples:
-            - `CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3`
-            - `CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
+        Parameters:
+        - LANES: Specifies the lane to calibrate. If not provided, calibrates no lanes.
+        - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
+        - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
+        - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
+        - UNIT: Specifies the unit to be used in calibration (optional)
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - LANES: Specifies the lane to calibrate. If not provided, calibrates no lanes.
-                - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
-                - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
-                - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
-                - UNIT: Specifies the unit to be used in calibration (optional)
+        Usage
+        -----
+        `CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
 
-        Returns:
-            None
+        Example
+        -----
+        `CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3`
+        `CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
         """
         prompt = AFCprompt(gcmd, self.logger)
         dis    = gcmd.get_float('DISTANCE' , 25)

@@ -438,20 +438,17 @@ class afc:
     def cmd_LANE_MOVE(self, gcmd):
         """
         This function handles the manual movement of a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.  <nl>
+        specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
+
         Distance's lower than 200 moves extruder at short_move_speed/accel, values above 200 move extruder at long_move_speed/accel
 
-        Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
-        Example: `LANE_MOVE LANE=lane1 DISTANCE=100`
+        Usage
+        -----
+        `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to be moved.
-                  - DISTANCE: The distance to move the lane.
-
-        Returns:
-            None
+        Example
+        -----
+         `LANE_MOVE LANE=lane1 DISTANCE=100`
         """
         if self.FUNCTION.is_printing():
             self.ERROR.AFC_error("Cannot move lane while printer is printing", pause=False)
@@ -619,16 +616,13 @@ class afc:
         This function handles the loading of a specified lane into the hub. It performs
         several checks and movements to ensure the lane is properly loaded.
 
-        Usage: `HUB_LOAD LANE=<lane>`
-        Example: `HUB_LOAD LANE=lane1`
+        Usage
+        -----
+        `HUB_LOAD LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-
-        Returns:
-            None
+        Example
+        -----
+        `HUB_LOAD LANE=lane1`
         """
 
         if self.FUNCTION.is_printing():
@@ -664,16 +658,14 @@ class afc:
         This function handles the unloading of a specified lane from the extruder. It performs
         several checks and movements to ensure the lane is properly unloaded.
 
-        Usage: `LANE_UNLOAD LANE=<lane>`
-        Example: `LANE_UNLOAD LANE=lane1`
+        Usage
+        -----
+        `LANE_UNLOAD LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be unloaded.
+        Example
+        -----
+        `LANE_UNLOAD LANE=lane1`
 
-        Returns:
-            None
         """
         if self.FUNCTION.is_printing():
             self.ERROR.AFC_error("Cannot eject lane while printer is printing", pause=False)
@@ -726,21 +718,17 @@ class afc:
         """
         This function handles the loading of a specified lane into the tool. It retrieves
         the lane specified by the 'LANE' parameter and calls the TOOL_LOAD method to perform
-        the loading process.  <nl>
+        the loading process.
+
         Optionally setting PURGE_LENGTH parameter to pass a value into poop macro.
 
-        Usage: `TOOL_LOAD LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
-        Example: `TOOL_LOAD LANE=lane1 PURGE_LENGTH=80`
+        Usage
+        -----
+        `TOOL_LOAD LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-                  - PURGE_LENGTH(optional): The amount of filament to poop, this value is passed into your poop macro.
-
-
-        Returns:
-            None
+        Example
+        -----
+        `TOOL_LOAD LANE=lane1 PURGE_LENGTH=80`
         """
         self.afcDeltaTime.set_start_time()
         lane = gcmd.get('LANE', None)
@@ -959,16 +947,13 @@ class afc:
         the lane specified by the 'LANE' parameter or uses the currently loaded lane if no parameter
         is provided, and calls the TOOL_UNLOAD method to perform the unloading process.
 
-        Usage: `TOOL_UNLOAD LANE=<lane>`
-        Example: `TOOL_UNLOAD LANE=lane1`
+        Usage
+        -----
+        `TOOL_UNLOAD LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be unloaded (optional, defaults to the current lane).
-
-        Returns:
-            None
+        Example
+        -----
+        `TOOL_UNLOAD LANE=lane1`
         """
         self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
@@ -1205,20 +1190,16 @@ class afc:
         This function handles the tool change process. It retrieves the lane specified by the 'LANE' parameter,
         checks the filament sensor, saves the current position, and performs the tool change by unloading the
         current lane and loading the new lane.
+
         Optionally setting PURGE_LENGTH parameter to pass a value into poop macro.
 
-        Usage: `CHANGE_TOOL LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
-        Example: `CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100`
+        Usage
+        -----
+        `CHANGE_TOOL LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-                  - PURGE_LENGTH(optional): The amount of filament to poop, this value is passed into your poop macro.
-
-
-        Returns:
-            None
+        Example
+        ------
+        `CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100`
         """
         self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
@@ -1396,14 +1377,13 @@ class afc:
         This function generates a status message for each unit and lane, indicating the preparation,
         loading, hub, and tool states. The status message is formatted with HTML tags for display.
 
-        Usage: `AFC_STATUS`
-        Example: `AFC_STATUS`
+        Usage
+        -----
+        `AFC_STATUS`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-
-        Returns:
-            None
+        Example
+        -----
+        `AFC_STATUS`
         """
         status_msg = ''
 
@@ -1465,15 +1445,13 @@ class afc:
         """
         This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors are changed while they are turned off.
 
-        Usage: `TURN_OFF_AFC_LED`
-        Example: `TURN_OFF_AFC_LED`
+        Usage
+        -----
+        `TURN_OFF_AFC_LED`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-
-        Returns:
-            None
+        Example
+        -----
+        `TURN_OFF_AFC_LED`
         """
         for led in self.led_obj.values():
             led.turn_off_leds()
@@ -1481,18 +1459,15 @@ class afc:
     cmd_TURN_ON_AFC_LED_help = "Turns on all LEDs for AFC_led configurations and restores state"
     def cmd_TURN_ON_AFC_LED(self, gcmd):
         """
-
         This macro handles turning on all LEDs for AFC_led configurations. LEDs are restored to last previous state.
 
-        Usage: `TURN_ON_AFC_LED`
-        Example: `TURN_ON_AFC_LED`
+        Usage
+        -----
+        `TURN_ON_AFC_LED`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-
-        Returns:
-            None
+        Example
+        -----
+        `TURN_ON_AFC_LED`
         """
         for led in self.led_obj.values():
             led.turn_on_leds()

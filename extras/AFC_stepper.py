@@ -807,24 +807,19 @@ class AFCExtruderStepper:
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
         """
         Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
-        these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
-            <nl>
-        Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
-            <nl>
-        After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
+        these values while printing. Multiplier values must be between 0.0 - 1.0
 
-        Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
-        Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+        Use `FWD` variable to set forward multiplier, use `RWD` to set reverse multiplier
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Expected parameters:
-                - LANE: The name of the lane to adjust value for.
-                - FWD: The forward multiplier adjustment value.
-                - RWS: The reverse multiplier adjustment value.
+        After running this command run `SAVE_SPEED_MULTIPLIER LANE=<lane_name>` to save value to config file
 
-        Returns:
-            None
+        Usage
+        -----
+        `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
+
+        Example
+        -----
+        `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
         """
         updated = False
         old_fwd_value = self.fwd_speed_multi
@@ -849,16 +844,13 @@ class AFCExtruderStepper:
         """
         Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.
 
-        Usage: `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
-        Example: `SAVE_SPEED_MULTIPLIER LANE=lane1`
+        Usage
+        -----
+        `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        `SAVE_SPEED_MULTIPLIER LANE=lane1`
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
@@ -870,17 +862,13 @@ class AFCExtruderStepper:
         increase/decrease length by that amount. To reset length back to config value, pass in `reset` for length to
         reset to value in config file.
 
-        Usage: `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
-        Example: `SET_HUB_DIST LANE=lane1 LENGTH=+100`
+        Usage
+        -----
+        `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Expected parameters:
-                - LANE: The name of the lane to adjust value for.
-                - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
-
-        Returns:
-            None
+        Example
+        -----
+        `SET_HUB_DIST LANE=lane1 LENGTH=+100`
         """
         old_dist_hub = self.dist_hub
 
@@ -900,16 +888,13 @@ class AFCExtruderStepper:
         """
         Macro call to write dist_hub variable to config file for specified lane.
 
-        Usage: `SAVE_HUB_DIST LANE=<lane_name>`
-        Example: `SAVE_HUB_DIST LANE=lane1`
+        Usage
+        -----
+        `SAVE_HUB_DIST LANE=<lane_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        `SAVE_HUB_DIST LANE=lane1`
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'dist_hub',  self.dist_hub, '')
 
