@@ -85,7 +85,11 @@ class AFCExtruderStepper:
         # Overrides buffers set at the unit and extruder level
         self.buffer_name        = config.get("buffer", None)                            # Buffer name(AFC_buffer) that belongs to this stepper, overrides buffer that is set in extruder(AFC_extruder) or unit(AFC_BoxTurtle/NightOwl/etc) sections.
         self.unit               = unit.split(':')[0]
-        self.index              = int(unit.split(':')[1])
+        try:
+            self.index              = int(unit.split(':')[1])
+        except:
+            self.index              = 0
+            pass
 
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         self.map                = config.get('cmd','NONE')
@@ -133,12 +137,13 @@ class AFCExtruderStepper:
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
         self.prep = config.get('prep', None)                                                        # MCU pin for prep trigger
+        self.prep_state = False
         if self.prep is not None:
-            self.prep_state = False
             buttons.register_buttons([self.prep], self.prep_callback)
+
         self.load = config.get('load', None)                                                        # MCU pin load trigger
+        self.load_state = False
         if self.load is not None:
-            self.load_state = False
             buttons.register_buttons([self.load], self.load_callback)
         else: self.load_state = True
 
@@ -167,9 +172,6 @@ class AFCExtruderStepper:
         self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5)                         # Multiplier to apply to rpm
         self.diameter_range = self.outer_diameter - self.inner_diameter  # Range for effective diameter
 
-        # Set hub loading speed depending on distance between extruder and hub
-        self.dist_hub_move_speed = self.AFC.long_moves_speed if self.dist_hub >= 200 else self.AFC.short_moves_speed
-        self.dist_hub_move_accel = self.AFC.long_moves_accel if self.dist_hub >= 200 else self.AFC.short_moves_accel
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
@@ -178,11 +180,11 @@ class AFCExtruderStepper:
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
 
         if self.enable_sensors_in_gui:
-            if self.sensor_to_show is None or self.sensor_to_show == 'prep':
+            if self.prep is not None and (self.sensor_to_show is None or self.sensor_to_show == 'prep'):
                 self.prep_filament_switch_name = "filament_switch_sensor {}_prep".format(self.name)
                 self.fila_prep = add_filament_switch(self.prep_filament_switch_name, self.prep, self.printer )
 
-            if self.sensor_to_show is None or self.sensor_to_show == 'load':
+            if self.load is not None and (self.sensor_to_show is None or self.sensor_to_show == 'load'):
                 self.load_filament_switch_name = "filament_switch_sensor {}_load".format(self.name)
                 self.fila_load = add_filament_switch(self.load_filament_switch_name, self.load, self.printer )
         self.connect_done = False
@@ -214,8 +216,9 @@ class AFCExtruderStepper:
         self.buffer_obj = self.unit_obj.buffer_obj
 
         # Registering lane name in unit
-        self.unit_obj.lanes[self.name] = self
-        self.AFC.lanes[self.name] = self
+        if self.unit_obj.type != "HTLF":
+            self.unit_obj.lanes[self.name] = self
+            self.AFC.lanes[self.name] = self # TODO: put a check here to make sure lane name does not already exist
 
         self.hub_obj = self.unit_obj.hub_obj
         if self.hub != 'direct':
@@ -306,6 +309,10 @@ class AFCExtruderStepper:
         if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis
         if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
         if self.n20_break_delay_time is None: self.n20_break_delay_time = self.unit_obj.n20_break_delay_time
+
+        # Set hub loading speed depending on distance between extruder and hub
+        self.dist_hub_move_speed = self.long_moves_speed if self.dist_hub >= 200 else self.short_moves_speed
+        self.dist_hub_move_accel = self.long_moves_accel if self.dist_hub >= 200 else self.short_moves_accel
 
         # Register macros
         self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
@@ -412,7 +419,7 @@ class AFCExtruderStepper:
 
     def _move(self, distance, speed, accel, assist_active=False):
         """
-        Move the specified lane a given distance with specified speed and acceleration.
+        Helper function to move the specified lane a given distance with specified speed and acceleration.
         This function calculates the movement parameters and commands the stepper motor
         to move the lane accordingly.
         Parameters:
@@ -446,7 +453,15 @@ class AFCExtruderStepper:
             toolhead.wait_moves()
 
     def move(self, distance, speed, accel, assist_active=False):
-
+        """
+        Move the specified lane a given distance with specified speed and acceleration.
+        This function calculates the movement parameters and commands the stepper motor
+        to move the lane accordingly.
+        Parameters:
+        distance (float): The distance to move.
+        speed (float): The speed of the movement.
+        accel (float): The acceleration of the movement.
+        """
         direction = 1 if distance > 0 else -1
         move_total = abs(distance)
 

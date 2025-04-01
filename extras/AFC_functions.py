@@ -253,7 +253,10 @@ class afcFunction:
             if cur_lane_loaded is None or key != cur_lane_loaded.name:
                 obj.do_enable(False)
                 obj.disable_buffer()
-                self.afc_led(obj.led_ready, obj.led_index)
+                if obj.prep_state and obj.load_state:
+                    self.afc_led(obj.led_ready, obj.led_index)
+                else:
+                    self.afc_led(obj.led_not_ready, obj.led_index)
 
         # Exit early if lane is None
         if cur_lane_loaded is None:
@@ -277,9 +280,20 @@ class afcFunction:
         if cur_lane_loaded is not None:
             cur_lane_loaded.unsync_to_extruder()
             cur_lane_loaded.set_unloaded()
+            cur_lane_loaded.unit_obj.return_to_home()
             self.AFC.FUNCTION.handle_activate_extruder()
             self.logger.info("Manually removing {} loaded from toolhead".format(cur_lane_loaded.name))
             self.AFC.save_vars()
+
+    def select_loaded_lane(self):
+        """
+        Function looks up what the current lane loaded is and calls a common `select_lane` function so
+        that units that have selectors this makes sure the correct lane is selected if user moves other
+        lanes outside of printing
+        """
+        current_lane = self.get_current_lane_obj()
+        if current_lane is not None:
+            current_lane.unit_obj.select_lane(current_lane)
 
     def log_toolhead_pos(self, move_pre=""):
         msg = "{}Position: {}".format(move_pre, self.AFC.toolhead.get_position())

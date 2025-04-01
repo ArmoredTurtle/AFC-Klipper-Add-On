@@ -75,6 +75,12 @@ _Description_: Shows the tip forming configuration
 Usage: `GET_TIP_FORMING`  
 Example: `GET_TIP_FORMING`  
 
+### HOME_UNIT
+_Description_: Moves unit lobes back to home position  
+  
+Usage: ``HOME_UNIT UNIT=<unit_name>``  
+Example: ``HOME_UNIT UNIT=HTLF_1``  
+
 ### HUB_CUT_TEST
 _Description_: This function tests the cutting sequence of the hub cutter for a specified lane.
 It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
