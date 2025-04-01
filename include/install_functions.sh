@@ -59,6 +59,10 @@ copy_unit_files() {
   elif [ "$installation_type" == "NightOwl" ]; then
     cp "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
+    # If we are installing a HTLF, then copy these files over.
+  elif [ "$installation_type" == "HTLF" ]; then
+    cp "${afc_path}/templates/AFC_HTLF_1-$htlf_board_type.cfg" "${afc_config_dir}/AFC_HTLF_1.cfg"
+    cp "${afc_path}/templates/AFC_Hardware-HTLF.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
   fi
 }
 
@@ -126,6 +130,13 @@ if [ "$installation_type" == "BoxTurtle (4-Lane)" ] || [ "$installation_type" ==
 elif [ "$installation_type" == "NightOwl" ]; then
   message+="""
 - Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_NightOwl_1.cfg file
+  """
+elif [ "$installation_type" == "HTLF" ]; then
+  message+="""
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_HTLF_1.cfg file
+- Ensure you modify the ${afc_config_dir}/AFC_HTLF_1.cfg file to select the proper rotation distance
+  and gear ratio for your stepper motors.
+- Ensure you update any necessary buffer information in the ${afc_config_dir}/AFC_Hardware.cfg file
   """
 fi
 
