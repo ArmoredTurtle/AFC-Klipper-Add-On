@@ -36,7 +36,7 @@ current_install_version="1.0.0"
 min_version="1.0.0"
 files_updated_or_installed="False"
 test_mode="False"
-installation_options=("BoxTurtle (4-Lane)" "NightOwl")
+installation_options=("BoxTurtle (4-Lane)" "NightOwl" "HTLF")
 invalid_name="False"
 minimum_python_major="3"
 minimum_python_minor="8"
@@ -54,7 +54,8 @@ toolhead_sensor="Sensor"
 toolhead_sensor_pin="Unknown"
 buffer_type="TurtleNeck"
 boxturtle_name="Turtle_1"
-
+htlf_board_types=("ERB" "MMB")
+htlf_board_type="ERB"
 
 # Moonraker Config
 moonraker_update_config="""

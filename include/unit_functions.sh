@@ -21,16 +21,29 @@ name_unit() {
 }
 
 name_additional_unit() {
-  while true; do
-    read -p "Enter name for unit (Default: Turtle_2): " boxturtle_name
-    boxturtle_name=${boxturtle_name:-Turtle_2}
+  if [ "$installation_type" == "HTLF" ]; then
+    while true; do
+      read -p "Enter name for unit (Default: HTLF_1): " boxturtle_name
+      boxturtle_name=${boxturtle_name:-HTLF_1}
 
-    if [[ "$boxturtle_name" =~ ^[a-zA-Z0-9_-]+$ ]] && [[ ${#boxturtle_name} -le 24 ]]; then
-      break
-    else
-      echo "Invalid input. The unit name must consist of only a-z, A-Z, 0-9, -, and _ and be no more than 24 characters long."
-    fi
-  done
+      if [[ "$boxturtle_name" =~ ^[a-zA-Z0-9_-]+$ ]] && [[ ${#boxturtle_name} -le 24 ]]; then
+        break
+      else
+        echo "Invalid input. The unit name must consist of only a-z, A-Z, 0-9, -, and _ and be no more than 24 characters long."
+      fi
+    done
+  elif [ "$installation_type" == "BoxTurtle (4-Lane)" ]; then
+    while true; do
+      read -p "Enter name for unit (Default: Turtle_2): " boxturtle_name
+      boxturtle_name=${boxturtle_name:-Turtle_2}
+
+      if [[ "$boxturtle_name" =~ ^[a-zA-Z0-9_-]+$ ]] && [[ ${#boxturtle_name} -le 24 ]]; then
+        break
+      else
+        echo "Invalid input. The unit name must consist of only a-z, A-Z, 0-9, -, and _ and be no more than 24 characters long."
+      fi
+    done
+  fi
   export turtle_renamed="True"
   export boxturtle_name
   export message="Naming unit $boxturtle_name"
@@ -95,5 +108,7 @@ install_additional_unit() {
     # If we are installing a NightOwl, then copy these files over.
   elif [ "$installation_type" == "NightOwl" ]; then
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
+  elif [ "$installation_type" == "HTLF" ]; then
+    cp "${afc_path}/templates/AFC_HTLF_1-$htlf_board_type.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
   fi
 }
