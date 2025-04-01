@@ -86,6 +86,39 @@
 - `cut_confirm` (default: `0`): Set True to cut filament twice
 - `enable_sensors_in_gui` (default: `False`): Set to True to show hub sensor switche as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
 
+## AFC_lane
+- `hub` (default: `None`): Hub name(AFC_hub) that belongs to this stepper, overrides hub that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
+- `buffer` (default: `None`): Buffer name(AFC_buffer) that belongs to this stepper, overrides buffer that is set in extruder(AFC_extruder) or unit(AFC_BoxTurtle/NightOwl/etc) sections.
+- `extruder` (default: `None`): Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
+- `led_index` (default: `None`): LED index of lane in chain of lane LEDs
+- `led_fault` (default: `None`): LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `led_ready` (default: `None`): LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `led_not_ready` (default: `None`): LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `led_loading` (default: `None`): LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `led_loading` (default: `None`): LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `led_unloading` (default: `None`): LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `led_tool_loaded` (default: `None`): LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `long_moves_speed` (default: `None`): Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `long_moves_accel` (default: `None`): Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `short_moves_speed` (default: `None`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `short_moves_accel` (default: `None`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `short_move_dis` (default: `None`): Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `max_move_dis` (default: `None`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `n20_break_delay_time` (default: `None`): Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `dist_hub` (default: `60`): Bowden distance between Box Turtle extruder and hub
+- `park_dist` (default: `10`): Currently unused
+- `load_to_hub` (default: `True`): Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
+- `enable_sensors_in_gui` (default: `False`): Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+- `sensor_to_show` (default: `None`): Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
+- `assisted_unload` (default: `None`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+- `prep` (default: `None`): MCU pin for prep trigger
+- `load` (default: `None`): MCU pin load trigger
+- `afc_motor_rwd` (default: `None`): Reverse pin on MCU for spoolers
+- `afc_motor_fwd` (default: `None`): Forwards pin on MCU for spoolers
+- `afc_motor_enb` (default: `None`): Enable pin on MCU for spoolers
+- `rwd_speed_multiplier` (default: `0.5`): Multiplier to apply to rpm
+- `fwd_speed_multiplier` (default: `0.5`): Multiplier to apply to rpm
+
 ## AFC_prep
 - `delay_time` (default: `0.1, minval=0.0`): Time to delay when moving extruders and spoolers during PREP routine
 - `enable` (default: `False`): Set True to disable PREP checks
@@ -133,6 +166,31 @@
 - `fwd_speed_multiplier` (default: `0.5`): Multiplier to apply to rpm
 
 ## AFC_BoxTurtle
+- `hub` (default: `None`): Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
+- `extruder` (default: `None`): Extruder name(AFC_extruder) that belongs to this unit, can be overridden in AFC_stepper section
+- `buffer` (default: `None`): Buffer name(AFC_buffer) that belongs to this unit, can be overridden in AFC_stepper section
+- `led_fault` (default: `'1,0,0,0'`): LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `led_ready` (default: `'1,1,0,0'`): LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `led_not_ready` (default: `'1,1,0,0'`): LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `led_loading` (default: `'1,0,0,0'`): LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `led_loading` (default: `'1,1,0,0'`): LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `led_unloading` (default: `'1,1,.5,0'`): LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `led_tool_loaded` (default: `'1,1,0,0'`): LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+- `long_moves_speed` (default: `100`): Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
+- `long_moves_accel` (default: `400`): Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
+- `short_moves_speed` (default: `25`): Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
+- `short_moves_accel` (default: `400`): Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
+- `short_move_dis` (default: `400`): Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+- `max_move_dis` (default: `999999`): Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
+- `assisted_unload` (default: `False`): If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+- `n20_break_delay_time` (default: `0.200`): Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
+- `unload_on_runout` (default: `False`): When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
+
+## AFC_HTLF
+- `drive_stepper`: Name of AFC_stepper for drive motor
+- `selector_stepper`: Name of AFC_stepper for selector motor
+- `mm_move_per_rotation` (default: `32`): How many mm moves pully a full rotation
+- `MAX_ANGLE_MOVEMENT` (default: `215`): Max angle to move lobes, this is when lobe 1 is fully engauged with its lane
 - `hub` (default: `None`): Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
 - `extruder` (default: `None`): Extruder name(AFC_extruder) that belongs to this unit, can be overridden in AFC_stepper section
 - `buffer` (default: `None`): Buffer name(AFC_buffer) that belongs to this unit, can be overridden in AFC_stepper section

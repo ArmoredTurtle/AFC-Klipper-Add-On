@@ -23,7 +23,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.6"
+AFC_VERSION="1.0.8"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -466,6 +466,9 @@ class afc:
         CUR_LANE.move(distance, move_speed, move_accel, True)
         CUR_LANE.do_enable(False)
         self.current_state = State.IDLE
+        CUR_LANE.unit_obj.return_to_home()
+        # Put CAM back to lane if its loaded to toolhead
+        self.FUNCTION.select_loaded_lane()
 
     def _get_resume_speed(self):
         """
@@ -651,6 +654,9 @@ class afc:
         CUR_LANE.do_enable(False)
         CUR_LANE.loaded_to_hub = True
         self.save_vars()
+        CUR_LANE.unit_obj.return_to_home()
+        # Put CAM back to lane if its loaded to toolhead
+        self.FUNCTION.select_loaded_lane()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
@@ -700,6 +706,9 @@ class afc:
             CUR_LANE.move( CUR_HUB.move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             CUR_LANE.do_enable(False)
             CUR_LANE.status = None
+            CUR_LANE.unit_obj.return_to_home()
+            # Put CAM back to lane if its loaded to toolhead
+            self.FUNCTION.select_loaded_lane()
             self.save_vars()
 
             # Removing spool from vars since it was ejected
@@ -1098,8 +1107,10 @@ class afc:
                     if self.FUNCTION.in_print():
                         message += "\nRetract filament fully with retract button in gui of choice to remove from extruder gears if needed,"
                         message += "\n  and then use LANE_MOVE to fully retract behind hub so its not triggered anymore."
-                        message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                        message += "\nOnce lane is loaded click resume to continue printing"
+                        # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
+                        if self.next_lane_load is not None:
+                            message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
+                            message += "\nOnce lane is loaded click resume to continue printing"
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
                 CUR_LANE.sync_to_extruder()
@@ -1147,8 +1158,10 @@ class afc:
                 message += '\nPlease check to make sure filament has not broken off and caused the sensor to stay stuck'
                 message += '\nIf you have to retract filament back, use LANE_MOVE macro for {}.'.format(CUR_LANE.name)
                 if self.FUNCTION.in_print():
-                    message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                    message += "\nOnce lane is loaded click resume to continue printing"
+                    # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
+                    if self.next_lane_load is not None:
+                        message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
+                        message += "\nOnce lane is loaded click resume to continue printing"
 
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
@@ -1188,6 +1201,8 @@ class afc:
                 CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
 
         CUR_LANE.do_enable(False)
+        CUR_LANE.unit_obj.return_to_home()
+
         self.save_vars()
         self.afcDeltaTime.log_major_delta("Lane {} unload done".format(CUR_LANE.name))
         self.current_state = State.IDLE

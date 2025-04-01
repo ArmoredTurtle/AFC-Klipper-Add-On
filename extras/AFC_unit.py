@@ -239,6 +239,18 @@ class afcUnit:
         prompt.create_custom_p(title, text, None,
                                True, buttons, back)
 
+    def select_lane( self, lane ):
+        """
+        Function to select lane
+        """
+        return
+
+    def return_to_home(self ):
+        """
+        Funtion to home unit if unit has homing sensor
+        """
+        return
+
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):
         self.AFC.gcode("{} function not defined for {}".format(name, self.name))

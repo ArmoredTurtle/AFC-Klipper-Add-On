@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-04-01]
+
+### Added
+- Support for HTLF
+
+### Fixed
+- Error when user calls TOOL_UNLOAD outside a print and it fails to unload. Fixed error where variable was not set when creating message to printout to console
+
 ## [2025-03-30]
 ### Fixed
 - The `BT_LANE_MOVE` macro now correctly only accepts positive or negative values for the `distance` parameter.

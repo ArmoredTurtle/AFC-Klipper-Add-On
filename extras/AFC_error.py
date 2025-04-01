@@ -171,13 +171,13 @@ class afcError:
         self.AFC.FUNCTION.log_toolhead_pos()
         self.AFC.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_RESUME_NAME, user_params=gcmd.get_raw_command_parameters()))
 
-        #The only time our resume should restore position is if there was an error that caused the pause
+        # The only time our resume should restore position is if there was an error that caused the pause
         if self.AFC.error_state or temp_is_paused or self.AFC.position_saved:
             self.set_error_state(False)
             self.AFC.restore_pos(False)
             self.pause = False
 
-        self.logger.debug("Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}".format(
+        self.logger.debug("RESUME-Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}".format(
             self.AFC.error_state, self.AFC.FUNCTION.is_paused(), self.AFC.position_saved, self.AFC.in_toolchange ))
 
     cmd_AFC_RESUME_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
@@ -197,6 +197,9 @@ class afcError:
             self.AFC.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT=36000")
         else:
             self.logger.debug("AFC_PAUSE: Not Pausing")
+
+        self.logger.debug("PAUSE-Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}".format(
+            self.AFC.error_state, self.AFC.FUNCTION.is_paused(), self.AFC.position_saved, self.AFC.in_toolchange ))
 
 
     handle_lane_failure_help = "Get load errors, stop stepper and respond error"
