@@ -85,7 +85,7 @@ Each of these runtime options is explained in further detail below:
     This option allows you to specify the name of the Klipper service. If you have configured Klipper to run as a 
     different service name, you can specify the service name here. If you have multiple klipper instances running on a 
     single system, you may have configured them to run as different services. This option allows you to specify the
-    service name for the Klipper instance you want to use with AFC. Common installation tools such as [Kiauh](****) allow
+    service name for the Klipper instance you want to use with AFC. Common installation tools such as [Kiauh](https://github.com/dw-0/kiauh) allow
     you to configure multiple Klipper instances on a single system and will oftentimes use service names such as `klipper-1`
     or `klipper-2` if multiple instances are running. 
 

@@ -41,24 +41,33 @@ class afc_tip_form:
 
     cmd_TEST_AFC_TIP_FORMING_help = "Gives ability to test AFC tip forming without doing a tool change"
     def cmd_TEST_AFC_TIP_FORMING(self, gcmd):
-        '''
-        Gives ability to test AFC tip forming without doing a tool change
+        """
+        Gives ability to test AFC tip forming without doing a tool change.
 
-        Usage: TEST_AFC_TIP_FORMING
+        Usage
+        -----
+        `TEST_AFC_TIP_FORMING`
 
-        Example: TEST_AFC_TIP_FORMING
-        '''
+        Example
+        -----
+        TEST_AFC_TIP_FORMING
+        """
         self.tip_form()
 
 
     cmd_GET_TIP_FORMING_help = "Shows the tip forming configuration"
     def cmd_GET_TIP_FORMING(self, gcmd):
-        '''
+        """
         Shows the tip forming configuration
 
-        Usage: GET_TIP_FORMING
-        Example: GET_TIP_FORMING
-        '''
+        Usage
+        -----
+        `GET_TIP_FORMING`
+
+        Example
+        -----
+        GET_TIP_FORMING
+        """
         status_msg = "Tip Forming Configuration:\n"
         status_msg += "ramming_volume:        {}\n".format(self.ramming_volume)
         status_msg += "toolchange_temp:       {}\n".format(self.toolchange_temp)
@@ -81,16 +90,23 @@ class afc_tip_form:
 
     cmd_SET_TIP_FORMING_help = "Sets tip forming configuration"
     def cmd_SET_TIP_FORMING(self, gcmd):
-        '''
-        Sets the tip forming configuration
+        """
+        Sets the tip forming configuration.
+
         Unspecified ones are left unchanged. True boolean values (use_skinnydip) are specified as "true"
-        (case insensitive); every other values is considered as "false".
+        (case-insensitive); every other value is considered as "false".
+
         Note: this will not update the configuration file. To make settings permanent, update the configuration file
         manually.
 
-        Usage: SET_TIP_FORMING PARAMETER=VALUE ...
-        Example: SET_TIP_FORMING ramming_volume=20 toolchange_temp=220
-        '''
+        Usage
+        -----
+        `SET_TIP_FORMING PARAMETER=VALUE ...`
+
+        Example
+        -----
+        SET_TIP_FORMING ramming_volume=20 toolchange_temp=220
+        """
 
         self.ramming_volume = gcmd.get_float("RAMMING_VOLUME", self.ramming_volume)
         self.toolchange_temp = gcmd.get_float("TOOLCHANGE_TEMP", self.toolchange_temp)

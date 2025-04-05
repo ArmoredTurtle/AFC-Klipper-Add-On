@@ -180,6 +180,17 @@ class afcError:
 
     cmd_AFC_PAUSE_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
     def cmd_AFC_PAUSE(self, gcmd):
+        """
+        This function pauses the print, raises the Z axis by the z-hop amount, and then calls the user's pause macro.
+
+        Usage
+        -----
+        `AFC_PAUSE`
+
+        Example
+        -----
+        `AFC_PAUSE`
+        """
         # Check to make sure printer is not already paused
         if not self.AFC.FUNCTION.is_paused():
             self.logger.debug("AFC_PAUSE: Pausing")

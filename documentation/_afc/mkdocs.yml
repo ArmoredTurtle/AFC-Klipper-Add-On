@@ -2,33 +2,54 @@ site_name: AFC-Klipper-Add-On Documentation
 site_description: "A guide to the AFC Klipper Add-On Software"
 site_url: https://armoredturtle.xyz/docs/
 repo_url: https://github.com/ArmoredTurtle/AFC-Klipper-Add-On
+edit_uri: 'blob/dev-docs/documentation/'
 repo_name: ArmoredTurtle/AFC-Klipper-Add-On
 use_directory_urls: False
 docs_dir: '../'
 site_dir: '../../site/'
 
 nav:
-  - Home: index.md
+  - Home:
+    - Overview: index.md
+    - Features: features.md
   - Installation / Getting Started:
-    - Installation: installation/getting-started.md
-    - Runtime Options: installation/runtime-options.md
-    - Menus:
-      - Main Menu: installation/main-menu.md
-      - Install Menu: installation/install-menu.md
+    - Installation:
+        - Getting Started: installation/getting-started.md
+        - Runtime Options: installation/runtime-options.md
+        - Installation Menus:
+          - Main Menu: installation/main-menu.md
+          - Install Menu: installation/install-menu.md
+        - Uninstall Process: installation/uninstall-process.md
+    - Calibration Process: installation/calibration.md
+    - Buffer Overview: installation/buffer-overview.md
+    - Buffer Ram Sensor: installation/buffer-ram-sensor.md
   - Configuration:
-    - Configuration: configuration/configuration.md
-    - Configuration Options: configuration/configuration_options.md
+    - Configuration Overview: configuration/configuration_overview.md
+    - Configuration Files:
+        - AFC.cfg: configuration/AFC.cfg.md
+        - AFC_Hardware.cfg: configuration/AFC_Hardware.cfg.md
+        - AFC_UnitType_1.cfg: configuration/AFC_UnitType_1.cfg.md
+        - AFC_Macro_Vars.cfg: configuration/AFC_Macro_Vars.cfg.md
     - Configuration Examples: configuration/configuration_examples.md
-  - Klipper / Macros:
-      - Command Reference: klipper/command_reference.md
+  - Commands:
       - Macros:
           - Macro Overview: klipper/macros.md
-          - Internal Macros: klipper/internal_macros.md
-          - External Macros: klipper/external_macros.md
+          - Internal Macros:
+              - Spool Macros: klipper/internal/spool.md
+              - Calibration Macros: klipper/internal/calibration.md
+              - Tip Forming Macros: klipper/internal/tip_forming.md
+              - Buffer Macros: klipper/internal/buffer.md
+              - Lane / Movement Macros: klipper/internal/lane.md
+              - Misc. Macros: klipper/internal/misc.md
+          - External Macros: klipper/external/macros.md
   - Troubleshooting:
     - Troubleshooting: troubleshooting/troubleshooting.md
     - FAQ: troubleshooting/faq.md
+  - Assembly Manual: https://armoredturtle.xyz
 
+draft_docs: |
+  _afc/README.md
+  _unpublished.md 
 
 theme:
   icon:
@@ -54,6 +75,8 @@ theme:
 
   features:
     - content.code.copy
+    - content.action.edit
+    - content.action.view
     - search.suggest
     - search.highlight
     - search.share
@@ -64,6 +87,7 @@ theme:
     - navigation.tabs.sticky
     - navigation.expand
     - navigation.path
+    - navigation.footer
 
 plugins:
   - search:
@@ -71,7 +95,7 @@ plugins:
   - mkdocs-simple-hooks:
       hooks:
         on_post_page: "mkdoc_hooks:post_page"
-        on_serve: "mkdocs_hook:force_reload"
+        #on_serve: "mkdocs_hooks:force_reload"
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -87,6 +111,7 @@ markdown_extensions:
 - md_in_html
 - pymdownx.blocks.caption
 - pymdownx.details
+- pymdownx.tilde
 - pymdownx.tabbed:
     alternate_style: true
 - pymdownx.highlight:
@@ -96,6 +121,7 @@ markdown_extensions:
 - pymdownx.inlinehilite
 - pymdownx.snippets
 - pymdownx.superfences
+- codehilite
 - toc:
     permalink: true
 
