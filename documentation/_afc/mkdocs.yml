@@ -49,7 +49,18 @@ nav:
     - FAQ: troubleshooting/faq.md
   - BoxTurtle:
       - Overview: boxturtle/index.md
-      - Initial Startup: boxturtle/initial-startup.md
+      - Initial Startup:
+          - Overview: boxturtle/initial_startup/01-overview.md
+          - Flashing: boxturtle/initial_startup/02-flashing.md
+          - Plugin Install: boxturtle/initial_startup/03-install-plugin.md
+          - Self Test: boxturtle/initial_startup/04-self-test.md
+          - Additional Tests: boxturtle/initial_startup/05-additional-tests.md
+          - Hotend Values: boxturtle/initial_startup/06-hotend-values.md
+          - Macro Variables: boxturtle/initial_startup/07-macro-variables.md
+          - Calibration: boxturtle/initial_startup/08-calibration.md
+          - Slicer Config: boxturtle/initial_startup/09-slicer-config.md
+          - Print Start Macro: boxturtle/initial_startup/10-print-start-macro.md
+          - Troubleshooting: boxturtle/initial_startup/11-troubleshooting.md
       - LDO Kit Errata: boxturtle/errata.md
       - BOM: boxturtle/bom.md
       - Wiring Guide: boxturtle/wiring-guide.md
