@@ -4,9 +4,9 @@ title: AFC Klipper Add On Documentation
 
 ## Overview
 
-The AFC-Klipper-Add-On is a powerful tool designed to enhance the functionality of your automated filament changer 
-system. It provides a seamless integration with Klipper, allowing for advanced control and monitoring of your 3D 
-printing process while using multiple filaments. This documentation will guide you through the installation, configuration, and usage of
+The AFC-Klipper-Add-On is a powerful tool designed to enhance the functionality of your multicolor system. It provides 
+a seamless integration with Klipper, allowing for advanced control and monitoring of your 3D printing process while 
+using multiple filaments. This documentation will guide you through the installation, configuration, and usage of
 the AFC-Klipper-Add-On, ensuring you can make the most of its features.
 
 This documentation is intended for users who are familiar with Klipper and have a basic understanding of 3D printing 
