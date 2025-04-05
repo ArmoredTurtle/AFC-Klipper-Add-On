@@ -13,6 +13,7 @@ nav:
     - Overview: index.md
     - Features: features.md
   - Installation / Getting Started:
+    - Quick Start: installation/quick-start.md
     - Installation:
         - Getting Started: installation/getting-started.md
         - Runtime Options: installation/runtime-options.md
@@ -45,6 +46,12 @@ nav:
   - Troubleshooting:
     - Troubleshooting: troubleshooting/troubleshooting.md
     - FAQ: troubleshooting/faq.md
+  - BoxTurtle:
+      - Overview: boxturtle/index.md
+      - Initial Startup: boxturtle/initial-startup.md
+      - LDO Kit Errata: boxturtle/errata.md
+      - BOM: boxturtle/bom.md
+      - Wiring Guide: boxturtle/wiring-guide.md
   - Assembly Manual: https://armoredturtle.xyz
 
 draft_docs: |
