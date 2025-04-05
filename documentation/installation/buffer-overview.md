@@ -34,14 +34,14 @@ distance in order to slow the filament moving to the primary extruder.
 
 ### Turtleneck 1.0
 
-![Heading](https://github.com/user-attachments/assets/c5b6faa9-e110-4e4d-a5d5-b909daad857a)
+![Heading](../assets/images/turtleneck.png)
 
 
 ### TurtleNeck 2.0
 
 [__Flashing TurtleNeck 2.0__](https://github.com/ArmoredTurtle/TurtleNeck2.0/blob/main/Flashing/README.md)
 
-![image](https://github.com/user-attachments/assets/3feba749-e228-4dd4-b6bc-bc3089d14dce)
+![image](../assets/images/turtleneckv2.png)
 
 ## Belay Style buffer
 
