@@ -13,7 +13,7 @@ except:
     from urllib2 import urlopen
     import urlparse
 
-class afcSpool:
+class AFCSpool:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
@@ -54,17 +54,13 @@ class afcSpool:
         """
         This function handles changing the GCODE tool change command for a Lane.
 
-        Usage: `SET_MAP LANE=<lane> MAP=<cmd>`
-        Example: `SET_MAP LANE=lane1 MAP=T1`
+        Usage
+        -----
+        `SET_MAP LANE=<lane> MAP=<cmd>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane whose map is to be changed.
-                  - MAP: The new tool change gcode for lane (optional, defaults to None).
-
-        Returns:
-            None
+        Example
+        -----
+        SET_MAP LANE=lane1 MAP=T1
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -91,18 +87,15 @@ class afcSpool:
         """
         This function handles changing the color of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and sets its color to the value provided by the 'COLOR' parameter.
+        The 'COLOR' parameter should be a hex color code.
 
-        Usage: `SET_COLOR LANE=<lane> COLOR=<color>`
-        Example: `SET_COLOR LANE=lane1 COLOR=FF0000`
+        Usage
+        -----
+        `SET_COLOR LANE=<lane> COLOR=<color>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane whose color is to be changed.
-                  - COLOR: The new color value in hexadecimal format (optional, defaults to '#000000').
-
-        Returns:
-            None
+        Example
+        -----
+        SET_COLOR LANE=lane1 COLOR=FF0000
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -119,21 +112,16 @@ class afcSpool:
     cmd_SET_WEIGHT_help = "Sets filaments weight for a lane"
     def cmd_SET_WEIGHT(self, gcmd):
         """
-        This function handles changing the material of a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
+        This function handles changing the weight remaining of a spool loaded in a specified lane. It retrieves the lane
+        specified by the 'LANE' parameter and sets its weight to the value provided by the 'WEIGHT' parameter.
 
-        Usage: SET_WEIGHT LANE=<lane> WEIGHT=<weight>
-        Example: SET_WEIGHT LANE=lane1 WEIGHT=850
+        Usage
+        -----
+        `SET_WEIGHT LANE=<lane> WEIGHT=<weight>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-
-                    LANE: The name of the lane whose weight is to be changed.
-                    WEIGHT: The new weight (optional, defaults to '').
-
-        Returns:
-            None
+        Example
+        -----
+        SET_WEIGHT LANE=lane1 WEIGHT=850
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -153,18 +141,13 @@ class afcSpool:
         This function handles changing the material of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
 
-        Usage: SET_MATERIAL LANE=<lane> MATERIAL=<material>
-        Example: SET_MATERIAL LANE=lane1 MATERIAL=ABS
+        Usage
+        -----
+        `SET_MATERIAL LANE=<lane> MATERIAL=<material>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-
-                      LANE: The name of the lane whose material is to be changed.
-                      MATERIAL: The new material (optional, defaults to '').
-
-        Returns:
-            None
+        Example
+        -----
+        SET_MATERIAL LANE=lane1 MATERIAL=ABS
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -198,17 +181,13 @@ class afcSpool:
         specified by the 'LANE' parameter and updates its spool ID, material, color, and weight
         based on the information retrieved from the Spoolman API.
 
-        Usage: `SET_SPOOL_ID LANE=<lane> SPOOL_ID=<spool_id>`
-        Example: `SET_SPOOL_ID LANE=lane1 SPOOL_ID=12345`
+        Usage
+        -----
+        `SET_SPOOL_ID LANE=<lane> SPOOL_ID=<spool_id>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane whose spool ID is to be set.
-                  - SPOOL_ID: The new spool ID (optional, defaults to an empty string).
-
-        Returns:
-            None
+        Example
+        -----
+        SET_SPOOL_ID LANE=lane1 SPOOL_ID=12345
         """
         if self.AFC.spoolman !=None:
             lane = gcmd.get('LANE', None)
@@ -279,19 +258,15 @@ class afcSpool:
     def cmd_SET_RUNOUT(self, gcmd):
         """
         This function handles setting the runout lane (infinite spool) for a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and updates its the lane to use if filament runs out by untriggering prep sensor
+        specified by the 'LANE' parameter and updates it's the lane to use if filament runs out by un-triggering prep sensor.
 
-        Usage: `SET_RUNOUT LANE=<lane> RUNOUT=<lane>`
-        Example: `SET_RUNOUT LANE=lane1 RUNOUT=lane4`
+        Usage
+        -----
+        `SET_RUNOUT LANE=<lane> RUNOUT=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane whose spool ID is to be set.
-                  - RUNOUT: The lane to use if LANE runsout (optional, defaults to an empty string).
-
-        Returns:
-            None
+        Example
+        -----
+        SET_RUNOUT LANE=lane1 RUNOUT=lane4
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -321,9 +296,13 @@ class afcSpool:
         """
         This commands resets all tool lane mapping to the order that is setup in configuration. Useful to put in your PRINT_END macro to reset mapping
 
-        Usage: RESET_AFC_MAPPING
+        Usage
+        -----
+        `RESET_AFC_MAPPING`
 
-        Example: RESET_AFC_MAPPING
+        Example
+        -----
+        RESET_AFC_MAPPING
         """
         t_index = 0
         for key, unit in self.AFC.units.items():
@@ -337,4 +316,4 @@ class afcSpool:
         self.logger.info("Tool mappings reset")
 
 def load_config(config):
-    return afcSpool(config)
+    return AFCSpool(config)

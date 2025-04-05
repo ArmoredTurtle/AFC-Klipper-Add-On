@@ -73,7 +73,8 @@ class afcFunction:
                     dataout = ''
                     for line in f:
                         # If previous section found and line starts with bracket, means that this line is another section
-                        #  need to put sectionfound to false to not update wrong sections if rawkey is not found
+                        # need to set section found to false in order to not update wrong sections if raw key is not
+                        # found
                         if sectionfound and line.startswith("["): sectionfound = False
 
                         if re.match(pattern, line) is not None: sectionfound = True
@@ -96,7 +97,7 @@ class afcFunction:
                 if taskdone:
                     f=open(file_path, 'w')
                     f.write(dataout)
-                    f.close
+                    f.close()
                     taskdone = False
                     msg +='\n<span class=info--text>Saved {}:{} in {} section to configuration file</span>'.format(rawkey, rawvalue, rawsection)
                     self.logger.info(msg)
@@ -132,11 +133,11 @@ class afcFunction:
             return True
 
     def is_moving(self):
-        '''
+        """
         Helper function to return if the printer is moving or not. This is different from `is_printing` as it will return true if anything in the printer is moving.
 
         :return boolean: True if anything in the printer is moving
-        '''
+        """
         eventtime = self.AFC.reactor.monotonic()
         idle_timeout = self.printer.lookup_object("idle_timeout")
         return idle_timeout.get_status(eventtime)["state"] == "Printing"
@@ -154,13 +155,13 @@ class afcFunction:
         return print_state not in print_stats_idle_states
 
     def is_printing(self, check_movement=False):
-        '''
+        """
         Helper function to return if the printer is printing an object.
 
         :param check_movement: When set to True will also return True if anything in the printer is also moving
 
         :return boolean: True if printer is printing an object or if printer is moving when `check_movement` is True
-        '''
+        """
         eventtime = self.AFC.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
         moving = False
@@ -512,19 +513,14 @@ class afcFunction:
         This function handles the completion of the AFC calibration process by displaying a prompt to the user, asking
         whether they want to perform more calibrations.
 
-        Usage: `AFC_CALI_COMP CALI=<calibration context>`
+        Usage
+        -----
+        `AFC_CALI_COMP CALI=<calibration context>`
 
-        Examples:
-            - `AFC_CALI_COMP CALI=lane1` (Shows a prompt indicating that calibration for 'lane1' has been completed)
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - CALI: Specifies the calibration context that was completed, such as a specific lane or all lanes.
-
-        Returns:
-            None
-        NO_DOC: True
+        Examples
+        -----
+        AFC_CALI_COMP CALI=lane1
+        (Shows a prompt indicating that calibration for 'lane1' has been completed)
         """
 
         cali = gcmd.get("CALI", None)
@@ -617,19 +613,14 @@ class afcFunction:
         and provides a reset button for each lane. If no lanes are loaded, an informative message is displayed indicating
         that a lane must be loaded to proceed with resetting.
 
-        Usage: `AFC_RESET DISTANCE=<distance>`
+        Usage
+        -----
+        `AFC_RESET DISTANCE=<distance>`
 
-        Examples:
-            - `AFC_RESET DISTANCE=30` (Shows the prompt for resetting lanes with a distance value of 30mm)
-            - `AFC_RESET` (Shows the prompt for resetting lanes without specifying a distance)
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - DISTANCE: The distance value to use for resetting the lanes (optional).
-
-        Returns:
-            None
+        Example
+        -----
+        - `AFC_RESET DISTANCE=30` (Shows the prompt for resetting lanes with a distance value of 30mm)
+        - `AFC_RESET` (Shows the prompt for resetting lanes without specifying a distance)
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -664,20 +655,14 @@ class afcFunction:
         such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
         hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.
 
-        Usage: `AFC_LANE_RESET LANE=<lane> DISTANCE=<distance>`
+        Usage
+        -----
+        `AFC_LANE_RESET LANE=<lane> DISTANCE=<distance>`
 
-        Examples:
-            - `AFC_LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
-            - `AFC_LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - LANE: The lane to reset. Must be a valid lane in the AFC system.
-                - DISTANCE: The distance to move during the reset (optional, defaults to the AFC settings).
-
-        Returns:
-            None
+        Example
+        -----
+        - `AFC_LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
+        - `AFC_LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -768,18 +753,15 @@ class afcFunction:
         value, pass in `reset` for each length to reset to value in config file. Adding +/- in front of the
         length will increase/decrease bowden length by that amount.
 
-        Usage: `SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length> UNLOAD_LENGTH=<length>`
-        Example: `SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100`
+        Usage
+        -----
+        `SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length> UNLOAD_LENGTH=<length>`
+
+        Example
+        -----
+        SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100
 
         Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - HUB: The name of the hub to be adjusted (optional).
-                  - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
-                  - UNLOAD_LENGTH: The length adjustment value for afc_unload_bowden_length variable (optional).
-
-        Returns:
-            None
         """
         hub           = gcmd.get("HUB", None )
         length_param  = gcmd.get('LENGTH', None)
@@ -822,16 +804,13 @@ class afcFunction:
         It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
         and responds with the status of the operation.
 
-        Usage: `HUB_CUT_TEST LANE=<lane>`
-        Example: `HUB_CUT_TEST LANE=lane1`
+        Usage
+        -----
+        `HUB_CUT_TEST LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be tested.
-
-        Returns:
-            None
+        Example
+        -----
+        HUB_CUT_TEST LANE=lane1
         """
         lane = gcmd.get('LANE', None)
         self.logger.info('Testing Hub Cut on Lane: ' + lane)
@@ -852,16 +831,13 @@ class afcFunction:
         2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
         3. Reports the status of each test step.
 
-        Usage: `TEST LANE=<lane>`
-        Example: `TEST LANE=lane1`
+        Usage
+        -----
+        `TEST LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be tested.
-
-        Returns:
-            None
+        Example
+        -----
+        TEST LANE=lane1
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
