@@ -205,7 +205,9 @@ Refer to [wiring guide](./wiring-guide.md) for recommended wire lengths for each
 
 # Initial startup guide
 
-Please refer to the [Initial Startup Guide](./initial-startup.md) after completing the assembly of your BoxTurtle for next
+Please refer to the [Initial Startup Guide](./initial_startup/01-overview.md) after completing the 
+assembly of your 
+BoxTurtle for next
 steps.
 
 # Optional Accessories

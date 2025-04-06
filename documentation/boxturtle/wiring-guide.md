@@ -15,7 +15,7 @@ Load = Extruder Filament Sensor Switches
 
 ![BoxTurtle_AFC-Lite_Pinout](../assets/images/boxturtle-afc-lite-pinout.png)
 
-**NOTE**: You need to connect 24V and GND to the CANBUS port pins even if you are connecting using USB-C for data transmission. The AFC-Lite PCB does not support USB Power Delivery.
+**NOTE**: You need to connect 24V and GND to the CAN bus port pins even if you are connecting using USB-C for data transmission. The AFC-Lite PCB does not support USB Power Delivery.
 
 ## Extruder Steppers
 | Lane | Recommended Wire Length | Recommended Wire Gauge | Connector |

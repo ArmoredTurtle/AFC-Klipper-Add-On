@@ -15,7 +15,7 @@ the first value. You may need to increase this value if you are using a ram buff
 
 === "Revo Voron"
 
-    - `tool_stn`: 52 (1) (if `pin_tool_end` is NOT defined) / 29 (if `pin_tool_end` is defined)
+    - `tool_stn`: 52 (if `pin_tool_end` is NOT defined) / 29 (if `pin_tool_end` is defined)
     - `tool_stn_unload`: 62
     - `variable_retract_length`: 22
     - `variable_pushback_length`: 20

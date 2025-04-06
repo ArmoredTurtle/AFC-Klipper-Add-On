@@ -56,7 +56,7 @@ Starting with Batch 3, 1.3m of 3mmID PTFE are included which is more than double
 
 As each printer connection is different, cable was not included in batch 1 kits to connect the BoxTurtle to your
 printer. A 2x2 pin Molex connector is included in the kits for you to create your own cable to connect the AFC lite for
-power and (optionally) can bus data.
+power and (optionally) CAN bus data.
 
 ### N20 motor failure
 

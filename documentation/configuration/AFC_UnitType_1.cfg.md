@@ -20,7 +20,9 @@ This section will define the MCU used for the specific unit.
 
 !!! warning
 
-    Either `canbus_uuid` or `serial` should be defined, not both.
+    Either `canbus_uuid` or `serial` should be defined, not both. Please ensure that you are using the correct
+    configuration for your setup. The `canbus_uuid` is used for CAN bus devices, while the `serial` is used for
+    USB devices. Whichever option is **NOT** being used should be commented out.
 
 ``` cfg
 [include mcu/<mcu_name>.cfg]
@@ -90,10 +92,10 @@ gear_ratio:
 #    gear_ratio is specified then rotation_distance specifies the
 #    distance the axis travels for one full rotation of the final gear.
 #    The default is to not use a gear ratio.
-dist_hub:
+dist_hub: 60
 #    Default: 60
 #    Bowden distance between Box Turtle extruder and hub.
-park_dist:
+park_dist: 10
 #    Default: 10
 #    Currently unused.
 led_index: AFC_Indicator:1
@@ -114,25 +116,25 @@ fwd_speed_multiplier: 0.5
 #    Multiplier to apply to rpm.
 pwm: True
 #    Default: True
-#    If True, the stepper motor will be controlled using PWM. 
+#    If True, the n20 motor will be controlled using PWM. 
 prep: ^!Turtle_1:TRG1
 #    MCU pin for prep trigger. This is the sensor attached to the
 #    trigger that is used when filament is loaded.
 load: ^!Turtle_1:EXT1
 #    MCU pin for load trigger. This is the sensor attached to the
 #    extruder body located AFTER the extruder motor.
-led_fault:
-#    Default: <none>
+led_fault: 1,0,0,0
+#    Default: 1,0,0,0
 #    LED color to set when faults occur in lane.
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-led_ready:
-#    Default: <none>
+led_ready: 0,0.8,0,0
+#    Default: 0,0.8,0,0
 #    LED color to set when lane is ready.
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-led_not_ready:
-#    Default: <none>
+led_not_ready: 1,0,0,0
+#    Default: 1,0,0,0
 #    LED color to set when lane is not ready.
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section.
@@ -141,58 +143,58 @@ led_loading:
 #    LED color to set when lane is loading.
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-led_unloading:
-#    Default: <none>
+led_unloading: 1,1,1,0
+#    Default: 1,1,1,0
 #    LED color to set when lane is unloading.
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-led_tool_loaded:
-#    Default: <none>
+led_tool_loaded: 0,0,1,0
+#    Default: 0,0,1,0
 #    LED color to set when lane is loaded in toolhead.
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-long_moves_speed:
-#    Default: <none>
+long_moves_speed: 150
+#    Default: 150
 #    Speed in mm/s to move filament when doing long moves. 
 #    Setting value here overrides values set in 
 #    unit(AFC_BoxTurtle/NightOwl/etc) section
-long_moves_accel:
-#    Default: <none>
+long_moves_accel: 250
+#    Default: 250
 #    Acceleration in mm/s squared when doing long moves. 
 #    Setting value here overrides values set in 
 #    unit(AFC_BoxTurtle/NightOwl/etc) section
-short_moves_speed:
-#    Default: <none>
+short_moves_speed: 50
+#    Default: 50
 #    Speed in mm/s to move filament when doing short moves. 
 #    Setting value here overrides values set in 
 #    unit(AFC_BoxTurtle/NightOwl/etc) section
-short_moves_accel:
-#    Default: <none>
+short_moves_accel: 300
+#    Default: 300
 #    Acceleration in mm/s squared when doing short moves. 
 #    Setting value here overrides values set in 
 #    unit(AFC_BoxTurtle/NightOwl/etc) section
-short_move_dis:
-#    Default: <none>
+short_move_dis: 10
+#    Default: 10
 #    Move distance in mm for failsafe moves. Setting value 
 #    here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) 
 #    section
-max_move_dis:
+max_move_dis: 99999
 #    Default: 99999
 #    Maximum distance to move filament. AFC breaks filament moves over 
 #    this number into multiple moves. Useful to lower this number if 
 #    running into timer too close errors when doing long filament moves. 
 #    Setting value here overrides values set in 
 #    unit(AFC_BoxTurtle/NightOwl/etc) section
-n20_break_delay_time:
+n20_break_delay_time: 0.200
 #    Default: 0.200
 #    Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) 
 #    and then releasing the break to allow coasting. Setting value 
 #    here overrides values set in unit (AFC_BoxTurtle/NightOwl/etc) section.
-load_to_hub:
+load_to_hub: True
 #    Default: True
 #    Fast loads filament to hub when inserted, set to False to disable. 
 #    Setting here overrides global setting in AFC.cfg.
-enable_sensors_in_gui:
+enable_sensors_in_gui: False
 #    Default: False
 #    Set to True to show prep and load sensors switches as filament sensors 
 #    in Mainsail/Fluidd gui, overrides value set in AFC.cfg.
@@ -201,36 +203,36 @@ sensor_to_show:
 #    Set to prep to only show prep sensor, set to load to only show load 
 #    sensor. Do not add if you want both prep and load sensors to show in 
 #    web gui.
-assisted_unload:
+assisted_unload: False
 #    Default: False
 #    If True, the unload retract is assisted to prevent loose windings, 
 #    especially on full spools. This can prevent loops from slipping off the 
 #    spool. Setting value here overrides values set in 
 #    unit(AFC_BoxTurtle/NightOwl/etc) section.
-print_current:
-#    Default: <none>
+print_current: 0.6
+#    Default: 0.6
 #    Current to use while printing, set to a lower current to reduce stepper 
 #    heat when printing. Defaults to global_print_current, if not specified 
 #    current is not changed.
-filament_diameter:
+filament_diameter: 1.75
 #    Default: 1.75
 #    Diameter of the filament in mm.
-filament_density: 
+filament_density: 1.24
 #    Default: 1.24
 #    Density of the filament in g/cm^3.
-spool_inner_diameter:
+spool_inner_diameter: 100
 #    Default: 100
 #    Inner diameter of the spool in mm.
-spool_outer_diameter:
-#    Default: 200
+spool_outer_diameter: 200
+#    Default: 200 
 #    Outer diameter of the spool in mm.
-empty_spool_weight:
+empty_spool_weight: 190
 #    Default: 190
 #    Weight of the empty spool in grams.
-spool_weight:
+spool_weight: 1000
 #    Default: 1000
 #    Remaining spool weight in grams.
-assist_max_motor_rpm:
+assist_max_motor_rpm: 500
 #    Default: 500
 #    Maximum motor RPM for the assist motor (N20).
 hub: 
@@ -293,72 +295,72 @@ hubs may be defined in the configuration file.
 switch_pin: mcu:pin
 #    Default: <none>
 #    MCU pin for the hub switch.
-hub_clear_move_dis:
+hub_clear_move_dis: 25
 #    Default: 25
 #    How far to move filament so that it doesn't block the hub exit.
-afc_bowden_length: 
+afc_bowden_length:  900
 #    Default: 900
 #    Length of the bowden tube in mm from the hub to the toolhead 
 #    sensor.
-afc_unload_bowden_length:
+afc_unload_bowden_length: 900
 #    Default: <afc_bowden_length>
 #    Length to unload when retracting back from toolhead to hub in 
 #    mm. This defaults to the value of `afc_bowden_length` if not
 #    specified. With normal installations, this value should not
 #    need to be changed or specified explicitly.
-assisted_retract:
+assisted_retract: False
 #    Default: False
 #    If true, retracts are assisted to prevent loose windings on the
 #    spool.
-move_dis:
+move_dis: 50
 #    Default: 50
 #    Distance to move the filament within the hub in mm.
-cut:
+cut: False
 #    Default: False
 #    Set to true if using a hub cutter. An example of this would
 #    be the `Snappy` hub cutter. 
-cut_cmd:
-#    Default: <none>
+cut_cmd: AFC
+#    Default: AFC
 #    Macro command to run when the cut command is sent. This should
 #    be set to `AFC` if using the built in functionality. This is 
 #    only required when `cut: True` is set.
-cut_servo_name:
+cut_servo_name: cut
 #    Default: cut
 #    Name of servo to use for the hub cutter. This is only required
 #    when `cut: True` is set. This requires a `[servo cut]` section
 #    to be defined in a configuration file.
-cut_dist:
+cut_dist: 50
 #    Default: 50
 #    How much filament (in mm) to cut when the cut command is sent.
 #    This is only required when `cut: True` is set.
-cut_clear:
+cut_clear: 120
 #    Default: 120
 #    How far the filament should retract (in mm) back from the hub.
 #    This is only required when `cut: True` is set.
-cut_min_length:
+cut_min_length: 200
 #    Default: 200
 #    Minimum length of filament (in mm) to cut. This is only
 #    required when `cut: True` is set.
-cut_servo_pass_angle: 
+cut_servo_pass_angle: 0 
 #    Default: 0
 #    Servo angle to align the bowden tube with the hole for loading
 #    the toolhead. This is only required when `cut: True` is set.
-cut_servo_clip_angle:
+cut_servo_clip_angle: 160
 #    Default: 160
 #    Servo angle for a completed cut movement. This is only required
 #    when `cut: True` is set.
-cut_servo_prep_angle: 
+cut_servo_prep_angle: 75
 #    Default: 75
 #    Servo angle to prepare the filament for cutting. This should be 
 #    set so that the bowden tube is NOT aligned with the hub exit. 
 #    It should be clear so that filament can be pushed out of the hub
 #    and the cutting mechanism can be engaged. This is only required
 #    when `cut: True` is set.
-cut_confirm:
+cut_confirm: False
 #    Default: False
 #    If true, the cut command will execute twice. This is only
 #    required when `cut: True` is set.
-enable_sensors_in_gui:
+enable_sensors_in_gui: False
 #    Default: False
 #    Set to True to show hub sensor switch as a filament sensor in 
 #    Mainsail/Fluidd gui, overrides value set in AFC.cfg.
@@ -374,9 +376,10 @@ LEDs may be defined in the configuration file.
 [AFC_led AFC_Indicator]
 pin: mcu:pin
 #    MCU pin definition for LED indicator.
-chain_count:
+chain_count: 1
 #    Number of LEDs in the chain.
-color_order:
+color_order: GRB
+#    Default: GRB
 #    Color order of the LEDs in the chain. This is typically set to
 #    a value like `GRB` or `GRBW` depending on the LED type. However,
 #    if you are experiencing LED issues, ensure you validate that the 
@@ -407,73 +410,73 @@ buffer:
 #    Default: <none>
 #    Buffer name(AFC_buffer) that belongs to this unit. can be
 #    overriden in the [AFC_stepper] section.
-led_fault:
+led_fault: 1,0,0,0
 #    Default: 1,0,0,0
 #    LED color to set when faults occur in lane        
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in AFC.cfg file.
-led_ready:
+led_ready: 1,1,0,0
 #    Default: 1,1,0,0
 #    LED color to set when lane is ready
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_not_ready:
+led_not_ready: 1,1,0,0
 #    Default: 1,1,0,0
 #    LED color to set when lane is not ready
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_loading:
+led_loading: 1,0,0,0
 #    Default: 1,0,0,0
 #    LED color to set when lane is loading
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_unloading:
+led_unloading: 1,1,.5,0
 #    Default: 1,1,.5,0
 #    LED color to set when lane is unloading
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_tool_loaded:
+led_tool_loaded: 1,1,0,0
 #    Default: 1,1,0,0
 #    LED color to set when lane is loaded in toolhead
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-long_moves_speed:
+long_moves_speed: 100
 #    Default: 100
 #    Speed in mm/s to move filament when doing long moves.
 #    Setting value here overrides values set in AFC.cfg file.
-long_moves_accel:
+long_moves_accel: 400
 #    Default: 400
 #    Acceleration in mm/s squared when doing long moves.
 #    Setting value here overrides values set in AFC.cfg file.
-short_moves_speed:
+short_moves_speed: 25
 #    Default: 25
 #    Speed in mm/s to move filament when doing short moves.
 #    Setting value here overrides values set in AFC.cfg file.
-short_moves_accel:
+short_moves_accel: 400
 #    Default: 400
 #    Acceleration in mm/s squared when doing short moves.
 #    Setting value here overrides values set in AFC.cfg file.
-short_move_dis:
+short_move_dis: 400
 #    Default: 400
 #    Move distance in mm for failsafe moves. Setting value
 #    here overrides values set in AFC.cfg file.
-max_move_dis:
+max_move_dis: 99999
 #    Default: 99999
 #    Maximum distance to move filament. AFC breaks filament moves over
 #    this number into multiple moves. Useful to lower this number if
 #    running into timer too close errors when doing long filament moves.
 #    Setting value here overrides values set in AFC.cfg file.
-n20_break_delay_time:
+n20_break_delay_time: 0.200
 #    Default: 0.200
 #    Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1)
 #    and then releasing the break to allow coasting. Setting value
 #    here overrides values set in AFC.cfg file.
-assisted_unload:
+assisted_unload: False
 #    Default: False
 #    If True, the unload retract is assisted to prevent loose windings,
 #    especially on full spools. This can prevent loops from slipping off the
 #    spool. Setting value here overrides values set in AFC.cfg file.
-unload_on_runout:
+unload_on_runout: False
 #    Default: False
 #    When True, AFC will unload lane and then pause when runout is 
 #    triggered and spool to swap is not set (infinite spool). Setting
@@ -503,62 +506,62 @@ buffer:
 #    Default: <none>
 #    Buffer name(AFC_buffer) that belongs to this unit. can be
 #    overriden in the [AFC_stepper] section.
-led_fault:
+led_fault: 1,0,0,0
 #    Default: 1,0,0,0
 #    LED color to set when faults occur in lane        
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here 
 #    overrides values set in AFC.cfg file.
-led_ready:
+led_ready: 1,1,0,0
 #    Default: 1,1,0,0
 #    LED color to set when lane is ready
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_not_ready:
+led_not_ready: 1,1,0,0
 #    Default: 1,1,0,0
 #    LED color to set when lane is not ready
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_loading:
+led_loading: 1,0,0,0
 #    Default: 1,0,0,0
 #    LED color to set when lane is loading
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_unloading:
+led_unloading: 1,1,.5,0
 #    Default: 1,1,.5,0
 #    LED color to set when lane is unloading
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-led_tool_loaded:
+led_tool_loaded: 1,1,0,0
 #    Default: 1,1,0,0
 #    LED color to set when lane is loaded in toolhead
 #    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here
 #    overrides values set in AFC.cfg file.
-long_moves_speed:
+long_moves_speed: 100
 #    Default: 100
 #    Speed in mm/s to move filament when doing long moves.
 #    Setting value here overrides values set in AFC.cfg file.
-long_moves_accel:
+long_moves_accel: 400
 #    Default: 400
 #    Acceleration in mm/s squared when doing long moves.
 #    Setting value here overrides values set in AFC.cfg file.
-short_moves_speed:
+short_moves_speed: 25
 #    Default: 25
 #    Speed in mm/s to move filament when doing short moves.
 #    Setting value here overrides values set in AFC.cfg file.
-short_moves_accel:
+short_moves_accel: 400
 #    Default: 400
 #    Acceleration in mm/s squared when doing short moves.
 #    Setting value here overrides values set in AFC.cfg file.
-short_move_dis:
+short_move_dis: 400
 #    Default: 400
 #    Move distance in mm for failsafe moves. Setting value
 #    here overrides values set in AFC.cfg file.
-assisted_unload:
+assisted_unload: False
 #    Default: False
 #    If True, the unload retract is assisted to prevent loose windings,
 #    especially on full spools. This can prevent loops from slipping off the
 #    spool. Setting value here overrides values set in AFC.cfg file.
-unload_on_runout:
+unload_on_runout: False
 #    Default: False
 #    When True, AFC will unload lane and then pause when runout is 
 #    triggered and spool to swap is not set (infinite spool). Setting

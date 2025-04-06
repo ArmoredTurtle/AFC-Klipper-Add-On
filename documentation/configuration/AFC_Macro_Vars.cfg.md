@@ -11,7 +11,7 @@ This file is split up into multiple sections, each of which is used to define a 
 defined in the standard `[gcode_macro <macro_name>]` format, where `<macro_name>` is the name of the macro. 
 Each section contains a set of variables that are used to control the behavior of the macro.
 
-!!! tip
+!!! info
 
     As a reminder, when a macro is preceeded by a `_` (underscore), it is a `hidden` macro. This means that it will not be
     listed in the `Gcode Macro` menu in Fluidd or Mainsail. This is useful for macros that are used internally by the
@@ -29,7 +29,7 @@ macros and unexpected behavior.
     Travel speeds in this file are defined in mm/s, however typically Klipper expects 
     this to be in mm/min. Our macros have been designed to convert this value to mm/min for you.
 
-## [gcode_macro _AFC_GLOBAL_VARS] Section
+## [_AFC_GLOBAL_VARS]
 
 The `_AFC_GLOBAL_VARS` section is used to define the global variables for the AFC-Klipper-Add-On. These variables are
 used throughout the AFC provided macros to control various aspects of its behavior. 
@@ -45,8 +45,6 @@ variable_z_travel_speed                  : '30'
 variable_accel                           : '1000'
 variable_verbose                         : '1'
 ```
-
-### Macro Configuration Options
 
 -----
 === "variable_stepper_name"
@@ -104,7 +102,7 @@ variable_verbose                         : '1'
     - `1`: Limited output
     - `2`: All output
 
-## [gcode_macro _AFC_CUT_TIP_VARS] Section
+## [_AFC_CUT_TIP_VARS]
 
 The `_AFC_CUT_TIP_VARS` section is used to define the variables for the AFC-Klipper-Add-On for the `CUT` macro. These 
 variables help define items such as locations, speed, and other parameters that are used in the `CUT` macro. 
@@ -135,16 +133,15 @@ variable_rip_length               : 1.0
 variable_rip_speed                : 3 
 variable_pushback_length          : 15
 variable_safe_margin_xy           : 30, 30 
-# variable_cut_current_stepper_x: 0
-# variable_cut_current_stepper_y: 0
-# variable_cut_current_stepper_z: 0
-# variable_conf_name_stepper_x: "tmc2209 stepper_x"
-# variable_conf_name_stepper_y: "tmc2209 stepper_y"
-# variable_conf_name_stepper_z: "tmc2209 stepper_z"
-# variable_awd: True
+variable_cut_current_stepper_x: 0
+variable_cut_current_stepper_y: 0
+variable_cut_current_stepper_z: 0
+variable_conf_name_stepper_x: "tmc2209 stepper_x"
+variable_conf_name_stepper_y: "tmc2209 stepper_y"
+variable_conf_name_stepper_z: "tmc2209 stepper_z"
+variable_awd: False
 ```
 
-### Macro Configuration Options
 -----
 === "variable_pin_loc_xy"
     Default: `-1, -1`  
@@ -334,7 +331,7 @@ engage different combinations of steppers for that motion. If enabled, the value
     steppers. 
     This value should be set to `True` or `False`.
 
-## [gcode_macro _AFC_POOP_VARS] Section
+## [_AFC_POOP_VARS]
 
 The `_AFC_POOP_VARS` section is used to define the variables for the AFC-Klipper-Add-On for the `POOP` macro. These
 variables help define items such as locations, speed, and other parameters that are used in the `POOP` macro.
@@ -362,7 +359,6 @@ variable_purge_length_modifier    : 1
 variable_purge_length_addition    : 0
 ```
 
-### Macro Configuration Options
 -----
 === "variable_purge_loc_xy"
     Default: `-1, -1`  
@@ -457,7 +453,7 @@ variable_purge_length_addition    : 0
     This value should be set to a decimal value between `0` and `1`.
 
 
-## [gcode_macro _AFC_KICK_VARS] Section
+## [_AFC_KICK_VARS]
 The `_AFC_KICK_VARS` section is used to define the variables for the AFC-Klipper-Add-On for the `KICK` macro. These
 variables help define items such as locations, speed, and other parameters that are used in the `KICK` macro.
 !!! warning
@@ -477,7 +473,6 @@ variable_kick_move_dist           : 45
 variable_z_after_kick             : 10       
 ```
 
-### Macro Configuration Options
 -----
 === "variable_kick_start_loc"
     Default: `-1,-1, 10`  
@@ -518,7 +513,7 @@ variable_z_after_kick             : 10
     This is the value that is used to define the Z height after the kick macro is executed. 
     This should be set to the height of the kick in mm.
 
-## [gcode_macro _AFC_BRUSH_VARS] Section
+## [_AFC_BRUSH_VARS]
 The `_AFC_BRUSH_VARS` section is used to define the variables for the AFC-Klipper-Add-On for the `BRUSH` macro. These
 variables help define items such as locations, speed, and other parameters that are used in the `BRUSH` macro.
 !!! warning
@@ -540,7 +535,6 @@ variable_brush_count              : 4
 variable_z_move                   : -1
 ```
 
-### Macro Configuration Options
 -----
 === "variable_brush_loc"
     Default: `-1,-1,-1`  
@@ -587,7 +581,7 @@ variable_z_move                   : -1
     Default: `-1`  
     Move in Z after brush to avoid bed if brush is at Z0 (Set z to -1 if you don't want a z move)
 
-## [gcode_macro _AFC_PARK_VARS] Section
+## [_AFC_PARK_VARS]
 The `_AFC_PARK_VARS` section is used to define the variables for the AFC-Klipper-Add-On for the `PARK` macro. These
 variables help define items such as locations, speed, and other parameters that are used in the `PARK` macro.
 !!! warning
@@ -601,8 +595,6 @@ gcode: # Leave empty
 variable_park_loc_xy              : -1, -1    
 variable_z_hop                    : 0 
 ```
-
-### Macro Configuration Options
 
 -----
 === "variable_park_loc_xy"

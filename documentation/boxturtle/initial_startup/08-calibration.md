@@ -3,7 +3,7 @@ Title: Calibration
 ---
 ## Calibration
 
-Follow [this guide](../../installation/calibration.md) to calibrate the necessary lengths of your BoxTurtle.
+Follow [this guide](../../installation/calibration.md) and run the guided calibration to find the necessary lengths of your BoxTurtle lanes.
 
 Note that these values may need to be tweaked slightly if the loading sequence does not function. Make small
 adjustments (5/10mm) to see if performance/reliability improves.

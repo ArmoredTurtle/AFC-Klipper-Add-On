@@ -75,6 +75,7 @@ theme:
     repo: fontawesome/brands/github
   name: material
   logo: assets/logo.png
+  favicon: assets/favicon-32x32.png
 #  palette:
 #    - media: "(prefers-color-scheme)"
 #      toggle:
@@ -96,17 +97,21 @@ theme:
     - content.code.copy
     - content.action.edit
     - content.action.view
-    - search.suggest
-    - search.highlight
-    - search.share
-    - navigation.instant
-    - navigation.instant.prefetch
-    - navigation.instant.progress
-    - navigation.tabs
-    - navigation.tabs.sticky
-    - navigation.expand
-    - navigation.path
-    - navigation.footer
+    - search.suggest # Show suggestions when searching
+    - search.highlight # Highlight search results
+    - search.share # Share search results
+    - navigation.top # Adds a back to top button when scrolling long pages
+    - navigation.instant # XHR loading instead of full page reload
+    - navigation.instant.prefetch # start loading page if user hovers a link
+    - navigation.instant.progress # show progress bar when loading a page on slow connections
+    - navigation.tabs # Adds tabbed navigation to top bar when screen > 1220px
+    - navigation.tabs.sticky # Keep the tabbed navigation bar at the top of the screen when scrolling
+    - navigation.tracking # Track the current page in the navigation bar
+    - navigation.expand # Start with all sections expanded
+    - navigation.path # Show the path to the current page at the top of the page
+    - navigation.footer # adds next and previous buttons to the bottom of the page
+    - toc.follow # Follow the table of contents when scrolling
+    - optimize
 
 plugins:
   - search:
@@ -152,6 +157,16 @@ extra_css:
   - stylesheets/extra.css
 
 extra:
+  social:
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/armoredturtle
+      name: Join us on Discord!
+    - icon: fontawesome/brands/github
+      link: https://github.com/ArmoredTurtle
+      name: All out projects!
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/@Armored_Turtle-RK
+      name: Check out our YouTube channel!
   consent:
     title: Cookie consent
     description: >- 

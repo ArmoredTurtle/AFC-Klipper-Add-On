@@ -29,8 +29,8 @@ problem should resolve itself.
 After installation, please ensure sure you update the following settings:
 
 - In `AFC/AFC_Turtle_1.cfg`:
-    - `canbus_uuid` if using CAN BUS
-    - `serial`` if using USB
+    - `canbus_uuid` if using CAN bus
+    - `serial` if using USB
 - In `AFC/AFC_Hardware.cfg`
     - `pin_tool_start` and/or ``pin_tool_end`
 

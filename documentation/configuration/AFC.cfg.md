@@ -25,25 +25,29 @@ of the AFC system, including speed settings, LED configurations, and macro setti
 VarFile: ../printer_data/config/AFC/AFC.var
 #    Defines the location of the AFC.var file. This file is used to store 
 #    variables and settings for the AFC system. 
-long_moves_speed: 150           
-#    Speed in mm/s. Default value is 150mm/s. This is the speed used for
-#    long moves, such as when loading or unloading filament.
-long_moves_accel: 250           
-#    Speed in mm/s². Default value is 250mm/s². This is the acceleration 
-#    used for long moves.
-short_moves_speed: 50           
-#    Speed in mm/s. Default value is 50mm/s. This is the speed used for
-#    short moves, such as when moving the final distance to the toolhead
-#    or during calibration.
-short_moves_accel: 300          
-#    Speed in mm/s². Default value is 300mm/s². This is the acceleration
-#    used for short moves.
-short_move_dis: 10              
-#    Move distance for failsafe moves. Default is 10mm.
-global_print_current: 0.6      
+long_moves_speed: 150      
+#    Default: 150     
+#    Speed in mm/s. This is the speed used for long moves, such as when 
+#    loading or unloading filament.
+long_moves_accel: 250
+#    Default: 250           
+#    Speed in mm/s². This is the acceleration used for long moves.
+short_moves_speed: 50
+#    Default: 50           
+#    Speed in mm/s. This is the speed used for short moves, such as 
+#    when moving the final distance to the toolhead or during calibration.
+short_moves_accel: 300
+#    Default: 300          
+#    Speed in mm/s². This is the acceleration used for short moves.
+short_move_dis: 10
+#    Default: 10              
+#    Move distance for failsafe moves.
+global_print_current: 0.6
+#    Default: 0.6
 #    Uncomment to set stepper motors to a lower current while printing.
 #    This value can also be set per stepper with print_current: 0.6
-enable_sensors_in_gui: True     
+enable_sensors_in_gui: True
+#    Default: False     
 #    Boolean to show all sensor switches as filament sensors in 
 #    the Mainsail/Fluidd gui.
 default_material_temps: default: 235, PLA:210, ABS:235, ASA:235 
@@ -53,26 +57,32 @@ default_material_temps: default: 235, PLA:210, ABS:235, ASA:235
 #    add more filament types.
 default_material_type: PLA      
 #    Default material type to assign to a spool once loaded into a lane.
-load_to_hub: True               
+load_to_hub: True
+#    Default: True            
 #    Fast loads filament to hub when inserted, set to False to disable. This 
 #    is a global setting and can be overridden at AFC_stepper for individual 
 #    lanes if needed.
-moonraker_port: 7125            
+moonraker_port: 7125
+#    Default: <none>     
 #    Port to connect to when interacting with moonraker. Used when there are 
 #    multiple moonraker/klipper instances on a single host.
-assisted_unload: True           
+assisted_unload: True
+#    Default: <none> 
 #    If True, the unload retract is assisted to prevent loose windings, 
 #    especially on full spools. This can prevent loops from slipping off the 
 #    spool. This is a global setting and can be overridden at the unit and 
 #    stepper level.
-pause_when_bypass_active: True  
+pause_when_bypass_active: True
+#    Default: False
 #    When True AFC pauses print when change tool is called and bypass is loaded
-unload_on_runout: True          
+unload_on_runout: True
+#    Default: False   
 #    When True AFC will unload lane and then pause when runout is triggered and 
 #    spool to swap to is not set(infinite spool)
-debug: True                     
+debug: False
+#    Default: False                    
 #    Setting to True turns on more debugging to show on console.
-trsync_update: True            
+trsync_update: False            
 #    Default: False
 #    When set to true, Klipper's trsync value will be automatically set to the
 #    value in trsync_timeout. This can be useful if you are experiencing TTC
@@ -84,7 +94,8 @@ trsync_single_timeout: 0.250
 #    Default: 0.250  
 #    Value to set single_timeout to when it needs to be greater than the 
 #    default of 0.250
-z_hop: 5                        
+z_hop: 5
+#    Default: 0                
 #    Height to move up before and after a tool change completes
 resume_speed: 120               
 #    Speed mm/s of resume move. Set to 0 to use gcode speed
@@ -221,7 +232,7 @@ enable: True
 delay_time: 0.1
 #    Default: 0.1, minval=0.0
 #    Time to delay when moving extruders and spoolers during the PREP routine.
-disable_unload_filament_remapping: 
+disable_unload_filament_remapping: False
 #    Default: False
 #    Set to true to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD 
 #    macro.

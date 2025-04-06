@@ -29,24 +29,30 @@ pin_tool_end: mcu:pin
 #    MCU defined pin for filament sensor located after (post) the
 #    extruder gears. This is used to detect the presence of filament
 #    after the extruder gears.
-tool_stn: 72                    
+tool_stn: 72
+#    Default: 72              
 #    Distance in mm from the toolhead sensor (pin_tool_start)to the 
 #    tip of the nozzle in mm, if `pin_tool_end` is defined then 
 #    distance is from this sensor 
-tool_stn_unload: 100            
+tool_stn_unload: 100
+#    Default: 100      
 #    Distance to move in mm while unloading toolhead
-tool_sensor_after_extruder: 0   
+tool_sensor_after_extruder: 0
+#    Default: 0
 #    Extra distance to move in mm once pre/post sensors are clear. 
 #    Useful for when only using post sensor, so this distance can 
 #    be the amout to move to clear extruder gears.
-tool_unload_speed: 25           
-#    Unload speed in mm/s when unloading toolhead. Default is 25mm/s.
+tool_unload_speed: 25
+#    Default: 25      
+#    Unload speed in mm/s when unloading toolhead.
 tool_load_speed: 25             
-#    Load speed in mm/s when unloading toolhead. Default is 25mm/s.
+#    Default: 25
+#    Load speed in mm/s when unloading toolhead.
 buffer: <buffer_name>
 #    Buffer to use for extruder, this variable can be overridden 
 #    per lane.
 enable_sensors_in_gui: False
+#    Default: False
 #    Set to True toolhead sensors switches as filament sensors in 
 #    Mainsail/Fluidd gui, overrides value set in AFC.cfg.
 ``` 
@@ -62,15 +68,19 @@ advance_pin: mcu:pin
 trailing_pin: mcu:pin
 #    MCU defined pin for trailing sensor.
 multiplier_high: 1.05
+#    Default: 1.05
 #    Factor to move more filament through the secondary extruder.
 multiplier_low: 0.95
+#    Default: 0.95
 #    Factor to move less filament through the secondary extruder.
 led_index: Buffer_Indicator:1
 #    LED index for the buffer, used to control the buffer LED
 #    (if present).
 velocity: 0
+#    Default: 0
 #    Velocity for the forward assist.
 accel: 0
+#    Default: 0 
 #    Error if the buffer is not configured properly.
 ```
 
@@ -84,15 +94,17 @@ control the configuration of the AFC system when interfacing with the buffer LED
 pin: mcu:pin 
 #    MCU defined pin for the LED.
 chain_count: 1
+#    Default: 1
 #    Number of LEDs in the chain.
-color_order: GRBW
+color_order: GRB
+#    Default: GRB
 #    Color order of the LED chain.
-intial_RED: 0.0
+initial_RED: 0.0
 #    Initial RED value of the LED.
-intial_GREEN: 0.0
+initial_GREEN: 0.0
 #    Initial GREEN value of the LED.
-intial_BLUE: 0.0
+initial_BLUE: 0.0
 #    Initial BLUE value of the LED.
-intial_WHITE: 0.0
+initial_WHITE: 0.0
 #    Initial WHITE value of the LED.
 ```

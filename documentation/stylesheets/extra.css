@@ -24,3 +24,8 @@
   font-family: "Apex Mk2";
   src: url("../assets/fonts/ApexMk2-Regular.woff2");
 }
+
+
+.md-grid {
+  max-width: 1440px;
+}
