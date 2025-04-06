@@ -89,19 +89,19 @@ stateDiagram-v2
     T --> TH
 
     %% Adding styles for colors and text visibility
-    style L1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L2 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L3 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L4 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L5 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style L6 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style L7 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style L8 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style H1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style H2 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style C fill:#ffffe0,stroke:#000000,stroke-width:2px,color:#000000
+    style L1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L2 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L3 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L4 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L5 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style L6 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style L7 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style L8 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style H1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style H2 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style C fill:#9e7283,stroke:#000000,stroke-width:2px,color:#000000
     style T fill:#dda0dd,stroke:#000000,stroke-width:2px,color:#000000
-    style TH fill:#e0ffff,stroke:#000000,stroke-width:2px,color:#000000
+    style TH fill:#4d75b3,stroke:#000000,stroke-width:2px,color:#000000
 ```    
 
 ### [AFC_Turtle_1.cfg]
@@ -121,7 +121,7 @@ switch_pin: ^turtleneck:PB6
 ``` cfg
 [AFC_stepper lane5]
 unit: Turtle_2:5
-hub: hub2
+hub: Turtle_2
 ...
 [AFC_stepper lane8]
 unit: Turtle_2:8
@@ -135,7 +135,7 @@ switch_pin: ^turtleneck:PB7
 ```
 ## Example 3: Advanced Configuration
 
-This example illustrates the use of an 8 lane BoxTurtle that is setup with multiple hubs.
+This example illustrates the use of an 8 lane BoxTurtle that is set up with multiple **external** hubs.
 
 ``` mermaid
 stateDiagram-v2
@@ -154,19 +154,19 @@ stateDiagram-v2
     Buffer --> Toolhead
 
     %% Adding styles for colors and text visibility
-    style Lane1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane2 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane3 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane4 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane5 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane6 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane7 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Lane8 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style Hub1 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style Hub2 fill:#ffae40,stroke:#000000,stroke-width:2px,color:#000000
-    style Combiner fill:#ffffe0,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane2 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane3 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane4 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane5 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane6 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane7 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Lane8 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style Hub1 fill:#34402d,stroke:#000000,stroke-width:2px,color:#000000
+    style Hub2 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style Combiner fill:#9e7283,stroke:#000000,stroke-width:2px,color:#000000
     style Buffer fill:#dda0dd,stroke:#000000,stroke-width:2px,color:#000000
-    style Toolhead fill:#e0ffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Toolhead fill:#4d75b3,stroke:#000000,stroke-width:2px,color:#000000
 ```
 
 An abbreviated portion of the relevant configuration files is shown below to illustrate the above setup.
@@ -241,20 +241,20 @@ stateDiagram-v2
     T --> TH
 
     %% Adding styles for colors and text visibility
-    style L1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L2 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L3 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L4 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L5 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style L6 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style L7 fill:#aacfc0,stroke:#000000,stroke-width:2px,color:#000000
-    style L8 fill:#aacfc0,stroke:#000000,stroke-width:2px,color:#000000
-    style H1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style H2 fill:#90ee90,stroke:#000000,stroke-width:2px,color:#000000
-    style H3 fill:#aacfc0,stroke:#000000,stroke-width:2px,color:#000000
-    style C fill:#ffffe0,stroke:#000000,stroke-width:2px,color:#000000
+    style L1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L2 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L3 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L4 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L5 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style L6 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style L7 fill:#4a4518,stroke:#000000,stroke-width:2px,color:#000000
+    style L8 fill:#4a4518,stroke:#000000,stroke-width:2px,color:#000000
+    style H1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style H2 fill:#794db3,stroke:#000000,stroke-width:2px,color:#000000
+    style H3 fill:#4a4518,stroke:#000000,stroke-width:2px,color:#000000
+    style C fill:#9e7283,stroke:#000000,stroke-width:2px,color:#000000
     style T fill:#dda0dd,stroke:#000000,stroke-width:2px,color:#000000
-    style TH fill:#e0ffff,stroke:#000000,stroke-width:2px,color:#000000
+    style TH fill:#4d75b3,stroke:#000000,stroke-width:2px,color:#000000
 ```  
 
 This is a similar setup to [Example 3](#example-3-advanced-configuration), but with different unit types.

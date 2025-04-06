@@ -8,12 +8,13 @@ This file describes the `AFC_buffer` module, part of the Armored Turtle Automate
 
 ## Overview
 
-The `AFC_buffer` module is responsible for handling two types of buffers: [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck) 
-and [TurtleNeck 2.0](https://github.com/ArmoredTurtle/TurtleNeck2.0). The Turtleneck buffer involves two sensors 
-(advance and trailing), to help control filament movement.
+The `AFC_buffer` module is responsible for handling the buffer, currently supported buffers are 
+[TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck) and [TurtleNeck 2.0/Pro](https://github.com/ArmoredTurtle/TurtleNeck2.0). 
+The Turtleneck buffer involves two sensors (advance and trailing).
 
-The buffer adjusts rotation distance for active Box Turtle extruder(lane) based on sensor inputs and can either compress 
-or expand to manage filament feeding properly. Each buffer type has unique configuration options and behaviors.
+The buffer adjusts rotation distance for active Box Turtle extruder(lane) based on sensor inputs and can either 
+compress or expand to manage filament feeding properly.
+
 
 ### Basic Functionality
 
@@ -42,12 +43,6 @@ distance in order to slow the filament moving to the primary extruder.
 [__Flashing TurtleNeck 2.0__](https://github.com/ArmoredTurtle/TurtleNeck2.0/blob/main/Flashing/README.md)
 
 ![image](../assets/images/turtleneckv2.png)
-
-## Belay Style buffer
-
-~~With the current implementation of `AFC_buffer` support for Belay is limited. Belay will still help to keep even tension on the primary extruder but in a different way. First, the AFC rotation distance has to be greater than the rotation distance of the primary extruder. While printing, the AFC will be pushing slightly less filament than the primary extruder, this will cause the Belay to become compressed toward the switch. When the switch is reached the AFC will make a configured amount of material to expand the Belay. This will continue for the duration of the print.~~
-
-Belay style buffer is no longer supported, please use Turtleneck as a buffer for AFC-Klipper-Add-On.
 
 ## Configuration
 
@@ -115,11 +110,6 @@ multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
 velocity: 100
 
-[AFC_buffer Belay]
-pin: mcu:BUFFER
-distance: 12
-velocity: 1000
-accel: 1000
 ```
 
 ## Off-Nominal Buffer Configurations

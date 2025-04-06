@@ -29,3 +29,8 @@
 .md-grid {
   max-width: 1440px;
 }
+
+[data-md-color-scheme="default"] {
+    --md-mermaid-label-fg-color: #000000;
+    --md-code-bg-color: #dcdbdb;
+}

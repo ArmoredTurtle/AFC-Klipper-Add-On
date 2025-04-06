@@ -76,21 +76,17 @@ theme:
   name: material
   logo: assets/logo.png
   favicon: assets/favicon-32x32.png
-#  palette:
-#    - media: "(prefers-color-scheme)"
-#      toggle:
-#        icon: material/brightness-auto
-#        name: Switch to light mode
-#    - media: "(prefers-color-scheme: light)"
-#      scheme: default
-#      toggle:
-#        icon: material/brightness-7
-#        name: Switch to dark mode
-#    - media: "(prefers-color-scheme: dark)"
-#      scheme: slate
-#      toggle:
-#        icon: material/brightness-4
-#        name: Switch to system preference
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/theme-light-dark
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/theme-light-dark
+        name: Switch to light mode
   primary: custom
 
   features:
