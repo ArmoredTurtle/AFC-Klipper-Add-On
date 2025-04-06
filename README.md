@@ -237,16 +237,6 @@ initial_BLUE: 0.0
 initial_WHITE: 0.0
 ```
 
-Annex Belay
-
-```cfg
-[AFC_buffer Belay]
-pin: mcu:BUFFER
-distance: 12
-velocity: 1000
-accel: 1000
-```
-
 Finally, add `buffer: <buffer_name>` to either your `AFC_extruder`, `AFC_stepper`, or `AFC_<unit_type>` sections in `AFC_Turtle_(n).cfg` files. For example, if you are using the Turtleneck v2, you would add the following line:
 
 Using this config, buffer will be used for every unit that uses this extruder
