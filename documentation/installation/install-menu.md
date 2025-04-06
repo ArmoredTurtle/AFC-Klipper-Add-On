@@ -129,7 +129,7 @@ defaults to *true* and is recommended to be left as such.
     - None
 
 ???+ warning
-    The use of a filament is *HIGHLY* recommended. If you are not using a buffer, select `None`.
+    The use of a filament buffer is *HIGHLY* recommended. If you are not using a buffer, select `None`.
 
 #### `I. Install system`
 
