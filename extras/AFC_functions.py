@@ -882,11 +882,20 @@ class afcFunction:
         if lane == None:
             self.AFC.ERROR.AFC_error('Must select LANE', False)
             return
+
         self.logger.info('TEST ROUTINE')
         if lane not in self.AFC.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
+
         CUR_LANE = self.AFC.lanes[lane]
+        if CUR_LANE.afc_motor_rwd is None:
+            message = "afc_motor_rwd is not defined in config for {}, cannot perform test.\n".format(lane)
+            message += "If your unit does not have spooler motors then you can ignore this message.\n"
+            message += "If your unit has spooler motors please verify your config is setup properly"
+            self.logger.info(message)
+            return
+
         self.logger.info('Testing at full speed')
         CUR_LANE.assist(-1)
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)

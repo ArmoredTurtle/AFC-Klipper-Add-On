@@ -23,7 +23,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.8"
+AFC_VERSION="1.0.9"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -1109,6 +1109,7 @@ class afc:
                         message += "\n  and then use LANE_MOVE to fully retract behind hub so its not triggered anymore."
                         # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                         if self.next_lane_load is not None:
+                            message += "\nThen Manually run UNSET_LANE_LOADED to let AFC know nothing is loaded into toolhead"
                             message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
                             message += "\nOnce lane is loaded click resume to continue printing"
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
