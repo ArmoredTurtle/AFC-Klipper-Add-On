@@ -4,9 +4,9 @@ This file describes the `AFC_buffer` module, part of the Armored Turtle Automate
 
 ## Overview
 
-The `AFC_buffer` module is responsible for handling two types of buffers: [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck), [TurtleNeck 2.0](https://github.com/ArmoredTurtle/TurtleNeck2.0) and [Annex Engineering Belay](https://github.com/Annex-Engineering/Belay). The Turtleneck buffer involves two sensors (advance and trailing), while the Belay buffer uses a single sensor to control filament movement.
+The `AFC_buffer` module is responsible for handling the buffer, currently supported buffers are [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck) and [TurtleNeck 2.0/Pro](https://github.com/ArmoredTurtle/TurtleNeck2.0). The Turtleneck buffer involves two sensors (advance and trailing).
 
-The buffer adjusts rotation distance for active Box Turtle extruder(lane) based on sensor inputs and can either compress or expand to manage filament feeding properly. Each buffer type has unique configuration options and behaviors.
+The buffer adjusts rotation distance for active Box Turtle extruder(lane) based on sensor inputs and can either compress or expand to manage filament feeding properly.
 
 ### Basic Functionality
 
@@ -30,12 +30,6 @@ Two sensor TurtleNeck-style buffers are used to modulate the rotation distance o
 [__Flashing TurtleNeck 2.0__](https://github.com/ArmoredTurtle/TurtleNeck2.0/blob/main/Flashing/README.md)
 
 ![image](https://github.com/user-attachments/assets/3feba749-e228-4dd4-b6bc-bc3089d14dce)
-
-## Belay Style buffer
-
-~~With the current implementation of `AFC_buffer` support for Belay is limited. Belay will still help to keep even tension on the primary extruder but in a different way. First, the AFC rotation distance has to be greater than the rotation distance of the primary extruder. While printing, the AFC will be pushing slightly less filament than the primary extruder, this will cause the Belay to become compressed toward the switch. When the switch is reached the AFC will make a configured amount of material to expand the Belay. This will continue for the duration of the print.~~
-
-Belay style buffer is not longer supported, please use Turtleneck as a buffer for AFC-Klipper-Add-On
 
 ## Configuration
 
@@ -82,15 +76,6 @@ led_buffer_trailing: 0,1,0,0
 led_buffer_disable: 0,0,0,0.25
 ```
 
-### Belay Style buffer
-
-- **pin**: Pin for the buffer sensor.
-- **distance**: Distance the filament should move when triggered.
-
-_Optional_
-- **velocity**: The speed the lane will move the filament.
-- **accel**: Lane acceleration.
-
 ### Example Configs
 
 ```
@@ -108,12 +93,6 @@ multiplier_high: 1.05   # default 1.05, factor to feed more filament
 multiplier_low:  0.95   # default 0.95, factor to feed less filament
 led_index: Buffer_Indicator:1
 velocity: 100
-
-[AFC_buffer Belay]
-pin: mcu:BUFFER
-distance: 12
-velocity: 1000
-accel: 1000
 ```
 
 ## Off-Nominal Buffer Configurations
