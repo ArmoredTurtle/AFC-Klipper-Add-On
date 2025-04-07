@@ -109,8 +109,12 @@ install_additional_unit() {
   elif [ "$installation_type" == "NightOwl" ]; then
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
   elif [ "$installation_type" == "HTLF" ]; then
-    cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/${htlf_board_type}_${boxturtle_name}.cfg"
     mkdir -p "${afc_config_dir}/mcu"
     cp "${afc_path}/config/mcu/HTLF_${htlf_board_type}.cfg" "${afc_config_dir}/mcu/"
+    if [ "$htlf_board_type" == "MMB_1.0" ] || [ "$htlf_board_type" == "MMB_1.1" ]; then
+      htlf_board_type="MMB"
+    fi
+    cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/${htlf_board_type}_${boxturtle_name}.cfg"
+
   fi
 }
