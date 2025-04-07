@@ -114,7 +114,6 @@ install_additional_unit() {
     if [ "$htlf_board_type" == "MMB_1.0" ] || [ "$htlf_board_type" == "MMB_1.1" ]; then
       htlf_board_type="MMB"
     fi
-    cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/${htlf_board_type}_${boxturtle_name}.cfg"
-
+    cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}.cfg"
   fi
 }
