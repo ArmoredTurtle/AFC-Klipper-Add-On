@@ -789,7 +789,9 @@ class AFCExtruderStepper:
 
         Example
         -------
+        ```
         SET_LANE_LOADED LANE=lane1
+        ```
         """
         if not self.load_state:
             self.AFC.ERROR.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)
@@ -819,7 +821,9 @@ class AFCExtruderStepper:
 
         Example
         -----
-        `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+        ```
+        SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9
+        ```
         """
         updated = False
         old_fwd_value = self.fwd_speed_multi
@@ -850,7 +854,9 @@ class AFCExtruderStepper:
 
         Example
         -----
-        `SAVE_SPEED_MULTIPLIER LANE=lane1`
+        ```
+        SAVE_SPEED_MULTIPLIER LANE=lane1
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
@@ -868,7 +874,9 @@ class AFCExtruderStepper:
 
         Example
         -----
-        `SET_HUB_DIST LANE=lane1 LENGTH=+100`
+        ```
+        SET_HUB_DIST LANE=lane1 LENGTH=+100
+        ```
         """
         old_dist_hub = self.dist_hub
 
@@ -894,7 +902,9 @@ class AFCExtruderStepper:
 
         Example
         -----
-        `SAVE_HUB_DIST LANE=lane1`
+        ```
+        SAVE_HUB_DIST LANE=lane1
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'dist_hub',  self.dist_hub, '')
 

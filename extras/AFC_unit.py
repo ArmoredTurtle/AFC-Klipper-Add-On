@@ -123,7 +123,9 @@ class afcUnit:
 
         Example
         -----
-        `UNIT_CALIBRATION UNIT=Turtle_1`
+        ```
+        UNIT_CALIBRATION UNIT=Turtle_1
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -149,7 +151,9 @@ class afcUnit:
 
         Example
         -----
-        `UNIT_LANE_CALIBRATION UNIT=Turtle_1`
+        ```
+        UNIT_LANE_CALIBRATION UNIT=Turtle_1
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -201,7 +205,9 @@ class afcUnit:
 
         Example
         -----
-        `UNIT_CALIBRATION UNIT=Turtle_1`
+        ```
+        UNIT_CALIBRATION UNIT=Turtle_1
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []

@@ -320,7 +320,9 @@ class afcFunction:
 
         Example
         -----
-        `AFC_CALIBRATION`
+        ```
+        AFC_CALIBRATION
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -351,7 +353,9 @@ class afcFunction:
 
         Example
         -----
-        `ALL_CALIBRATION`
+        ```
+        ALL_CALIBRATION
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         footer = []
@@ -386,8 +390,12 @@ class afcFunction:
 
         Example
         -----
-        `CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3`
-        `CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
+        ```
+        CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3
+        ```
+        ```
+        CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         dis    = gcmd.get_float('DISTANCE' , 25)
@@ -519,7 +527,9 @@ class afcFunction:
 
         Examples
         -----
+        ```
         AFC_CALI_COMP CALI=lane1
+        ```
         (Shows a prompt indicating that calibration for 'lane1' has been completed)
         """
 
@@ -619,8 +629,14 @@ class afcFunction:
 
         Example
         -----
-        - `AFC_RESET DISTANCE=30` (Shows the prompt for resetting lanes with a distance value of 30mm)
-        - `AFC_RESET` (Shows the prompt for resetting lanes without specifying a distance)
+        - ```
+        AFC_RESET DISTANCE=30
+        ```
+        (Shows the prompt for resetting lanes with a distance value of 30mm)
+        - ```
+        AFC_RESET
+        ```
+        (Shows the prompt for resetting lanes without specifying a distance)
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -661,8 +677,14 @@ class afcFunction:
 
         Example
         -----
-        - `AFC_LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
-        - `AFC_LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
+        - ```
+        AFC_LANE_RESET LANE=lane1 DISTANCE=50
+        ```
+        (Resets lane1 to the hub with a move of 50mm)
+        - ```
+        AFC_LANE_RESET LANE=lane2
+        ```
+        (Resets lane2 to the hub using default settings)
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -759,7 +781,9 @@ class afcFunction:
 
         Example
         -----
+        ```
         SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100
+        ```
 
         Args:
         """
@@ -810,7 +834,9 @@ class afcFunction:
 
         Example
         -----
+        ```
         HUB_CUT_TEST LANE=lane1
+        ```
         """
         lane = gcmd.get('LANE', None)
         self.logger.info('Testing Hub Cut on Lane: ' + lane)
@@ -837,7 +863,9 @@ class afcFunction:
 
         Example
         -----
+        ```
         TEST LANE=lane1
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:

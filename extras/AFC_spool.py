@@ -60,7 +60,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         SET_MAP LANE=lane1 MAP=T1
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -95,7 +97,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         SET_COLOR LANE=lane1 COLOR=FF0000
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -121,7 +125,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         SET_WEIGHT LANE=lane1 WEIGHT=850
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -147,7 +153,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         SET_MATERIAL LANE=lane1 MATERIAL=ABS
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -187,7 +195,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         SET_SPOOL_ID LANE=lane1 SPOOL_ID=12345
+        ```
         """
         if self.AFC.spoolman !=None:
             lane = gcmd.get('LANE', None)
@@ -266,7 +276,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         SET_RUNOUT LANE=lane1 RUNOUT=lane4
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
@@ -302,7 +314,9 @@ class AFCSpool:
 
         Example
         -----
+        ```
         RESET_AFC_MAPPING
+        ```
         """
         t_index = 0
         for key, unit in self.AFC.units.items():

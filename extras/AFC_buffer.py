@@ -243,7 +243,9 @@ class AFCTrigger:
 
         Example
         -----
+        ```
         SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2
+        ```
         """
         if self.turtleneck:
             cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
@@ -291,7 +293,9 @@ class AFCTrigger:
 
         Example
         -----
+        ```
         SET_ROTATION_FACTOR BUFFER=TN FACTOR=1.2
+        ```
         """
         if self.turtleneck:
             cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
@@ -331,9 +335,9 @@ class AFCTrigger:
 
         Example
         ------
+        ```
         QUERY_BUFFER BUFFER=TN
-
-
+        ```
         """
         state_mapping = {
             TRAILING_STATE_NAME: ' (Compressed)',
@@ -359,7 +363,7 @@ class AFCTrigger:
 
         Behavior:
 
-        - Updates the value that the espooler use for forward assist during printing.
+        - Updates the value that the respooler use for forward assist during printing.
         - Setting value to zero disables forward assist during printing.
         - Velocity is not saved to configuration file, needs to be manually updated.
 
@@ -369,7 +373,9 @@ class AFCTrigger:
 
         Example
         -----
+        ```
         SET_BUFFER_VELOCITY BUFFER=TN2 VELOCITY=100
+        ```
         """
         old_velocity = self.velocity
         self.velocity = gcmd.get_float('VELOCITY', 0.0)

@@ -400,7 +400,9 @@ class afc:
 
         Example
         -------
+        ```
         UNSET_LANE_LOADED
+        ```
         """
         self.FUNCTION.unset_lane_loaded()
 
@@ -426,7 +428,9 @@ class afc:
 
         Example
         -------
-        `SET_AFC_TOOLCHANGES TOOLCHANGES=100`
+        ```
+        SET_AFC_TOOLCHANGES TOOLCHANGES=100
+        ```
 
         """
         self.number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
@@ -448,7 +452,9 @@ class afc:
 
         Example
         -----
-         `LANE_MOVE LANE=lane1 DISTANCE=100`
+        ```
+        LANE_MOVE LANE=lane1 DISTANCE=100
+        ```
         """
         if self.FUNCTION.is_printing():
             self.ERROR.AFC_error("Cannot move lane while printer is printing", pause=False)
@@ -622,7 +628,9 @@ class afc:
 
         Example
         -----
-        `HUB_LOAD LANE=lane1`
+        ```
+        HUB_LOAD LANE=lane1
+        ```
         """
 
         if self.FUNCTION.is_printing():
@@ -664,7 +672,9 @@ class afc:
 
         Example
         -----
-        `LANE_UNLOAD LANE=lane1`
+        ```
+        LANE_UNLOAD LANE=lane1
+        ```
 
         """
         if self.FUNCTION.is_printing():
@@ -728,7 +738,9 @@ class afc:
 
         Example
         -----
-        `TOOL_LOAD LANE=lane1 PURGE_LENGTH=80`
+        ```
+        TOOL_LOAD LANE=lane1 PURGE_LENGTH=80
+        ```
         """
         self.afcDeltaTime.set_start_time()
         lane = gcmd.get('LANE', None)
@@ -953,7 +965,9 @@ class afc:
 
         Example
         -----
-        `TOOL_UNLOAD LANE=lane1`
+        ```
+        TOOL_UNLOAD LANE=lane1
+        ```
         """
         self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
@@ -1199,7 +1213,9 @@ class afc:
 
         Example
         ------
-        `CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100`
+        ```
+        CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100
+        ```
         """
         self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
@@ -1383,7 +1399,9 @@ class afc:
 
         Example
         -----
-        `AFC_STATUS`
+        ```
+        AFC_STATUS
+        ```
         """
         status_msg = ''
 
@@ -1451,7 +1469,9 @@ class afc:
 
         Example
         -----
-        `TURN_OFF_AFC_LED`
+        ```
+        TURN_OFF_AFC_LED
+        ```
         """
         for led in self.led_obj.values():
             led.turn_off_leds()
@@ -1467,7 +1487,9 @@ class afc:
 
         Example
         -----
-        `TURN_ON_AFC_LED`
+        ```
+        TURN_ON_AFC_LED
+        ```
         """
         for led in self.led_obj.values():
             led.turn_on_leds()

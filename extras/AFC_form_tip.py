@@ -50,7 +50,9 @@ class afc_tip_form:
 
         Example
         -----
+        ```
         TEST_AFC_TIP_FORMING
+        ```
         """
         self.tip_form()
 
@@ -66,7 +68,9 @@ class afc_tip_form:
 
         Example
         -----
+        ```
         GET_TIP_FORMING
+        ```
         """
         status_msg = "Tip Forming Configuration:\n"
         status_msg += "ramming_volume:        {}\n".format(self.ramming_volume)
@@ -105,7 +109,9 @@ class afc_tip_form:
 
         Example
         -----
+        ```
         SET_TIP_FORMING ramming_volume=20 toolchange_temp=220
+        ```
         """
 
         self.ramming_volume = gcmd.get_float("RAMMING_VOLUME", self.ramming_volume)

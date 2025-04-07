@@ -141,7 +141,9 @@ class AFCExtruder:
 
         Example
         -----
-        `UPDATE_TOOLHEAD_SENSORS EXTRUDER=extruder TOOL_STN=100`
+        ```
+        UPDATE_TOOLHEAD_SENSORS EXTRUDER=extruder TOOL_STN=100
+        ```
 
         """
         tool_stn                    = gcmd.get_float("TOOL_STN",            self.tool_stn)
@@ -166,7 +168,9 @@ class AFCExtruder:
 
         Example
         -----
-        `SAVE_EXTRUDER_VALUES EXTRUDER=extruder`
+        ```
+        SAVE_EXTRUDER_VALUES EXTRUDER=extruder
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn',                   self.tool_stn, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn_unload',            self.tool_stn_unload, '')

@@ -152,7 +152,9 @@ class afcError:
 
         Example
         -----
-        `AFC_RESUME`
+        ```
+        AFC_RESUME
+        ```
         """
         self.AFC.in_toolchange = False
         if not self.AFC.FUNCTION.is_paused():
@@ -195,7 +197,9 @@ class afcError:
 
         Example
         -----
-        `AFC_PAUSE`
+        ```
+        AFC_PAUSE
+        ```
         """
         # Check to make sure printer is not already paused
         if not self.AFC.FUNCTION.is_paused():

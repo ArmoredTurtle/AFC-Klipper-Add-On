@@ -31,13 +31,13 @@ stateDiagram-v2
     T --> TH
 
     %% Adding styles for colors and text visibility
-    style L1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L2 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L3 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style L4 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
-    style H1 fill:#ffcccb,stroke:#000000,stroke-width:2px,color:#000000
+    style L1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L2 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L3 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style L4 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
+    style H1 fill:#54534e,stroke:#000000,stroke-width:2px,color:#000000
     style T fill:#dda0dd,stroke:#000000,stroke-width:2px,color:#000000
-    style TH fill:#e0ffff,stroke:#000000,stroke-width:2px,color:#000000
+    style TH fill:#4d75b3,stroke:#000000,stroke-width:2px,color:#000000
 ``` 
 
 ### [AFC_Turtle_1.cfg]
