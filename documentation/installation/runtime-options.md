@@ -1,7 +1,3 @@
----
-title: AFC-Klipper-Add-On Software runtime options
----
-
 ## Usage
 
 Usage instructions for the `install-afc.sh` script can be shown at any time by running the following command:

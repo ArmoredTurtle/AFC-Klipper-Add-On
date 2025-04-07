@@ -1,7 +1,3 @@
----
-Title: AFC_Macro_Vars.cfg Configuration Overview
----
-
 # [AFC_Macro_Vars.cfg] Configuration Overview
 
 The `AFC_Macro_Vars.cfg` file is used to define the macro variables for the AFC-Klipper-Add-On. This file contains a 

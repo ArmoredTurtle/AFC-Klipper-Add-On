@@ -1,6 +1,3 @@
----
-Title: Self Test
----
 ## First self-test
 
 AFC will run a self-test automatically on startup. It will run through the respoolers on each lane (from left to right,

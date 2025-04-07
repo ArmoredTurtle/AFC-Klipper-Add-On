@@ -1,7 +1,3 @@
---- 
-Title: Using the Buffer as a Ram Sensor
----
-
 # Armored Turtle Automated Filament Control (AFC) Buffer Ram Sensor
 
 This file describes using a filament buffer as a ram sensor. This is part of the Armored Turtle Automated Filament

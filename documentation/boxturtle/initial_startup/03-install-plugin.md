@@ -1,7 +1,3 @@
----
-Title: AFC-Lite Plugin Installation
----
-
 ## Install the AFC Klipper Add-On
 
 BoxTurtle works best with the [AFC Klipper Add-On](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On). The rest of

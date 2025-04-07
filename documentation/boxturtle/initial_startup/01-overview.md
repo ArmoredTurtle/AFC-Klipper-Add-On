@@ -1,7 +1,3 @@
----
-Title: Boxturtle Initial Startup Guide Overview
----
-
 # BoxTurtle Initial Startup & Commissioning Guide
 
 The following guide will help you on the journey to multicolor printing after you have physically completed

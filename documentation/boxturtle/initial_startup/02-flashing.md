@@ -1,7 +1,3 @@
----
-Title: AFC-Lite Flashing Guide
----
-
 ## Flashing the AFC-Lite board
 
 The AFC-Lite MCU can be connected with either CAN bus or USB.

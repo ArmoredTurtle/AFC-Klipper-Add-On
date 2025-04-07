@@ -1,7 +1,3 @@
----
-Title: BoxTurtle Overview
----
-
 # BoxTurtle V1.0
 
 BoxTurtle Automated Filament Control (requires AFC-Klipper-Add-On (Beta))

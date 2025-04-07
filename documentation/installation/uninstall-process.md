@@ -1,7 +1,3 @@
----
-Title: Uninstall Process
----
-
 # Uninstall the AFC-Klipper-Add-On 
 
 While we are sad to see you go, uninstalling the AFC-Klipper-Add-On is a simple process.

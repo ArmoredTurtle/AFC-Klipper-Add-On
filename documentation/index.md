@@ -1,7 +1,3 @@
----
-title: AFC Klipper Add On Documentation
----
-
 ## Overview
 
 The AFC-Klipper-Add-On is a powerful tool designed to enhance the functionality of your multicolor system. It provides 

@@ -1,7 +1,3 @@
----
-Title: Slicer Configuration
----
-
 ### Configuring your slicer
 
 The recommended slicer for AFC is OrcaSlicer. Other slicers such as PrusaSlicer or SuperSlicer may be used, and the

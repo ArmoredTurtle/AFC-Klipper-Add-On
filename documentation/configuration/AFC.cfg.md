@@ -1,7 +1,3 @@
----
-Title: AFC.cfg Configuration Overview
----
-
 # [AFC.cfg] Configuration Overview
 
 The `AFC.cfg` file is the main configuration file for the AFC-Klipper-Add-On. It contains the primary settings and 

@@ -1,7 +1,3 @@
----
-Title: Troubleshooting
----
-
 # Troubleshooting
 
 ## Common Issues

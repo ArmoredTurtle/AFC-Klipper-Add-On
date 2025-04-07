@@ -1,7 +1,3 @@
----
-Title: Further Tests
----
-
 ## Further tests
 
 ### Respoolers

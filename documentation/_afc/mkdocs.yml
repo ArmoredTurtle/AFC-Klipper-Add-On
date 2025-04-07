@@ -150,7 +150,7 @@ markdown_extensions:
     permalink: true
 
 extra_css:
-  - stylesheets/extra.css
+  - _afc/stylesheets/extra.css
 
 extra:
   social:

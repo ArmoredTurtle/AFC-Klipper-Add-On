@@ -1,6 +1,3 @@
----
-title: Installation Menu Detail
----
 ### Menu Overview
 
 ![Installation Menu](../assets/images/install_menu.png){ loading=lazy }

@@ -1,6 +1,3 @@
----
-Title: Print Start Macro
----
 ## Updating your PRINT_START macro
 
 !!!info

@@ -1,7 +1,3 @@
----
-Title: AFC_Hardware.cfg Configuration Overview
----
-
 # [AFC_Hardware.cfg] Configuration Overview
 
 The `AFC_Hardware.cfg` file is used to typically define options such as the AFC extruder configuration, filament 

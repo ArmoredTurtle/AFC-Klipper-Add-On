@@ -1,7 +1,3 @@
----
-Title: Hotend Values
----
-
 ## Setting up hotend specific values
 
 Some of the values with AFC are extremely dependent on your hotend.

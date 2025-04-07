@@ -1,7 +1,3 @@
----
-Title: Calibration
----
-
 # Armored Turtle Automated Filament Control (AFC) Calibration
 
 ## Guided Calibration

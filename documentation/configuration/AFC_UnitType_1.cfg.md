@@ -1,7 +1,3 @@
----
-Title: AFC_UnitType_1.cfg Configuration Overview
----
-
 # AFC_UnitType_1.cfg Configuration Overview
 
 The `AFC_UnitType_1.cfg` file is used to define the configuration for the AFC system when using a specific unit type.

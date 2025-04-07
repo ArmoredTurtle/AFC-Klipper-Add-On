@@ -1,7 +1,3 @@
----
-Title: FAQ
----
-
 # Frequently Asked Questions
 
 !!! Question 

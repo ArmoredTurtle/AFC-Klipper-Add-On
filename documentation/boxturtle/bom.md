@@ -1,7 +1,3 @@
----
-Title: BoxTurtle Bill of Materials (BOM)
----
-
 # BoxTurtle Bill of Materials (BOM)
 
 ## Frame

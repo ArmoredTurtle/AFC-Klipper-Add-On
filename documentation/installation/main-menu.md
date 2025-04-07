@@ -1,7 +1,3 @@
----
-title: Main Menu Detail
----
-
 ### Menu System
 
 Each of our menus is designed to be user-friendly and easy to navigate. The menus are designed to be used with a keyboard,

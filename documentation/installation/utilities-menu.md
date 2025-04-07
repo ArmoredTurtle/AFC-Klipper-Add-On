@@ -1,6 +1,3 @@
----
-title: Utilities Menu Detail
----
 ### Utilities Menu Overview
 
 ![Utilities Menu](../assets/images/utilities_menu.png){ loading=lazy }

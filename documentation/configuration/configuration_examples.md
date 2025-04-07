@@ -1,7 +1,3 @@
----
-Title: Configuration Examples
----
-
 # Configuration Examples
 
 The following examples provide a starting point for configuring the AFC-Klipper-Add-On. These examples are intended to be

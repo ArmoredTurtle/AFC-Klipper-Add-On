@@ -1,7 +1,3 @@
----
-Title: Configuration Overview
----
-
 # Configuration Overview
 
 The AFC-Klipper-Add-On is designed to be highly configurable, allowing you to tailor its functionality to your specific needs. 

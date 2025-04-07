@@ -1,6 +1,3 @@
----
-Title: BoxTurtle Wiring Guide
----
 # BoxTurtle Wiring Guide
 
 ## Lane numbering

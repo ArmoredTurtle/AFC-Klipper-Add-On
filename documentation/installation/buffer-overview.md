@@ -1,7 +1,3 @@
----
-Title: Buffer Overview
----
-
 # Armored Turtle Automated Filament Control (AFC) Buffer
 
 This file describes the `AFC_buffer` module, part of the Armored Turtle Automated Filament Control (AFC) project.

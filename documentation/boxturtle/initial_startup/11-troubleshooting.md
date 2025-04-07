@@ -1,7 +1,3 @@
----
-Title: Troubleshooting
----
-
 ## Troubleshooting
 
 If you are having issues with the above steps, please refer to the [Troubleshooting Guide](../../troubleshooting/troubleshooting.md)

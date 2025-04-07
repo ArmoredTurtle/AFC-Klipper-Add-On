@@ -1,7 +1,3 @@
----
-Title: Features
----
-
 # Overview of features
 
 This section goes over the features that can be found in Armored Turtle Automated Filament Control (AFC) Software.

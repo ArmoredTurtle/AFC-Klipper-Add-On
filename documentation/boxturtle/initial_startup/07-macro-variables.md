@@ -1,7 +1,3 @@
----
-Title: Macro Variables
----
-
 ## Setting up macro variables
 
 !!!note

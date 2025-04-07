@@ -1,7 +1,3 @@
----
-Title: LDO BoxTurtle Errata
----
-
 # BoxTurtle Errata
 
 Below are issues that were not able to be corrected in time for v1.0 release.
