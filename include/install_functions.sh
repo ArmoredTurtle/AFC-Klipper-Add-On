@@ -61,7 +61,10 @@ copy_unit_files() {
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
     # If we are installing a HTLF, then copy these files over.
   elif [ "$installation_type" == "HTLF" ]; then
-    cp "${afc_path}/templates/AFC_HTLF_1-$htlf_board_type.cfg" "${afc_config_dir}/AFC_HTLF_1.cfg"
+    if [ "$htlf_board_type" == "MMB_1.0" ] || [ "$htlf_board_type" == "MMB_1.1" ]; then
+      htlf_board_type="MMB"
+    fi
+    cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}.cfg"
     cp "${afc_path}/templates/AFC_Hardware-HTLF.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
   fi
 }
@@ -114,8 +117,9 @@ install_afc() {
 
   export message
   export files_updated_or_installed="True"
-  update_afc_version "$current_install_version"
-
+  if [ $test_mode != "True" ]; then
+    update_afc_version "$current_install_version"
+  fi
   # Final step should be displaying any messages and exit cleanly.
   message="""
 - AFC Configuration updated with selected options at ${afc_file}
@@ -133,8 +137,8 @@ elif [ "$installation_type" == "NightOwl" ]; then
   """
 elif [ "$installation_type" == "HTLF" ]; then
   message+="""
-- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_HTLF_1.cfg file
-- Ensure you modify the ${afc_config_dir}/AFC_HTLF_1.cfg file to select the proper rotation distance
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}_1.cfg file.
+- Ensure you modify the ${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}_1.cfg file to select the proper rotation distance
   and gear ratio for your stepper motors.
 - Ensure you update any necessary buffer information in the ${afc_config_dir}/AFC_Hardware.cfg file
   """
