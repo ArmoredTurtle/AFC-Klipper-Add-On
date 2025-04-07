@@ -113,7 +113,7 @@ fi
         printf "1. NightOwl Name: %s \n" "$boxturtle_name"
       elif [ "$installation_type" == "HTLF" ]; then
         if [ "$turtle_renamed" != "True" ]; then
-          boxturtle_name="HTLF_2"
+          boxturtle_name="HTLF_1"
         fi
         printf "1. HTLF Name: %s \n" "$boxturtle_name"
       fi
