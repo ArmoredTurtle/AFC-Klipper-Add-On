@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed detection for python version check to appropriately check for both python minor and major version.
+- Fixed file name format for HTLF additional unit installations to remove naming conflicts.
 
 ## [2025-04-06]
 - Update kick macro to ensure we are in absolute position mode (G90) before doing moves
