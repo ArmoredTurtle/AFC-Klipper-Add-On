@@ -7,10 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-04-07]
 
+### Added
+- Added function to check if in absolute mode and set absolute if in relative mode since
+  AFC does movement base off being in absolute mode
+
 ### Fixed
 - Fixed detection for python version check to appropriately check for both python minor and major version.
+- Fixed error where restore_pos was not calculating base position correctly for extruder,
+  matched how RESTORE_STATE does it
+
 
 ## [2025-04-06]
+
+### Fixed
 - Update kick macro to ensure we are in absolute position mode (G90) before doing moves
 
 ## [2025-04-06]

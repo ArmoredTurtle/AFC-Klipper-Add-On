@@ -162,6 +162,9 @@ class afcError:
         temp_is_paused = self.AFC.FUNCTION.is_paused()
         curr_pos = self.AFC.toolhead.get_position()
 
+        # Verify that printer is in absolute mode
+        self.AFC.FUNCTION.check_absolute_mode("AFC_RESUME")
+
         # Check if current position is below saved gcode position, if its lower first raise z above last saved
         #   position so that toolhead does not crash into part
         if (curr_pos[2] <= self.AFC.last_gcode_position[2]):
@@ -189,6 +192,8 @@ class afcError:
             self.AFC.save_pos()
             # Need to pause as soon as possible to stop more gcode from executing, this needs to be done before movement in Z
             self.pause_resume.send_pause_command()
+            # Verify that printer is in absolute mode
+            self.AFC.FUNCTION.check_absolute_mode("AFC_PAUSE")
             # Move Z up by z-hop value
             self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
             # Call users PAUSE
