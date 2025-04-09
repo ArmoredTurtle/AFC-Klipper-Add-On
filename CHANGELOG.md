@@ -8,8 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2025-04-08]
 
 ### Added
-- Added function to check if in absolute mode and set absolute if in relative mode since
+- Function to check if in absolute mode and set absolute if in relative mode since
   AFC does movement base off being in absolute mode
+- Runout/infinite spool support for HTLF unit type
   
 ### Fixed
 - Fixed error where restore_pos was not calculating base position correctly for extruder,
