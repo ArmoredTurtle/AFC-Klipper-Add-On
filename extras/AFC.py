@@ -1273,6 +1273,7 @@ class afc:
                 purge_length = purge_length[1:]
 
         command_line = gcmd.get_commandline()
+        self.logger.debug("CHANGE_TOOL: cmd-{}".format(command_line))
 
         # Remove everything after ; since it could contain strings like CHANGE in a comment and should be ignored
         command = re.sub( ';.*', '', command_line)

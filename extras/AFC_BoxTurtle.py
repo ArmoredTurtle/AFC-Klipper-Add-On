@@ -278,18 +278,23 @@ class afcBoxTurtle(afcUnit):
             return False, msg, 0
 
         self.logger.info('Calibrating {}'.format(CUR_LANE.name))
+        CUR_LANE.status = "calibrating"
         # reset to extruder
         pos, checkpoint, success = self.calc_position(CUR_LANE, lambda: CUR_LANE.load_state, 0, CUR_LANE.short_move_dis,
                                               tol, CUR_LANE.dist_hub + 100, "retract to extruder")
 
         if not success:
             msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
+            CUR_LANE.status = None
+            CUR_LANE.unit_obj.return_to_home()
             return False, msg, 0
 
         else:
             success, message, hub_pos = self.calibrate_hub(CUR_LANE, tol)
 
             if not success:
+                CUR_LANE.status = None
+                CUR_LANE.unit_obj.return_to_home()
                 return False, message, hub_pos
 
             if CUR_HUB.state:
@@ -301,6 +306,8 @@ class afcBoxTurtle(afcUnit):
             CUR_LANE.do_enable(False)
             CUR_LANE.dist_hub = cal_dist
             self.AFC.FUNCTION.ConfigRewrite(CUR_LANE.fullname, "dist_hub", cal_dist, cal_msg)
+            CUR_LANE.status = None
+            CUR_LANE.unit_obj.return_to_home()
             return True, cal_msg, cal_dist
 
 def load_config_prefix(config):
