@@ -160,7 +160,7 @@ class AFC_HTLF(afcBoxTurtle):
                 self.current_selected_lane = lane
             else:
                 return False
-    
+
     def check_runout(self, cur_lane):
         """
         Function to check if runout logic should be triggered

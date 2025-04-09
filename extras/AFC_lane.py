@@ -423,7 +423,7 @@ class AFCExtruderStepper:
             self.AFC.ERROR.pause_resume.send_resume_command()
             # Set LED to not ready
             self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
-    
+
     def _perform_pause_runout(self):
         """
         Common function to pause print when runout occurs, fully unloads and ejects spool if specified by user

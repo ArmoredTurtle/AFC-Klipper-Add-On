@@ -250,7 +250,7 @@ class afcUnit:
         Funtion to home unit if unit has homing sensor
         """
         return
-    
+
     def check_runout(self):
         """
         Function to check if runout logic should be triggered, override in specific unit
