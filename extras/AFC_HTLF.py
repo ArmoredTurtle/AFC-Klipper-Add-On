@@ -141,7 +141,7 @@ class AFC_HTLF(afcBoxTurtle):
         :return float: Return movement in mm to move lobes
         """
         angle_movement = self.MAX_ANGLE_MOVEMENT - ( (lane_index-1) * self.cam_angle)
-        self.logger.debug("Lobe Movement angle : {}".format(angle_movement))
+        self.logger.debug("HTLF: Lobe Movement angle : {}".format(angle_movement))
         return (self.mm_move_per_rotation/360)*angle_movement
 
     def select_lane( self, lane ):
@@ -153,13 +153,21 @@ class AFC_HTLF(afcBoxTurtle):
         """
         self.failed_to_home = False
         if self.current_selected_lane != lane:
-            self.logger.info("{} Homing to endstop".format(self.name))
+            self.logger.debug("HTLF: {} Homing to endstop".format(self.name))
             if self.return_to_home():
                 self.selector_stepper_obj.move(self.calculate_lobe_movement( lane.index ), 50, 50, False)
-                self.logger.info("{} selected".format(lane))
+                self.logger.debug("HTLF: {} selected".format(lane))
                 self.current_selected_lane = lane
             else:
                 return False
+
+    def check_runout(self, cur_lane):
+        """
+        Function to check if runout logic should be triggered
+
+        :return boolean: Returns true if current lane is loaded and printer is printing but lanes status is not ejecting or calibrating
+        """
+        return cur_lane.name == self.AFC.FUNCTION.get_current_lane() and self.AFC.FUNCTION.is_printing() and self.status != 'ejecting' and cur_lane.status != "calibrating"
 
 def load_config_prefix(config):
     return AFC_HTLF(config)

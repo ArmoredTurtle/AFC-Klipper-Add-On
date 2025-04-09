@@ -392,19 +392,78 @@ class AFCExtruderStepper:
         """
         self._afc_prep_done = True
 
+    def _perform_infinite_runout(self):
+        """
+        Common function for infinite spool runout
+            - Unloads current lane and loads the next lane as specified by runout variable.
+            - Swaps mapping between current lane and runout lane so correct lane is loaded with T(n) macro
+            - Once changeover is successful print is automatically resumed
+        """
+        self.status = None
+        self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
+        self.logger.info("Infinite Spool triggered for {}".format(self.name))
+        empty_LANE = self.AFC.lanes[self.AFC.current]
+        change_LANE = self.AFC.lanes[self.runout_lane]
+        # Pause printer with manual command
+        self.AFC.ERROR.pause_resume.send_pause_command()
+        # Saving position after printer is paused
+        self.AFC.save_pos()
+        # Change Tool and don't restore position. Position will be restored after lane is unloaded
+        #  so that nozzle does not sit on print while lane is unloading
+        self.AFC.CHANGE_TOOL(change_LANE, restore_pos=False)
+        # Change Mapping
+        self.gcode.run_script_from_command('SET_MAP LANE={} MAP={}'.format(change_LANE.name, empty_LANE.map))
+        # Only continue if a error did not happen
+        if not self.AFC.error_state:
+            # Eject lane from BT
+            self.gcode.run_script_from_command('LANE_UNLOAD LANE={}'.format(empty_LANE.name))
+            # Resume pos
+            self.AFC.restore_pos()
+            # Resume with manual issued command
+            self.AFC.ERROR.pause_resume.send_resume_command()
+            # Set LED to not ready
+            self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
+
+    def _perform_pause_runout(self):
+        """
+        Common function to pause print when runout occurs, fully unloads and ejects spool if specified by user
+        """
+        # Unload if user has set AFC to unload on runout
+        if self.unit_obj.unload_on_runout:
+            # Pause printer
+            self.AFC.ERROR.pause_resume.send_pause_command()
+            self.AFC.save_pos()
+            # self.gcode.run_script_from_command('PAUSE')
+            self.AFC.TOOL_UNLOAD(self)
+            if not self.AFC.error_state:
+                self.AFC.LANE_UNLOAD(self)
+        # Pause print
+        self.status = None
+        msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
+        msg += "\nPlease manually load next spool into toolhead and then hit resume to continue"
+        self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
+        self.AFC.ERROR.AFC_error(msg)
+
     def load_callback(self, eventtime, state):
         self.load_state = state
         if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
             self.prep_state = state
-            # TODO: need runout functionality added, but also need to add a check to see if user is running calibration
+
             if self.load_state:
                 self.AFC.FUNCTION.afc_led(self.led_ready, self.led_index)
             else:
-                self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
-                self.status = None
-                self.loaded_to_hub = False
-                self.AFC.SPOOL._clear_values(self)
-                self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
+                if self.unit_obj.check_runout(self):
+                    # Checking to make sure runout_lane is set and does not equal 'NONE'
+                    if  self.runout_lane != 'NONE':
+                        self._perform_runout()
+                    else:
+                        self._perform_pause_runout()
+                elif self.status != "calibrating":
+                    self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
+                    self.status = None
+                    self.loaded_to_hub = False
+                    self.AFC.SPOOL._clear_values(self)
+                    self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
 
         self.AFC.save_vars()
 
@@ -471,46 +530,9 @@ class AFCExtruderStepper:
                 elif self.prep_state == False and self.name == self.AFC.current and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
-                        self.status = None
-                        self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-                        self.logger.info("Infinite Spool triggered for {}".format(self.name))
-                        empty_LANE = self.AFC.lanes[self.AFC.current]
-                        change_LANE = self.AFC.lanes[self.runout_lane]
-                        # Pause printer with manual command
-                        self.AFC.ERROR.pause_resume.send_pause_command()
-                        # Saving position after printer is paused
-                        self.AFC.save_pos()
-                        # Change Tool and don't restore position. Position will be restored after lane is unloaded
-                        #  so that nozzle does not sit on print while lane is unloading
-                        self.AFC.CHANGE_TOOL(change_LANE, restore_pos=False)
-                        # Change Mapping
-                        self.gcode.run_script_from_command('SET_MAP LANE={} MAP={}'.format(change_LANE.name, empty_LANE.map))
-                        # Only continue if a error did not happen
-                        if not self.AFC.error_state:
-                            # Eject lane from BT
-                            self.gcode.run_script_from_command('LANE_UNLOAD LANE={}'.format(empty_LANE.name))
-                            # Resume pos
-                            self.AFC.restore_pos()
-                            # Resume with manual issued command
-                            self.AFC.ERROR.pause_resume.send_resume_command()
-                            # Set LED to not ready
-                            self.AFC.FUNCTION.afc_led(self.led_not_ready, self.led_index)
+                        self._perform_runout()
                     else:
-                        # Unload if user has set AFC to unload on runout
-                        if self.unit_obj.unload_on_runout:
-                            # Pause printer
-                            self.AFC.ERROR.pause_resume.send_pause_command()
-                            self.AFC.save_pos()
-                            # self.gcode.run_script_from_command('PAUSE')
-                            self.AFC.TOOL_UNLOAD(self)
-                            if not self.AFC.error_state:
-                                self.AFC.LANE_UNLOAD(self)
-                        # Pause print
-                        self.status = None
-                        msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
-                        msg += "\nPlease manually load next spool into toolhead and then hit resume to continue"
-                        self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
-                        self.AFC.ERROR.AFC_error(msg)
+                        self._perform_pause_runout()
 
                 elif self.prep_state == True and self.load_state == True and not self.AFC.FUNCTION.is_printing():
                     message = 'Cannot load {} load sensor is triggered.'.format(self.name)
