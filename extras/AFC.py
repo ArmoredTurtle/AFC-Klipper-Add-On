@@ -93,8 +93,11 @@ class afc:
         self.last_gcode_position = [0.0, 0.0, 0.0, 0.0]
         self.last_toolhead_position = [0.0, 0.0, 0.0, 0.0]
         self.homing_position = [0.0, 0.0, 0.0, 0.0]
-        self.speed = 25.
-        self.absolute_coord = True
+        self.speed              = 25.
+        self.speed_factor       = 1./60.
+        self.absolute_coord     = True
+        self.absolute_extrude   = True
+        self.extrude_factor     = 1.
 
         # Config get section
         self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
@@ -516,13 +519,19 @@ class afc:
                 self.last_gcode_position    = list(self.gcode_move.last_position)
                 self.homing_position        = list(self.gcode_move.homing_position)
                 self.speed                  = self.gcode_move.speed
+                self.speed_factor           = self.gcode_move.speed_factor
                 self.absolute_coord         = self.gcode_move.absolute_coord
+                self.absolute_extrude       = self.gcode_move.absolute_extrude
+                self.extrude_factor         = self.gcode_move.extrude_factor
                 msg = "Saving position {}".format(self.last_toolhead_position)
                 msg += " Base position: {}".format(self.base_position)
                 msg += " last_gcode_position: {}".format(self.last_gcode_position)
                 msg += " homing_position: {}".format(self.homing_position)
                 msg += " speed: {}".format(self.speed)
-                msg += " absolute_coord: {}\n".format(self.absolute_coord)
+                msg += " speed_factor: {}".format(self.speed_factor)
+                msg += " absolute_coord: {}".format(self.absolute_coord)
+                msg += " absolute_extrude: {}".format(self.absolute_extrude)
+                msg += " extrude_factor: {}\n".format(self.extrude_factor)
                 self.logger.debug(msg)
             else:
                 self.FUNCTION.log_toolhead_pos("Not Saving, Error State: {}, Is Paused {}, Position_saved {}, POS: ".format(self.error_state, self.FUNCTION.is_paused(), self.position_saved ))
@@ -542,15 +551,15 @@ class afc:
         msg += " last_gcode_position: {}".format(self.last_gcode_position)
         msg += " homing_position: {}".format(self.homing_position)
         msg += " speed: {}".format(self.speed)
-        msg += " absolute_coord: {}\n".format(self.absolute_coord)
+        msg += " speed_factor: {}".format(self.speed_factor)
+        msg += " absolute_coord: {}".format(self.absolute_coord)
+        msg += " absolute_extrude: {}".format(self.absolute_extrude)
+        msg += " extrude_factor: {}\n".format(self.extrude_factor)
         self.logger.debug(msg)
         self.FUNCTION.log_toolhead_pos("Resume initial pos: ")
 
         self.current_state = State.RESTORING_POS
         newpos = self.toolhead.get_position()
-
-        # Restore absolute coords
-        self.gcode_move.absolute_coord = self.absolute_coord
 
         # Move toolhead to previous z location with zhop added
         if move_z_first:
@@ -562,16 +571,25 @@ class afc:
         self.FUNCTION.log_toolhead_pos("Resume prev xy: ")
 
         # Update GCODE STATE variables
-        self.gcode_move.base_position = list(self.base_position)
-        self.gcode_move.homing_position = list(self.homing_position)
-        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
+        self.gcode_move.base_position       = list(self.base_position)
+        self.gcode_move.homing_position     = list(self.homing_position)
+
+        # Restore absolute coords
+        self.gcode_move.absolute_coord      = self.absolute_coord
+        self.gcode_move.absolute_extrude    = self.absolute_extrude
+        self.gcode_move.extrude_factor      = self.extrude_factor
+        self.gcode_move.speed               = self.speed
+        self.gcode_move.speed_factor        = self.speed_factor
 
         # Restore the relative E position
-        e_diff = newpos[3] - self.last_gcode_position[3]
+        e_diff = self.gcode_move.last_position[3] - self.last_gcode_position[3]
         self.gcode_move.base_position[3] += e_diff
+        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
+
         # Return to previous xyz
         self.gcode_move.move_with_transform(self.gcode_move.last_position, self._get_resume_speedz() )
         self.FUNCTION.log_toolhead_pos("Resume final z, Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
+
         self.current_state = State.IDLE
         self.position_saved = False
 
@@ -782,6 +800,9 @@ class afc:
         if self._check_bypass(): return False
 
         self.logger.info("Loading {}".format(CUR_LANE.name))
+
+        # Verify that printer is in absolute mode
+        self.FUNCTION.check_absolute_mode("TOOL_LOAD")
 
         # Lookup extruder and hub objects associated with the lane.
         CUR_HUB = CUR_LANE.hub_obj
@@ -1015,6 +1036,10 @@ class afc:
         self.logger.info("Unloading {}".format(CUR_LANE.name))
         CUR_LANE.status = 'Tool Unloading'
         self.save_vars()
+
+        # Verify that printer is in absolute mode
+        self.FUNCTION.check_absolute_mode("TOOL_UNLOAD")
+
         # Lookup current extruder and hub objects using the lane's information.
         CUR_HUB = CUR_LANE.hub_obj
         CUR_EXTRUDER = CUR_LANE.extruder_obj

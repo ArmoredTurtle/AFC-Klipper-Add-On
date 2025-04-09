@@ -296,13 +296,38 @@ class afcFunction:
             current_lane.unit_obj.select_lane(current_lane)
 
     def log_toolhead_pos(self, move_pre=""):
+        """
+        Helper function for printing postion data to log
+
+        :param move_pre: String that get appended before the position data
+        """
         msg = "{}Position: {}".format(move_pre, self.AFC.toolhead.get_position())
         msg += " base_position: {}".format(self.AFC.gcode_move.base_position)
         msg += " last_position: {}".format(self.AFC.gcode_move.last_position)
         msg += " homing_position: {}".format(self.AFC.gcode_move.homing_position)
         msg += " speed: {}".format(self.AFC.gcode_move.speed)
-        msg += " absolute_coord: {}\n".format(self.AFC.gcode_move.absolute_coord)
+        msg += " speed_factor: {}".format(self.AFC.gcode_move.speed_factor)
+        msg += " extrude_factor: {}".format(self.AFC.gcode_move.extrude_factor)
+        msg += " absolute_coord: {}".format(self.AFC.gcode_move.absolute_coord)
+        msg += " absolute_extrude: {}\n".format(self.AFC.gcode_move.absolute_extrude)
         self.logger.debug(msg, only_debug=True)
+
+    def check_absolute_mode( self, func_name:str="" ):
+        """
+        Function to verifies that coordinates and extruder is in absolute mode, sets back to absolute mode
+        if relative mode is set
+
+        :params func_name: String for name of function that function is being called from,
+                           this is added to debug log to aid in debugging
+        """
+        # Verify that printer is in absolute mode, and set True if in relative mode to prevent out of bound moves
+        self.log_toolhead_pos("{}: check absolute mode, POS:".format(func_name))
+        if not self.AFC.gcode_move.absolute_coord:
+            self.logger.debug("Printer coords not in absolute mode, setting to absolute mode")
+            self.AFC.gcode_move.absolute_coord = True
+        if not self.AFC.gcode_move.absolute_extrude:
+            self.logger.debug("Printer extruder not in absolute mode, setting to absolute mode")
+            self.AFC.gcode_move.absolute_extrude = True
 
     def HexConvert(self,tmp):
         led=tmp.split(',')
