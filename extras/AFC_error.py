@@ -117,14 +117,13 @@ class afcError:
         """
         This function clears the error state of the AFC system by setting the error state to False.
 
-        Usage: `RESET_FAILURE`
-        Example: `RESET_FAILURE`
+        Usage
+        -----
+        `RESET_FAILURE`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-
-        Returns:
-            None
+        Example
+        -----
+        `RESET_FAILURE`
         """
         self.reset_failure()
 
@@ -141,17 +140,21 @@ class afcError:
     cmd_AFC_RESUME_help = "Clear error state and restores position before resuming the print"
     def cmd_AFC_RESUME(self, gcmd):
         """
+        During the PREP phase of startup, the user's RESUME macro is renamed and replaced with AFC_RESUME.
         This function clears the error state of the AFC system, sets the in_toolchange flag to False,
         runs the resume script, and restores the toolhead position to the last saved position.
 
-        Usage: `AFC_RESUME`
-        Example: `AFC_RESUME`
+        This is not a macro that should normally need to be called by the user.
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
+        Usage
+        -----
+        `AFC_RESUME`
 
-        Returns:
-            None
+        Example
+        -----
+        ```
+        AFC_RESUME
+        ```
         """
         self.AFC.in_toolchange = False
         if not self.AFC.FUNCTION.is_paused():
@@ -183,8 +186,24 @@ class afcError:
         self.logger.debug("RESUME-Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}".format(
             self.AFC.error_state, self.AFC.FUNCTION.is_paused(), self.AFC.position_saved, self.AFC.in_toolchange ))
 
-    cmd_AFC_RESUME_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
+    cmd_AFC_PAUSE_help = "Pauses print, raises z by z-hop amount, and then calls users pause macro"
     def cmd_AFC_PAUSE(self, gcmd):
+        """
+        During the PREP phase of startup, the user's PAUSE macro is renamed and replaced with AFC_PAUSE.
+        This function pauses the print, raises the Z axis by the z-hop amount, and then calls the user's pause macro.
+
+        This is not a macro that should normally need to be called by the user.
+
+        Usage
+        -----
+        `AFC_PAUSE`
+
+        Example
+        -----
+        ```
+        AFC_PAUSE
+        ```
+        """
         # Check to make sure printer is not already paused
         if not self.AFC.FUNCTION.is_paused():
             self.logger.debug("AFC_PAUSE: Pausing")
