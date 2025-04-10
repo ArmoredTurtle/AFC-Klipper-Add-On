@@ -476,6 +476,10 @@ class AFCExtruderStepper:
         if self.prep_active:
             return
 
+        if self.hub =='direct' and not self.AFC.FUNCTION.is_homed():
+            self.AFC.ERROR.AFC_error("Please home printer before directly loading to toolhead", False)
+            return False
+
         self.prep_active = True
 
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
@@ -512,6 +516,7 @@ class AFCExtruderStepper:
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct and still using load sensor
                     if self.hub == 'direct' and self.prep_state:
+                        self.AFC.afcDeltaTime.set_start_time()
                         self.AFC.TOOL_LOAD(self)
                         self.material = self.AFC.default_material_type
                         break
@@ -566,7 +571,7 @@ class AFCExtruderStepper:
 
         :param update_current: Sets current to specified load current when True
         """
-        self.drive_stepper.sync_to_extruder(None)
+        self.drive_stepper.unsync_to_extruder(None)
         if update_current: self.drive_stepper.set_load_current()
 
     def set_load_current(self):
@@ -658,20 +663,22 @@ class AFCExtruderStepper:
     def cmd_SET_LANE_LOADED(self, gcmd):
         """
         This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
-        during prints after AFC detects an error when loading/unloading and pauses. If there is a lane already loaded this macro
-        will also desync that lane extruder from the toolhead extruder and set its values and led appropriately.  <nl>
-        Retrieves the lane specified by the 'LANE' parameter and set the appropriate values in AFC to continue using the lane.
+        during prints after AFC detects an error when loading/unloading and pauses.
 
-        Usage: `SET_LANE_LOADED LANE=<lane>`
-        Example: `SET_LANE_LOADED LANE=lane1`
+        If there is a lane already loaded this macro will also desync that lane extruder from the toolhead extruder
+        and set its values and led appropriately.
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to be moved.
+        Retrieves the lane specified by the 'LANE' parameter and sets the appropriate values in AFC to continue using the lane.
 
-        Returns:
-            None
+        Usage
+        -----
+        `SET_LANE_LOADED LANE=<lane>`
+
+        Example
+        -------
+        ```
+        SET_LANE_LOADED LANE=lane1
+        ```
         """
         if not self.load_state:
             self.AFC.ERROR.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)
@@ -690,24 +697,21 @@ class AFCExtruderStepper:
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
         """
         Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
-        these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
-            <nl>
-        Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
-            <nl>
-        After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
+        these values while printing. Multiplier values must be between 0.0 - 1.0
 
-        Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
-        Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+        Use `FWD` variable to set forward multiplier, use `RWD` to set reverse multiplier
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Expected parameters:
-                - LANE: The name of the lane to adjust value for.
-                - FWD: The forward multiplier adjustment value.
-                - RWS: The reverse multiplier adjustment value.
+        After running this command run `SAVE_SPEED_MULTIPLIER LANE=<lane_name>` to save value to config file
 
-        Returns:
-            None
+        Usage
+        -----
+        `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
+
+        Example
+        -----
+        ```
+        SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9
+        ```
         """
         updated = False
         old_fwd_value = self.fwd_speed_multi
@@ -732,16 +736,15 @@ class AFCExtruderStepper:
         """
         Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.
 
-        Usage: `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
-        Example: `SAVE_SPEED_MULTIPLIER LANE=lane1`
+        Usage
+        -----
+        `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SAVE_SPEED_MULTIPLIER LANE=lane1
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
@@ -753,17 +756,15 @@ class AFCExtruderStepper:
         increase/decrease length by that amount. To reset length back to config value, pass in `reset` for length to
         reset to value in config file.
 
-        Usage: `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
-        Example: `SET_HUB_DIST LANE=lane1 LENGTH=+100`
+        Usage
+        -----
+        `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Expected parameters:
-                - LANE: The name of the lane to adjust value for.
-                - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SET_HUB_DIST LANE=lane1 LENGTH=+100
+        ```
         """
         old_dist_hub = self.dist_hub
 
@@ -783,16 +784,15 @@ class AFCExtruderStepper:
         """
         Macro call to write dist_hub variable to config file for specified lane.
 
-        Usage: `SAVE_HUB_DIST LANE=<lane_name>`
-        Example: `SAVE_HUB_DIST LANE=lane1`
+        Usage
+        -----
+        `SAVE_HUB_DIST LANE=<lane_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SAVE_HUB_DIST LANE=lane1
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'dist_hub',  self.dist_hub, '')
 

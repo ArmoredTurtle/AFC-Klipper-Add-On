@@ -494,6 +494,10 @@ class AFCExtruderStepper:
         if self.prep_active:
             return
 
+        if self.hub =='direct' and not self.AFC.FUNCTION.is_homed():
+            self.AFC.ERROR.AFC_error("Please home printer before directly loading to toolhead", False)
+            return False
+
         self.prep_active = True
 
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
@@ -530,6 +534,7 @@ class AFCExtruderStepper:
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct and still using load sensor
                     if self.hub == 'direct' and self.prep_state:
+                        self.AFC.afcDeltaTime.set_start_time()
                         self.AFC.TOOL_LOAD(self)
                         self.material = self.AFC.default_material_type
                         break

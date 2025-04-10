@@ -1228,8 +1228,9 @@ class afc:
         CUR_LANE.status = None
 
         if CUR_LANE.hub =='direct':
-            while CUR_LANE.prep_state:
+            while CUR_LANE.load_state:
                 CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            CUR_LANE.move( CUR_LANE.short_move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
 
         CUR_LANE.do_enable(False)
         CUR_LANE.unit_obj.return_to_home()

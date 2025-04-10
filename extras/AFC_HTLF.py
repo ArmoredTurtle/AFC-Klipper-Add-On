@@ -73,7 +73,7 @@ class AFC_HTLF(afcBoxTurtle):
         super().handle_connect()
 
         self.logo = '<span class=success--text>HTLF Ready\n</span>'
-        self.logo_error = '<span class=error--te\n"xt>HTLF Not Ready</span>\n'
+        self.logo_error = '<span class=error--text>HTLF Not Ready</span>\n'
 
     def system_Test(self, cur_lane, delay, assignTcmd, enable_movement):
         cur_lane.prep_state = cur_lane.load_state
@@ -85,24 +85,23 @@ class AFC_HTLF(afcBoxTurtle):
 
     def home_callback(self, eventtime, state):
         """
-        Callback when home switch is triggered/detriggered
+        Callback when home switch is triggered/untriggered
         """
         self.home_state = state
 
     def cmd_HOME_UNIT(self, gcmd):
         """
-        Moves unit lobes back to home position
+        Moves unit lane selection back to home position
 
-        Usage: `HOME_UNIT UNIT=<unit_name>`
-        Example: `HOME_UNIT UNIT=HTLF_1`
+        Usage
+        -----
+        `HOME_UNIT UNIT=<unit_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - UNIT: The name of the unit to move back to the home position
-
-        Returns:
-            None
+        Example:
+        -----
+        ```
+        HOME_UNIT UNIT=HTLF_1
+        ```
         """
         self.return_to_home()
 
