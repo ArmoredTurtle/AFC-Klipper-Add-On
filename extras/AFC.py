@@ -24,7 +24,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.9"
+AFC_VERSION="1.0.10"
 
 # Class for holding different states so its clear what all valid states are
 class State:
