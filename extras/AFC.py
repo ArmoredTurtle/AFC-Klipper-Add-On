@@ -24,7 +24,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.9"
+AFC_VERSION="1.0.10"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -1228,8 +1228,9 @@ class afc:
         CUR_LANE.status = None
 
         if CUR_LANE.hub =='direct':
-            while CUR_LANE.prep_state:
+            while CUR_LANE.load_state:
                 CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            CUR_LANE.move( CUR_LANE.short_move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
 
         CUR_LANE.do_enable(False)
         CUR_LANE.unit_obj.return_to_home()

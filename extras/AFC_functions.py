@@ -950,25 +950,34 @@ class afcDeltaTime:
         self.major_delta_time = self.last_time = self.start_time = datetime.now()
 
     def log_with_time(self, msg, debug=True):
-        curr_time = datetime.now()
-        delta_time = (curr_time - self.last_time ).total_seconds()
-        total_time = (curr_time - self.start_time).total_seconds()
-        msg = "{} (Δt:{:.3f}s, t:{:.3f})".format( msg, delta_time, total_time )
-        if debug:
-            self.logger.debug( msg )
-        else:
-            self.logger.info( msg )
-        self.last_time = curr_time
+        try:
+            curr_time = datetime.now()
+            delta_time = (curr_time - self.last_time ).total_seconds()
+            total_time = (curr_time - self.start_time).total_seconds()
+            msg = "{} (Δt:{:.3f}s, t:{:.3f})".format( msg, delta_time, total_time )
+            if debug:
+                self.logger.debug( msg )
+            else:
+                self.logger.info( msg )
+            self.last_time = curr_time
+        except Exception as e:
+            self.logger.debug("Error in log_with_time function {}".format(e))
 
     def log_major_delta(self, msg, debug=True):
-        curr_time = datetime.now()
-        delta_time = (curr_time - self.major_delta_time ).total_seconds()
-        msg = "{} t:{:.3f}".format( msg, delta_time )
-        self.logger.info( msg )
-        self.major_delta_time = curr_time
+        try:
+            curr_time = datetime.now()
+            delta_time = (curr_time - self.major_delta_time ).total_seconds()
+            msg = "{} t:{:.3f}".format( msg, delta_time )
+            self.logger.info( msg )
+            self.major_delta_time = curr_time
+        except Exception as e:
+            self.logger.debug("Error in log_major_delta function {}".format(e))
 
     def log_total_time(self, msg):
-        total_time = (datetime.now() - self.start_time).total_seconds()
-        msg = "{} t:{:.3f}".format( msg, total_time )
+        try:
+            total_time = (datetime.now() - self.start_time).total_seconds()
+            msg = "{} t:{:.3f}".format( msg, total_time )
 
-        self.logger.info( msg )
+            self.logger.info( msg )
+        except Exception as e:
+            self.logger.debug("Error in log_total_time function {}".format(e))
