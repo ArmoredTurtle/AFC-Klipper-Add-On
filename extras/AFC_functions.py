@@ -668,14 +668,14 @@ class afcFunction:
 
         Example
         -----
-        - ```
+        (Shows the prompt for resetting lanes with a distance value of 30mm)
+        ```
         AFC_RESET DISTANCE=30
         ```
-        (Shows the prompt for resetting lanes with a distance value of 30mm)
-        - ```
+        (Shows the prompt for resetting lanes without specifying a distance)
+        ```
         AFC_RESET
         ```
-        (Shows the prompt for resetting lanes without specifying a distance)
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -716,14 +716,14 @@ class afcFunction:
 
         Example
         -----
-        - ```
+        (Resets lane1 to the hub with a move of 50mm)
+        ```
         AFC_LANE_RESET LANE=lane1 DISTANCE=50
         ```
-        (Resets lane1 to the hub with a move of 50mm)
-        - ```
+        (Resets lane2 to the hub using default settings)
+        ```
         AFC_LANE_RESET LANE=lane2
         ```
-        (Resets lane2 to the hub using default settings)
         """
 
         prompt = AFCprompt(gcmd, self.logger)
