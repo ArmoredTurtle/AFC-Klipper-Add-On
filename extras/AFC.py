@@ -394,8 +394,6 @@ class afc:
 
         Mainly this would be used if AFC thinks that there is a lane loaded into the toolhead but nothing is actually
         loaded.
-        Retrieves the lane specified by the 'LANE' parameter and sets the appropriate values in AFC to continue using
-        the lane.
 
         Usage
         -------
