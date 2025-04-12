@@ -8,4 +8,5 @@
  
 - [ ] I have performed a self-review of my code
 - [ ] CHANGELOG.md is updated (if end-user facing)
+- [ ] Documentation updated in AT-Documentation repository
 - [ ] Sent notification to software-design channel requesting review

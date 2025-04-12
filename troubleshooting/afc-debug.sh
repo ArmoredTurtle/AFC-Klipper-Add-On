@@ -231,7 +231,7 @@ DISTRO=$(strings /etc/*-release 2>/dev/null || echo "Unknown")
 KERNEL=$(uname -a)
 UPTIME=$(uptime)
 LSUSB=$(lsusb | tr -d '\0')
-SERIAL_IDS=$(ls -l /dev/serial/by-id/)
+SERIAL_IDS=$(ls -l /dev/serial/by-id/ || echo "No serial devices found.")
 
 get_afc_version
 get_klipper_version
