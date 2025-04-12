@@ -445,8 +445,8 @@ class afcFunction:
 
         prompt.p_end()
 
-        if self.AFC.current is not None and afc_bl is not None:
-            self.logger.info('Tool must be unloaded to calibrate Bowden length')
+        if self.AFC.current is not None:
+            self.logger.info('Tool must be unloaded to calibrate system')
             return
 
         calibrated = []
