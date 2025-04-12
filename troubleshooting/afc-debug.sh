@@ -144,6 +144,7 @@ extract_klipper_logs() {
 	echo "Extracting Klipper logs..."
 	temp_dir_creation
 	cp "$printer_log_dir"/klippy.log "$temp_dir"
+	cp "$printer_log_dir"/AFC.log* "$temp_dir"
 	cd "$temp_dir" || exit
 	"$klipper_venv"/python "$klipper_dir"/scripts/logextract.py ./klippy.log
 }
@@ -270,11 +271,11 @@ done
 uploaded_files=()
 
 for file in "$temp_dir"/*; do
-	if [[ "$file" == *config* || "$file" == *shutdown* ]]; then
+	if [[ "$file" == *config* || "$file" == *shutdown* || "$file" == *AFC* || "$file" == *klippy.log ]]; then
 		file_name=$(basename "$file")
 
 		# Inform the user in the terminal (colored)
-		echo "Uploading $file_name to termbin..."
+		echo "Uploading \"$file_name\" to termbin..."
 
 		# Log-friendly plain text URL (no colors)
 		uploaded_files+=("$(upload_file_to_termbin "$file")")
