@@ -5,12 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-04-12]
+
+### Added
+- The `afc-debug.sh` script will now also upload `AFC.log` files for assistance during troubleshooting.
+
 ## [2025-04-09]
 
-## Added
+### Added
 - Added check in prep to make sure printer is homed when using direct loading
 
-## Fixed
+### Fixed
 - For direct loading, fixed logic to use load sensor for unloading and then retract back more
   to make sure filament was fully out of extruder gears
 - Fixed error where start time was not correctly getting set for direct loads
