@@ -866,10 +866,10 @@ class afc:
                     CUR_LANE.move(CUR_LANE.short_move_dis, CUR_EXTRUDER.tool_load_speed, CUR_LANE.long_moves_accel)
                     if tool_attempts > 20:
                         message = 'filament failed to trigger pre extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
+                        message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
+                        message += '\nManually move filament with LANE_MOVE macro for {} until filament is right before toolhead extruder gears,'.format(CUR_LANE.name)
+                        message += '\n then load into extruder gears with extrude button in your gui of choice until the color fully changes'
                         if self.FUNCTION.in_print():
-                            message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
-                            message += '\nManually move filament with LANE_MOVE macro for {} until filament is right before toolhead extruder gears,'.format(CUR_LANE.name)
-                            message += '\n then load into extruder gears with extrude button in your gui of choice until the color fully changes'
                             message += '\nOnce filament is fully loaded click resume to continue printing'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
@@ -890,9 +890,9 @@ class afc:
                     self.toolhead.wait_moves()
                     if tool_attempts > 20:
                         message = 'filament failed to trigger post extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
+                        message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
+                        message += '\nAlso might be a good idea to verify that post extruder gear toolhead sensor is working.'
                         if self.FUNCTION.in_print():
-                            message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
-                            message += '\nAlso might be a good idea to verify that post extruder gear toolhead sensor is working.'
                             message += '\nOnce issue is resolved click resume to continue printing'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
@@ -1135,9 +1135,9 @@ class afc:
                     if self.FUNCTION.in_print():
                         message += "\nRetract filament fully with retract button in gui of choice to remove from extruder gears if needed,"
                         message += "\n  and then use LANE_MOVE to fully retract behind hub so its not triggered anymore."
+                        message += "\nThen Manually run UNSET_LANE_LOADED to let AFC know nothing is loaded into toolhead"
                         # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                         if self.next_lane_load is not None:
-                            message += "\nThen Manually run UNSET_LANE_LOADED to let AFC know nothing is loaded into toolhead"
                             message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
                             message += "\nOnce lane is loaded click resume to continue printing"
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
