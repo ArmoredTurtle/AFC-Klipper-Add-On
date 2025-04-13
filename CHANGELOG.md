@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - The `afc-debug.sh` script will now also upload `AFC.log` files for assistance during troubleshooting.
 
+### Changed
+- All documentation is now available on our website at https://armoredturtle.xyz/docs/.
+
 ## [2025-04-09]
 
 ### Added
