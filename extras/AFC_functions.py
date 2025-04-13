@@ -59,7 +59,7 @@ class afcFunction:
         self.AFC.gcode.register_command('AFC_CALI_FAIL'  , self.cmd_AFC_CALI_FAIL  , desc=self.cmd_AFC_CALI_FAIL_help)
         self.AFC.gcode.register_command('AFC_HAPPY_P'    , self.cmd_AFC_HAPPY_P    , desc=self.cmd_AFC_HAPPY_P_help)
         self.AFC.gcode.register_command('AFC_RESET'      , self.cmd_AFC_RESET      , desc=self.cmd_AFC_RESET_help)
-        self.AFC.gcode.register_command('AFC_LANE_RESET' , self.cmd_LANE_RESET     , desc=self.cmd_LANE_RESET_help)
+        self.AFC.gcode.register_command('AFC_LANE_RESET' , self.cmd_AFC_LANE_RESET , desc=self.cmd_AFC_LANE_RESET_help)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -73,7 +73,8 @@ class afcFunction:
                     dataout = ''
                     for line in f:
                         # If previous section found and line starts with bracket, means that this line is another section
-                        #  need to put sectionfound to false to not update wrong sections if rawkey is not found
+                        # need to set section found to false in order to not update wrong sections if raw key is not
+                        # found
                         if sectionfound and line.startswith("["): sectionfound = False
 
                         if re.match(pattern, line) is not None: sectionfound = True
@@ -96,7 +97,7 @@ class afcFunction:
                 if taskdone:
                     f=open(file_path, 'w')
                     f.write(dataout)
-                    f.close
+                    f.close()
                     taskdone = False
                     msg +='\n<span class=info--text>Saved {}:{} in {} section to configuration file</span>'.format(rawkey, rawvalue, rawsection)
                     self.logger.info(msg)
@@ -132,11 +133,11 @@ class afcFunction:
             return True
 
     def is_moving(self):
-        '''
+        """
         Helper function to return if the printer is moving or not. This is different from `is_printing` as it will return true if anything in the printer is moving.
 
         :return boolean: True if anything in the printer is moving
-        '''
+        """
         eventtime = self.AFC.reactor.monotonic()
         idle_timeout = self.printer.lookup_object("idle_timeout")
         return idle_timeout.get_status(eventtime)["state"] == "Printing"
@@ -154,13 +155,13 @@ class afcFunction:
         return print_state not in print_stats_idle_states
 
     def is_printing(self, check_movement=False):
-        '''
+        """
         Helper function to return if the printer is printing an object.
 
         :param check_movement: When set to True will also return True if anything in the printer is also moving
 
         :return boolean: True if printer is printing an object or if printer is moving when `check_movement` is True
-        '''
+        """
         eventtime = self.AFC.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
         moving = False
@@ -253,7 +254,10 @@ class afcFunction:
             if cur_lane_loaded is None or key != cur_lane_loaded.name:
                 obj.do_enable(False)
                 obj.disable_buffer()
-                self.afc_led(obj.led_ready, obj.led_index)
+                if obj.prep_state and obj.load_state:
+                    self.afc_led(obj.led_ready, obj.led_index)
+                else:
+                    self.afc_led(obj.led_not_ready, obj.led_index)
 
         # Exit early if lane is None
         if cur_lane_loaded is None:
@@ -277,18 +281,54 @@ class afcFunction:
         if cur_lane_loaded is not None:
             cur_lane_loaded.unsync_to_extruder()
             cur_lane_loaded.set_unloaded()
+            cur_lane_loaded.unit_obj.return_to_home()
             self.AFC.FUNCTION.handle_activate_extruder()
             self.logger.info("Manually removing {} loaded from toolhead".format(cur_lane_loaded.name))
             self.AFC.save_vars()
 
+    def select_loaded_lane(self):
+        """
+        Function looks up what the current lane loaded is and calls a common `select_lane` function so
+        that units that have selectors this makes sure the correct lane is selected if user moves other
+        lanes outside of printing
+        """
+        current_lane = self.get_current_lane_obj()
+        if current_lane is not None:
+            current_lane.unit_obj.select_lane(current_lane)
+
     def log_toolhead_pos(self, move_pre=""):
+        """
+        Helper function for printing postion data to log
+
+        :param move_pre: String that get appended before the position data
+        """
         msg = "{}Position: {}".format(move_pre, self.AFC.toolhead.get_position())
         msg += " base_position: {}".format(self.AFC.gcode_move.base_position)
         msg += " last_position: {}".format(self.AFC.gcode_move.last_position)
         msg += " homing_position: {}".format(self.AFC.gcode_move.homing_position)
         msg += " speed: {}".format(self.AFC.gcode_move.speed)
-        msg += " absolute_coord: {}\n".format(self.AFC.gcode_move.absolute_coord)
+        msg += " speed_factor: {}".format(self.AFC.gcode_move.speed_factor)
+        msg += " extrude_factor: {}".format(self.AFC.gcode_move.extrude_factor)
+        msg += " absolute_coord: {}".format(self.AFC.gcode_move.absolute_coord)
+        msg += " absolute_extrude: {}\n".format(self.AFC.gcode_move.absolute_extrude)
         self.logger.debug(msg, only_debug=True)
+
+    def check_absolute_mode( self, func_name:str="" ):
+        """
+        Function to verifies that coordinates and extruder is in absolute mode, sets back to absolute mode
+        if relative mode is set
+
+        :params func_name: String for name of function that function is being called from,
+                           this is added to debug log to aid in debugging
+        """
+        # Verify that printer is in absolute mode, and set True if in relative mode to prevent out of bound moves
+        self.log_toolhead_pos("{}: check absolute mode, POS:".format(func_name))
+        if not self.AFC.gcode_move.absolute_coord:
+            self.logger.debug("Printer coords not in absolute mode, setting to absolute mode")
+            self.AFC.gcode_move.absolute_coord = True
+        if not self.AFC.gcode_move.absolute_extrude:
+            self.logger.debug("Printer extruder not in absolute mode, setting to absolute mode")
+            self.AFC.gcode_move.absolute_extrude = True
 
     def HexConvert(self,tmp):
         led=tmp.split(',')
@@ -313,13 +353,15 @@ class afcFunction:
         Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
         allows the option to calibrate all lanes across all units.
 
-        Usage:`AFC_CALIBRATION`
-        Example: `AFC_CALIBRATION`
-        Args:
-            None
+        Usage
+        -----
+        `AFC_CALIBRATION`
 
-        Returns:
-            None
+        Example
+        -----
+        ```
+        AFC_CALIBRATION
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -344,13 +386,15 @@ class afcFunction:
         Open a prompt to confirm calibration of all lanes in all units. Provides 'Yes' to confirm and 'Back' to
         return to the previous menu.
 
-        Usage:`ALL_CALIBRATION`
-        Example: `ALL_CALIBRATION`
-        Args:
-            None
+        Usage
+        -----
+        `ALL_CALIBRATION`
 
-        Returns:
-            None
+        Example
+        -----
+        ```
+        ALL_CALIBRATION
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         footer = []
@@ -372,22 +416,25 @@ class afcFunction:
         user-provided input. If no specific lane is provided, the function defaults to notifying the user that no lane has been selected. The function also includes
         the option to calibrate the Bowden length for a particular lane, if specified.
 
-        Usage:`CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
-        Examples:
-            - `CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3`
-            - `CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
+        Parameters:
+        - LANES: Specifies the lane to calibrate. If not provided, calibrates no lanes.
+        - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
+        - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
+        - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
+        - UNIT: Specifies the unit to be used in calibration (optional)
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - LANES: Specifies the lane to calibrate. If not provided, calibrates no lanes.
-                - DISTANCE: The distance to move during calibration (optional, defaults to 25mm).
-                - TOLERANCE: The tolerance for fine adjustments during calibration (optional, defaults to 5mm).
-                - BOWDEN: Specifies the lane to perform Bowden length calibration (optional).
-                - UNIT: Specifies the unit to be used in calibration (optional)
+        Usage
+        -----
+        `CALIBRATE_AFC LANE=<lane> DISTANCE=<distance> TOLERANCE=<tolerance> BOWDEN=<lane>`
 
-        Returns:
-            None
+        Example
+        -----
+        ```
+        CALIBRATE_AFC LANE=all Bowden=lane1 DISTANCE=30 TOLERANCE=3
+        ```
+        ```
+        CALIBRATE_AFC BOWDEN=lane1` (Calibrates the Bowden length for 'lane1')
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         dis    = gcmd.get_float('DISTANCE' , 25)
@@ -398,8 +445,8 @@ class afcFunction:
 
         prompt.p_end()
 
-        if self.AFC.current is not None and afc_bl is not None:
-            self.logger.info('Tool must be unloaded to calibrate Bowden length')
+        if self.AFC.current is not None:
+            self.logger.info('Tool must be unloaded to calibrate system')
             return
 
         calibrated = []
@@ -496,7 +543,7 @@ class afcFunction:
                 self.AFC.ERROR.AFC_error('{} failed to calibrate bowden length {}'.format(afc_bl, msg), pause=False)
                 self.AFC.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(afc_bl, pos))
                 return
-            else: calibrated.append('Bowden length: {}'.format(afc_bl))
+            else: calibrated.append('Bowden_length:_{}'.format(afc_bl))
 
             self.logger.info("Bowden length calibration Done!")
 
@@ -513,19 +560,16 @@ class afcFunction:
         This function handles the completion of the AFC calibration process by displaying a prompt to the user, asking
         whether they want to perform more calibrations.
 
-        Usage: `AFC_CALI_COMP CALI=<calibration context>`
+        Usage
+        -----
+        `AFC_CALI_COMP CALI=<calibration context>`
 
-        Examples:
-            - `AFC_CALI_COMP CALI=lane1` (Shows a prompt indicating that calibration for 'lane1' has been completed)
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - CALI: Specifies the calibration context that was completed, such as a specific lane or all lanes.
-
-        Returns:
-            None
-        NO_DOC: True
+        Examples
+        -----
+        ```
+        AFC_CALI_COMP CALI=lane1
+        ```
+        (Shows a prompt indicating that calibration for 'lane1' has been completed)
         """
 
         cali = gcmd.get("CALI", None)
@@ -618,19 +662,20 @@ class afcFunction:
         and provides a reset button for each lane. If no lanes are loaded, an informative message is displayed indicating
         that a lane must be loaded to proceed with resetting.
 
-        Usage: `AFC_RESET DISTANCE=<distance>`
+        Usage
+        -----
+        `AFC_RESET DISTANCE=<distance>`
 
-        Examples:
-            - `AFC_RESET DISTANCE=30` (Shows the prompt for resetting lanes with a distance value of 30mm)
-            - `AFC_RESET` (Shows the prompt for resetting lanes without specifying a distance)
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - DISTANCE: The distance value to use for resetting the lanes (optional).
-
-        Returns:
-            None
+        Example
+        -----
+        (Shows the prompt for resetting lanes with a distance value of 30mm)
+        ```
+        AFC_RESET DISTANCE=30
+        ```
+        (Shows the prompt for resetting lanes without specifying a distance)
+        ```
+        AFC_RESET
+        ```
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -643,7 +688,11 @@ class afcFunction:
         for index, LANE in enumerate(self.AFC.lanes.values()):
             if LANE.load_state:
                 button_label = "{}".format(LANE.name)
-                button_command = "AFC_LANE_RESET LANE={} DISTANCE={}".format(LANE.name, dis)
+                if dis is not None:
+                    button_command = "AFC_LANE_RESET LANE={} DISTANCE={}".format(LANE.name, dis)
+                else:
+                    button_command = "AFC_LANE_RESET LANE={}".format(LANE.name)
+
                 button_style = "primary" if index % 2 == 0 else "secondary"
                 buttons.append((button_label, button_command, button_style))
 
@@ -654,27 +703,27 @@ class afcFunction:
         prompt.create_custom_p(title, text, buttons,
                         True, None)
 
-    cmd_LANE_RESET_help = 'reset a loaded lane to hub'
-    def cmd_LANE_RESET(self, gcmd):
+    cmd_AFC_LANE_RESET_help = 'reset a loaded lane to hub'
+    def cmd_AFC_LANE_RESET(self, gcmd):
         """
         This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
         such as whether the toolhead is loaded or whether the hub is already clear. The function moves the lane back to the
         hub based on the specified or default distances, ensuring the lane's correct state before completing the reset.
 
-        Usage: `LANE_RESET LANE=<lane> DISTANCE=<distance>`
+        Usage
+        -----
+        `AFC_LANE_RESET LANE=<lane> DISTANCE=<distance>`
 
-        Examples:
-            - `LANE_RESET LANE=lane1 DISTANCE=50` (Resets lane1 to the hub with a move of 50mm)
-            - `LANE_RESET LANE=lane2` (Resets lane2 to the hub using default settings)
-
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Parameters:
-                - LANE: The lane to reset. Must be a valid lane in the AFC system.
-                - DISTANCE: The distance to move during the reset (optional, defaults to the AFC settings).
-
-        Returns:
-            None
+        Example
+        -----
+        (Resets lane1 to the hub with a move of 50mm)
+        ```
+        AFC_LANE_RESET LANE=lane1 DISTANCE=50
+        ```
+        (Resets lane2 to the hub using default settings)
+        ```
+        AFC_LANE_RESET LANE=lane2
+        ```
         """
 
         prompt = AFCprompt(gcmd, self.logger)
@@ -765,18 +814,17 @@ class afcFunction:
         value, pass in `reset` for each length to reset to value in config file. Adding +/- in front of the
         length will increase/decrease bowden length by that amount.
 
-        Usage: `SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length> UNLOAD_LENGTH=<length>`
-        Example: `SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100`
+        Usage
+        -----
+        `SET_BOWDEN_LENGTH HUB=<hub> LENGTH=<length> UNLOAD_LENGTH=<length>`
+
+        Example
+        -----
+        ```
+        SET_BOWDEN_LENGTH HUB=Turtle_1 LENGTH=+100 UNLOAD_LENGTH=-100
+        ```
 
         Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - HUB: The name of the hub to be adjusted (optional).
-                  - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
-                  - UNLOAD_LENGTH: The length adjustment value for afc_unload_bowden_length variable (optional).
-
-        Returns:
-            None
         """
         hub           = gcmd.get("HUB", None )
         length_param  = gcmd.get('LENGTH', None)
@@ -819,16 +867,15 @@ class afcFunction:
         It retrieves the lane specified by the 'LANE' parameter, performs the hub cut,
         and responds with the status of the operation.
 
-        Usage: `HUB_CUT_TEST LANE=<lane>`
-        Example: `HUB_CUT_TEST LANE=lane1`
+        Usage
+        -----
+        `HUB_CUT_TEST LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be tested.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        HUB_CUT_TEST LANE=lane1
+        ```
         """
         lane = gcmd.get('LANE', None)
         self.logger.info('Testing Hub Cut on Lane: ' + lane)
@@ -849,26 +896,34 @@ class afcFunction:
         2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
         3. Reports the status of each test step.
 
-        Usage: `TEST LANE=<lane>`
-        Example: `TEST LANE=lane1`
+        Usage
+        -----
+        `TEST LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be tested.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        TEST LANE=lane1
+        ```
         """
         lane = gcmd.get('LANE', None)
         if lane == None:
             self.AFC.ERROR.AFC_error('Must select LANE', False)
             return
+
         self.logger.info('TEST ROUTINE')
         if lane not in self.AFC.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
+
         CUR_LANE = self.AFC.lanes[lane]
+        if CUR_LANE.afc_motor_rwd is None:
+            message = "afc_motor_rwd is not defined in config for {}, cannot perform test.\n".format(lane)
+            message += "If your unit does not have spooler motors then you can ignore this message.\n"
+            message += "If your unit has spooler motors please verify your config is setup properly"
+            self.logger.info(message)
+            return
+
         self.logger.info('Testing at full speed')
         CUR_LANE.assist(-1)
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
@@ -895,25 +950,34 @@ class afcDeltaTime:
         self.major_delta_time = self.last_time = self.start_time = datetime.now()
 
     def log_with_time(self, msg, debug=True):
-        curr_time = datetime.now()
-        delta_time = (curr_time - self.last_time ).total_seconds()
-        total_time = (curr_time - self.start_time).total_seconds()
-        msg = "{} (Δt:{:.3f}s, t:{:.3f})".format( msg, delta_time, total_time )
-        if debug:
-            self.logger.debug( msg )
-        else:
-            self.logger.info( msg )
-        self.last_time = curr_time
+        try:
+            curr_time = datetime.now()
+            delta_time = (curr_time - self.last_time ).total_seconds()
+            total_time = (curr_time - self.start_time).total_seconds()
+            msg = "{} (Δt:{:.3f}s, t:{:.3f})".format( msg, delta_time, total_time )
+            if debug:
+                self.logger.debug( msg )
+            else:
+                self.logger.info( msg )
+            self.last_time = curr_time
+        except Exception as e:
+            self.logger.debug("Error in log_with_time function {}".format(e))
 
     def log_major_delta(self, msg, debug=True):
-        curr_time = datetime.now()
-        delta_time = (curr_time - self.major_delta_time ).total_seconds()
-        msg = "{} t:{:.3f}".format( msg, delta_time )
-        self.logger.info( msg )
-        self.major_delta_time = curr_time
+        try:
+            curr_time = datetime.now()
+            delta_time = (curr_time - self.major_delta_time ).total_seconds()
+            msg = "{} t:{:.3f}".format( msg, delta_time )
+            self.logger.info( msg )
+            self.major_delta_time = curr_time
+        except Exception as e:
+            self.logger.debug("Error in log_major_delta function {}".format(e))
 
     def log_total_time(self, msg):
-        total_time = (datetime.now() - self.start_time).total_seconds()
-        msg = "{} t:{:.3f}".format( msg, total_time )
+        try:
+            total_time = (datetime.now() - self.start_time).total_seconds()
+            msg = "{} t:{:.3f}".format( msg, total_time )
 
-        self.logger.info( msg )
+            self.logger.info( msg )
+        except Exception as e:
+            self.logger.debug("Error in log_total_time function {}".format(e))

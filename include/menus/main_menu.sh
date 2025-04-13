@@ -47,7 +47,7 @@ completed you will not be able to use this assisted process for any future updat
     printf "\e[38;5;143;48;5;143m▄▄\e[38;5;143;49m▄\e[38;5;143;48;5;29m▄\e[49;38;5;29m▀\e[38;5;29;48;5;29m▄\e[49m        \e[48;5;29m     \e[49m        \e[38;5;29;48;5;29m▄\e[49;38;5;29m▀\e[38;5;143;48;5;29m▄\e[38;5;143;49m▄\e[38;5;143;48;5;143m▄▄\e[m  3. Moonraker Config File    : %s \n" $moonraker_config_file
     printf "\e[49m  \e[49;38;5;143m▀▀\e[38;5;143;48;5;143m▄▄\e[38;5;143;49m▄▄\e[49m      \e[48;5;29m     \e[49m      \e[38;5;143;49m▄▄\e[38;5;143;48;5;143m▄▄\e[49;38;5;143m▀▀\e[49m  \e[m  4. Klipper Service Name     : %s \n" $klipper_service
     printf "\e[49m      \e[49;38;5;143m▀\e[38;5;143;48;5;143m▄▄\e[38;5;143;49m▄▄\e[49m   \e[48;5;29m     \e[49m   \e[38;5;143;49m▄▄\e[38;5;143;48;5;143m▄▄\e[49;38;5;143m▀\e[49m      \e[m  5. Branch                   : %s \n" $branch
-    printf "\e[49m         \e[49;38;5;143m▀▀\e[38;5;143;48;5;143m▄▄\e[38;5;143;49m▄▄\e[49;38;5;29m▀\e[38;5;29;48;5;29m▄\e[49;38;5;29m▀\e[38;5;143;49m▄▄\e[38;5;143;48;5;143m▄▄\e[49;38;5;143m▀▀\e[49m \e[m          6. Moonraker Address        : %s    \n" $moonraker_address
+    printf "\e[49m         \e[49;38;5;143m▀▀\e[38;5;143;48;5;143m▄▄\e[38;5;143;49m▄▄\e[49;38;5;29m▀\e[38;5;29;48;5;29m▄\e[49;38;5;29m▀\e[38;5;143;49m▄▄\e[38;5;143;48;5;143m▄▄\e[49;38;5;143m▀▀\e[49m \e[m          6. Moonraker Address        : %s    \n" $moonraker
     printf "\e[49m             \e[49;38;5;143m▀▀\e[38;5;143;48;5;143m▄\e[38;5;143;49m▄\e[38;5;143;48;5;143m▄\e[49;38;5;143m▀▀\e[49m             \e[m  (Select a number to change the default value)\n"
     echo ""
     printf "${MENU_GREEN}▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n"
@@ -60,15 +60,16 @@ completed you will not be able to use this assisted process for any future updat
     printf "${MENU_GREEN}▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀${RESET} \n"
     echo ""
     if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
-      printf "I. Install AFC Klipper Add-on\n"
+      printf "I. Install New System\n"
     elif [ "$prior_installation" == "False" ] && [ "$files_updated_or_installed" == "False" ]; then
-      printf "I. Install AFC Klipper Add-On\n"
+      printf "I. Install New System\n"
     fi
     if [ "$prior_installation" == "True" ] && [ "$force_update" == "False" ]; then
       printf "U. Update AFC Klipper Add-On\n"
     fi
+    printf "A. Install Additional System\n"
+    printf "C. Utilities\n"
     printf "R. Remove AFC Klipper Add-On\n"
-    #printf "A. Add new unit type\n"
     echo "Q. Exit"
     echo ""
     read -p "Enter your choice: " choice
@@ -86,7 +87,8 @@ completed you will not be able to use this assisted process for any future updat
       5)
         export message="To change the branch, please re-run this script with a '-b <branch>' option." ;;
       6)
-        export message="To change the moonraker address, please re-run this script with a '-a <address>' option." ;;
+        export message="To change the moonraker address, please re-run this script with a '-a <address>' option.\n"
+        export message+="To change the moonraker port, please re-run this script with a '-n <moonraker port>' option." ;;
       I)
         if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
           backup_afc_config
@@ -96,8 +98,10 @@ completed you will not be able to use this assisted process for any future updat
         update_menu ;;
       R)
         uninstall_afc ;;
+      C)
+        utilities_menu ;;
       A)
-        add_unit ;;
+        additional_system_menu ;;
       Q)
         exit_afc_install ;;
       *)

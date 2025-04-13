@@ -17,7 +17,10 @@ klipper_venv="$HOME/klippy-env/bin"
 
 # Service related constants
 klipper_service="klipper"
+moonraker_port="7125"
 moonraker_address="http://localhost"
+moonraker="${moonraker_address}:${moonraker_port}"
+
 
 # Git related constants
 gitrepo="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
@@ -25,7 +28,7 @@ branch="main"
 
 # Misc constants
 prior_installation="False"
-installation_type="BoxTurtle"
+installation_type="BoxTurtle (4-Lane)"
 uninstall="False"
 force_update="True"
 backup_date=$(date +%Y%m%d%H%M%S)
@@ -33,6 +36,10 @@ current_install_version="1.0.0"
 min_version="1.0.0"
 files_updated_or_installed="False"
 test_mode="False"
+installation_options=("BoxTurtle (4-Lane)" "NightOwl" "HTLF")
+invalid_name="False"
+minimum_python_major="3"
+minimum_python_minor="8"
 
 # AFC default configs
 park_macro="True"
@@ -43,11 +50,12 @@ toolhead_cutter="True"
 hub_cutter="False"
 kick_macro="True"
 wipe_macro="True"
-installation_type="BoxTurtle"
 toolhead_sensor="Sensor"
 toolhead_sensor_pin="Unknown"
 buffer_type="TurtleNeck"
-
+boxturtle_name="Turtle_1"
+htlf_board_types=("ERB" "MMB_1.1" "MMB_1.0")
+htlf_board_type="ERB"
 
 # Moonraker Config
 moonraker_update_config="""

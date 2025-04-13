@@ -41,6 +41,7 @@ class afcPrep:
             self.AFC.gcode.register_command(rename_name, prev_cmd, desc=pdesc)
         else:
             self.logger.debug("{}Existing command {} not found in gcode_macros{}".format("<span class=warning--text>", base_name, "</span>",))
+        self.logger.debug("PREP-renaming macro {}".format(base_name))
         self.AFC.gcode.register_command(base_name, rename_macro, desc=rename_help)
 
     def _rename_macros(self):
@@ -142,6 +143,12 @@ class afcPrep:
                 self.logger.info("Filament loaded in bypass, toolchanges deactivated")
         except:
             pass
+
+        # look up what current lane should be an call select lane, this is more for units that
+        # have selectors to make sure the selector is on the correct lane
+        current_lane = self.AFC.FUNCTION.get_current_lane_obj()
+        if current_lane is not None:
+            current_lane.unit_obj.select_lane(current_lane)
 
         # Restore previous bypass state if virtual bypass is active
         if 'virtual' in self.AFC.bypass.name:

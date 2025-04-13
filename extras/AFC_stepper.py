@@ -85,7 +85,11 @@ class AFCExtruderStepper:
         # Overrides buffers set at the unit and extruder level
         self.buffer_name        = config.get("buffer", None)                            # Buffer name(AFC_buffer) that belongs to this stepper, overrides buffer that is set in extruder(AFC_extruder) or unit(AFC_BoxTurtle/NightOwl/etc) sections.
         self.unit               = unit.split(':')[0]
-        self.index              = int(unit.split(':')[1])
+        try:
+            self.index              = int(unit.split(':')[1])
+        except:
+            self.index              = 0
+            pass
 
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         self.map                = config.get('cmd','NONE')
@@ -133,12 +137,13 @@ class AFCExtruderStepper:
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
         self.prep = config.get('prep', None)                                                        # MCU pin for prep trigger
+        self.prep_state = False
         if self.prep is not None:
-            self.prep_state = False
             buttons.register_buttons([self.prep], self.prep_callback)
+
         self.load = config.get('load', None)                                                        # MCU pin load trigger
+        self.load_state = False
         if self.load is not None:
-            self.load_state = False
             buttons.register_buttons([self.load], self.load_callback)
         else: self.load_state = True
 
@@ -167,9 +172,6 @@ class AFCExtruderStepper:
         self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5)                         # Multiplier to apply to rpm
         self.diameter_range = self.outer_diameter - self.inner_diameter  # Range for effective diameter
 
-        # Set hub loading speed depending on distance between extruder and hub
-        self.dist_hub_move_speed = self.AFC.long_moves_speed if self.dist_hub >= 200 else self.AFC.short_moves_speed
-        self.dist_hub_move_accel = self.AFC.long_moves_accel if self.dist_hub >= 200 else self.AFC.short_moves_accel
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
@@ -178,11 +180,11 @@ class AFCExtruderStepper:
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
 
         if self.enable_sensors_in_gui:
-            if self.sensor_to_show is None or self.sensor_to_show == 'prep':
+            if self.prep is not None and (self.sensor_to_show is None or self.sensor_to_show == 'prep'):
                 self.prep_filament_switch_name = "filament_switch_sensor {}_prep".format(self.name)
                 self.fila_prep = add_filament_switch(self.prep_filament_switch_name, self.prep, self.printer )
 
-            if self.sensor_to_show is None or self.sensor_to_show == 'load':
+            if self.load is not None and (self.sensor_to_show is None or self.sensor_to_show == 'load'):
                 self.load_filament_switch_name = "filament_switch_sensor {}_load".format(self.name)
                 self.fila_load = add_filament_switch(self.load_filament_switch_name, self.load, self.printer )
         self.connect_done = False
@@ -214,8 +216,9 @@ class AFCExtruderStepper:
         self.buffer_obj = self.unit_obj.buffer_obj
 
         # Registering lane name in unit
-        self.unit_obj.lanes[self.name] = self
-        self.AFC.lanes[self.name] = self
+        if self.unit_obj.type != "HTLF":
+            self.unit_obj.lanes[self.name] = self
+            self.AFC.lanes[self.name] = self # TODO: put a check here to make sure lane name does not already exist
 
         self.hub_obj = self.unit_obj.hub_obj
         if self.hub != 'direct':
@@ -306,6 +309,10 @@ class AFCExtruderStepper:
         if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis
         if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
         if self.n20_break_delay_time is None: self.n20_break_delay_time = self.unit_obj.n20_break_delay_time
+
+        # Set hub loading speed depending on distance between extruder and hub
+        self.dist_hub_move_speed = self.long_moves_speed if self.dist_hub >= 200 else self.short_moves_speed
+        self.dist_hub_move_accel = self.long_moves_accel if self.dist_hub >= 200 else self.short_moves_accel
 
         # Register macros
         self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
@@ -412,7 +419,7 @@ class AFCExtruderStepper:
 
     def _move(self, distance, speed, accel, assist_active=False):
         """
-        Move the specified lane a given distance with specified speed and acceleration.
+        Helper function to move the specified lane a given distance with specified speed and acceleration.
         This function calculates the movement parameters and commands the stepper motor
         to move the lane accordingly.
         Parameters:
@@ -446,7 +453,15 @@ class AFCExtruderStepper:
             toolhead.wait_moves()
 
     def move(self, distance, speed, accel, assist_active=False):
-
+        """
+        Move the specified lane a given distance with specified speed and acceleration.
+        This function calculates the movement parameters and commands the stepper motor
+        to move the lane accordingly.
+        Parameters:
+        distance (float): The distance to move.
+        speed (float): The speed of the movement.
+        accel (float): The acceleration of the movement.
+        """
         direction = 1 if distance > 0 else -1
         move_total = abs(distance)
 
@@ -478,6 +493,10 @@ class AFCExtruderStepper:
 
         if self.prep_active:
             return
+
+        if self.hub =='direct' and not self.AFC.FUNCTION.is_homed():
+            self.AFC.ERROR.AFC_error("Please home printer before directly loading to toolhead", False)
+            return False
 
         self.prep_active = True
 
@@ -515,6 +534,7 @@ class AFCExtruderStepper:
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct and still using load sensor
                     if self.hub == 'direct' and self.prep_state:
+                        self.AFC.afcDeltaTime.set_start_time()
                         self.AFC.TOOL_LOAD(self)
                         self.material = self.AFC.default_material_type
                         break
@@ -653,10 +673,9 @@ class AFCExtruderStepper:
 
         # Calculate the cross-sectional area of the filament
         density_g_mm3 = self.filament_density / 1000.0
-        filament_cross_section_mm2 = 3.14159 * (self.filament_diameter / 2) ** 2
         filament_volume_mm3 = weight_g / density_g_mm3
-        filament_length_mm = filament_volume_mm3 / filament_cross_section_mm2
-        filament_area_mm2 = filament_length_mm * self.filament_diameter / spool_width_mm
+        package_corrected_volume_mm3 = filament_volume_mm3 / 0.785
+        filament_area_mm2 = package_corrected_volume_mm3 / spool_width_mm
         spool_outer_diameter_mm2 = (4 * filament_area_mm2 / 3.14159) + self.inner_diameter ** 2
         spool_outer_diameter_mm = spool_outer_diameter_mm2 ** 0.5
 
@@ -777,20 +796,22 @@ class AFCExtruderStepper:
     def cmd_SET_LANE_LOADED(self, gcmd):
         """
         This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
-        during prints after AFC detects an error when loading/unloading and pauses. If there is a lane already loaded this macro
-        will also desync that lane extruder from the toolhead extruder and set its values and led appropriately.  <nl>
-        Retrieves the lane specified by the 'LANE' parameter and set the appropriate values in AFC to continue using the lane.
+        during prints after AFC detects an error when loading/unloading and pauses.
 
-        Usage: `SET_LANE_LOADED LANE=<lane>`
-        Example: `SET_LANE_LOADED LANE=lane1`
+        If there is a lane already loaded this macro will also desync that lane extruder from the toolhead extruder
+        and set its values and led appropriately.
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to be moved.
+        Retrieves the lane specified by the 'LANE' parameter and sets the appropriate values in AFC to continue using the lane.
 
-        Returns:
-            None
+        Usage
+        -----
+        `SET_LANE_LOADED LANE=<lane>`
+
+        Example
+        -------
+        ```
+        SET_LANE_LOADED LANE=lane1
+        ```
         """
         if not self.load_state:
             self.AFC.ERROR.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)
@@ -808,24 +829,21 @@ class AFCExtruderStepper:
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
         """
         Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
-        these values while printing. Multiplier values must be between 0.0 - 1.0  <nl>
-            <nl>
-        Use FWD variable to set forward multiplier, use RWD to set reverse multiplier  <nl>
-            <nl>
-        After running this command run SAVE_SPEED_MULTIPLIER LANE=<lane_name> to save value to config file
+        these values while printing. Multiplier values must be between 0.0 - 1.0
 
-        Usage: `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
-        Example: `SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9`
+        Use `FWD` variable to set forward multiplier, use `RWD` to set reverse multiplier
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Expected parameters:
-                - LANE: The name of the lane to adjust value for.
-                - FWD: The forward multiplier adjustment value.
-                - RWS: The reverse multiplier adjustment value.
+        After running this command run `SAVE_SPEED_MULTIPLIER LANE=<lane_name>` to save value to config file
 
-        Returns:
-            None
+        Usage
+        -----
+        `SET_SPEED_MULTIPLIER LANE=<lane_name> FWD=<fwd_multiplier> RWD=<rwd_multiplier>`
+
+        Example
+        -----
+        ```
+        SET_SPEED_MULTIPLIER LANE=lane1 RWD=0.9
+        ```
         """
         updated = False
         old_fwd_value = self.fwd_speed_multi
@@ -850,16 +868,15 @@ class AFCExtruderStepper:
         """
         Macro call to write fwd_speed_multiplier and rwd_speed_multiplier variables to config file for specified lane.
 
-        Usage: `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
-        Example: `SAVE_SPEED_MULTIPLIER LANE=lane1`
+        Usage
+        -----
+        `SAVE_SPEED_MULTIPLIER LANE=<lane_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SAVE_SPEED_MULTIPLIER LANE=lane1
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'fwd_speed_multiplier',  self.fwd_speed_multi, '')
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rwd_speed_multiplier',  self.rwd_speed_multi, '')
@@ -871,17 +888,15 @@ class AFCExtruderStepper:
         increase/decrease length by that amount. To reset length back to config value, pass in `reset` for length to
         reset to value in config file.
 
-        Usage: `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
-        Example: `SET_HUB_DIST LANE=lane1 LENGTH=+100`
+        Usage
+        -----
+        `SET_HUB_DIST LANE=<lane_name> LENGTH=+/-<fwd_multiplier>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                Expected parameters:
-                - LANE: The name of the lane to adjust value for.
-                - LENGTH: The length adjustment value for afc_bowden_length variable (optional).
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SET_HUB_DIST LANE=lane1 LENGTH=+100
+        ```
         """
         old_dist_hub = self.dist_hub
 
@@ -901,16 +916,15 @@ class AFCExtruderStepper:
         """
         Macro call to write dist_hub variable to config file for specified lane.
 
-        Usage: `SAVE_HUB_DIST LANE=<lane_name>`
-        Example: `SAVE_HUB_DIST LANE=lane1`
+        Usage
+        -----
+        `SAVE_HUB_DIST LANE=<lane_name>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to save values to in config file.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SAVE_HUB_DIST LANE=lane1
+        ```
         """
         self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'dist_hub',  self.dist_hub, '')
 

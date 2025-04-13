@@ -52,20 +52,24 @@ unlink_extensions() {
 
 copy_unit_files() {
   # If we are installing a BoxTurtle, then copy these files over.
-  if [ "$installation_type" == "BoxTurtle" ]; then
+  if [ "$installation_type" == "BoxTurtle (4-Lane)" ]; then
     cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
-    cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_Turtle_1.cfg"
+    cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
+    # If we are installing a NightOwl, then copy these files over.
+  elif [ "$installation_type" == "NightOwl" ]; then
+    cp "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
+    cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
+    # If we are installing a HTLF, then copy these files over.
+  elif [ "$installation_type" == "HTLF" ]; then
+    if [ "$htlf_board_type" == "MMB_1.0" ] || [ "$htlf_board_type" == "MMB_1.1" ]; then
+      htlf_board_type="MMB"
+    fi
+    cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}.cfg"
+    cp "${afc_path}/templates/AFC_Hardware-HTLF.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
   fi
 }
 
 install_afc() {
-  # Make sure we aren't in the middle of a print, and stop klipper
-#  if query_printer_status; then
-#    stop_service "${klipper_service}"
-#  else
-#    print_msg ERROR "It looks like you are in the middle of print. Please retry installation when not printing. Exiting."
-#    exit 1
-#  fi
   # Link the python extensions
   link_extensions
   copy_config
@@ -90,26 +94,56 @@ install_afc() {
   elif [ "$toolhead_sensor" == "Ramming" ]; then
     update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "buffer"
   fi
-  if [ "$buffer_type" == "TurtleNeck" ]; then
-    query_tn_pins "TN"
-    append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
-  elif [ "$buffer_type" == "TurtleNeckV2" ]; then
-    append_buffer_config "TurtleNeckV2"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_Turtle_1.cfg" "Turtle_1"
+
+  # When using Boxturtle as Installation Type then insert selected buffer configuration
+  # NightOwl uses Turtleneck as default for now
+  if [ "$installation_type" == "BoxTurtle (4-Lane)" ] || [ "$installation_type" == "BoxTurtle (8-Lane)" ]; then
+    # Make sure the unit name is correct per the user choice
+    if [ "$boxturtle_name" != "Turtle_1" ]; then
+      find "$afc_config_dir" -type f -exec sed -i "s/Turtle_1/$boxturtle_name/g" {} +
+    fi
+    if [ "$buffer_type" == "TurtleNeck" ]; then
+      query_tn_pins "TN"
+      append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
+      add_buffer_to_extruder "${afc_config_dir}/AFC_${boxturtle_name}.cfg" "${boxturtle_name}"
+    elif [ "$buffer_type" == "TurtleNeckV2" ]; then
+      append_buffer_config "TurtleNeckV2"
+      add_buffer_to_extruder "${afc_config_dir}/AFC_${boxturtle_name}.cfg" "${boxturtle_name}"
+    fi
   fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
   update_moonraker_config
 
+  export message
+  export files_updated_or_installed="True"
+  if [ $test_mode != "True" ]; then
+    update_afc_version "$current_install_version"
+  fi
   # Final step should be displaying any messages and exit cleanly.
   message="""
 - AFC Configuration updated with selected options at ${afc_file}
 
 - AFC-Klipper-Add-On python extensions installed to ${klipper_dir}/klippy/extras/
-
-- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_Turtle_1.cfg file
 """
+
+if [ "$installation_type" == "BoxTurtle (4-Lane)" ] || [ "$installation_type" == "BoxTurtle (8-Lane)" ]; then
+  message+="""
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_${boxturtle_name}.cfg file
+  """
+elif [ "$installation_type" == "NightOwl" ]; then
+  message+="""
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_NightOwl_1.cfg file
+  """
+elif [ "$installation_type" == "HTLF" ]; then
+  message+="""
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}_1.cfg file.
+- Ensure you modify the ${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}_1.cfg file to select the proper rotation distance
+  and gear ratio for your stepper motors.
+- Ensure you update any necessary buffer information in the ${afc_config_dir}/AFC_Hardware.cfg file
+  """
+fi
+
 if [ "$buffer_type" == "TurtleNeckV2" ]; then
   message+="""
 - Ensure you add the correct serial information to the ${afc_config_dir}/mcu/TurtleNeckv2.cfg file
@@ -118,7 +152,9 @@ fi
 
 message+="""
 You may now quit the script or return to the main menu.
+
+If you would like to add any additional units, please restart to script to ensure the
+current units are loaded correctly.
 """
-  export message
-  files_updated_or_installed="True"
+
 }

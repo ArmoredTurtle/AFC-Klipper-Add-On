@@ -128,7 +128,7 @@ query_printer_status() {
   local response
   local state
 
-  response=$(curl -s "$moonraker_address"/printer/objects/query?idle_timeout)
+  response=$(curl -s "$moonraker"/printer/objects/query?idle_timeout)
   state=$(echo "$response" | jq -r '.result.status.idle_timeout.state')
 
   if [ "$state" == "Ready" ]; then
@@ -170,8 +170,8 @@ check_python_version() {
       return 1
   fi
 
-  if [[ ${VERSION%%.*} -lt 3 ]]; then
-      echo "Python version $VERSION is too old. Need at least Python 3.x."
+  if [[ $(echo -e "${VERSION}\n${minimum_python_major}.${minimum_python_minor}" | sort -V | head -n1) != "${minimum_python_major}.${minimum_python_minor}" ]]; then
+      echo "Your available Klipper venv Python version $VERSION is too old. The BoxTurtle AFC software requires at least Python ${minimum_python_major}.${minimum_python_minor}."
       exit 1
   fi
 

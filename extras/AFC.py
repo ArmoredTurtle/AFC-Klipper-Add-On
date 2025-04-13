@@ -7,6 +7,7 @@
 import json
 import re
 from configfile import error
+from typing import Any
 
 try:
     from urllib.request import urlopen
@@ -23,7 +24,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.4"
+AFC_VERSION="1.0.11"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -93,8 +94,11 @@ class afc:
         self.last_gcode_position = [0.0, 0.0, 0.0, 0.0]
         self.last_toolhead_position = [0.0, 0.0, 0.0, 0.0]
         self.homing_position = [0.0, 0.0, 0.0, 0.0]
-        self.speed = 25.
-        self.absolute_coord = True
+        self.speed              = 25.
+        self.speed_factor       = 1./60.
+        self.absolute_coord     = True
+        self.absolute_extrude   = True
+        self.extrude_factor     = 1.
 
         # Config get section
         self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
@@ -319,6 +323,14 @@ class afc:
             return
         target_temp, using_min_value = self._get_default_material_temps(CUR_LANE)
 
+        current_temp = self.heater.get_temp(self.reactor.monotonic())
+
+        # Check if the current temp is below the set temp, if it is heat to set temp
+        if current_temp[0] < (self.heater.target_temp-5):
+            wait = False
+            pheaters.set_temperature(extruder.get_heater(), current_temp[0], wait=wait)
+            self.logger.info('Current temp {:.1f} is below set temp {}'.format(current_temp[0], target_temp))
+
         # Check to make sure temp is with +/-5 of target temp, not setting if temp is over target temp and using min_extrude_temp value
         if self.heater.target_temp <= (target_temp-5) or (self.heater.target_temp >= (target_temp+5) and not using_min_value):
             wait = False if self.heater.target_temp >= (target_temp+5) else True
@@ -378,42 +390,49 @@ class afc:
     cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
     def cmd_UNSET_LANE_LOADED(self, gcmd):
         """
-        Unsets current lane from AFC loaded status. Mainly this would be used if AFC thinks that there is a lane loaded into the toolhead
-        but nothing is actually loaded. Retrieves the lane specified by the 'LANE' parameter and set the appropriate values in AFC to continue using the lane.
+        Unsets the current lane from AFC loaded status.
 
-        Usage: `UNSET_LANE_LOADED`
-        Example: `UNSET_LANE_LOADED`
+        Mainly this would be used if AFC thinks that there is a lane loaded into the toolhead but nothing is actually
+        loaded.
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
+        Usage
+        -------
+        `UNSET_LANE_LOADED`
 
-        Returns:
-            None
+        Example
+        -------
+        ```
+        UNSET_LANE_LOADED
+        ```
         """
         self.FUNCTION.unset_lane_loaded()
 
     cmd_SET_AFC_TOOLCHANGES_help = "Sets number of toolchanges for AFC to keep track of"
     def cmd_SET_AFC_TOOLCHANGES(self, gcmd):
         """
-        This macro can be used to set total number of toolchanges from slicer. AFC will keep track of tool changes and print out
-        current tool change number when a T(n) command is called from gcode.  <nl>
-        The following call can be added to the slicer by adding the following lines to Change filament G-code section in your slicer.
-        You may already have `T[next_extruder]`, just make sure the toolchange call is after your T(n) call
-        ```
-        T[next_extruder]
-        { if toolchange_count == 1 }SET_AFC_TOOLCHANGES TOOLCHANGES=[total_toolchanges]{endif }
-        ```
-        The following can also be added to your `PRINT_END` section in your slicer to set number of toolchanges back to zero
+        This macro can be used to set the total number of tool changes from the slicer. AFC will keep track of tool changes and print out
+        the current tool change number when a T(n) command is called from G-code.
+
+        The following call can be added to the slicer by adding the following lines to the Change filament G-code section in your slicer.
+
+        You may already have `T[next_extruder]`, just make sure the tool change call is after your T(n) call:
+
+        `T[next_extruder] { if toolchange_count == 1 }SET_AFC_TOOLCHANGES TOOLCHANGES=[total_toolchanges]{endif }`
+
+        The following can also be added to your `PRINT_END` section in your slicer to set the number of tool changes back to zero:
+
         `SET_AFC_TOOLCHANGES TOOLCHANGES=0`
 
-        Usage: `SET_AFC_TOOLCHANGES TOOLCHANGES=<number>`
-        Example: `SET_AFC_TOOLCHANGES TOOLCHANGES=100`
+        Usage
+        -----
+        `SET_AFC_TOOLCHANGES TOOLCHANGES=<number>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
+        Example
+        -------
+        ```
+        SET_AFC_TOOLCHANGES TOOLCHANGES=100
+        ```
 
-        Returns:
-            None
         """
         self.number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
         self.current_toolchange     = 0 # Reset back to one
@@ -424,22 +443,19 @@ class afc:
     def cmd_LANE_MOVE(self, gcmd):
         """
         This function handles the manual movement of a specified lane. It retrieves the lane
-        specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.  <nl>
+        specified by the 'LANE' parameter and moves it by the distance specified by the 'DISTANCE' parameter.
+
         Distance's lower than 200 moves extruder at short_move_speed/accel, values above 200 move extruder at long_move_speed/accel
 
-        Usage: `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
-        Example: `LANE_MOVE LANE=lane1 DISTANCE=100`
+        Usage
+        -----
+        `LANE_MOVE LANE=<lane> DISTANCE=<distance>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - LANE: The name of the lane to be moved.
-                  - DISTANCE: The distance to move the lane.
-
-        NO_DOC: True
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        LANE_MOVE LANE=lane1 DISTANCE=100
+        ```
         """
         if self.FUNCTION.is_printing():
             self.ERROR.AFC_error("Cannot move lane while printer is printing", pause=False)
@@ -460,6 +476,9 @@ class afc:
         CUR_LANE.move(distance, move_speed, move_accel, True)
         CUR_LANE.do_enable(False)
         self.current_state = State.IDLE
+        CUR_LANE.unit_obj.return_to_home()
+        # Put CAM back to lane if its loaded to toolhead
+        self.FUNCTION.select_loaded_lane()
 
     def _get_resume_speed(self):
         """
@@ -507,14 +526,25 @@ class afc:
                 self.last_gcode_position    = list(self.gcode_move.last_position)
                 self.homing_position        = list(self.gcode_move.homing_position)
                 self.speed                  = self.gcode_move.speed
+                self.speed_factor           = self.gcode_move.speed_factor
                 self.absolute_coord         = self.gcode_move.absolute_coord
+                self.absolute_extrude       = self.gcode_move.absolute_extrude
+                self.extrude_factor         = self.gcode_move.extrude_factor
                 msg = "Saving position {}".format(self.last_toolhead_position)
                 msg += " Base position: {}".format(self.base_position)
                 msg += " last_gcode_position: {}".format(self.last_gcode_position)
                 msg += " homing_position: {}".format(self.homing_position)
                 msg += " speed: {}".format(self.speed)
-                msg += " absolute_coord: {}\n".format(self.absolute_coord)
+                msg += " speed_factor: {}".format(self.speed_factor)
+                msg += " absolute_coord: {}".format(self.absolute_coord)
+                msg += " absolute_extrude: {}".format(self.absolute_extrude)
+                msg += " extrude_factor: {}\n".format(self.extrude_factor)
                 self.logger.debug(msg)
+            else:
+                self.FUNCTION.log_toolhead_pos("Not Saving, Error State: {}, Is Paused {}, Position_saved {}, POS: ".format(self.error_state, self.FUNCTION.is_paused(), self.position_saved ))
+        else:
+            self.FUNCTION.log_toolhead_pos("Not Saving In a toolchange, Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
+                self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
 
     def restore_pos(self, move_z_first=True):
         """
@@ -528,15 +558,15 @@ class afc:
         msg += " last_gcode_position: {}".format(self.last_gcode_position)
         msg += " homing_position: {}".format(self.homing_position)
         msg += " speed: {}".format(self.speed)
-        msg += " absolute_coord: {}\n".format(self.absolute_coord)
+        msg += " speed_factor: {}".format(self.speed_factor)
+        msg += " absolute_coord: {}".format(self.absolute_coord)
+        msg += " absolute_extrude: {}".format(self.absolute_extrude)
+        msg += " extrude_factor: {}\n".format(self.extrude_factor)
         self.logger.debug(msg)
         self.FUNCTION.log_toolhead_pos("Resume initial pos: ")
 
         self.current_state = State.RESTORING_POS
         newpos = self.toolhead.get_position()
-
-        # Restore absolute coords
-        self.gcode_move.absolute_coord = self.absolute_coord
 
         # Move toolhead to previous z location with zhop added
         if move_z_first:
@@ -548,16 +578,25 @@ class afc:
         self.FUNCTION.log_toolhead_pos("Resume prev xy: ")
 
         # Update GCODE STATE variables
-        self.gcode_move.base_position = list(self.base_position)
-        self.gcode_move.homing_position = list(self.homing_position)
-        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
+        self.gcode_move.base_position       = list(self.base_position)
+        self.gcode_move.homing_position     = list(self.homing_position)
+
+        # Restore absolute coords
+        self.gcode_move.absolute_coord      = self.absolute_coord
+        self.gcode_move.absolute_extrude    = self.absolute_extrude
+        self.gcode_move.extrude_factor      = self.extrude_factor
+        self.gcode_move.speed               = self.speed
+        self.gcode_move.speed_factor        = self.speed_factor
 
         # Restore the relative E position
-        e_diff = newpos[3] - self.last_gcode_position[3]
+        e_diff = self.gcode_move.last_position[3] - self.last_gcode_position[3]
         self.gcode_move.base_position[3] += e_diff
+        self.gcode_move.last_position[:3] = self.last_gcode_position[:3]
+
         # Return to previous xyz
         self.gcode_move.move_with_transform(self.gcode_move.last_position, self._get_resume_speedz() )
-        self.FUNCTION.log_toolhead_pos("Resume final z: ")
+        self.FUNCTION.log_toolhead_pos("Resume final z, Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
+
         self.current_state = State.IDLE
         self.position_saved = False
 
@@ -602,16 +641,15 @@ class afc:
         This function handles the loading of a specified lane into the hub. It performs
         several checks and movements to ensure the lane is properly loaded.
 
-        Usage: `HUB_LOAD LANE=<lane>`
-        Example: `HUB_LOAD LANE=lane1`
+        Usage
+        -----
+        `HUB_LOAD LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        HUB_LOAD LANE=lane1
+        ```
         """
 
         if self.FUNCTION.is_printing():
@@ -640,6 +678,9 @@ class afc:
         CUR_LANE.do_enable(False)
         CUR_LANE.loaded_to_hub = True
         self.save_vars()
+        CUR_LANE.unit_obj.return_to_home()
+        # Put CAM back to lane if its loaded to toolhead
+        self.FUNCTION.select_loaded_lane()
 
     cmd_LANE_UNLOAD_help = "Unload lane from extruder"
     def cmd_LANE_UNLOAD(self, gcmd):
@@ -647,16 +688,16 @@ class afc:
         This function handles the unloading of a specified lane from the extruder. It performs
         several checks and movements to ensure the lane is properly unloaded.
 
-        Usage: `LANE_UNLOAD LANE=<lane>`
-        Example: `LANE_UNLOAD LANE=lane1`
+        Usage
+        -----
+        `LANE_UNLOAD LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be unloaded.
+        Example
+        -----
+        ```
+        LANE_UNLOAD LANE=lane1
+        ```
 
-        Returns:
-            None
         """
         if self.FUNCTION.is_printing():
             self.ERROR.AFC_error("Cannot eject lane while printer is printing", pause=False)
@@ -689,6 +730,9 @@ class afc:
             CUR_LANE.move( CUR_HUB.move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             CUR_LANE.do_enable(False)
             CUR_LANE.status = None
+            CUR_LANE.unit_obj.return_to_home()
+            # Put CAM back to lane if its loaded to toolhead
+            self.FUNCTION.select_loaded_lane()
             self.save_vars()
 
             # Removing spool from vars since it was ejected
@@ -709,21 +753,19 @@ class afc:
         """
         This function handles the loading of a specified lane into the tool. It retrieves
         the lane specified by the 'LANE' parameter and calls the TOOL_LOAD method to perform
-        the loading process.  <nl>
+        the loading process.
+
         Optionally setting PURGE_LENGTH parameter to pass a value into poop macro.
 
-        Usage: `TOOL_LOAD LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
-        Example: `TOOL_LOAD LANE=lane1 PURGE_LENGTH=80`
+        Usage
+        -----
+        `TOOL_LOAD LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-                  - PURGE_LENGTH(optional): The amount of filament to poop, this value is passed into your poop macro.
-
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        TOOL_LOAD LANE=lane1 PURGE_LENGTH=80
+        ```
         """
         self.afcDeltaTime.set_start_time()
         lane = gcmd.get('LANE', None)
@@ -762,6 +804,9 @@ class afc:
         if self._check_bypass(): return False
 
         self.logger.info("Loading {}".format(CUR_LANE.name))
+
+        # Verify that printer is in absolute mode
+        self.FUNCTION.check_absolute_mode("TOOL_LOAD")
 
         # Lookup extruder and hub objects associated with the lane.
         CUR_HUB = CUR_LANE.hub_obj
@@ -821,10 +866,10 @@ class afc:
                     CUR_LANE.move(CUR_LANE.short_move_dis, CUR_EXTRUDER.tool_load_speed, CUR_LANE.long_moves_accel)
                     if tool_attempts > 20:
                         message = 'filament failed to trigger pre extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
+                        message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
+                        message += '\nManually move filament with LANE_MOVE macro for {} until filament is right before toolhead extruder gears,'.format(CUR_LANE.name)
+                        message += '\n then load into extruder gears with extrude button in your gui of choice until the color fully changes'
                         if self.FUNCTION.in_print():
-                            message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
-                            message += '\nManually move filament with LANE_MOVE macro for {} until filament is right before toolhead extruder gears,'.format(CUR_LANE.name)
-                            message += '\n then load into extruder gears with extrude button in your gui of choice until the color fully changes'
                             message += '\nOnce filament is fully loaded click resume to continue printing'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
@@ -845,9 +890,9 @@ class afc:
                     self.toolhead.wait_moves()
                     if tool_attempts > 20:
                         message = 'filament failed to trigger post extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
+                        message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
+                        message += '\nAlso might be a good idea to verify that post extruder gear toolhead sensor is working.'
                         if self.FUNCTION.in_print():
-                            message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(CUR_LANE.name)
-                            message += '\nAlso might be a good idea to verify that post extruder gear toolhead sensor is working.'
                             message += '\nOnce issue is resolved click resume to continue printing'
                         self.ERROR.handle_lane_failure(CUR_LANE, message)
                         return False
@@ -942,16 +987,15 @@ class afc:
         the lane specified by the 'LANE' parameter or uses the currently loaded lane if no parameter
         is provided, and calls the TOOL_UNLOAD method to perform the unloading process.
 
-        Usage: `TOOL_UNLOAD LANE=<lane>`
-        Example: `TOOL_UNLOAD LANE=lane1`
+        Usage
+        -----
+        `TOOL_UNLOAD LANE=<lane>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be unloaded (optional, defaults to the current lane).
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        TOOL_UNLOAD LANE=lane1
+        ```
         """
         self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
@@ -995,6 +1039,10 @@ class afc:
         self.logger.info("Unloading {}".format(CUR_LANE.name))
         CUR_LANE.status = 'Tool Unloading'
         self.save_vars()
+
+        # Verify that printer is in absolute mode
+        self.FUNCTION.check_absolute_mode("TOOL_UNLOAD")
+
         # Lookup current extruder and hub objects using the lane's information.
         CUR_HUB = CUR_LANE.hub_obj
         CUR_EXTRUDER = CUR_LANE.extruder_obj
@@ -1087,8 +1135,11 @@ class afc:
                     if self.FUNCTION.in_print():
                         message += "\nRetract filament fully with retract button in gui of choice to remove from extruder gears if needed,"
                         message += "\n  and then use LANE_MOVE to fully retract behind hub so its not triggered anymore."
-                        message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                        message += "\nOnce lane is loaded click resume to continue printing"
+                        message += "\nThen Manually run UNSET_LANE_LOADED to let AFC know nothing is loaded into toolhead"
+                        # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
+                        if self.next_lane_load is not None:
+                            message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
+                            message += "\nOnce lane is loaded click resume to continue printing"
                     self.ERROR.handle_lane_failure(CUR_LANE, message)
                     return False
                 CUR_LANE.sync_to_extruder()
@@ -1136,8 +1187,10 @@ class afc:
                 message += '\nPlease check to make sure filament has not broken off and caused the sensor to stay stuck'
                 message += '\nIf you have to retract filament back, use LANE_MOVE macro for {}.'.format(CUR_LANE.name)
                 if self.FUNCTION.in_print():
-                    message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                    message += "\nOnce lane is loaded click resume to continue printing"
+                    # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
+                    if self.next_lane_load is not None:
+                        message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
+                        message += "\nOnce lane is loaded click resume to continue printing"
 
                 self.ERROR.handle_lane_failure(CUR_LANE, message)
                 return False
@@ -1173,10 +1226,13 @@ class afc:
         CUR_LANE.status = None
 
         if CUR_LANE.hub =='direct':
-            while CUR_LANE.prep_state:
+            while CUR_LANE.load_state:
                 CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
+            CUR_LANE.move( CUR_LANE.short_move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
 
         CUR_LANE.do_enable(False)
+        CUR_LANE.unit_obj.return_to_home()
+
         self.save_vars()
         self.afcDeltaTime.log_major_delta("Lane {} unload done".format(CUR_LANE.name))
         self.current_state = State.IDLE
@@ -1188,20 +1244,18 @@ class afc:
         This function handles the tool change process. It retrieves the lane specified by the 'LANE' parameter,
         checks the filament sensor, saves the current position, and performs the tool change by unloading the
         current lane and loading the new lane.
+
         Optionally setting PURGE_LENGTH parameter to pass a value into poop macro.
 
-        Usage: `CHANGE_TOOL LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
-        Example: `CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100`
+        Usage
+        -----
+        `CHANGE_TOOL LANE=<lane> PURGE_LENGTH=<purge_length>(optional value)`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-                  - LANE: The name of the lane to be loaded.
-                  - PURGE_LENGTH(optional): The amount of filament to poop, this value is passed into your poop macro.
-
-
-        Returns:
-            None
+        Example
+        ------
+        ```
+        CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100
+        ```
         """
         self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
@@ -1221,6 +1275,7 @@ class afc:
                 purge_length = purge_length[1:]
 
         command_line = gcmd.get_commandline()
+        self.logger.debug("CHANGE_TOOL: cmd-{}".format(command_line))
 
         # Remove everything after ; since it could contain strings like CHANGE in a comment and should be ignored
         command = re.sub( ';.*', '', command_line)
@@ -1289,6 +1344,9 @@ class afc:
             self.logger.info("{} already loaded".format(CUR_LANE.name))
             if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
                 self.current_toolchange += 1
+
+        self.FUNCTION.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
+                self.error_state, self.FUNCTION.is_paused(), self.position_saved, self.in_toolchange ))
 
     def _get_message(self):
         """
@@ -1376,14 +1434,15 @@ class afc:
         This function generates a status message for each unit and lane, indicating the preparation,
         loading, hub, and tool states. The status message is formatted with HTML tags for display.
 
-        Usage: `AFC_STATUS`
-        Example: `AFC_STATUS`
+        Usage
+        -----
+        `AFC_STATUS`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        AFC_STATUS
+        ```
         """
         status_msg = ''
 
@@ -1441,19 +1500,19 @@ class afc:
         self.logger.raw(status_msg)
 
     cmd_TURN_OFF_AFC_LED_help = "Turns off all LEDs for AFC_led configurations"
-    def cmd_TURN_OFF_AFC_LED(self, gcmd):
+    def cmd_TURN_OFF_AFC_LED(self, gcmd: Any) -> None:
         """
         This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors are changed while they are turned off.
 
-        Usage: `TURN_OFF_AFC_LED`
-        Example: `TURN_OFF_AFC_LED`
+        Usage
+        -----
+        `TURN_OFF_AFC_LED`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        TURN_OFF_AFC_LED
+        ```
         """
         for led in self.led_obj.values():
             led.turn_off_leds()
@@ -1463,15 +1522,15 @@ class afc:
         """
         This macro handles turning on all LEDs for AFC_led configurations. LEDs are restored to last previous state.
 
-        Usage: `TURN_ON_AFC_LED`
-        Example: `TURN_ON_AFC_LED`
+        Usage
+        -----
+        `TURN_ON_AFC_LED`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameter:
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        TURN_ON_AFC_LED
+        ```
         """
         for led in self.led_obj.values():
             led.turn_on_leds()

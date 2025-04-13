@@ -20,6 +20,7 @@ function show_help() {
   echo "  -a <moonraker address>      Specify the address of the Moonraker server (default: http://localhost)"
   echo "  -k <path>                   Specify the path to the Klipper directory"
   echo "  -m <moonraker config path>  Specify the path to the Moonraker config file (default: ~/printer_data/config/moonraker.conf)"
+  echo "  -n <moonraker port>         Specify the port of the Moonraker server (default: 7125)"
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -p <printer config dir>     Specify the path to the printer config directory (default: ~/printer_data/config)"
   echo "  -b <branch>                 Specify the branch to use (default: main)"
@@ -27,7 +28,7 @@ function show_help() {
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-a <moonraker address>] [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
+  echo " $0 [-a <moonraker address>] [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-n <moonraker_port>] [-p <printer_config_dir>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
 }
 
 function copy_config() {
@@ -145,7 +146,7 @@ function auto_update() {
 
 check_version_and_set_force_update() {
   local current_version
-  current_version=$(curl -s "$moonraker_address/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
+  current_version=$(curl -s "$moonraker/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
   if [[ -z "$current_version" || "$current_version" == "null" || "$current_version" < "$min_version" ]]; then
     force_update=True
   else
@@ -156,11 +157,11 @@ check_version_and_set_force_update() {
 update_afc_version() {
   local version_update
   version_update=$1
-  curl -s -XPOST "$moonraker_address/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
+  curl -s -XPOST "$moonraker/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
 }
 
 remove_afc_version() {
-  curl -s -XDELETE "$moonraker_address/server/database/item?namespace=afc-install&key=version" > /dev/null
+  curl -s -XDELETE "$moonraker/server/database/item?namespace=afc-install&key=version" > /dev/null
 }
 
 remove_vars_tool_file() {

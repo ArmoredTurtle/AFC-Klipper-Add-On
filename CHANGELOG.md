@@ -5,6 +5,91 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-04-12]
+
+### Added
+- The `afc-debug.sh` script will now also upload `AFC.log` files for assistance during troubleshooting.
+
+### Changed
+- All documentation is now available on our website at https://armoredturtle.xyz/docs/.
+
+## [2025-04-09]
+
+### Added
+- Added check in prep to make sure printer is homed when using direct loading
+
+### Fixed
+- For direct loading, fixed logic to use load sensor for unloading and then retract back more
+  to make sure filament was fully out of extruder gears
+- Fixed error where start time was not correctly getting set for direct loads
+- Fixed error where unsyncing lanes for HTLF units was still syncing back
+
+## [2025-04-08]
+
+### Added
+- Function to check if in absolute mode and set absolute if in relative mode since
+  AFC does movement base off being in absolute mode
+- Runout/infinite spool support for HTLF unit type
+  
+### Fixed
+- Fixed error where restore_pos was not calculating base position correctly for extruder,
+  matched how RESTORE_STATE does it
+
+## [2025-04-07]
+
+### Fixed
+- Fixed detection for python version check to appropriately check for both python minor and major version.
+
+## [2025-04-06]
+
+### Fixed
+- Update kick macro to ensure we are in absolute position mode (G90) before doing moves
+
+## [2025-04-06]
+
+### Changed
+- Updated wording for when `TOOL_UNLOAD` fails and filament is still in toolhead. Added instruction for user to run `UNSET_LANE_LOADED` before running the correct `T(n)` macro
+
+### Fixed
+- Issue when user tries to run `TEST` macro and `afc_motor_rwd` is not defined in config. Affects configs that don't use spooler motors.
+
+### Removed
+- Remove documentation for Belay support, it is deprecated and will be fully removed in a future release.
+
+## [2025-04-01]
+
+### Added
+- Support for HTLF
+
+### Fixed
+- Error when user calls TOOL_UNLOAD outside a print and it fails to unload. Fixed error where variable was not set when creating message to printout to console
+
+## [2025-03-30]
+### Fixed
+- The `BT_LANE_MOVE` macro now correctly only accepts positive or negative values for the `distance` parameter.
+
+## [2025-03-29]
+### Added
+- The `install-afc.sh` script now has the ability to rename existing units.
+- The `install-afc.sh` script now has the ability to install NightOwl units. Thanks to @thomasfjen for the contribution.
+- The `install-afc.sh` script now has the ability to help install multiple units.
+
+### Fixed
+- The `install-afc.sh` script now correctly checked for a Python version >= Python 3.8.
+
+## [2025-03-27]
+### Added
+- AWD variable to CUT macro so increased current applies to all X motors
+- Updated cut variable retract to 20 and pushback to 15
+
+### Fixed
+- Resetting `in_toolchange` variable when resuming from failure, fixes problems with returning to correct z hight on the next in_toolchange
+- Fixed issued with `AFC_reset` macro when distance was not supplied macro call would crash klipper
+
+## [2025-03-22]
+### Fixed
+- Fixed possible error if hotend current temp is below current temp. 
+
 ## [2025-03-17]
 ### Added
 - Added `SET_SPEED_MULTIPLIER` macro to allow user to change fwd/rwd speed multipliers during prints

@@ -117,13 +117,15 @@ class afcUnit:
         Open a prompt to calibrate either the distance between the extruder and the hub or the Bowden length
         for the selected unit. Provides buttons for lane calibration, Bowden length calibration, and a back option.
 
-        Usage:`UNIT_CALIBRATION UNIT=<unit>`
-        Example: `UNIT_CALIBRATION UNIT=Turtle_1`
-        Args:
-            None
+        Usage
+        -----
+        `UNIT_CALIBRATION UNIT=<unit>`
 
-        Returns:
-            None
+        Example
+        -----
+        ```
+        UNIT_CALIBRATION UNIT=Turtle_1
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -143,14 +145,15 @@ class afcUnit:
         Open a prompt to calibrate the extruder-to-hub distance for each lane in the selected unit. Creates buttons
         for each lane, grouped in sets of two, and allows calibration for all lanes or individual lanes.
 
-        Usage:`UNIT_LANE_CALIBRATION UNIT=<unit>`
-        Example: `UNIT_LANE_CALIBRATION UNIT=Turtle_1`
+        Usage
+        -----
+        `UNIT_LANE_CALIBRATION UNIT=<unit>`
 
-        Args:
-            UNIT: Specifies the unit to be used in calibration
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        UNIT_LANE_CALIBRATION UNIT=Turtle_1
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -196,14 +199,15 @@ class afcUnit:
         Open a prompt to calibrate the Bowden length for a specific lane in the selected unit. Provides buttons
         for each lane, with a note to only calibrate one lane per unit.
 
-        Usage:`UNIT_CALIBRATION UNIT=<unit>`
-        Example: `UNIT_CALIBRATION UNIT=Turtle_1`
+        Usage
+        -----
+        `UNIT_CALIBRATION UNIT=<unit>`
 
-        Args:
-            UNIT: Specifies the unit to be used in calibration
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        UNIT_CALIBRATION UNIT=Turtle_1
+        ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -238,6 +242,24 @@ class afcUnit:
 
         prompt.create_custom_p(title, text, None,
                                True, buttons, back)
+
+    def select_lane( self, lane ):
+        """
+        Function to select lane
+        """
+        return
+
+    def return_to_home(self ):
+        """
+        Funtion to home unit if unit has homing sensor
+        """
+        return
+
+    def check_runout(self):
+        """
+        Function to check if runout logic should be triggered, override in specific unit
+        """
+        return False
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):

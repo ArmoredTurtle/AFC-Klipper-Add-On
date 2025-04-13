@@ -13,7 +13,7 @@ except:
 ADVANCE_STATE_NAME = "Trailing"
 TRAILING_STATE_NAME = "Advancing"
 
-class AFCtrigger:
+class AFCTrigger:
 
     def __init__(self, config):
         self.printer    = config.get_printer()
@@ -237,17 +237,15 @@ class AFCtrigger:
         It retrieves the multiplier type ('HIGH' or 'LOW') and the factor to be applied. The function
         ensures that the factor is valid and updates the corresponding multiplier.
 
-        Usage: SET_BUFFER_MULTIPLIER BUFFER=<buffer_name> MULTIPLIER=<HIGH/LOW> FACTOR=<factor>
-        Example: SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2
+        Usage
+        -----
+        `SET_BUFFER_MULTIPLIER BUFFER=<buffer_name> MULTIPLIER=<HIGH/LOW> FACTOR=<factor>`
 
-        Args:
-            gcmd: The G-code command object containing the parameters for the command.
-                  Expected parameters:
-                  - MULTIPLIER: The type of multiplier to be adjusted ('HIGH' or 'LOW').
-                  - FACTOR: The factor to be applied to the multiplier.
-
-        Returns:
-            None
+        Example
+        -----
+        ```
+        SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2
+        ```
         """
         if self.turtleneck:
             cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
@@ -280,23 +278,24 @@ class AFCtrigger:
         specified factor. If no factor is provided, it defaults to 1.0, which resets
         the rotation distance to the base value.
 
-        Usage: SET_ROTATION_FACTOR BUFFER=<buffer_name> FACTOR=<factor>
-        Example: SET_ROTATION_FACTOR BUFFER=TN FACTOR=1.2
-
-        Args:
-            gcmd: A G-code command object containing the parameters for the factor.
-                The 'FACTOR' parameter is used to specify the multiplier for the
-                rotation distance.
-
         Behavior:
-            - The FACTOR must be greater than 0.
-            - If the buffer is enabled and active, and a valid factor is provided,
-            the function adjusts the rotation distance for the current AFC stepper.
-            - If FACTOR is 1.0, the rotation distance is reset to the base value.
-            - If FACTOR is a valid non-zero number, the rotation distance is updated
-            by the provided factor.
-            - If FACTOR is 0 or AFC is not enabled, an appropriate message is sent
-            back through the G-code interface.
+
+        - The `FACTOR` must be greater than 0.
+        - If the buffer is enabled and active, and a valid factor is provided, the function adjusts the rotation
+          distance for the current AFC stepper.
+        - If `FACTOR` is 1.0, the rotation distance is reset to the base value.
+        - If `FACTOR` is a valid non-zero number, the rotation distance is updated by the provided factor.
+        - If `FACTOR` is 0 or AFC is not enabled, an appropriate message is sent back through the G-code interface.
+
+        Usage
+        -----
+        `SET_ROTATION_FACTOR BUFFER=<buffer_name> FACTOR=<factor>`
+
+        Example
+        -----
+        ```
+        SET_ROTATION_FACTOR BUFFER=TN FACTOR=1.2
+        ```
         """
         if self.turtleneck:
             cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
@@ -321,17 +320,24 @@ class AFCtrigger:
         Reports the current state of the buffer sensor and, if applicable, the rotation
         distance of the current AFC stepper motor.
 
-        Usage: QUERY_BUFFER BUFFER=<buffer_name>
-        Example: QUERY_BUFFER BUFFER=TN
+        Behavior
 
-        Behavior:
-            - If the `turtleneck` feature is enabled and a tool is loaded, the rotation
-            distance of the current AFC stepper motor is reported, along with the
-            current state of the buffer sensor.
-            - If the `turtleneck` feature is not enabled, only the buffer state is
-            reported.
-            - Both the buffer state and, if applicable, the stepper motor's rotation
-            distance are sent back as G-code responses.
+        - If the `turtleneck` feature is enabled and a tool is loaded, the rotation
+          distance of the current AFC stepper motor is reported, along with the
+          current state of the buffer sensor.
+        - If the `turtleneck` feature is not enabled, only the buffer state is reported.
+        - Both the buffer state and, if applicable, the stepper motor's rotation
+          distance are sent back as G-code responses.
+
+        Usage
+        -----
+        `QUERY_BUFFER BUFFER=<buffer_name>`
+
+        Example
+        ------
+        ```
+        QUERY_BUFFER BUFFER=TN
+        ```
         """
         state_mapping = {
             TRAILING_STATE_NAME: ' (Compressed)',
@@ -355,22 +361,44 @@ class AFCtrigger:
         saved in configuration. Please update your configuration file once you find a velocity that
         works for your setup.
 
-        Usage: SET_BUFFER_VELOCITY BUFFER=<buffer_name> VELOCITY=<value>
-        Example: SET_BUFFER_VELOCITY BUFFER=TN2 VELOCITY=100
-
         Behavior:
-            - Updates the value that the espooler use for forward assist during printing.
-            - Setting value to zero disables forward assist during printing.
-            - Velocity is not saved to configuration file, needs to be manually updated.
+
+        - Updates the value that the respooler use for forward assist during printing.
+        - Setting value to zero disables forward assist during printing.
+        - Velocity is not saved to configuration file, needs to be manually updated.
+
+        Usage
+        -----
+        `SET_BUFFER_VELOCITY BUFFER=<buffer_name> VELOCITY=<value>`
+
+        Example
+        -----
+        ```
+        SET_BUFFER_VELOCITY BUFFER=TN2 VELOCITY=100
+        ```
         """
         old_velocity = self.velocity
         self.velocity = gcmd.get_float('VELOCITY', 0.0)
         self.logger.info("VELOCITY for {} was updated from {} to {}".format(self.name, old_velocity, self.velocity))
 
     def cmd_ENABLE_BUFFER(self, gcmd):
+        """
+        Manually enables the buffer. This command is useful for debugging and testing purposes.
+
+        Usage
+        -----
+        `ENABLE_BUFFER`
+        """
         self.enable_buffer()
 
     def cmd_DISABLE_BUFFER(self, gcmd):
+        """
+        Manually disables the buffer. This command is useful for debugging and testing purposes.
+
+        Usage
+        -----
+        `DISABLE_BUFFER`
+        """
         self.disable_buffer()
 
     def get_status(self, eventtime=None):
@@ -382,4 +410,4 @@ class AFCtrigger:
         return self.response
 
 def load_config_prefix(config):
-    return AFCtrigger(config)
+    return AFCTrigger(config)
