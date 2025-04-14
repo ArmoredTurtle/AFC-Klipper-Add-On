@@ -4,7 +4,7 @@ This Klipper plugin is for use with modern filament control systems such as BoxT
 
 More information about BoxTurtle can be found [here](https://github.com/ArmoredTurtle/BoxTurtle)
 
-Further information to include command references can be found in the [docs](./docs) folder.
+Further information to include command references can be found at the [documentation website](https://www.armoredturtle.xyz/docs).
 
 ## Usage
 
@@ -251,7 +251,7 @@ Using this config, buffer will be used for just the lanes the buffers is assigne
 buffer: TN2
 ```
 
-Additional information about the buffer configuration and operation can be found in the [AFC_buffer.md](./docs/AFC_buffer.md) file.
+Additional information about the buffer configuration and operation can be found [here](https://www.armoredturtle.xyz/docs/afc-klipper-add-on/installation/buffer-overview.html).
 
 ## Automatic Calibration
 
@@ -261,7 +261,7 @@ _distances will be calibrated to have ~1 short move after the move distance_
 
 If using a hub different from the stock set up `hub_clear_move_dis` under AFC unit may need to be increased/decreased to match your setup, default `50mm`.
 
-For additional information and the steps for manual calibration, can be found in [Calibration.md](./docs/Calibration.md)
+For additional information and the steps for manual calibration, please visit [here](https://www.armoredturtle.xyz/docs/afc-klipper-add-on/installation/calibration.html).
 
 ## Troubleshooting
 
