@@ -212,7 +212,12 @@ fi
         export message ;;
       Q) exit_afc_install ;;
       M) main_menu ;;
-      I) install_afc ;;
+      I)
+        # only backup the existing config files when a new system is installed
+        if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
+          backup_afc_config
+        fi
+        install_afc ;;
       *) echo "Invalid selection" ;;
     esac
   done
