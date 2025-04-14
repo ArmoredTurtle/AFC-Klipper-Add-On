@@ -4,7 +4,7 @@ This Klipper plugin is for use with modern filament control systems such as BoxT
 
 More information about BoxTurtle can be found [here](https://github.com/ArmoredTurtle/BoxTurtle)
 
-Further information to include command references can be found in the [docs](./docs) folder.
+Further information to include command references can be found [here](https://armoredturtle.xyz/docs/).
 
 ## Usage
 
