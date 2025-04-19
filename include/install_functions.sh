@@ -81,7 +81,6 @@ install_afc() {
     manage_include "${printer_config_dir}/printer.cfg" "add"
   fi
   # Update selected configuration values
-  update_config_value "${afc_file}" "Type" "${installation_type}"
   update_config_value "${afc_file}" "park" "${park_macro}"
   update_config_value "${afc_file}" "poop" "${poop_macro}"
   update_config_value "${afc_file}" "form_tip" "${tip_forming}"
