@@ -5,7 +5,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-set -e
+set -ex
 export LC_ALL=C
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,7 +58,12 @@ echo "Checking to ensure crudini and jq are present.."
 check_for_prereqs
 if [ "$test_mode" == "False" ]; then
   check_python_version
-  clone_repo
+  clone_or_update_repo
+  updated=$?
+    if [[ $updated -ne 0 ]]; then
+    echo "⚠️  Repository was updated; restarting script…"
+    exec "$0" "$@"
+  fi
 fi
 check_existing_install
 check_version_and_set_force_update
