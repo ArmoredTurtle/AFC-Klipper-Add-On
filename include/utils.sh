@@ -40,6 +40,7 @@ function copy_config() {
 
 function clone_repo() {
   # Function to clone the AFC Klipper Add-On repository if it is not already cloned.
+  # If the branch is not up to date, it will pull the latest changes and restart the script.
   # Uses the global variables:
   #   - afc_path: The path where the repository should be cloned.
   #   - gitrepo: The URL of the repository to clone.
@@ -51,7 +52,7 @@ function clone_repo() {
 
   if [ ! -d "${afc_path}" ]; then
     echo "Cloning AFC Klipper Add-On repo..."
-    if git -C $afc_dir_name clone --quiet $gitrepo $afc_base_name; then
+    if git -C "$afc_dir_name" clone --quiet "$gitrepo" "$afc_base_name"; then
       print_msg INFO "AFC Klipper Add-On repo cloned successfully"
       pushd "${afc_path}" || exit
       git checkout --quiet "${branch}"
@@ -62,9 +63,20 @@ function clone_repo() {
     fi
   else
     pushd "${afc_path}" || exit
-    git pull --quiet
-    git checkout --quiet "${branch}"
-    popd || exit
+    git fetch --quiet
+    local status
+    status=$(git status -uno | grep "Your branch is up to date")
+    if [ -z "$status" ]; then
+      echo "Branch is not up to date. Pulling latest changes..."
+      git pull --quiet
+      git checkout --quiet "${branch}"
+      popd || exit
+      echo "Restarting script..."
+      exec "$0" "$@"
+    else
+      echo "Branch is already up to date."
+      popd || exit
+    fi
   fi
 }
 
