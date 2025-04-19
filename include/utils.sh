@@ -80,7 +80,7 @@ function copy_config() {
 #  fi
 #}
 
-function clone_or_update_repo() {
+clone_and_maybe_restart() {
   if [[ ! -d "${afc_path}/.git" ]]; then
     echo "→ Cloning ${branch} from ${gitrepo} into ${afc_path}…"
     git clone \
@@ -94,18 +94,16 @@ function clone_or_update_repo() {
     echo "→ Fetching updates in ${afc_path}…"
     git -C "${afc_path}" fetch --prune --quiet
 
-    # Check if local is behind remote
+    # If our local is behind the remote, pull & then restart
     if git -C "${afc_path}" status --porcelain --branch | grep -q 'behind'; then
-      echo "→ Local is behind remote; rebasing…"
+      echo "→ New commits detected; rebasing…"
       git -C "${afc_path}" pull --rebase --quiet
-      echo "✓ Update complete."
-      return 1   # non-zero => caller can decide to restart
+      echo "✓ Update applied. Restarting script…"
+      exec "$0" "$@"
     else
       echo "✓ Already up to date."
     fi
   fi
-
-  return 0
 }
 
 backup_afc_config() {

@@ -29,49 +29,48 @@ source include/update_functions.sh
 source include/utils.sh
 source include/unit_functions.sh
 
-###################### Main script logic below ######################
+main() {
+  ###################### Main script logic below ######################
 
-while getopts "a:k:s:m:n:b:p:y:u:th" arg; do
-  case ${arg} in
-  a) moonraker_address=${OPTARG} ;;
-  k) klipper_dir=${OPTARG} ;;
-  m) moonraker_config_file=${OPTARG} ;;
-  n) moonraker_port=${OPTARG} ;;
-  s) klipper_service=${OPTARG} ;;
-  b) branch=${OPTARG} ;;
-  p) printer_config_dir=${OPTARG} ;;
-  y) klipper_venv=${OPTARG} ;;
-  t) test_mode=True ;;
-  h) show_help
-    exit 0 ;;
-  *) exit 1 ;;
-  esac
-done
+  while getopts "a:k:s:m:n:b:p:y:u:th" arg; do
+    case ${arg} in
+    a) moonraker_address=${OPTARG} ;;
+    k) klipper_dir=${OPTARG} ;;
+    m) moonraker_config_file=${OPTARG} ;;
+    n) moonraker_port=${OPTARG} ;;
+    s) klipper_service=${OPTARG} ;;
+    b) branch=${OPTARG} ;;
+    p) printer_config_dir=${OPTARG} ;;
+    y) klipper_venv=${OPTARG} ;;
+    t) test_mode=True ;;
+    h) show_help
+      exit 0 ;;
+    *) exit 1 ;;
+    esac
+  done
 
-moonraker="${moonraker_address}:${moonraker_port}"
-# Make sure necessary directories exist
-echo "Ensuring we are not running as root.."
-check_root
-echo "Ensuring no conflicting software is present.."
-check_for_hh
-echo "Checking to ensure crudini and jq are present.."
-check_for_prereqs
-if [ "$test_mode" == "False" ]; then
-  check_python_version
-  clone_or_update_repo
-  updated=$?
-    if [[ $updated -ne 0 ]]; then
-    echo "⚠️  Repository was updated; restarting script…"
-    exec "$0" "$@"
+  moonraker="${moonraker_address}:${moonraker_port}"
+  # Make sure necessary directories exist
+  echo "Ensuring we are not running as root.."
+  check_root
+  echo "Ensuring no conflicting software is present.."
+  check_for_hh
+  echo "Checking to ensure crudini and jq are present.."
+  check_for_prereqs
+  if [ "$test_mode" == "False" ]; then
+    check_python_version
+    clone_and_maybe_restart
   fi
-fi
-check_existing_install
-check_version_and_set_force_update
-#set_install_version_if_missing
-if [ "$force_update_no_version" == "False" ]; then
+  check_existing_install
   check_version_and_set_force_update
-fi
-echo "Starting installation process.."
-sleep 2
-clear
-main_menu
+  #set_install_version_if_missing
+  if [ "$force_update_no_version" == "False" ]; then
+    check_version_and_set_force_update
+  fi
+  echo "Starting installation process.."
+  sleep 2
+  clear
+  main_menu
+}
+
+main "$@"
