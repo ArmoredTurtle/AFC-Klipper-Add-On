@@ -5,7 +5,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-set -ex
+set -e
 export LC_ALL=C
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
