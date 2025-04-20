@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The `Type` parameter in the `AFC_<unit_type>.cfg` file is no longer required.
 
+- The `install-afc.sh` script will now check for updates, and if new updates are present, it will sync and git changes
+and re-run the script automatically.
+
 ## [2025-04-12]
 
 ### Added
