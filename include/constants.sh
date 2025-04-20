@@ -23,8 +23,8 @@ moonraker="${moonraker_address}:${moonraker_port}"
 
 
 # Git related constants
-gitrepo="https://github.com/ejsears/AFC-Klipper-Add-On.git"
-branch="auto-retun-install-script-for-git-updates"
+gitrepo="https://github.com/ArmoredTurtle/AFC-Klipper-Add-On.git"
+branch="main"
 
 # Misc constants
 prior_installation="False"
