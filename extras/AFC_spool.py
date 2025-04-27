@@ -70,7 +70,7 @@ class AFCSpool:
             return
         map_cmd = gcmd.get('MAP', None)
         lane_switch=self.AFC.tool_cmds[map_cmd]
-        self.logger.debug("lane to switch is " + lane_switch)
+        self.logger.debug("lane to switch is {}".format(lane_switch))
         if lane not in self.AFC.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
@@ -110,7 +110,7 @@ class AFCSpool:
             self.logger.info('{} Unknown'.format(lane))
             return
         CUR_LANE = self.AFC.lanes[lane]
-        CUR_LANE.color = '#' + color.replace('#','')
+        CUR_LANE.color = '#{}'.format(color.replace('#',''))
         self.AFC.save_vars()
 
     cmd_SET_WEIGHT_help = "Sets filaments weight for a lane"

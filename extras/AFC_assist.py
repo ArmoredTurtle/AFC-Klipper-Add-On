@@ -19,14 +19,14 @@ class AFCassistMotor:
         # Determine pin type
         self.is_pwm = config.getboolean('pwm', False)
         if self.is_pwm:
-            self.mcu_pin = ppins.setup_pin('pwm', config.get('afc_motor_'+type))
+            self.mcu_pin = ppins.setup_pin('pwm', config.get('afc_motor_{}'.format(type)))
             cycle_time = config.getfloat('cycle_time', 0.100, above=0.,
                                          maxval=MAX_SCHEDULE_TIME)
             hardware_pwm = config.getboolean('hardware_pwm', False)
             self.mcu_pin.setup_cycle_time(cycle_time, hardware_pwm)
             self.scale = config.getfloat('scale', 1., above=0.)
         else:
-            self.mcu_pin = ppins.setup_pin('digital_out', config.get('afc_motor_'+type))
+            self.mcu_pin = ppins.setup_pin('digital_out', config.get('afc_motor_{}'.format(type)))
             self.scale = 1.
         self.last_print_time = 0.
         # Support mcu checking for maximum duration
