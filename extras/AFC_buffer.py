@@ -25,7 +25,6 @@ class AFCTrigger:
         self.name       = config.get_name().split(' ')[-1]
         self.lanes      = {}
         self.turtleneck = False
-        self.belay      = False
         self.last_state = "Unknown"
         self.enable     = False
         self.current    = ''
@@ -73,14 +72,6 @@ class AFCTrigger:
                 self.trail_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "compressed")
                 self.fila_trail = add_filament_switch(self.trail_filament_switch_name, self.trailing_pin, self.printer )
 
-        # Pull config for Belay style buffer (single switch)
-        elif self.buffer_distance is not None:
-            self.belay              = True
-            self.pin                = config.get('pin')
-            self.buffer_distance    = config.getfloat('distance', 0)
-            self.velocity           = config.getfloat('velocity', 0)
-            self.accel              = config.getfloat('accel', 0)
-
         # Error if buffer is not configured correctly
         else:
             msg = "Buffer is not configured correctly, please fix configuration"
@@ -92,10 +83,6 @@ class AFCTrigger:
         self.gcode.register_mux_command("SET_BUFFER_VELOCITY",  "BUFFER", self.name, self.cmd_SET_BUFFER_VELOCITY,  desc=self.cmd_SET_BUFFER_VELOCITY_help)
         self.gcode.register_mux_command("ENABLE_BUFFER",        "BUFFER", self.name, self.cmd_ENABLE_BUFFER)
         self.gcode.register_mux_command("DISABLE_BUFFER",       "BUFFER", self.name, self.cmd_DISABLE_BUFFER)
-
-        # Belay Buffer
-        if self.belay:
-            self.buttons.register_buttons([self.pin], self.belay_sensor_callback)
 
         # Turtleneck Buffer
         if self.turtleneck:
@@ -119,27 +106,6 @@ class AFCTrigger:
             if led is None:
                 raise error(error_string)
 
-     # Belay Call back
-    def belay_sensor_callback(self, eventime, state):
-        if not self.last_state and state:
-            if self.printer.state_message == 'Printer is ready' and self.enable:
-                CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
-                if CUR_LANE is not None:
-                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
-                    if CUR_EXTRUDER.tool_start_state:
-                        self.belay_move_lane(state)
-        self.last_state = state
-
-    def belay_move_lane(self, state):
-        if not self.enable: return
-        LANE = self.AFC.FUNCTION.get_current_lane_obj()
-        if self.LANE is None: return
-
-        if state:
-            if LANE.status != 'unloading':
-                if self.debug: self.logger.info("Buffer Triggered, Moving Lane {} forward {}mm".format(LANE.name, self.buffer_distance))
-                LANE.move(self.buffer_distance, self.velocity ,self.accel)
-
     def enable_buffer(self):
         if self.led:
             self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
@@ -152,10 +118,6 @@ class AFCTrigger:
                 multiplier = self.multiplier_high
             self.set_multiplier( multiplier )
             if self.debug: self.logger.info("{} buffer enabled".format(self.name))
-        elif self.belay:
-            self.enable = True
-            if self.debug: self.logger.info("{} buffer enabled".format(self.name))
-            self.belay_move_lane(self.last_state)
 
     def disable_buffer(self):
         self.enable = False
@@ -406,7 +368,6 @@ class AFCTrigger:
         self.response['state'] = self.last_state
         self.response['lanes'] = [lane.name for lane in self.lanes.values()]
         self.response['enabled'] = self.enable
-        self.response['belay'] = self.belay
         return self.response
 
 def load_config_prefix(config):
