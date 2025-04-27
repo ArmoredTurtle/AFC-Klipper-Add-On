@@ -223,7 +223,7 @@ class afcFunction:
         return error_string, led
 
     def afc_led (self, status, idx=None):
-        if idx == None:
+        if idx is None:
             return
 
         error_string, led = self.verify_led_object(idx)
@@ -738,7 +738,7 @@ class afcFunction:
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
             return
 
-        if CUR_HUB.state == False:
+        if not CUR_HUB.state:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("Hub is already clear while trying to reset '{}'".format(lane), pause=False)
             return
@@ -755,15 +755,15 @@ class afcFunction:
         if long_dis is not None:
             CUR_LANE.move(float(long_dis) * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
-        while CUR_HUB.state == True:
+        while CUR_HUB.state:
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             pos -= short_move
 
-            if CUR_LANE.load_state == False:
+            if not CUR_LANE.load_state:
                 self.AFC.ERROR.AFC_error(fail_state_msg.format(CUR_LANE, "load"), pause=False)
                 return
 
-            if CUR_LANE.prep_state == False:
+            if not CUR_LANE.prep_state:
                 self.AFC.ERROR.AFC_error(fail_state_msg.format(CUR_LANE, "prep"), pause=False)
                 return
 
@@ -907,7 +907,7 @@ class afcFunction:
         ```
         """
         lane = gcmd.get('LANE', None)
-        if lane == None:
+        if lane is None:
             self.AFC.ERROR.AFC_error('Must select LANE', False)
             return
 
