@@ -108,7 +108,7 @@ class afcFunction:
     def TcmdAssign(self, CUR_LANE):
         if CUR_LANE.map == 'NONE' :
             for x in range(99):
-                cmd = 'T{0}'.format(x)
+                cmd = 'T{}'.format(x)
                 if cmd not in self.AFC.tool_cmds:
                     CUR_LANE.map = cmd
                     break

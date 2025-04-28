@@ -69,7 +69,7 @@ class afc_poop:
             iteration += 1
         step += 1
         if self.verbose:
-            self.logger.info('AFC_Poop: {0} Fast Z Lift to keep poop from sticking'.format(step))
+            self.logger.info('AFC_Poop: {} Fast Z Lift to keep poop from sticking'.format(step))
         pooppos = self.toolhead.get_position()
         pooppos[2] = self.z_lift
         self.toolhead.manual_move(pooppos, self.fast_z)
@@ -77,7 +77,7 @@ class afc_poop:
         step += 1
         if self.full_fan:
             if self.verbose:
-                self.logger.info('AFC_Poop: ' + str(step) + ' Restore fan speed and feedrate')
+                self.logger.info('AFC_Poop: {} Restore fan speed and feedrate'.format(step))
             self.gcode.run_script_from_command('M106 S0')
 
 def load_config(config):
