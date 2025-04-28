@@ -83,7 +83,3 @@ class AFCassistMotor:
             return systime + time_diff
         self._set_pin(print_time + PIN_MIN_TIME, self.last_value, True)
         return systime + self.resend_interval
-
-
-
-    

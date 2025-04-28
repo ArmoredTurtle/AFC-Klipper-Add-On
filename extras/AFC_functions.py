@@ -646,11 +646,9 @@ class afcFunction:
 
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
-        footer = []
         title = 'AFC Calibration Failed'
         text = 'Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'.format(cali)
         buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
-        footer.append(('EXIT', 'prompt_end', 'info'))
 
         prompt.create_custom_p(title, text, buttons,
                                True, None)
