@@ -108,7 +108,7 @@ class afcFunction:
     def TcmdAssign(self, CUR_LANE):
         if CUR_LANE.map == 'NONE' :
             for x in range(99):
-                cmd = 'T'+str(x)
+                cmd = 'T{0}'.format(x)
                 if cmd not in self.AFC.tool_cmds:
                     CUR_LANE.map = cmd
                     break
@@ -215,7 +215,7 @@ class afcFunction:
         """
         error_string = ""
         led = None
-        afc_object = 'AFC_led '+ led_name.split(':')[0]
+        afc_object = 'AFC_led {}'.format(led_name.split(':')[0])
         try:
             led = self.printer.lookup_object(afc_object)
         except:
@@ -236,10 +236,10 @@ class afcFunction:
         if CUR_LANE.prep_state:
             if CUR_LANE.load_state:
                 if CUR_LANE.extruder_obj is not None and CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:
-                    return 'In Tool:' + self.HexConvert(CUR_LANE.led_tool_loaded).split(':')[-1]
-                return "Ready:" + self.HexConvert(CUR_LANE.led_ready).split(':')[-1]
-            return 'Prep:' + self.HexConvert(CUR_LANE.led_prep_loaded).split(':')[-1]
-        return 'Not Ready:' + self.HexConvert(CUR_LANE.led_not_ready).split(':')[-1]
+                    return 'In Tool:{}'.format(self.HexConvert(CUR_LANE.led_tool_loaded).split(':')[-1])
+                return "Ready:{}".format(self.HexConvert(CUR_LANE.led_ready).split(':')[-1])
+            return 'Prep:{}'.format(self.HexConvert(CUR_LANE.led_prep_loaded).split(':')[-1])
+        return 'Not Ready:{}'.format(self.HexConvert(CUR_LANE.led_not_ready).split(':')[-1])
 
     def handle_activate_extruder(self):
         """
@@ -399,7 +399,7 @@ class afcFunction:
         prompt = AFCprompt(gcmd, self.logger)
         footer = []
         title = 'Calibrate all'
-        text = ('Press Yes to confirm calibrating all lanes in all units')
+        text = 'Press Yes to confirm calibrating all lanes in all units'
         footer.append(('Back', 'AFC_CALIBRATION', 'info'))
         footer.append(("Yes", "CALIBRATE_AFC LANE=all", "error"))
 
@@ -577,7 +577,7 @@ class afcFunction:
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         title = 'AFC Calibration Completed'
-        text = ('Calibration was completed for {}, would you like to do more calibrations?').format(cali)
+        text = 'Calibration was completed for {}, would you like to do more calibrations?'.format(cali)
         buttons.append(("Yes", "AFC_Calibration", "primary"))
         buttons.append(("No", "AFC_HAPPY_P STEP='AFC Calibration'", "info"))
 
@@ -611,7 +611,7 @@ class afcFunction:
         buttons = None
         footer = []
         title = '{} Completed'.format(step)
-        text = ('Happy Printing!')
+        text = 'Happy Printing!'
         footer.append(('EXIT', 'prompt_end', 'info'))
         prompt.create_custom_p(title, text, buttons,
                                False, None, footer)
@@ -646,11 +646,9 @@ class afcFunction:
 
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
-        footer = []
         title = 'AFC Calibration Failed'
-        text = ('Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.').format(cali)
+        text = 'Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'.format(cali)
         buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
-        footer.append(('EXIT', 'prompt_end', 'info'))
 
         prompt.create_custom_p(title, text, buttons,
                                True, None)
@@ -682,7 +680,7 @@ class afcFunction:
         dis = gcmd.get("DISTANCE", None)
         buttons = []
         title = 'AFC RESET'
-        text = ('Select a loaded lane to reset')
+        text = 'Select a loaded lane to reset'
 
         # Create buttons for each loaded lane
         for index, LANE in enumerate(self.AFC.lanes.values()):
@@ -878,7 +876,7 @@ class afcFunction:
         ```
         """
         lane = gcmd.get('LANE', None)
-        self.logger.info('Testing Hub Cut on Lane: ' + lane)
+        self.logger.info('Testing Hub Cut on Lane: {}'.format(lane))
         if lane not in self.AFC.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
