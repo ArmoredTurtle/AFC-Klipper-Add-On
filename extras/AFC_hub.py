@@ -99,7 +99,7 @@ class afc_hub:
 
         # Choppy Chop
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_clip_angle))
-        if self.cut_confirm == True:
+        if self.cut_confirm:
             self.reactor.pause(self.reactor.monotonic() + 0.5)
             # ReChop, To be doubly choppy sure.
             self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))

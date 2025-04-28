@@ -198,7 +198,7 @@ class AFCTrigger:
         if self.printer.state_message == 'Printer is ready' and self.enable:
             CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
 
-            if CUR_LANE != None and state:
+            if CUR_LANE is not None and state:
                 CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
                 self.reactor.pause(self.reactor.monotonic() + 1)
                 CUR_LANE.assist(0)
@@ -211,7 +211,7 @@ class AFCTrigger:
         if self.printer.state_message == 'Printer is ready' and self.enable:
             CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
 
-            if CUR_LANE != None and state:
+            if CUR_LANE is not None and state:
                 CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
                 self.reactor.pause(self.reactor.monotonic() + 1)
                 CUR_LANE.assist(0)
@@ -249,9 +249,9 @@ class AFCTrigger:
         """
         if self.turtleneck:
             cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
-            if cur_stepper != None and self.enable:
+            if cur_stepper is not None and self.enable:
                 chg_multiplier = gcmd.get('MULTIPLIER', None)
-                if chg_multiplier == None:
+                if chg_multiplier is None:
                     self.logger.info("Multiplier must be provided, HIGH or LOW")
                     return
                 chg_factor = gcmd.get_float('FACTOR')
@@ -299,7 +299,7 @@ class AFCTrigger:
         """
         if self.turtleneck:
             cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
-            if cur_stepper != None and self.enable:
+            if cur_stepper is not None and self.enable:
                 change_factor = gcmd.get_float('FACTOR', 1.0)
                 if change_factor <= 0:
                     self.logger.info("FACTOR must be greater than 0")

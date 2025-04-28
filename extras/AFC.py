@@ -201,10 +201,10 @@ class afc:
                 self.logger.info("Applying TRSYNC update")
 
                 # Making sure value exists as kalico(danger klipper) does not have TRSYNC_TIMEOUT value
-                if( hasattr(mcu, "TRSYNC_TIMEOUT")): mcu.TRSYNC_TIMEOUT = max(mcu.TRSYNC_TIMEOUT, trsync_value)
+                if hasattr(mcu, "TRSYNC_TIMEOUT"): mcu.TRSYNC_TIMEOUT = max(mcu.TRSYNC_TIMEOUT, trsync_value)
                 else : self.logger.info("TRSYNC_TIMEOUT does not exist in mcu file, not updating")
 
-                if( hasattr(mcu, "TRSYNC_SINGLE_MCU_TIMEOUT")): mcu.TRSYNC_SINGLE_MCU_TIMEOUT = max(mcu.TRSYNC_SINGLE_MCU_TIMEOUT, trsync_single_value)
+                if hasattr(mcu, "TRSYNC_SINGLE_MCU_TIMEOUT"): mcu.TRSYNC_SINGLE_MCU_TIMEOUT = max(mcu.TRSYNC_SINGLE_MCU_TIMEOUT, trsync_single_value)
                 else : self.logger.info("TRSYNC_SINGLE_MCU_TIMEOUT does not exist in mcu file, not updating")
             except Exception as e:
                 self.logger.info("Unable to update TRSYNC_TIMEOUT: {}".format(e))
@@ -518,8 +518,8 @@ class afc:
         """
         Only save previous location on the first toolchange call to keep an error state from overwriting the location
         """
-        if self.in_toolchange == False:
-            if self.error_state == False and self.FUNCTION.is_paused() == False and self.position_saved == False:
+        if not self.in_toolchange:
+            if not self.error_state and not self.FUNCTION.is_paused() and not self.position_saved:
                 self.position_saved         = True
                 self.last_toolhead_position = self.toolhead.get_position()
                 self.base_position          = list(self.gcode_move.base_position)
@@ -662,17 +662,17 @@ class afc:
             return
         CUR_LANE = self.lanes[lane]
         CUR_HUB = CUR_LANE.hub_obj
-        if CUR_LANE.prep_state == False: return
+        if not CUR_LANE.prep_state: return
         CUR_LANE.status = 'HUB Loading'
-        if CUR_LANE.load_state == False:
+        if not CUR_LANE.load_state:
             CUR_LANE.do_enable(True)
-            while CUR_LANE.load_state == False:
+            while not CUR_LANE.load_state:
                 CUR_LANE.move( CUR_HUB.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
-        if CUR_LANE.loaded_to_hub == False:
+        if not CUR_LANE.loaded_to_hub:
             CUR_LANE.move(CUR_LANE.dist_hub, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
-        while CUR_HUB.state == False:
+        while not CUR_HUB.state:
             CUR_LANE.move(CUR_HUB.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
-        while CUR_HUB.state == True:
+        while CUR_HUB.state:
             CUR_LANE.move(CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
         CUR_LANE.status = None
         CUR_LANE.do_enable(False)
@@ -725,7 +725,7 @@ class afc:
             if CUR_LANE.loaded_to_hub:
                 CUR_LANE.move(CUR_LANE.dist_hub * -1, CUR_LANE.dist_hub_move_speed, CUR_LANE.dist_hub_move_accel, True if CUR_LANE.dist_hub > 200 else False)
             CUR_LANE.loaded_to_hub = False
-            while CUR_LANE.load_state == True:
+            while CUR_LANE.load_state:
                CUR_LANE.move( CUR_HUB.move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
             CUR_LANE.move( CUR_HUB.move_dis * -5, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             CUR_LANE.do_enable(False)
@@ -913,7 +913,7 @@ class afc:
             if CUR_EXTRUDER.tool_start == "buffer":
                 CUR_LANE.unsync_to_extruder()
                 load_checks = 0
-                while CUR_LANE.get_toolhead_pre_sensor_state() == True:
+                while CUR_LANE.get_toolhead_pre_sensor_state():
                     CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel )
                     load_checks += 1
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
@@ -1002,7 +1002,7 @@ class afc:
         if self._check_bypass(unload=True): return False
 
         lane = gcmd.get('LANE', self.current)
-        if lane == None:
+        if lane is None:
             return
         if lane not in self.lanes:
             self.logger.info('{} Unknown'.format(lane))
@@ -1109,7 +1109,7 @@ class afc:
         if CUR_EXTRUDER.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
             CUR_LANE.unsync_to_extruder()
-            while CUR_LANE.get_trailing() == False:
+            while not CUR_LANE.get_trailing():
                 # attempt to return buffer to trailng pin
                 CUR_LANE.move( CUR_LANE.short_move_dis * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel )
                 num_tries += 1
@@ -1458,7 +1458,7 @@ class afc:
 
             for CUR_LANE in UNIT.lanes.values():
                 lane_msg = ''
-                if self.current != None:
+                if self.current is not None:
                     if self.current == CUR_LANE.name:
                         if not CUR_LANE.get_toolhead_pre_sensor_state() or not CUR_LANE.hub_obj.state:
                             lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name, max_lane_length)
@@ -1469,28 +1469,28 @@ class afc:
                 else:
                     lane_msg += '{:<{}} '.format(CUR_LANE.name,max_lane_length)
 
-                if CUR_LANE.prep_state == True:
+                if CUR_LANE.prep_state:
                     lane_msg += '| <span class=success--text><--></span> |'
                 else:
                     lane_msg += '|  <span class=error--text>xx</span>  |'
-                if CUR_LANE.load_state == True:
+                if CUR_LANE.load_state:
                     lane_msg += ' <span class=success--text><--></span> |\n'
                 else:
                     lane_msg += '  <span class=error--text>xx</span>  |\n'
                 status_msg += lane_msg
 
-            if CUR_LANE.hub_obj.state == True:
+            if CUR_LANE.hub_obj.state:
                 status_msg += 'HUB: <span class=success--text><-></span>'
             else:
                 status_msg += 'HUB: <span class=error--text>x</span>'
 
             extruder_msg = '  Tool: <span class=error--text>x</span>'
             if CUR_LANE.extruder_obj.tool_start != "buffer":
-                if CUR_LANE.extruder_obj.tool_start_state == True:
+                if CUR_LANE.extruder_obj.tool_start_state:
                     extruder_msg = '  Tool: <span class=success--text><-></span>'
             else:
                 if CUR_LANE.tool_loaded and CUR_LANE.extruder_obj.lane_loaded in self.units[UNIT]:
-                    if CUR_LANE.get_toolhead_pre_sensor_state() == True:
+                    if CUR_LANE.get_toolhead_pre_sensor_state():
                         extruder_msg = '  Tool: <span class=success--text><-></span>'
 
             status_msg += extruder_msg

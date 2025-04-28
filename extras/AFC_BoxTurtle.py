@@ -53,8 +53,8 @@ class afcBoxTurtle(afcUnit):
         else:
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.7)
 
-        if CUR_LANE.prep_state == False:
-            if CUR_LANE.load_state == False:
+        if not CUR_LANE.prep_state:
+            if not CUR_LANE.load_state:
                 self.AFC.FUNCTION.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
                 msg += 'EMPTY READY FOR SPOOL'
             else:
@@ -67,7 +67,7 @@ class afcBoxTurtle(afcUnit):
         else:
             self.AFC.FUNCTION.afc_led(CUR_LANE.led_ready, CUR_LANE.led_index)
             msg +="<span class=success--text>LOCKED</span>"
-            if CUR_LANE.load_state == False:
+            if not CUR_LANE.load_state:
                 msg +="<span class=error--text> NOT LOADED</span>"
                 self.AFC.FUNCTION.afc_led(CUR_LANE.led_not_ready, CUR_LANE.led_index)
                 succeeded = False
@@ -203,7 +203,7 @@ class afcBoxTurtle(afcUnit):
 
     def move_until_state(self, CUR_LANE, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
         # moves filament until specified sensor, returns values for further czlibration
-        while state() == False:
+        while not state():
             CUR_LANE.move(move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
             pos += move_dis
             if pos >= fault_dis:
@@ -212,7 +212,7 @@ class afcBoxTurtle(afcUnit):
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
 
         state_retracts = 0
-        while state() == True:
+        while state():
             # retract off of sensor
             state_retracts =+ 1
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
@@ -225,7 +225,7 @@ class afcBoxTurtle(afcUnit):
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 0.1)
 
         tol_checks = 0
-        while state() == False:
+        while not state():
             # move back to sensor in short steps
             tol_checks += 1
             CUR_LANE.move(tolerance, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
