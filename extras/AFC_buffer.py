@@ -50,33 +50,20 @@ class AFCTrigger:
         self.advance_pin        = config.get('advance_pin', None)
         self.buffer_distance    = config.getfloat('distance', None)
 
-        if self.advance_pin is not None and self.buffer_distance is not None:
-            # Throw an error as this is not a valid configuration, only Turtle neck or buffer can be configured not both
-            msg = "Turtle neck or buffer can be configured not both, please fix buffer configuration"
-            self.logger.error( msg )
-            raise error( msg )
-
         # Pull config for Turtleneck style buffer (advance and training switches)
-        if self.advance_pin is not None:
-            self.turtleneck         = True
-            self.advance_pin        = config.get('advance_pin') # Advance pin for buffer
-            self.trailing_pin       = config.get('trailing_pin') # Trailing pin for buffer
-            self.multiplier_high    = config.getfloat("multiplier_high", default=1.1, minval=1.0)
-            self.multiplier_low     = config.getfloat("multiplier_low", default=0.9, minval=0.0, maxval=1.0)
-            self.velocity           = config.getfloat('velocity', 0) # Velocity for forward assist
+        self.turtleneck         = True
+        self.advance_pin        = config.get('advance_pin') # Advance pin for buffer
+        self.trailing_pin       = config.get('trailing_pin') # Trailing pin for buffer
+        self.multiplier_high    = config.getfloat("multiplier_high", default=1.1, minval=1.0)
+        self.multiplier_low     = config.getfloat("multiplier_low", default=0.9, minval=0.0, maxval=1.0)
+        self.velocity           = config.getfloat('velocity', 0) # Velocity for forward assist
 
-            if self.enable_sensors_in_gui:
-                self.adv_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "expanded")
-                self.fila_avd = add_filament_switch(self.adv_filament_switch_name, self.advance_pin, self.printer )
+        if self.enable_sensors_in_gui:
+            self.adv_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "expanded")
+            self.fila_avd = add_filament_switch(self.adv_filament_switch_name, self.advance_pin, self.printer )
 
-                self.trail_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "compressed")
-                self.fila_trail = add_filament_switch(self.trail_filament_switch_name, self.trailing_pin, self.printer )
-
-        # Error if buffer is not configured correctly
-        else:
-            msg = "Buffer is not configured correctly, please fix configuration"
-            self.logger.error( msg )
-            raise error( msg )
+            self.trail_filament_switch_name = "filament_switch_sensor {}_{}".format(self.name, "compressed")
+            self.fila_trail = add_filament_switch(self.trail_filament_switch_name, self.trailing_pin, self.printer )
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.gcode.register_mux_command("QUERY_BUFFER",         "BUFFER", self.name, self.cmd_QUERY_BUFFER,         desc=self.cmd_QUERY_BUFFER_help)
