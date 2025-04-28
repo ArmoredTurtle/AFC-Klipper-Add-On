@@ -125,7 +125,7 @@ class AFCTrigger:
             if self.printer.state_message == 'Printer is ready' and self.enable:
                 CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
                 if CUR_LANE is not None:
-                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder ' + CUR_LANE.extruder_name)
+                    CUR_EXTRUDER = self.printer.lookup_object('AFC_extruder {}'.format(CUR_LANE.extruder_name))
                     if CUR_EXTRUDER.tool_start_state:
                         self.belay_move_lane(state)
         self.last_state = state
