@@ -78,7 +78,7 @@ class afc_poop:
         if self.full_fan:
             if self.verbose:
                 self.logger.info('AFC_Poop: ' + str(step) + ' Restore fan speed and feedrate')
-                self.gcode.run_script_from_command('M106 S0')
+            self.gcode.run_script_from_command('M106 S0')
 
 def load_config(config):
     return afc_poop(config)
