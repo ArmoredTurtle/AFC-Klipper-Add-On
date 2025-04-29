@@ -738,21 +738,22 @@ class afcFunction:
             self.AFC.ERROR.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
             return
 
-        afc_object = 'AFC_led '+ idx.split(':')[0]
+        if not CUR_HUB.state:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("Hub is already clear while trying to reset '{}'".format(lane), pause=False)
-        try:
+            return
 
-            led = self.printer.lookup_object(afc_object)
+        if (tool_load := self.get_current_lane_obj()) is not None:
             prompt.p_end()
             self.AFC.ERROR.AFC_error("Toolhead is loaded with '{}', unload or check sensor before resetting lane".format(tool_load.name), pause=False)
 
+        prompt.p_end()
         self.AFC.gcode.respond_info('Resetting {} to hub'.format(lane))
-        except:
-            error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, idx.split(':')[-1])
+        pos = 0
+        fail_state_msg = "'{}' failed to reset to hub, {} switch became false during reset"
 
         if long_dis is not None:
-        led.led_change(int(idx.split(':')[1]), status)
+            CUR_LANE.move(float(long_dis) * -1, CUR_LANE.long_moves_speed, CUR_LANE.long_moves_accel, True)
 
         while CUR_HUB.state:
             CUR_LANE.move(short_move * -1, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, True)
