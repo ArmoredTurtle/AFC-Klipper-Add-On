@@ -24,6 +24,7 @@ class afcFunction:
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
         self.errorLog = {}
         self.pause    = False
+        self.mcu      = None
 
     def register_lane_macros(self, lane_obj):
         """
@@ -51,6 +52,7 @@ class afcFunction:
         and assigns it to the instance variable `self.AFC`.
         """
         self.AFC = self.printer.lookup_object('AFC')
+        self.mcu = self.printer.lookup_object('mcu')
         self.logger = self.AFC.logger
         self.AFC.gcode.register_command('CALIBRATE_AFC'  , self.cmd_CALIBRATE_AFC  , desc=self.cmd_CALIBRATE_AFC_help)
         self.AFC.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
@@ -148,7 +150,7 @@ class afcFunction:
 
         :return boolean: True if state is not standby or error
         """
-        print_stats_idle_states = ['standby', 'error']
+        print_stats_idle_states = ['standby', 'error', 'complete', 'cancelled']
         eventtime = self.AFC.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
         print_state = print_stats.get_status(eventtime)["state"]
@@ -329,6 +331,28 @@ class afcFunction:
         if not self.AFC.gcode_move.absolute_extrude:
             self.logger.debug("Printer extruder not in absolute mode, setting to absolute mode")
             self.AFC.gcode_move.absolute_extrude = True
+
+    def get_extruder_pos(self, eventtime=None, past_extruder_position=None):
+        """
+        This function find the last position of the filament and only returns a value if it greater than
+        the previous passed in position.
+
+        :param eventtime: Current eventtime to calculate the position from, if time is not passed in uses current eventtime
+        :param past_extruder_position: Previous extruder position to compare current position against.
+        :return float: Returns current extruder position if its greater than previous position, else returns previous position
+        """
+        if eventtime is None:
+            eventtime = self.AFC.reactor.monotonic()
+        print_time = self.mcu.estimated_print_time(eventtime)
+        extruder = self.AFC.toolhead.get_extruder()
+        last_extruder_position = extruder.find_past_position(print_time)
+
+        if past_extruder_position is None or last_extruder_position > past_extruder_position:
+            past_extruder_position = last_extruder_position
+            if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
+            return last_extruder_position
+        else:
+            return past_extruder_position
 
     def HexConvert(self,tmp):
         led=tmp.split(',')
@@ -911,13 +935,12 @@ class afcFunction:
             self.AFC.ERROR.AFC_error('Must select LANE', False)
             return
 
-        self.logger.info('TEST ROUTINE')
         if lane not in self.AFC.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
 
         CUR_LANE = self.AFC.lanes[lane]
-        if CUR_LANE.afc_motor_rwd is None:
+        if CUR_LANE.espooler.afc_motor_rwd is None:
             message = "afc_motor_rwd is not defined in config for {}, cannot perform test.\n".format(lane)
             message += "If your unit does not have spooler motors then you can ignore this message.\n"
             message += "If your unit has spooler motors please verify your config is setup properly"
@@ -925,20 +948,20 @@ class afcFunction:
             return
 
         self.logger.info('Testing at full speed')
-        CUR_LANE.assist(-1)
+        CUR_LANE.espooler.assist(-1)
         self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
-        if CUR_LANE.afc_motor_rwd.is_pwm:
+        if CUR_LANE.espooler.afc_motor_rwd.is_pwm:
             self.logger.info('Testing at 50 percent speed')
-            CUR_LANE.assist(-.5)
+            CUR_LANE.espooler.assist(-.5)
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
             self.logger.info('Testing at 30 percent speed')
-            CUR_LANE.assist(-.3)
+            CUR_LANE.espooler.assist(-.3)
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
             self.logger.info('Testing at 10 percent speed')
-            CUR_LANE.assist(-.1)
+            CUR_LANE.espooler.assist(-.1)
             self.AFC.reactor.pause(self.AFC.reactor.monotonic() + 1)
         self.logger.info('Test routine complete')
-        CUR_LANE.assist(0)
+        CUR_LANE.espooler.assist(0)
 
 class afcDeltaTime:
     def __init__(self, AFC):

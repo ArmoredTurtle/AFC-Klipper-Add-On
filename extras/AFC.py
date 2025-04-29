@@ -1057,6 +1057,8 @@ class afc:
         self.toolhead.manual_move(pos, CUR_EXTRUDER.tool_unload_speed)
         self.toolhead.wait_moves()
 
+        self.FUNCTION.log_toolhead_pos("TOOL_UNLOAD quick pull: ")
+
         # Perform Z-hop to avoid collisions during unloading.
         pos[2] += self.z_hop
         self._move_z_pos(pos[2])
@@ -1117,7 +1119,7 @@ class afc:
                 if num_tries > self.tool_max_unload_attempts:
                     msg = ''
                     msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
-                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliablity"
+                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliability"
                     self.logger.info("<span class=warning--text>{}</span>".format(msg))
                     break
             CUR_LANE.sync_to_extruder(False)

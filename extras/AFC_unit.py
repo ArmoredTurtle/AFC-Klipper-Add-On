@@ -41,16 +41,43 @@ class afcUnit:
         self.led_unloading      = config.get('led_unloading', self.AFC.led_unloading)               # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
         self.led_tool_loaded    = config.get('led_tool_loaded', self.AFC.led_tool_loaded)           # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
 
-        self.long_moves_speed   = config.getfloat("long_moves_speed",  self.AFC.long_moves_speed)   # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
-        self.long_moves_accel   = config.getfloat("long_moves_accel",  self.AFC.long_moves_accel)   # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
+        self.long_moves_speed   = config.getfloat("long_moves_speed",   self.AFC.long_moves_speed)  # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
+        self.long_moves_accel   = config.getfloat("long_moves_accel",   self.AFC.long_moves_accel)  # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
         self.short_moves_speed  = config.getfloat("short_moves_speed",  self.AFC.short_moves_speed) # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
         self.short_moves_accel  = config.getfloat("short_moves_accel",  self.AFC.short_moves_accel) # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
-        self.short_move_dis     = config.getfloat("short_move_dis",  self.AFC.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
-        self.max_move_dis       = config.getfloat("max_move_dis", self.AFC.max_move_dis)            # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
-        self.n20_break_delay_time = config.getfloat("n20_break_delay_time", self.AFC.n20_break_delay_time) # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
+        self.short_move_dis     = config.getfloat("short_move_dis",     self.AFC.short_move_dis)    # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+        self.max_move_dis       = config.getfloat("max_move_dis",       self.AFC.max_move_dis)      # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
+        self.debug              = config.getboolean("debug",            False)                      # Turns on/off debug messages to console
 
-        self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
-        self.unload_on_runout   = config.getboolean("unload_on_runout", self.AFC.unload_on_runout)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
+        # Espooler defines
+        # Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
+        self.n20_break_delay_time   = config.getfloat("n20_break_delay_time",   self.AFC.n20_break_delay_time)
+        # Setting to True enables espooler assist while printing
+        self.enable_assist          = config.getboolean("enable_assist",        True)
+        # Number of seconds to wait before checking filament movement for espooler assist
+        self.timer_delay            = config.getfloat("timer_delay",            5)
+        # Setting to True enables full speed espoolers for kick_start_time amount
+        self.enable_kick_start      = config.getboolean("enable_kick_start",    True)
+
+        # Time in seconds to enable spooler at full speed to help with getting the spool to spin
+        self.kick_start_time        = config.getfloat("kick_start_time",        0.070)
+        # Distance per full rotation in mm
+        self.mm_per_rotation        = config.getfloat("mm_per_rotation",        628.32)
+        # Cycles per rotation in milliseconds
+        self.cycles_per_rotation    = config.getfloat("cycles_per_rotation",    1275)
+        # PWM cycle time
+        self.pwm_value              = config.getfloat("pwm_value",              0.6706)
+        # Delta amount in mm from last move to trigger assist
+        self.delta_movement         = config.getfloat("delta_movement",         150)
+        # Amount to move in mm once filament has moved by delta movement amount
+        self.mm_movement            = config.getfloat("mm_movement",            150)
+        # Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement
+        self.scaling                = config.getfloat("spoolrate",              1.0)
+
+        # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+        self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload)
+        # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
+        self.unload_on_runout   = config.getboolean("unload_on_runout", self.AFC.unload_on_runout)
 
     def __str__(self):
         return self.name
