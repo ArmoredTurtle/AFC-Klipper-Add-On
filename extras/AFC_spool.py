@@ -65,7 +65,7 @@ class AFCSpool:
         ```
         """
         lane = gcmd.get('LANE', None)
-        if lane == None:
+        if lane is None:
             self.logger.info("No LANE Defined")
             return
         map_cmd = gcmd.get('MAP', None)
@@ -102,7 +102,7 @@ class AFCSpool:
         ```
         """
         lane = gcmd.get('LANE', None)
-        if lane == None:
+        if lane is None:
             self.logger.info("No LANE Defined")
             return
         color = gcmd.get('COLOR', '#000000')
@@ -130,7 +130,7 @@ class AFCSpool:
         ```
         """
         lane = gcmd.get('LANE', None)
-        if lane == None:
+        if lane is None:
             self.logger.info("No LANE Defined")
             return
         weight = gcmd.get('WEIGHT', '')
@@ -158,7 +158,7 @@ class AFCSpool:
         ```
         """
         lane = gcmd.get('LANE', None)
-        if lane == None:
+        if lane is None:
             self.logger.info("No LANE Defined")
             return
         material = gcmd.get('MATERIAL', '')
@@ -170,7 +170,7 @@ class AFCSpool:
         self.AFC.save_vars()
     def set_active_spool(self, ID):
         webhooks = self.printer.lookup_object('webhooks')
-        if self.AFC.spoolman != None:
+        if self.AFC.spoolman is not None:
             if ID and ID is not None:
                 id = int(ID)
             else:
@@ -199,9 +199,9 @@ class AFCSpool:
         SET_SPOOL_ID LANE=lane1 SPOOL_ID=12345
         ```
         """
-        if self.AFC.spoolman !=None:
+        if self.AFC.spoolman is not None:
             lane = gcmd.get('LANE', None)
-            if lane == None:
+            if lane is None:
                 self.logger.info("No LANE Defined")
                 return
             SpoolID = gcmd.get('SPOOL_ID', '')
@@ -237,7 +237,7 @@ class AFCSpool:
         CUR_LANE.material = None
 
     def set_spoolID(self, CUR_LANE, SpoolID, save_vars=True):
-        if self.AFC.spoolman !=None:
+        if self.AFC.spoolman is not None:
             if SpoolID !='':
                 try:
                     url =  urlparse.urljoin(self.AFC.spoolman, '/api/v1/spool/{}'.format(SpoolID))
@@ -281,7 +281,7 @@ class AFCSpool:
         ```
         """
         lane = gcmd.get('LANE', None)
-        if lane == None:
+        if lane is None:
             self.logger.info("No LANE Defined")
             return
 

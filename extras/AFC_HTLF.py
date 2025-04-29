@@ -119,7 +119,7 @@ class AFC_HTLF(afcBoxTurtle):
         if self.current_selected_lane is not None and not self.home_state and not prep:
             self.selector_stepper_obj.move( self.calculate_lobe_movement(self.current_selected_lane.index) * -1, 20, 20, False)
 
-        while( not self.home_state and not self.failed_to_home ):
+        while not self.home_state and not self.failed_to_home:
             self.selector_stepper_obj.move(-1, 20, 20, False)
             total_moved += 1
             if total_moved > (self.mm_move_per_rotation/360)*self.MAX_ANGLE_MOVEMENT:
