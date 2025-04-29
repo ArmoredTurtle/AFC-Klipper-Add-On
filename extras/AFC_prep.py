@@ -71,13 +71,17 @@ class afcPrep:
         units={}
         if os.path.exists('{}.unit'.format(self.AFC.VarFile)) and os.stat('{}.unit'.format(self.AFC.VarFile)).st_size > 0:
             units=json.load(open('{}.unit'.format(self.AFC.VarFile)))
+        else:
+            error_string = 'Error: {}.unit file not found. Please check the path in the'.format(self.AFC.VarFile)
+            error_string += 'AFC.cfg file and make sure the file and path exists.'
+            self.AFC.ERROR.AFC_error(error_string, False)
 
-        # check if Lane is suppose to be loaded in tool head from saved file
+        # check if Lane is supposed to be loaded in tool head from saved file
         for EXTRUDER in self.AFC.tools.keys():
             PrinterObject=self.AFC.tools[EXTRUDER]
             self.AFC.tools[PrinterObject.name]=PrinterObject
             if 'system' in units and "extruders" in units["system"]:
-                # Check to see if lane_loaded is in dictionary and its its not an empty string
+                # Check to see if lane_loaded is in dictionary and its not an empty string
                 if PrinterObject.name in units["system"]["extruders"] and \
                   'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and \
                   units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
