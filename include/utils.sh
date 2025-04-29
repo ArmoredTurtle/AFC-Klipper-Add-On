@@ -17,15 +17,18 @@ function show_help() {
   echo "Usage: install-afc.sh [options]"
   echo ""
   echo "Options:"
+  echo "  -a <moonraker address>      Specify the address of the Moonraker server (default: http://localhost)"
   echo "  -k <path>                   Specify the path to the Klipper directory"
   echo "  -m <moonraker config path>  Specify the path to the Moonraker config file (default: ~/printer_data/config/moonraker.conf)"
+  echo "  -n <moonraker port>         Specify the port of the Moonraker server (default: 7125)"
   echo "  -s <klipper service name>   Specify the name of the Klipper service (default: klipper)"
   echo "  -p <printer config dir>     Specify the path to the printer config directory (default: ~/printer_data/config)"
   echo "  -b <branch>                 Specify the branch to use (default: main)"
+  echo "  -y <klipper venv dir>       Specify the klipper python venv dir (default: ~/klippy-env/bin)"
   echo "  -h                          Display this help message"
   echo ""
   echo "Example:"
-  echo " $0 [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-p <printer_config_dir>] [-b <branch>] [-h] "
+  echo " $0 [-a <moonraker address>] [-k <klipper_path>] [-s <klipper_service_name>] [-m <moonraker_config_path>] [-n <moonraker_port>] [-p <printer_config_dir>] [-p <printer_config_dir>] [-b <branch>] [-y <klipper venv dir>] [-h] "
 }
 
 function copy_config() {
@@ -35,33 +38,45 @@ function copy_config() {
   cp -R "${afc_path}/config" "${afc_config_dir}"
 }
 
-function clone_repo() {
-  # Function to clone the AFC Klipper Add-On repository if it is not already cloned.
-  # Uses the global variables:
-  #   - afc_path: The path where the repository should be cloned.
-  #   - gitrepo: The URL of the repository to clone.
-  #   - branch: The branch to check out after cloning or pulling the repository.
+clone_and_maybe_restart() {
+  if [[ ! -d "${afc_path}/.git" ]]; then
+    echo "→ Cloning ${branch} from ${gitrepo} into ${afc_path}…"
+    git clone \
+      --branch "${branch}" \
+      --single-branch \
+      --depth 1 \
+      "${gitrepo}" \
+      "${afc_path}"
+    echo "✓ Clone complete."
+  else
+    echo "→ Switching to branch '${branch}'…"
+    git -C "${afc_path}" checkout --quiet "${branch}"
 
-  local afc_dir_name afc_base_name
-  afc_dir_name="$(dirname "${afc_path}")"
-  afc_base_name="$(basename "${afc_path}")"
-
-  if [ ! -d "${afc_path}" ]; then
-    echo "Cloning AFC Klipper Add-On repo..."
-    if git -C $afc_dir_name clone --quiet $gitrepo $afc_base_name; then
-      print_msg INFO "AFC Klipper Add-On repo cloned successfully"
-      pushd "${afc_path}" || exit
-      git checkout --quiet "${branch}"
-      popd || exit
-    else
-      print_msg ERROR "Failed to clone AFC Klipper Add-On repo"
+    echo "→ Checking for uncommitted changes…"
+    if ! git -C "${afc_path}" diff --quiet || \
+       ! git -C "${afc_path}" diff --quiet --cached; then
+      echo "❌ You have uncommitted changes in ${afc_path}."
+      echo "   Please commit or stash them before running this script."
+      echo ""
+      echo "💡 To discard your changes and reset the branch:"
+      echo "   cd \"${afc_path}\""
+      echo "   git checkout ${branch}"
+      echo "   git reset --hard origin/${branch}"
+      echo "   git clean -fd"
       exit 1
     fi
-  else
-    pushd "${afc_path}" || exit
-    git pull --quiet
-    git checkout --quiet "${branch}"
-    popd || exit
+
+    echo "→ Fetching updates in ${afc_path}…"
+    git -C "${afc_path}" fetch --prune --quiet
+
+    if git -C "${afc_path}" status --porcelain --branch | grep -q 'behind'; then
+      echo "→ New commits detected; rebasing…"
+      git -C "${afc_path}" pull --rebase --quiet
+      echo "✓ Update applied. Restarting script…"
+      exec "$0" "$@"
+    else
+      echo "✓ Already up to date."
+    fi
   fi
 }
 
@@ -127,8 +142,9 @@ restart_klipper() {
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
     update_afc_version "$current_install_version"
-  restart_klipper
+    restart_klipper
   fi
+  remove_vars_tool_file
   exit 0
 }
 
@@ -142,7 +158,7 @@ function auto_update() {
 
 check_version_and_set_force_update() {
   local current_version
-  current_version=$(curl -s "localhost/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
+  current_version=$(curl -s "$moonraker/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
   if [[ -z "$current_version" || "$current_version" == "null" || "$current_version" < "$min_version" ]]; then
     force_update=True
   else
@@ -153,11 +169,17 @@ check_version_and_set_force_update() {
 update_afc_version() {
   local version_update
   version_update=$1
-  curl -s -XPOST "localhost/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
+  curl -s -XPOST "$moonraker/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
 }
 
 remove_afc_version() {
-  curl -s -XDELETE "localhost/server/database/item?namespace=afc-install&key=version" > /dev/null
+  curl -s -XDELETE "$moonraker/server/database/item?namespace=afc-install&key=version" > /dev/null
+}
+
+remove_vars_tool_file() {
+  if [ -f "${afc_config_dir}/*.tool" ]; then
+    rm "${afc_config_dir}/*.tool"
+  fi
 }
 
 stop_service() {

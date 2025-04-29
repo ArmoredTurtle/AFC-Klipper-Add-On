@@ -23,6 +23,7 @@ def add_filament_switch( switch_name, switch_pin, printer ):
     filament_switch_config = configparser.RawConfigParser()
     filament_switch_config.add_section( switch_name )
     filament_switch_config.set( switch_name, 'switch_pin', switch_pin)
+    filament_switch_config.set( switch_name, 'pause_on_runout', 'False')
 
     cfg_wrap = configfile.ConfigWrapper( printer, filament_switch_config, {}, switch_name)
 
