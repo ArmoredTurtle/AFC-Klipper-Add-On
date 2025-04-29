@@ -35,7 +35,7 @@ RESET="${NC}"
 print_msg() {
   # Function to print messages with different colors based on the message type.
   # Arguments:
-  #   $1 - The type of message (INFO, WARNING, ERROR, PROMPT, or other).
+  #   $1 - The type of message (INFO, WARNING, error, PROMPT, or other).
   #   $2 - The message to be printed.
   # The function uses ANSI escape codes to color the messages.
 

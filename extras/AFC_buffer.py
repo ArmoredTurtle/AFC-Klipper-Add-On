@@ -89,13 +89,13 @@ class AFCTrigger:
 
         if self.led_index is not None:
             # Verify that LED config is found
-            error_string, led = self.AFC.FUNCTION.verify_led_object(self.led_index)
+            error_string, led = self.AFC.function.verify_led_object(self.led_index)
             if led is None:
                 raise error(error_string)
 
     def enable_buffer(self):
         if self.led:
-            self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
+            self.AFC.function.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.enable = True
             multiplier = 1.0
@@ -110,25 +110,25 @@ class AFCTrigger:
         self.enable = False
         if self.debug: self.logger.info("{} buffer disabled".format(self.name))
         if self.led:
-            self.AFC.FUNCTION.afc_led(self.led_buffer_disabled, self.led_index)
+            self.AFC.function.afc_led(self.led_buffer_disabled, self.led_index)
         if self.turtleneck:
             self.reset_multiplier()
 
     # Turtleneck commands
     def set_multiplier(self, multiplier):
         if not self.enable: return
-        cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+        cur_stepper = self.AFC.function.get_current_lane_obj()
         if cur_stepper is None: return
 
         cur_stepper.update_rotation_distance( multiplier )
         if multiplier > 1:
             self.last_state = TRAILING_STATE_NAME
             if self.led:
-                self.AFC.FUNCTION.afc_led(self.led_trailing, self.led_index)
+                self.AFC.function.afc_led(self.led_trailing, self.led_index)
         elif multiplier < 1:
             self.last_state = ADVANCE_STATE_NAME
             if self.led:
-                self.AFC.FUNCTION.afc_led(self.led_advancing, self.led_index)
+                self.AFC.function.afc_led(self.led_advancing, self.led_index)
         if self.debug:
             stepper = cur_stepper.extruder_stepper.stepper
             self.logger.info("New rotation distance after applying factor: {:.4f}".format(stepper.get_rotation_distance()[0]))
@@ -136,7 +136,7 @@ class AFCTrigger:
     def reset_multiplier(self):
         if self.debug: self.logger.info("Buffer multiplier reset")
 
-        cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+        cur_stepper = self.AFC.function.get_current_lane_obj()
         if cur_stepper is None: return
 
         cur_stepper.update_rotation_distance( 1 )
@@ -145,12 +145,12 @@ class AFCTrigger:
     def advance_callback(self, eventime, state):
         self.advance_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
-            CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
+            cur_lane = self.AFC.function.get_current_lane_obj()
 
-            if CUR_LANE is not None and state:
-                CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
+            if cur_lane is not None and state:
+                cur_lane.assist(cur_lane.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
                 self.reactor.pause(self.reactor.monotonic() + 1)
-                CUR_LANE.assist(0)
+                cur_lane.assist(0)
                 self.set_multiplier( self.multiplier_low )
                 if self.debug: self.logger.info("Buffer Triggered State: Advanced")
         self.last_state = ADVANCE_STATE_NAME
@@ -158,12 +158,12 @@ class AFCTrigger:
     def trailing_callback(self, eventime, state):
         self.trailing_state = state
         if self.printer.state_message == 'Printer is ready' and self.enable:
-            CUR_LANE = self.AFC.FUNCTION.get_current_lane_obj()
+            cur_lane = self.AFC.function.get_current_lane_obj()
 
-            if CUR_LANE is not None and state:
-                CUR_LANE.assist(CUR_LANE.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
+            if cur_lane is not None and state:
+                cur_lane.assist(cur_lane.calculate_pwm_value(self.AFC.gcode_move.speed * (self.velocity / 10)))
                 self.reactor.pause(self.reactor.monotonic() + 1)
-                CUR_LANE.assist(0)
+                cur_lane.assist(0)
                 self.set_multiplier( self.multiplier_high )
                 if self.debug: self.logger.info("Buffer Triggered State: Trailing")
         self.last_state = TRAILING_STATE_NAME
@@ -197,7 +197,7 @@ class AFCTrigger:
         ```
         """
         if self.turtleneck:
-            cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+            cur_stepper = self.AFC.function.get_current_lane_obj()
             if cur_stepper is not None and self.enable:
                 chg_multiplier = gcmd.get('MULTIPLIER', None)
                 if chg_multiplier is None:
@@ -247,7 +247,7 @@ class AFCTrigger:
         ```
         """
         if self.turtleneck:
-            cur_stepper = self.AFC.FUNCTION.get_current_lane_obj()
+            cur_stepper = self.AFC.function.get_current_lane_obj()
             if cur_stepper is not None and self.enable:
                 change_factor = gcmd.get_float('FACTOR', 1.0)
                 if change_factor <= 0:
@@ -296,10 +296,10 @@ class AFCTrigger:
         state_info += state_mapping.get(state_info, '')
         if self.turtleneck:
             if self.enable:
-                LANE = self.AFC.FUNCTION.get_current_lane_obj()
-                stepper = LANE.extruder_stepper.stepper
+                lane = self.AFC.function.get_current_lane_obj()
+                stepper = lane.extruder_stepper.stepper
                 rotation_dist = stepper.get_rotation_distance()[0]
-                state_info += ("\n{} Rotation distance: {:.4f}".format(LANE.name, rotation_dist))
+                state_info += ("\n{} Rotation distance: {:.4f}".format(lane.name, rotation_dist))
 
         self.logger.info("{} : {}".format(self.name, state_info))
 
