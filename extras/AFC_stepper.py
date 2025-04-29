@@ -286,9 +286,6 @@ class AFCExtruderStepper:
 
         # Valid to not have a buffer defined, check to make sure object exists before adding lane to buffer
         if self.buffer_obj is not None:
-            if self.extruder_obj.tool_start == "buffer" and self.buffer_obj.belay:
-                raise error("Belay cannot be used in place of a toolhead sensor, only turtleneck buffer can do this.")
-
             self.buffer_obj.lanes[self.name] = self
             # Assigning buffer name just in case stepper is using buffer defined in units/extruder config
             self.buffer_name = self.buffer_obj.name
@@ -612,10 +609,10 @@ class AFCExtruderStepper:
         self.sync_print_time()
         stepper_enable = self.printer.lookup_object('stepper_enable')
         if enable:
-            se = stepper_enable.lookup_enable('AFC_stepper ' + self.name)
+            se = stepper_enable.lookup_enable('AFC_stepper {}'.format(self.name))
             se.motor_enable(self.next_cmd_time)
         else:
-            se = stepper_enable.lookup_enable('AFC_stepper ' + self.name)
+            se = stepper_enable.lookup_enable('AFC_stepper {}'.format(self.name))
             se.motor_disable(self.next_cmd_time)
         self.sync_print_time()
 

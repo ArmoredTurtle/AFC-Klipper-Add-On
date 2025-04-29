@@ -39,7 +39,7 @@ class afcError:
         self.pause= True
         self.AFC = self.printer.lookup_object('AFC')
         error_handled = False
-        if problem == None:
+        if problem is None:
             self.PauseUserIntervention('Paused for unknown error')
         if problem=='toolhead':
             error_handled = self.ToolHeadFix(LANE)
@@ -53,7 +53,7 @@ class afcError:
     def ToolHeadFix(self, CUR_LANE):
         if CUR_LANE.get_toolhead_pre_sensor_state():   #toolhead has filament
             if CUR_LANE.extruder_obj.lane_loaded == CUR_LANE.name:   #var has right lane loaded
-                if CUR_LANE.load_state == False: #Lane has filament
+                if not CUR_LANE.load_state: #Lane has filament
                     self.PauseUserIntervention('Filament not loaded in Lane')
                 else:
                     self.PauseUserIntervention('no error detected')
@@ -61,10 +61,10 @@ class afcError:
                 self.PauseUserIntervention('laneloaded does not match extruder')
 
         else: #toolhead empty
-            if CUR_LANE.load_state == True: #Lane has filament
-                while CUR_LANE.load_state == True:  # slowly back filament up to lane extruder
+            if CUR_LANE.load_state: #Lane has filament
+                while CUR_LANE.load_state:  # slowly back filament up to lane extruder
                     CUR_LANE.move(-5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
-                while CUR_LANE.load_state == False:  # reload lane extruder
+                while not CUR_LANE.load_state:  # reload lane extruder
                     CUR_LANE.move(5, self.AFC.short_moves_speed, self.AFC.short_moves_accel, True)
 
                 CUR_LANE.tool_load = False
@@ -99,7 +99,7 @@ class afcError:
     def set_error_state(self, state=False):
         logging.warning("AFC debug: setting error state {}".format(state))
         # Only save position on first error state call
-        if state == True and self.AFC.error_state == False:
+        if state and not self.AFC.error_state:
             self.AFC.save_pos()
         self.AFC.error_state = state
         self.AFC.current_state = State.ERROR if state else State.IDLE
@@ -170,7 +170,7 @@ class afcError:
 
         # Check if current position is below saved gcode position, if its lower first raise z above last saved
         #   position so that toolhead does not crash into part
-        if (curr_pos[2] <= self.AFC.last_gcode_position[2]):
+        if curr_pos[2] <= self.AFC.last_gcode_position[2]:
             self.AFC._move_z_pos( self.AFC.last_gcode_position[2] + self.AFC.z_hop )
 
         self.logger.debug("AFC_RESUME: Before User Restore")

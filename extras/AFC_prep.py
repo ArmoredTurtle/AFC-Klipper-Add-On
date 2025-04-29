@@ -69,11 +69,11 @@ class afcPrep:
 
         ## load Unit stored variables
         units={}
-        if os.path.exists(self.AFC.VarFile + '.unit') and os.stat(self.AFC.VarFile + '.unit').st_size > 0:
-            units=json.load(open(self.AFC.VarFile + '.unit'))
+        if os.path.exists('{}.unit'.format(self.AFC.VarFile)) and os.stat('{}.unit'.format(self.AFC.VarFile)).st_size > 0:
+            units=json.load(open('{}.unit'.format(self.AFC.VarFile)))
         else:
-            error_string = 'Error: ' + self.AFC.VarFile + '.unit file not found. Please check the path in the'
-            error_string += 'AFC.cfg file and make sure the file exists.'
+            error_string = 'Error: {}.unit file not found. Please check the path in the'.format(self.AFC.VarFile)
+            error_string += 'AFC.cfg file and make sure the file and path exists.'
             self.AFC.ERROR.AFC_error(error_string, False)
 
         # check if Lane is supposed to be loaded in tool head from saved file
@@ -118,10 +118,10 @@ class afcPrep:
         for UNIT in self.AFC.units.keys():
             try: CUR_UNIT = self.AFC.units[UNIT]
             except:
-                error_string = 'Error: ' + UNIT + '  Unit not found in  config section.'
+                error_string = 'Error: {} Unit not found in  config section.'.format(UNIT)
                 self.AFC.ERROR.AFC_error(error_string, False)
                 return
-            self.logger.info(CUR_UNIT.type + ' ' + UNIT +' Prepping lanes')
+            self.logger.info('{} {} Prepping lanes'.format(CUR_UNIT.type, UNIT))
             lanes_for_first_hub = []
             hub_name = ""
             LaneCheck = True
