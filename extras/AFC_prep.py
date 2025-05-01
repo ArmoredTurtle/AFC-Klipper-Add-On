@@ -73,8 +73,8 @@ class afcPrep:
             units=json.load(open('{}.unit'.format(self.afc.VarFile)))
 
         # check if Lane is suppose to be loaded in tool head from saved file
-        for EXTRUDER in self.afc.tools.keys():
-            PrinterObject=self.afc.tools[EXTRUDER]
+        for extruder in self.afc.tools.keys():
+            PrinterObject=self.afc.tools[extruder]
             self.afc.tools[PrinterObject.name]=PrinterObject
             if 'system' in units and "extruders" in units["system"]:
                 # Check to see if lane_loaded is in dictionary and its its not an empty string
