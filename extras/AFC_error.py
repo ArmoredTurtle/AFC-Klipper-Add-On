@@ -112,7 +112,7 @@ class afcError:
         if pause: self.pause_print()
 
 
-    cmd_RESET_FAILURE_help = "CLEAR STATUS error"
+    cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
     def cmd_RESET_FAILURE(self, gcmd):
         """
         This function clears the error state of the AFC system by setting the error state to False.

@@ -69,17 +69,17 @@ class afcPrep:
 
         ## load Unit stored variables
         units={}
-        if os.path.exists('{}.unit'.format(self.AFC.VarFile)) and os.stat('{}.unit'.format(self.AFC.VarFile)).st_size > 0:
-            units=json.load(open('{}.unit'.format(self.AFC.VarFile)))
+        if os.path.exists('{}.unit'.format(self.afc.VarFile)) and os.stat('{}.unit'.format(self.afc.VarFile)).st_size > 0:
+            units=json.load(open('{}.unit'.format(self.afc.VarFile)))
         else:
-            error_string = 'Error: {}.unit file not found. Please check the path in the'.format(self.AFC.VarFile)
+            error_string = 'Error: {}.unit file not found. Please check the path in the'.format(self.afc.VarFile)
             error_string += 'AFC.cfg file and make sure the file and path exists.'
-            self.AFC.ERROR.AFC_error(error_string, False)
+            self.afc.error.AFC_error(error_string, False)
 
         # check if Lane is supposed to be loaded in tool head from saved file
-        for extruder in self.AFC.tools.keys():
-            PrinterObject=self.AFC.tools[extruder]
-            self.AFC.tools[PrinterObject.name]=PrinterObject
+        for extruder in self.afc.tools.keys():
+            PrinterObject=self.afc.tools[extruder]
+            self.afc.tools[PrinterObject.name]=PrinterObject
             if 'system' in units and "extruders" in units["system"]:
                 # Check to see if lane_loaded is in dictionary and its not an empty string
                 if PrinterObject.name in units["system"]["extruders"] and \
@@ -96,7 +96,7 @@ class afcPrep:
             if cur_lane.unit in units:
                 if cur_lane.name in units[cur_lane.unit]:
                     if 'spool_id' in units[cur_lane.unit][cur_lane.name]: cur_lane.spool_id = units[cur_lane.unit][cur_lane.name]['spool_id']
-                    if self.afc.spoolman != None and cur_lane.spool_id:
+                    if self.afc.spoolman is not None and cur_lane.spool_id:
                         self.afc.spool.set_spoolID(cur_lane, cur_lane.spool_id, save_vars=False)
                     else:
                         if 'material' in units[cur_lane.unit][cur_lane.name]: cur_lane.material = units[cur_lane.unit][cur_lane.name]['material']

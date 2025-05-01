@@ -83,7 +83,7 @@ class AFC_logger:
 
     def error(self, message):
         for line in message.lstrip().rstrip().split("\n"):
-            self.logger.error( self._format("error: {}".format(line)))
+            self.logger.error( self._format("ERROR: {}".format(line)))
         self.send_callback( "!! {}".format(message) )
 
         self.afc.message_queue.append((message, "error"))
