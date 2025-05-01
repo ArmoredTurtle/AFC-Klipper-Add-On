@@ -13,9 +13,9 @@ class AFCExtruder:
     def __init__(self, config):
         self.printer    = config.get_printer()
         buttons         = self.printer.load_object(config, "buttons")
-        self.AFC        = self.printer.lookup_object('AFC')
+        self.afc        = self.printer.lookup_object('AFC')
         self.gcode      = self.printer.lookup_object('gcode')
-        self.logger     = self.AFC.logger
+        self.logger     = self.afc.logger
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
         self.fullname                   = config.get_name()
@@ -28,7 +28,7 @@ class AFCExtruder:
         self.tool_unload_speed          = config.getfloat("tool_unload_speed", 25)                                      # Unload speed in mm/s when unloading toolhead. Default is 25mm/s.
         self.tool_load_speed            = config.getfloat("tool_load_speed", 25)                                        # Load speed in mm/s when unloading toolhead. Default is 25mm/s.
         self.buffer_name                = config.get('buffer', None)                                                    # Buffer to use for extruder, this variable can be overridden per lane
-        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 
         self.lane_loaded                = None
         self.lanes                      = {}
@@ -62,11 +62,11 @@ class AFCExtruder:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.reactor = self.AFC.reactor
-        self.AFC.tools[self.name] = self
+        self.reactor = self.afc.reactor
+        self.afc.tools[self.name] = self
 
-        self.AFC.gcode.register_mux_command('UPDATE_TOOLHEAD_SENSORS',  "EXTRUDER", self.name, self.cmd_UPDATE_TOOLHEAD_SENSORS,desc=self.cmd_UPDATE_TOOLHEAD_SENSORS_help)
-        self.AFC.gcode.register_mux_command('SAVE_EXTRUDER_VALUES',     "EXTRUDER", self.name, self.cmd_SAVE_EXTRUDER_VALUES,   desc=self.cmd_SAVE_EXTRUDER_VALUES_help)
+        self.afc.gcode.register_mux_command('UPDATE_TOOLHEAD_SENSORS', "EXTRUDER", self.name, self.cmd_UPDATE_TOOLHEAD_SENSORS, desc=self.cmd_UPDATE_TOOLHEAD_SENSORS_help)
+        self.afc.gcode.register_mux_command('SAVE_EXTRUDER_VALUES', "EXTRUDER", self.name, self.cmd_SAVE_EXTRUDER_VALUES, desc=self.cmd_SAVE_EXTRUDER_VALUES_help)
 
     def tool_start_callback(self, eventtime, state):
         self.tool_start_state = state
@@ -172,9 +172,9 @@ class AFCExtruder:
         SAVE_EXTRUDER_VALUES EXTRUDER=extruder
         ```
         """
-        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn',                   self.tool_stn, '')
-        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn_unload',            self.tool_stn_unload, '')
-        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_sensor_after_extruder', self.tool_sensor_after_extruder, '')
+        self.afc.function.ConfigRewrite(self.fullname, 'tool_stn', self.tool_stn, '')
+        self.afc.function.ConfigRewrite(self.fullname, 'tool_stn_unload', self.tool_stn_unload, '')
+        self.afc.function.ConfigRewrite(self.fullname, 'tool_sensor_after_extruder', self.tool_sensor_after_extruder, '')
 
     def get_status(self, eventtime=None):
         self.response = {}

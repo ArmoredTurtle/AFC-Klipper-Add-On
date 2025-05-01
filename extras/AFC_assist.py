@@ -235,8 +235,8 @@ class Espooler:
     def __init__(self, name, config):
         self.name                   = name
         self.printer                = config.get_printer()
-        self.AFC                    = self.printer.lookup_object("AFC")
-        self.logger                 = self.AFC.logger
+        self.afc                    = self.printer.lookup_object("AFC")
+        self.logger                 = self.afc.logger
         self.reactor                = self.printer.get_reactor()
         self.callback_timer         = self.reactor.register_timer( self.timer_callback )    # Defaults to never trigger
 
@@ -268,10 +268,10 @@ class Espooler:
         if self.afc_motor_fwd is not None:
             self.afc_motor_fwd = AFCassistMotor(config, "fwd")
             # Only register macros if forward pin is defined
-            self.AFC.gcode.register_mux_command("SET_ESPOOLER_VALUES"       , "LANE", self.name, self.cmd_SET_ESPOOLER_VALUES,      desc=self.cmd_SET_ESPOOLER_VALUES_help)
-            self.AFC.gcode.register_mux_command("TEST_ESPOOLER_ASSIST"      , "LANE", self.name, self.cmd_TEST_ESPOOLER_ASSIST,     desc=self.cmd_TEST_ESPOOLER_ASSIST_help)
-            self.AFC.gcode.register_mux_command("ENABLE_ESPOOLER_ASSIST"    , "LANE", self.name, self.cmd_ENABLE_ESPOOLER_ASSIST,   desc=self.cmd_ENABLE_ESPOOLER_ASSIST_help)
-            self.AFC.gcode.register_mux_command("DISABLE_ESPOOLER_ASSIST"   , "LANE", self.name, self.cmd_DISABLE_ESPOOLER_ASSIST,  desc=self.cmd_DISABLE_ESPOOLER_ASSIST_help)
+            self.afc.gcode.register_mux_command("SET_ESPOOLER_VALUES"       , "LANE", self.name, self.cmd_SET_ESPOOLER_VALUES,      desc=self.cmd_SET_ESPOOLER_VALUES_help)
+            self.afc.gcode.register_mux_command("TEST_ESPOOLER_ASSIST"      , "LANE", self.name, self.cmd_TEST_ESPOOLER_ASSIST,     desc=self.cmd_TEST_ESPOOLER_ASSIST_help)
+            self.afc.gcode.register_mux_command("ENABLE_ESPOOLER_ASSIST"    , "LANE", self.name, self.cmd_ENABLE_ESPOOLER_ASSIST,   desc=self.cmd_ENABLE_ESPOOLER_ASSIST_help)
+            self.afc.gcode.register_mux_command("DISABLE_ESPOOLER_ASSIST"   , "LANE", self.name, self.cmd_DISABLE_ESPOOLER_ASSIST,  desc=self.cmd_DISABLE_ESPOOLER_ASSIST_help)
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFCassistMotor(config, "enb")
 
@@ -296,8 +296,8 @@ class Espooler:
         :param eventtime: Reactor time when callback was called
         :return float   : Time when to call the callback again
         """
-        if self.enable_assist and self.AFC.FUNCTION.in_print() and not self.AFC.FUNCTION.is_paused() and not self.AFC.in_toolchange:
-            extruder_pos = self.AFC.FUNCTION.get_extruder_pos( eventtime, self.past_extruder_position )
+        if self.enable_assist and self.afc.function.in_print() and not self.afc.function.is_paused() and not self.afc.in_toolchange:
+            extruder_pos = self.afc.function.get_extruder_pos( eventtime, self.past_extruder_position )
             delta_length = extruder_pos - self.past_extruder_position
 
             if -1 == self.past_extruder_position:
@@ -319,7 +319,7 @@ class Espooler:
         :param reverse: When set to True, moves espooler in reverse direction
         :return float: Print time with kick_start_time offset
         """
-        print_time = self.AFC.toolhead.get_last_move_time()
+        print_time = self.afc.toolhead.get_last_move_time()
 
         if reverse:
             self.move_reverse(print_time, 1)
@@ -385,7 +385,7 @@ class Espooler:
         :param value: Direction and PWM value to set espooler pins. < 0 RWD, > 0 FWD and 0 disable and enable espooler braking
         """
         reverse = False
-        print_time = self.AFC.toolhead.get_last_move_time()
+        print_time = self.afc.toolhead.get_last_move_time()
         if self.afc_motor_rwd is None:
             return
 
@@ -417,7 +417,7 @@ class Espooler:
         """
         Helper function to "brake" n20 motors to hopefully help with keeping down backfeeding into MCU board
         """
-        print_time = self.AFC.toolhead.get_last_move_time()
+        print_time = self.afc.toolhead.get_last_move_time()
         if self.afc_motor_enb is not None:
             self.afc_motor_rwd._set_pin(print_time, 1)
             self.set_enable_pin(print_time, 1)
@@ -494,7 +494,7 @@ class Espooler:
         """
 
         self.enable_assist = True
-        if self.AFC.FUNCTION.get_current_lane() == self.name:
+        if self.afc.function.get_current_lane() == self.name:
             self.enable_timer()
             self.logger.info(f"Espooler assist enabled for {self.name}")
         else:
