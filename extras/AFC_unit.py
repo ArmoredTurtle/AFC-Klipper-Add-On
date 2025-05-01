@@ -15,8 +15,8 @@ class afcUnit:
         self.printer        = config.get_printer()
         self.gcode          = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        self.AFC            = self.printer.lookup_object('AFC')
-        self.logger         = self.AFC.logger
+        self.afc            = self.printer.lookup_object('AFC')
+        self.logger         = self.afc.logger
 
         self.lanes      = {}
 
@@ -32,25 +32,25 @@ class afcUnit:
         self.hub                = config.get("hub", None)                                           # Hub name(AFC_hub) that belongs to this unit, can be overridden in AFC_stepper section
         self.extruder           = config.get("extruder", None)                                      # Extruder name(AFC_extruder) that belongs to this unit, can be overridden in AFC_stepper section
         self.buffer_name        = config.get('buffer', None)                                        # Buffer name(AFC_buffer) that belongs to this unit, can be overridden in AFC_stepper section
-        self.led_name           = config.get('led_name', self.AFC.led_name)
-        self.led_fault          = config.get('led_fault', self.AFC.led_fault)                       # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
-        self.led_ready          = config.get('led_ready', self.AFC.led_ready)                       # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
-        self.led_not_ready      = config.get('led_not_ready', self.AFC.led_not_ready)               # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
-        self.led_loading        = config.get('led_loading', self.AFC.led_loading)                   # LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
-        self.led_prep_loaded    = config.get('led_loading', self.AFC.led_loading)                   # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
-        self.led_unloading      = config.get('led_unloading', self.AFC.led_unloading)               # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
-        self.led_tool_loaded    = config.get('led_tool_loaded', self.AFC.led_tool_loaded)           # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_name           = config.get('led_name', self.afc.led_name)
+        self.led_fault          = config.get('led_fault', self.afc.led_fault)                       # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_ready          = config.get('led_ready', self.afc.led_ready)                       # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_not_ready      = config.get('led_not_ready', self.afc.led_not_ready)               # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_loading        = config.get('led_loading', self.afc.led_loading)                   # LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_prep_loaded    = config.get('led_loading', self.afc.led_loading)                   # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_unloading      = config.get('led_unloading', self.afc.led_unloading)               # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
+        self.led_tool_loaded    = config.get('led_tool_loaded', self.afc.led_tool_loaded)           # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in AFC.cfg file
 
-        self.long_moves_speed   = config.getfloat("long_moves_speed",  self.AFC.long_moves_speed)   # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
-        self.long_moves_accel   = config.getfloat("long_moves_accel",  self.AFC.long_moves_accel)   # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
-        self.short_moves_speed  = config.getfloat("short_moves_speed",  self.AFC.short_moves_speed) # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
-        self.short_moves_accel  = config.getfloat("short_moves_accel",  self.AFC.short_moves_accel) # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
-        self.short_move_dis     = config.getfloat("short_move_dis",  self.AFC.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
-        self.max_move_dis       = config.getfloat("max_move_dis", self.AFC.max_move_dis)            # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
-        self.n20_break_delay_time = config.getfloat("n20_break_delay_time", self.AFC.n20_break_delay_time) # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
+        self.long_moves_speed   = config.getfloat("long_moves_speed", self.afc.long_moves_speed)   # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in AFC.cfg file
+        self.long_moves_accel   = config.getfloat("long_moves_accel", self.afc.long_moves_accel)   # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in AFC.cfg file
+        self.short_moves_speed  = config.getfloat("short_moves_speed", self.afc.short_moves_speed) # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in AFC.cfg file
+        self.short_moves_accel  = config.getfloat("short_moves_accel", self.afc.short_moves_accel) # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in AFC.cfg file
+        self.short_move_dis     = config.getfloat("short_move_dis", self.afc.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
+        self.max_move_dis       = config.getfloat("max_move_dis", self.afc.max_move_dis)            # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
+        self.n20_break_delay_time = config.getfloat("n20_break_delay_time", self.afc.n20_break_delay_time) # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
 
-        self.assisted_unload    = config.getboolean("assisted_unload", self.AFC.assisted_unload)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
-        self.unload_on_runout   = config.getboolean("unload_on_runout", self.AFC.unload_on_runout)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
+        self.assisted_unload    = config.getboolean("assisted_unload", self.afc.assisted_unload)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
+        self.unload_on_runout   = config.getboolean("unload_on_runout", self.afc.unload_on_runout)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
 
     def __str__(self):
         return self.name
@@ -59,8 +59,8 @@ class afcUnit:
         """
         Handles klippy:connect event, and does error checking to make sure users have hub/extruder/buffers sections if these variables are defined at the unit level
         """
-        self.AFC = self.printer.lookup_object('AFC')
-        self.AFC.units[self.name] = self
+        self.afc = self.printer.lookup_object('AFC')
+        self.afc.units[self.name] = self
 
         # Error checking for hub
         # TODO: once supported add check if users is not using a hub
@@ -163,11 +163,11 @@ class afcUnit:
                  'Config option: dist_hub').format(self.name)
 
         # Create buttons for each lane and group every 4 lanes together
-        for index, LANE in enumerate(self.lanes):
-            CUR_LANE = self.lanes[LANE]
-            if CUR_LANE.load_state:
-                button_label = "{}".format(LANE)
-                button_command = "CALIBRATE_AFC LANE={}".format(LANE)
+        for index, lane in enumerate(self.lanes):
+            cur_lane = self.lanes[lane]
+            if cur_lane.load_state:
+                button_label = "{}".format(lane)
+                button_command = "CALIBRATE_AFC LANE={}".format(lane)
                 button_style = "primary" if index % 2 == 0 else "secondary"
                 group_buttons.append((button_label, button_command, button_style))
 
@@ -217,12 +217,12 @@ class afcUnit:
                 'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT. '
                 'Config option: afc_bowden_length').format(self.name)
 
-        for index, LANE in enumerate(self.lanes):
-            CUR_LANE = self.lanes[LANE]
-            if CUR_LANE.load_state:
+        for index, lane in enumerate(self.lanes):
+            cur_lane = self.lanes[lane]
+            if cur_lane.load_state:
                 # Create a button for each lane
-                button_label = "{}".format(LANE)
-                button_command = "CALIBRATE_AFC BOWDEN={}".format(LANE)
+                button_label = "{}".format(lane)
+                button_command = "CALIBRATE_AFC BOWDEN={}".format(lane)
                 button_style = "primary" if index % 2 == 0 else "secondary"
                 group_buttons.append((button_label, button_command, button_style))
 
@@ -263,7 +263,7 @@ class afcUnit:
 
     # Functions are below are placeholders so the function exists for all units, override these function in your unit files
     def _print_function_not_defined(self, name):
-        self.AFC.gcode("{} function not defined for {}".format(name, self.name))
+        self.afc.gcode("{} function not defined for {}".format(name, self.name))
 
     # Function that other units can create so that they are specific to the unit
     def system_Test(self, CUR_LANE, delay, assignTcmd, enable_movement):

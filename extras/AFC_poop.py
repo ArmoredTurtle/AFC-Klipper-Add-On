@@ -8,10 +8,10 @@ class afc_poop:
     def __init__(self, config):
         self.config     = config
         self.printer    = config.get_printer()
-        self.AFC        = self.printer.lookup_object('AFC')
+        self.afc        = self.printer.lookup_object('AFC')
         self.reactor    = self.printer.get_reactor()
         self.gcode      = self.printer.lookup_object('gcode')
-        self.logger     = self.AFC.logger
+        self.logger     = self.afc.logger
 
         self.verbose = config.getboolean('verbose', False)
         self.purge_loc_xy = config.get('purge_loc_xy')
