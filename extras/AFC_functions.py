@@ -24,8 +24,8 @@ class afcFunction:
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
         self.errorLog = {}
         self.pause    = False
-        self.afc = self.printer.lookup_object('AFC')
-        self.logger = self.afc.logger
+        self.afc      = None
+        self.logger   = None
 
     def register_lane_macros(self, lane_obj):
         """
@@ -52,6 +52,8 @@ class afcFunction:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.afc`.
         """
+        self.afc = self.printer.lookup_object('AFC')
+        self.logger = self.afc.logger
         self.mcu = self.printer.lookup_object('mcu')
         self.afc.gcode.register_command('CALIBRATE_AFC',   self.cmd_CALIBRATE_AFC,   desc=self.cmd_CALIBRATE_AFC_help)
         self.afc.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
