@@ -26,6 +26,7 @@ class afcFunction:
         self.pause    = False
         self.afc      = None
         self.logger   = None
+        self.mcu      = None
 
     def register_lane_macros(self, lane_obj):
         """
