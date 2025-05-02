@@ -146,7 +146,7 @@ class afcFunction:
         idle_timeout = self.printer.lookup_object("idle_timeout")
         return idle_timeout.get_status(eventtime)["state"] == "Printing"
 
-    def in_print(self):
+    def in_print(self, return_file=False):
         """
         Helper function to help determine if printer is in a print by checking print_stats object. Printer is printing if state is not in standby or error
 
@@ -156,7 +156,12 @@ class afcFunction:
         eventtime = self.afc.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
         print_state = print_stats.get_status(eventtime)["state"]
-        return print_state not in print_stats_idle_states
+
+        in_print = print_state not in print_stats_idle_states
+        if return_file:
+            return in_print, print_stats.get_status(eventtime)["filename"]
+        else:
+            return in_print
 
     def is_printing(self, check_movement=False):
         """

@@ -21,7 +21,7 @@ except: raise error("Error trying to import AFC_logger, please rerun install-afc
 try: from extras.AFC_functions import afcDeltaTime
 except: raise error("Error trying to import afcDeltaTime, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-try: from extras.AFC_utils import add_filament_switch
+try: from extras.AFC_utils import add_filament_switch, AFC_moonraker
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 AFC_VERSION="1.0.12"
@@ -68,6 +68,7 @@ class afc:
         self.position_saved = False
         self.spoolman       = None
         self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
+        self.in_print_timer = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -108,7 +109,7 @@ class afc:
         self.default_material_temps = config.getlists("default_material_temps", None)# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
         self.default_material_temps = list(self.default_material_temps) if self.default_material_temps is not None else None
         self.default_material_type  = config.get("default_material_type", None)     # Default material type to assign to a spool once loaded into a lane
-
+        self.logger.debug("default material temps - {}".format(self.default_material_temps))
         #LED SETTINGS
         self.ind_lights = None
         # led_name is not used, either use or needs to be removed
@@ -240,9 +241,14 @@ class afc:
 
         # SPOOLMAN
         try:
-            self.moonraker = json.load(urlopen('http://localhost{port}/server/config'.format( port=moonraker_port )))
-            self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
-        except:
+            # self.moonraker = json.load(urlopen('http://localhost{port}/server/config'.format( port=moonraker_port )))
+            # self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
+            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
+            self.spoolman = self.moonraker.get_spoolman_server()
+            self.logger.info("Spoolman Server: {}".format(self.spoolman))
+            self.moonraker.get_afc_stats()
+        except Exception as e:
+            self.logger.debug("Spoolman error: {}".format(e))
             self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor
@@ -273,6 +279,27 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
+    
+    def _reset_file_callback(self):
+        
+        # Set timer to check back to see if printer is printing. This is needed as file and print status is set after
+        #  this callback
+        self.in_print_timer = self.reactor.register_timer( self.in_print_reactor_timer, self.reactor.monotonic() + 5 )
+        self.ERROR.reset_failure()
+
+    def in_print_reactor_timer(self, eventtime):
+        # Remove timer from reactor
+        self.reactor.unregister_timer(self.in_print_timer)
+        # Check to see if printer is printing and return filament
+        in_print, print_filename = self.FUNCTION.in_print(return_file=True)
+        self.logger.debug("In print: {}, Filename: {}".format(in_print, print_filename))
+        if in_print:
+            # Gather file filament change count from moonraker
+            self.number_of_toolchanges  = self.moonraker.get_file_filament_change_count(print_filename)
+            self.current_toolchange     = -1 # Reset
+        
+        return self.reactor.NEVER
+        
 
     def _get_default_material_temps(self, cur_lane):
         """
@@ -434,10 +461,10 @@ class afc:
         ```
 
         """
-        self.number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
-        self.current_toolchange     = 0 # Reset back to one
-        if self.number_of_toolchanges > 0:
-            self.logger.info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
+        number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
+        # self.current_toolchange     = 0 # Reset back to one
+        if number_of_toolchanges > 0:
+            self.logger.info("Total number of toolchanges set to {}".format(number_of_toolchanges))
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
@@ -1344,7 +1371,7 @@ class afc:
                 self.next_lane_load = None
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
-            if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
+            if not self.error_state and self.current_toolchange == -1: #and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
                 self.current_toolchange += 1
 
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
