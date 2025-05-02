@@ -5,10 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-01]
+### Added
+- Print assist is now filament usage based and will activate spool after a specified amount of filament is used. This is enabled by default.
+
+### Removed
+- Removed velocity from AFC_buffer code and install code, please remove `velocity`  variable from AFC_buffer configuration
+
 ## [2025-04-27]
 
 ### Removed
-- Removed deprecated belay code. 
+- Removed deprecated belay code.
+
 ## [2025-04-25]
 ### Added
 - The AFC_CUT macro now supports a servo-activated pin. Set values for ``[servo tool_cut]`` in ``AFC_Hardware.cfg`` and enable ``tool_servo_enable`` in ``AFC_Macro_Vars.cfg``

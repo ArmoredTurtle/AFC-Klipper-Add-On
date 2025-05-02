@@ -19,7 +19,7 @@ class afcBoxTurtle(afcUnit):
         """
         Handle the connection event.
         This function is called when the printer connects. It looks up AFC info
-        and assigns it to the instance variable `self.AFC`.
+        and assigns it to the instance variable `self.afc`.
         """
         super().handle_connect()
 

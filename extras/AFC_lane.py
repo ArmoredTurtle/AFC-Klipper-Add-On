@@ -107,16 +107,7 @@ class AFCExtruderStepper:
             buttons.register_buttons([self.load], self.load_callback)
         else: self.load_state = True
 
-        # Respoolers
-        self.afc_motor_rwd = config.get('afc_motor_rwd', None)                                      # Reverse pin on MCU for spoolers
-        self.afc_motor_fwd = config.get('afc_motor_fwd', None)                                      # Forwards pin on MCU for spoolers
-        self.afc_motor_enb = config.get('afc_motor_enb', None)                                      # Enable pin on MCU for spoolers
-        if self.afc_motor_rwd is not None:
-            self.afc_motor_rwd = AFC_assist.AFCassistMotor(config, 'rwd')
-        if self.afc_motor_fwd is not None:
-            self.afc_motor_fwd = AFC_assist.AFCassistMotor(config, 'fwd')
-        if self.afc_motor_enb is not None:
-            self.afc_motor_enb = AFC_assist.AFCassistMotor(config, 'enb')
+        self.espooler = AFC_assist.Espooler(self.name, config)
 
         # self.filament_diameter = config.getfloat("filament_diameter", 1.75)                         # Diameter of filament being used
         # self.filament_density = config.getfloat("filament_density", 1.24)                           # Density of filament being used
@@ -245,22 +236,23 @@ class AFCExtruderStepper:
 
         self.get_steppers()
 
-        if self.led_name is None: self.led_name = self.unit_obj.led_name
-        if self.led_fault is None: self.led_fault = self.unit_obj.led_fault
-        if self.led_ready is None: self.led_ready = self.unit_obj.led_ready
-        if self.led_not_ready is None: self.led_not_ready = self.unit_obj.led_not_ready
-        if self.led_loading is None: self.led_loading = self.unit_obj.led_loading
-        if self.led_prep_loaded is None: self.led_prep_loaded = self.unit_obj.led_prep_loaded
-        if self.led_unloading is None: self.led_unloading = self.unit_obj.led_unloading
-        if self.led_tool_loaded is None: self.led_tool_loaded = self.unit_obj.led_tool_loaded
+        if self.led_name            is None: self.led_name          = self.unit_obj.led_name
+        if self.led_fault           is None: self.led_fault         = self.unit_obj.led_fault
+        if self.led_ready           is None: self.led_ready         = self.unit_obj.led_ready
+        if self.led_not_ready       is None: self.led_not_ready     = self.unit_obj.led_not_ready
+        if self.led_loading         is None: self.led_loading       = self.unit_obj.led_loading
+        if self.led_prep_loaded     is None: self.led_prep_loaded   = self.unit_obj.led_prep_loaded
+        if self.led_unloading       is None: self.led_unloading     = self.unit_obj.led_unloading
+        if self.led_tool_loaded     is None: self.led_tool_loaded   = self.unit_obj.led_tool_loaded
 
-        if self.long_moves_speed is None: self.long_moves_speed = self.unit_obj.long_moves_speed
-        if self.long_moves_accel is None: self.long_moves_accel = self.unit_obj.long_moves_accel
-        if self.short_moves_speed is None: self.short_moves_speed = self.unit_obj.short_moves_speed
-        if self.short_moves_accel is None: self.short_moves_accel = self.unit_obj.short_moves_accel
-        if self.short_move_dis is None: self.short_move_dis = self.unit_obj.short_move_dis
-        if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
-        if self.n20_break_delay_time is None: self.n20_break_delay_time = self.unit_obj.n20_break_delay_time
+        if self.long_moves_speed    is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
+        if self.long_moves_accel    is None: self.long_moves_accel  = self.unit_obj.long_moves_accel
+        if self.short_moves_speed   is None: self.short_moves_speed = self.unit_obj.short_moves_speed
+        if self.short_moves_accel   is None: self.short_moves_accel = self.unit_obj.short_moves_accel
+        if self.short_move_dis      is None: self.short_move_dis    = self.unit_obj.short_move_dis
+        if self.max_move_dis        is None: self.max_move_dis      = self.unit_obj.max_move_dis
+
+        self.espooler.handle_connect(self.unit_obj)
 
         # Set hub loading speed depending on distance between extruder and hub
         self.dist_hub_move_speed = self.long_moves_speed if self.dist_hub >= 200 else self.short_moves_speed
@@ -290,55 +282,6 @@ class AFCExtruderStepper:
             self.selector_stepper   = self.unit_obj.selector_stepper_obj
             self.extruder_stepper   = self.drive_stepper.extruder_stepper
 
-    def brake_n20(self):
-        '''
-        Helper function to "brake" n20 motors to hopefully help with keeping down backfeeding into MCU board
-        '''
-        self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, 1))
-        self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_enb._set_pin(print_time, 1))
-        if self.afc_motor_fwd is not None:
-            self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, 1))
-
-        self.afc.reactor.pause(self.afc.reactor.monotonic() + self.n20_break_delay_time)
-
-        self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, 0))
-        self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_enb._set_pin(print_time, 0))
-        if self.afc_motor_fwd is not None:
-            self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_fwd._set_pin(print_time, 0))
-
-    def assist(self, value, is_resend=False):
-        if self.afc_motor_rwd is None:
-            return
-        if value < 0:
-            value *= -1
-            assit_motor=self.afc_motor_rwd
-        elif value > 0:
-            if self.afc_motor_fwd is None:
-                return
-            else:
-                assit_motor=self.afc_motor_fwd
-        elif value == 0:
-            if self.afc_motor_enb is not None:
-                self.brake_n20()
-            else:
-                self.afc.toolhead.register_lookahead_callback(lambda print_time: self.afc_motor_rwd._set_pin(print_time, value))
-
-            return
-        value /= assit_motor.scale
-        if not assit_motor.is_pwm and value not in [0., 1.]:
-            if value > 0:
-                value = 1
-        if self.afc_motor_enb is not None:
-            if value != 0:
-                enable = 1
-            else:
-                enable = 0
-            self.afc.toolhead.register_lookahead_callback(
-            lambda print_time: self.afc_motor_enb._set_pin(print_time, enable))
-
-        self.afc.toolhead.register_lookahead_callback(
-            lambda print_time: assit_motor._set_pin(print_time, value))
-
     @contextmanager
     def assist_move(self, speed, rewind, assist_active=True):
         """
@@ -360,12 +303,12 @@ class AFCExtruderStepper:
             if value > 1:
                 value = 1
 
-            self.assist(value)
+            self.espooler.assist(value)
         try:
             yield
         finally:
             if assist_active:
-                self.assist(0)
+                self.espooler.assist(0)
 
     def move(self, distance, speed, accel, assist_active=False):
         """
@@ -617,6 +560,7 @@ class AFCExtruderStepper:
         """
         if self.buffer_obj is not None:
             self.buffer_obj.enable_buffer()
+        self.espooler.enable_timer()
 
     def disable_buffer(self):
         """
@@ -625,6 +569,7 @@ class AFCExtruderStepper:
         """
         if self.buffer_obj is not None:
             self.buffer_obj.disable_buffer()
+        self.espooler.disable_timer()
 
     def buffer_status(self):
         """

@@ -24,7 +24,7 @@ except: raise error("Error trying to import afcDeltaTime, please rerun install-a
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-AFC_VERSION="1.0.11"
+AFC_VERSION="1.0.12"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -465,18 +465,18 @@ class afc:
         if lane not in self.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
-        CUR_LANE = self.lanes[lane]
+        cur_lane = self.lanes[lane]
         self.current_state = State.MOVING_LANE
 
-        move_speed = CUR_LANE.long_moves_speed if abs(distance) >= 200 else CUR_LANE.short_moves_speed
-        move_accel = CUR_LANE.long_moves_accel if abs(distance) >= 200 else CUR_LANE.short_moves_accel
+        move_speed = cur_lane.long_moves_speed if abs(distance) >= 200 else cur_lane.short_moves_speed
+        move_accel = cur_lane.long_moves_accel if abs(distance) >= 200 else cur_lane.short_moves_accel
 
-        CUR_LANE.set_load_current() # Making current is set correctly when doing lane moves
-        CUR_LANE.do_enable(True)
-        CUR_LANE.move(distance, move_speed, move_accel, True)
-        CUR_LANE.do_enable(False)
+        cur_lane.set_load_current() # Making current is set correctly when doing lane moves
+        cur_lane.do_enable(True)
+        cur_lane.move(distance, move_speed, move_accel, True)
+        cur_lane.do_enable(False)
         self.current_state = State.IDLE
-        CUR_LANE.unit_obj.return_to_home()
+        cur_lane.unit_obj.return_to_home()
         # Put CAM back to lane if its loaded to toolhead
         self.function.select_loaded_lane()
 
@@ -614,9 +614,9 @@ class afc:
             str[cur_unit.name]={}
             name=[]
             for NAME in cur_unit.lanes:
-                CUR_LANE=self.lanes[NAME]
-                str[cur_unit.name][CUR_LANE.name]=CUR_LANE.get_status()
-                name.append(CUR_LANE.name)
+                cur_lane=self.lanes[NAME]
+                str[cur_unit.name][cur_lane.name]=cur_lane.get_status()
+                name.append(cur_lane.name)
 
         str["system"]={}
         str["system"]['current_load']= self.current
@@ -1057,6 +1057,8 @@ class afc:
         self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
         self.toolhead.wait_moves()
 
+        self.function.log_toolhead_pos("TOOL_UNLOAD quick pull: ")
+
         # Perform Z-hop to avoid collisions during unloading.
         pos[2] += self.z_hop
         self._move_z_pos(pos[2])
@@ -1117,7 +1119,7 @@ class afc:
                 if num_tries > self.tool_max_unload_attempts:
                     msg = ''
                     msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
-                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliablity"
+                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliability"
                     self.logger.info("<span class=warning--text>{}</span>".format(msg))
                     break
             cur_lane.sync_to_extruder(False)
