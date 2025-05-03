@@ -119,7 +119,11 @@ class AFCled:
         if update_last: self.last_led_color[str(index)] = status
         if self.keep_leds_off: return
 
-        colors=list(map(float,status.split(',')))
+        if isinstance(status, list):
+            colors = status
+        else:
+            colors=list(map(float,status.split(',')))
+        
         transmit = 1
         def lookahead_bgfunc(print_time):
             if hasattr(self.led_helper, "_set_color"):
