@@ -111,8 +111,9 @@ class afc:
 
         #LED SETTINGS
         self.ind_lights = None
-        # led_name is not used, either use or needs to be removed
+        # led_name is not used, either use or needs to be removed, removing this would break everyones config as well
         self.led_name               = config.get('led_name',None)
+        self.led_off                = "0,0,0,0"
         self.led_fault              = config.get('led_fault','1,0,0,0')             # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_ready              = config.get('led_ready','1,1,1,1')             # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_not_ready          = config.get('led_not_ready','1,1,0,0')         # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness.
@@ -123,6 +124,7 @@ class afc:
         self.led_advancing          = config.get('led_buffer_advancing','0,0,1,0')  # LED color to set when buffer is advancing         (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_trailing           = config.get('led_buffer_trailing','0,1,0,0')   # LED color to set when buffer is trailing          (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_buffer_disabled    = config.get('led_buffer_disable', '0,0,0,0.25')# LED color to set when buffer is disabled          (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_spool_illum        = config.get('led_spool_illuminate', "1,1,1,1") # LED color to illuminate under spool
 
         # TOOL Cutting Settings
         self.tool                   = ''
@@ -803,25 +805,26 @@ class afc:
         # Check if the bypass filament sensor is triggered; abort loading if filament is already present.
         if self._check_bypass(): return False
 
-        self.logger.info("Loading {}".format(cur_lane.name))
-
-        # Verify that printer is in absolute mode
-        self.function.check_absolute_mode("TOOL_LOAD")
-
         # Lookup extruder and hub objects associated with the lane.
         cur_hub = cur_lane.hub_obj
 
-        cur_extruder = cur_lane.extruder_obj
-        self.current_state = State.LOADING
-        self.current_loading = cur_lane.name
-
-        # Set the lane status to 'loading' and activate the loading LED.
-        cur_lane.status = 'Tool Loading'
-        self.save_vars()
-        self.function.afc_led(cur_lane.led_loading, cur_lane.led_index)
-
         # Check if the lane is in a state ready to load and hub is clear.
         if (cur_lane.load_state and not cur_hub.state) or cur_lane.hub == 'direct':
+
+            self.logger.info("Loading {}".format(cur_lane.name))
+
+            # Verify that printer is in absolute mode
+            self.function.check_absolute_mode("TOOL_LOAD")
+
+
+            cur_extruder = cur_lane.extruder_obj
+            self.current_state = State.LOADING
+            self.current_loading = cur_lane.name
+
+            # Set the lane status to 'loading' and activate the loading LED.
+            cur_lane.status = 'Tool Loading'
+            self.save_vars()
+            cur_lane.unit_obj.lane_loading( cur_lane )
 
             if self._check_extruder_temp(cur_lane):
                 self.afcDeltaTime.log_with_time("Done heating toolhead")
@@ -929,7 +932,7 @@ class afc:
             cur_lane.enable_buffer()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
+            cur_lane.unit_obj.lane_tool_loaded( cur_lane )
             if self.poop:
                 if purge_length is not None:
                     self.gcode.run_script_from_command("%s %s=%s" % (self.poop_cmd, 'PURGE_LENGTH', purge_length))
@@ -958,7 +961,7 @@ class afc:
             # Update lane and extruder state for tracking.
             cur_extruder.lane_loaded = cur_lane.name
             self.spool.set_active_spool(cur_lane.spool_id)
-            self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
+            cur_lane.unit_obj.lane_tool_loaded( cur_lane )
             self.save_vars()
             self.current_state = State.IDLE
             self.afcDeltaTime.log_major_delta("{} is now loaded in toolhead".format(cur_lane.name), False)
@@ -1224,7 +1227,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         cur_lane.loaded_to_hub = True
-        self.function.afc_led(cur_lane.led_ready, cur_lane.led_index)
+        cur_lane.unit_obj.lane_tool_unloaded(cur_lane)
         cur_lane.status = None
 
         if cur_lane.hub == 'direct':
