@@ -526,17 +526,17 @@ class Espooler:
 
         Optional Values
         ----
-        BREAK_DELAY - Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
-        KICK_START_TIME - Time in seconds to enable spooler at full speed to help with getting the spool to spin
-        MM_PER_ROTATION - Distance per full rotation in mm
-        CYCLES_PER_ROTATION - Cycles per rotation in milliseconds
-        PWM_VALUE - PWM cycle time
-        MM_MOVEMENT - Amount to move in mm once filament has moved by delta movement amount
-        DELTA_MOVEMENT - Delta amount in mm from last move to trigger assist
-        SPOOLRATE - Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement
-        TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist
-        ENABLE_ASSIST - Setting to True enables espooler assist while printing
-        DEBUG - Turns on/off debug messages to console
+        BREAK_DELAY - Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.<br>
+        KICK_START_TIME - Time in seconds to enable spooler at full speed to help with getting the spool to spin<br>
+        MM_PER_ROTATION - Distance in mm a spool travels to complete a full spin<br>
+        CYCLES_PER_ROTATION - Time it takes to in milliseconds to turn a spool a full rotation<br>
+        PWM_VALUE - PWM cycle time<br>
+        MM_MOVEMENT - Amount to move during the assist in mm once filament has moved by `delta_movement` amount<br>
+        DELTA_MOVEMENT - Delta amount in mm to move from last assist to trigger another assist move<br>
+        SPOOLRATE - Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement<br>
+        TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist<br>
+        ENABLE_ASSIST - Setting to True enables espooler assist while printing<br>
+        DEBUG - Turns on/off debug messages to console<br>
         ENABLE_KICK_START - Setting to True enables full speed espoolers for kick_start_time amount
 
         USAGE
