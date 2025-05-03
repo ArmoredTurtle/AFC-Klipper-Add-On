@@ -98,8 +98,8 @@ class Espooler_values:
     def __init__(self, config):
         # Time in seconds to enable spooler at full speed to help with getting the spool to spin. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._kick_start_time        = config.getfloat("kick_start_time",       None)
-        # Distance per full rotation in mm. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self._mm_per_rotation        = config.getfloat("mm_per_rotation",       None)
+        # Current spools outer diameter
+        self._spool_outer_diameter   = config.getfloat("spool_outer_diameter",  None)
         # Cycles per rotation in milliseconds. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._cycles_per_rotation    = config.getfloat("cycles_per_rotation",   None)
         # PWM cycle time. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -108,7 +108,7 @@ class Espooler_values:
         self._delta_movement         = config.getfloat("delta_movement",        None)
         # Amount to move in mm once filament has moved by delta movement amount. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._mm_movement            = config.getfloat("mm_movement",           None)
-        # Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        # Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._scaling                = config.getfloat("spoolrate",             None)
 
     def calculate_cruise_time(self, mm_movement):
@@ -118,24 +118,24 @@ class Espooler_values:
         :param mm_movement: Amount to move spool in mm
         :return float: Amount of time to be enabled to move mm amount
         """
-        rotations = mm_movement / self.mm_per_rotation
+        rotations = mm_movement / self.spool_circum
         correction_factor = 1.0 + ( 1.68 * math.exp(-rotations * 5.0) )
         cruise_time = rotations * self.cycles_per_rotation * correction_factor
 
         return cruise_time/1000
 
-    def handle_connect(self, unit_obj):
+    def handle_connect(self, lane_obj):
         """
         Should only be called during handle_connect callback to update values from unit. If values are not set per
         lane this function will update values from their unit.
         """
-        if self._kick_start_time     is None: self.kick_start_time      = unit_obj.kick_start_time
-        if self._mm_per_rotation     is None: self.mm_per_rotation      = unit_obj.mm_per_rotation
-        if self._cycles_per_rotation is None: self.cycles_per_rotation  = unit_obj.cycles_per_rotation
-        if self._pwm_value           is None: self.pwm_value            = unit_obj.pwm_value
-        if self._mm_movement         is None: self.mm_movement          = unit_obj.mm_movement
-        if self._delta_movement      is None: self.delta_movement       = unit_obj.delta_movement
-        if self._scaling             is None: self.scaling              = unit_obj.scaling
+        if self._kick_start_time      is None: self.kick_start_time      = lane_obj.unit_obj.kick_start_time
+        if self._spool_outer_diameter is None: self._spool_outer_diameter= lane_obj.outer_diameter
+        if self._cycles_per_rotation  is None: self.cycles_per_rotation  = lane_obj.unit_obj.cycles_per_rotation
+        if self._pwm_value            is None: self.pwm_value            = lane_obj.unit_obj.pwm_value
+        if self._mm_movement          is None: self.mm_movement          = lane_obj.unit_obj.mm_movement
+        if self._delta_movement       is None: self.delta_movement       = lane_obj.unit_obj.delta_movement
+        if self._scaling              is None: self.scaling              = lane_obj.unit_obj.scaling
 
         # Since cruise time is always going to be the same, calculate it now instead of everytime inside the timer callback
         self._cruise_time            = self.calculate_cruise_time(self.mm_movement)
@@ -161,14 +161,13 @@ class Espooler_values:
         self._kick_start_time = value
 
     @property
-    def mm_per_rotation(self):
+    def spool_circum(self):
         """
-        Returns mm per rotation, this value is scaled by scaling factor
+        Calculates and returns spools circumference based off current spool_outer_diameter,
+        this value is scaled by scaling factor
         """
-        return self._mm_per_rotation * self._scaling
-    @mm_per_rotation.setter
-    def mm_per_rotation(self, value):
-        self._mm_per_rotation = value
+        radius = (self._spool_outer_diameter * self._scaling) / 2
+        return 2*math.pi*radius
 
     @property
     def cycles_per_rotation(self):
@@ -275,18 +274,18 @@ class Espooler:
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFCassistMotor(config, "enb")
 
-    def handle_connect(self, unit_obj):
+    def handle_connect(self, lane_obj):
         """
         Should only be called during handle_connect callback to update values from unit. If values are not set per
         lane this function will update values from their unit.
         """
-        self.espooler_values.handle_connect(unit_obj)
+        self.espooler_values.handle_connect(lane_obj)
 
-        if self.n20_break_delay_time    is None: self.n20_break_delay_time  = unit_obj.n20_break_delay_time
-        if self.timer_delay             is None: self.timer_delay           = unit_obj.timer_delay
-        if self.enable_assist           is None: self.enable_assist         = unit_obj.enable_assist
-        if self.debug                   is None: self.debug                 = unit_obj.debug
-        if self.enable_kick_start       is None: self.enable_kick_start     = unit_obj.enable_kick_start
+        if self.n20_break_delay_time    is None: self.n20_break_delay_time  = lane_obj.unit_obj.n20_break_delay_time
+        if self.timer_delay             is None: self.timer_delay           = lane_obj.unit_obj.timer_delay
+        if self.enable_assist           is None: self.enable_assist         = lane_obj.unit_obj.enable_assist
+        if self.debug                   is None: self.debug                 = lane_obj.unit_obj.debug
+        if self.enable_kick_start       is None: self.enable_kick_start     = lane_obj.unit_obj.enable_kick_start
 
     def timer_callback(self, eventtime):
         """
@@ -528,12 +527,12 @@ class Espooler:
         ----
         BREAK_DELAY - Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.<br>
         KICK_START_TIME - Time in seconds to enable spooler at full speed to help with getting the spool to spin<br>
-        MM_PER_ROTATION - Distance in mm a spool travels to complete a full spin<br>
+        SPOOL_OUTER_DIAMETER - Current spools outer diameter<br>
         CYCLES_PER_ROTATION - Time it takes to in milliseconds to turn a spool a full rotation<br>
         PWM_VALUE - PWM cycle time<br>
         MM_MOVEMENT - Amount to move during the assist in mm once filament has moved by `delta_movement` amount<br>
         DELTA_MOVEMENT - Delta amount in mm to move from last assist to trigger another assist move<br>
-        SPOOLRATE - Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement<br>
+        SPOOLRATE - Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement<br>
         TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist<br>
         ENABLE_ASSIST - Setting to True enables espooler assist while printing<br>
         DEBUG - Turns on/off debug messages to console<br>
@@ -551,7 +550,7 @@ class Espooler:
         """
         self.n20_break_delay_time                   = gcmd.get_float("BREAK_DELAY"          , self.n20_break_delay_time)
         self.espooler_values.kick_start_time        = gcmd.get_float("KICK_START_TIME"      , self.espooler_values._kick_start_time)
-        self.espooler_values.mm_per_rotation        = gcmd.get_float("MM_PER_ROTATION"      , self.espooler_values._mm_per_rotation)
+        self.espooler_values._spool_outer_diameter  = gcmd.get_float("SPOOL_OUTER_DIAMETER" , self.espooler_values._spool_outer_diameter)
         self.espooler_values.cycles_per_rotation    = gcmd.get_float("CYCLES_PER_ROTATION"  , self.espooler_values._cycles_per_rotation)
         self.espooler_values.pwm_value              = gcmd.get_float("PWM_VALUE"            , self.espooler_values._pwm_value)
         self.espooler_values.mm_movement            = gcmd.get_float("MM_MOVEMENT"          , self.espooler_values._mm_movement)

@@ -297,7 +297,7 @@ class AFCExtruderStepper:
         if self.short_move_dis      is None: self.short_move_dis    = self.unit_obj.short_move_dis
         if self.max_move_dis        is None: self.max_move_dis      = self.unit_obj.max_move_dis
 
-        self.espooler.handle_connect(self.unit_obj)
+        self.espooler.handle_connect(self)
 
         # Set hub loading speed depending on distance between extruder and hub
         self.dist_hub_move_speed = self.long_moves_speed if self.dist_hub >= 200 else self.short_moves_speed
