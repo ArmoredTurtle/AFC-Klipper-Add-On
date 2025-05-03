@@ -112,7 +112,7 @@ class AFCExtruderStepper:
         # self.filament_diameter = config.getfloat("filament_diameter", 1.75)                         # Diameter of filament being used
         # self.filament_density = config.getfloat("filament_density", 1.24)                           # Density of filament being used
         # self.inner_diameter = config.getfloat("spool_inner_diameter", 100)                          # Inner diameter in mm
-        # self.outer_diameter = config.getfloat("spool_outer_diameter", 200)                          # Outer diameter in mm
+        self.outer_diameter = config.getfloat("spool_outer_diameter", 200)                          # Outer diameter in mm
         # self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)                        # Empty spool weight in g
         # self.remaining_weight = config.getfloat("spool_weight", 1000)                               # Remaining spool weight in g
         # self.max_motor_rpm = config.getfloat("assist_max_motor_rpm", 500)                           # Max motor RPM
