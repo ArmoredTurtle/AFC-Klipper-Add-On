@@ -61,8 +61,6 @@ class afcUnit:
 
         # Time in seconds to enable spooler at full speed to help with getting the spool to spin
         self.kick_start_time        = config.getfloat("kick_start_time",        0.070)
-        # Distance per full rotation in mm
-        self.mm_per_rotation        = config.getfloat("mm_per_rotation",        628.32)
         # Cycles per rotation in milliseconds
         self.cycles_per_rotation    = config.getfloat("cycles_per_rotation",    1275)
         # PWM cycle time
@@ -71,7 +69,7 @@ class afcUnit:
         self.delta_movement         = config.getfloat("delta_movement",         150)
         # Amount to move in mm once filament has moved by delta movement amount
         self.mm_movement            = config.getfloat("mm_movement",            150)
-        # Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement
+        # Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement
         self.scaling                = config.getfloat("spoolrate",              1.0)
 
         # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in AFC.cfg file
