@@ -3,22 +3,17 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import math
 from contextlib import contextmanager
-from . import AFC_assist
 from configfile import error
+
+from . import AFC_assist
 try:
     from extras.AFC_utils import add_filament_switch
 except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-#LED
-BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
-BIT_MAX_TIME=.000004
-RESET_MIN_TIME=.000050
-MAX_MCU_SIZE = 500  # Sanity check on LED chain length
-
-class AFCExtruderStepper:
+class AFCLane:
     def __init__(self, config):
         self.printer            = config.get_printer()
         self.afc                = self.printer.lookup_object('AFC')
@@ -48,7 +43,6 @@ class AFCExtruderStepper:
         self.status             = None
         self.multi_hubs_found   = False
         self.drive_stepper      = None
-        self.selector_stepper   = None
         unit                    = config.get('unit')                                    # Unit name(AFC_BoxTurtle/NightOwl/etc) that belongs to this stepper.
         # Overrides buffers set at the unit level
         self.hub 				= config.get('hub',None)                                # Hub name(AFC_hub) that belongs to this stepper, overrides hub that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
@@ -96,12 +90,12 @@ class AFCExtruderStepper:
 
         # lane triggers
         buttons = self.printer.load_object(config, "buttons")
-        self.prep = config.get('prep', None)                                                        # MCU pin for prep trigger
+        self.prep = config.get('prep', None)                                    # MCU pin for prep trigger
         self.prep_state = False
         if self.prep is not None:
             buttons.register_buttons([self.prep], self.prep_callback)
 
-        self.load = config.get('load', None)                                                        # MCU pin load trigger
+        self.load = config.get('load', None)                                    # MCU pin load trigger
         self.load_state = False
         if self.load is not None:
             buttons.register_buttons([self.load], self.load_callback)
@@ -109,16 +103,16 @@ class AFCExtruderStepper:
 
         self.espooler = AFC_assist.Espooler(self.name, config)
 
-        # self.filament_diameter = config.getfloat("filament_diameter", 1.75)                         # Diameter of filament being used
-        # self.filament_density = config.getfloat("filament_density", 1.24)                           # Density of filament being used
-        # self.inner_diameter = config.getfloat("spool_inner_diameter", 100)                          # Inner diameter in mm
-        # self.outer_diameter = config.getfloat("spool_outer_diameter", 200)                          # Outer diameter in mm
-        # self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)                        # Empty spool weight in g
-        # self.remaining_weight = config.getfloat("spool_weight", 1000)                               # Remaining spool weight in g
-        # self.max_motor_rpm = config.getfloat("assist_max_motor_rpm", 500)                           # Max motor RPM
-        # self.diameter_range = self.outer_diameter - self.inner_diameter  # Range for effective diameter
-        self.rwd_speed_multi = config.getfloat("rwd_speed_multiplier", 0.5)                         # Multiplier to apply to rpm
-        self.fwd_speed_multi = config.getfloat("fwd_speed_multiplier", 0.5)                         # Multiplier to apply to rpm
+        self.filament_diameter  = config.getfloat("filament_diameter", 1.75)    # Diameter of filament being used
+        self.filament_density   = config.getfloat("filament_density", 1.24)     # Density of filament being used
+        self.inner_diameter     = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
+        self.outer_diameter     = config.getfloat("spool_outer_diameter", 200)  # Outer diameter in mm
+        self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)    # Empty spool weight in g
+        self.remaining_weight   = config.getfloat("spool_weight", 1000)         # Remaining spool weight in g
+        self.max_motor_rpm      = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
+        self.rwd_speed_multi    = config.getfloat("rwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
+        self.fwd_speed_multi    = config.getfloat("fwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
+        self.diameter_range     = self.outer_diameter - self.inner_diameter     # Range for effective diameter
 
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
@@ -159,12 +153,18 @@ class AFCExtruderStepper:
         # Saving reference to unit
         self.unit_obj = unit_obj
         self.buffer_obj = self.unit_obj.buffer_obj
+        add_to_other_obj = False
 
-        # Registering lane name in unit
-        self.unit_obj.lanes[self.name] = self
-        self.afc.lanes[self.name] = self
+        # Register all lanes if their type is not HTLF or only register lanes that are HTLF and have AFC_lane
+        # in the name so that HTLF stepper names do not get added since they are not a lane for this unit type
+        if self.unit_obj.type != "HTLF" or (self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname):
+            add_to_other_obj = True
+            # Registering lane name in unit
+            self.unit_obj.lanes[self.name] = self
+            self.afc.lanes[self.name] = self
 
         self.hub_obj = self.unit_obj.hub_obj
+
         if self.hub != 'direct':
             if self.hub is not None:
                 try:
@@ -187,7 +187,8 @@ class AFCExtruderStepper:
 
             # Assigning hub name just in case stepper is using hub defined in units config
             self.hub = self.hub_obj.name
-            self.hub_obj.lanes[self.name] = self
+            if add_to_other_obj:
+                self.hub_obj.lanes[self.name] = self
         else:
             self.hub_obj = lambda: None
             self.hub_obj.state = False
@@ -207,7 +208,8 @@ class AFCExtruderStepper:
 
         # Assigning extruder name just in case stepper is using extruder defined in units config
         self.extruder_name = self.extruder_obj.name
-        self.extruder_obj.lanes[self.name] = self
+        if add_to_other_obj:
+            self.extruder_obj.lanes[self.name] = self
 
         # Use buffer defined in stepper and override buffers that maybe set at the UNIT or extruder levels
         self.buffer_obj = self.unit_obj.buffer_obj
@@ -229,7 +231,7 @@ class AFCExtruderStepper:
                 raise error(error_string)
 
         # Valid to not have a buffer defined, check to make sure object exists before adding lane to buffer
-        if self.buffer_obj is not None:
+        if self.buffer_obj is not None and add_to_other_obj:
             self.buffer_obj.lanes[self.name] = self
             # Assigning buffer name just in case stepper is using buffer defined in units/extruder config
             self.buffer_name = self.buffer_obj.name
@@ -259,6 +261,7 @@ class AFCExtruderStepper:
         self.dist_hub_move_accel = self.long_moves_accel if self.dist_hub >= 200 else self.short_moves_accel
 
         # Register macros
+        # TODO: add check so that HTLF stepper lanes do not get registered here
         self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
 
         self.afc.gcode.register_mux_command('SET_SPEED_MULTIPLIER',  "LANE", self.name, self.cmd_SET_SPEED_MULTIPLIER, desc=self.cmd_SET_SPEED_MULTIPLIER_help)
@@ -277,9 +280,8 @@ class AFCExtruderStepper:
         """
         Helper function to get steppers for lane
         """
-        if self.unit_obj.type == "HTLF":
+        if self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname:
             self.drive_stepper      = self.unit_obj.drive_stepper_obj
-            self.selector_stepper   = self.unit_obj.selector_stepper_obj
             self.extruder_stepper   = self.drive_stepper.extruder_stepper
 
     @contextmanager
@@ -322,7 +324,8 @@ class AFCExtruderStepper:
         """
         self.unit_obj.select_lane( self )
         with self.assist_move( speed, distance < 0, assist_active):
-            self.drive_stepper.move(distance, speed, accel, assist_active)
+            if self.drive_stepper is not None:
+                self.drive_stepper.move(distance, speed, accel, assist_active)
 
     def set_afc_prep_done(self):
         """
@@ -424,8 +427,8 @@ class AFCExtruderStepper:
 
         # Checking to make sure printer is ready and making sure PREP has been called before trying to load anything
         for i in range(1):
-        # Hacky way for do{}while(0) loop, DO NOT return from this for loop, use break instead so that self.prep_state variable gets sets correctly
-        #  before exiting function
+            # Hacky way for do{}while(0) loop, DO NOT return from this for loop, use break instead so that self.prep_state variable gets sets correctly
+            #  before exiting function
             if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
                 # Only try to load when load state trigger is false
                 if self.prep_state == True and self.load_state == False:
@@ -494,7 +497,11 @@ class AFCExtruderStepper:
         self.afc.save_vars()
 
     def do_enable(self, enable):
-        self.drive_stepper.do_enable(enable)
+        if self.drive_stepper is not None:
+            self.drive_stepper.do_enable(enable)
+
+    def sync_print_time(self):
+        return
 
     def sync_to_extruder(self, update_current=True):
         """
@@ -502,8 +509,9 @@ class AFCExtruderStepper:
 
         :param update_current: Sets current to specified print current when True
         """
-        self.drive_stepper.sync_to_extruder(self.extruder_name)
-        if update_current: self.drive_stepper.set_print_current()
+        if self.drive_stepper is not None:
+            self.drive_stepper.sync_to_extruder(self.extruder_name)
+            if update_current: self.drive_stepper.set_print_current()
 
     def unsync_to_extruder(self, update_current=True):
         """
@@ -511,26 +519,86 @@ class AFCExtruderStepper:
 
         :param update_current: Sets current to specified load current when True
         """
-        self.drive_stepper.unsync_to_extruder(None)
-        if update_current: self.drive_stepper.set_load_current()
+        if self.drive_stepper is not None:
+            self.drive_stepper.unsync_to_extruder(None)
+            if update_current: self.drive_stepper.set_load_current()
+
+    def _set_current(self, current):
+        return
 
     def set_load_current(self):
         """
         Helper function to update TMC current to use run current value
         """
-        self.drive_stepper.set_load_current()
+        if self.drive_stepper is not None:
+            self.drive_stepper.set_load_current()
 
     def set_print_current(self):
         """
         Helper function to update TMC current to use print current value
         """
-        self.drive_stepper.set_print_current()
+        if self.drive_stepper is not None:
+            self.drive_stepper.set_print_current()
 
     def update_rotation_distance(self, multiplier):
-        self.drive_stepper.update_rotation_distance( multiplier )
+        if self.drive_stepper is not None:
+            self.drive_stepper.update_rotation_distance( multiplier )
+
+    def calculate_effective_diameter(self, weight_g, spool_width_mm=60):
+
+        # Calculate the cross-sectional area of the filament
+        density_g_mm3 = self.filament_density / 1000.0
+        filament_volume_mm3 = weight_g / density_g_mm3
+        package_corrected_volume_mm3 = filament_volume_mm3 / 0.785
+        filament_area_mm2 = package_corrected_volume_mm3 / spool_width_mm
+        spool_outer_diameter_mm2 = (4 * filament_area_mm2 / 3.14159) + self.inner_diameter ** 2
+        spool_outer_diameter_mm = spool_outer_diameter_mm2 ** 0.5
+
+        return spool_outer_diameter_mm
+
+    def calculate_rpm(self, feed_rate):
+        """
+        Calculate the RPM for the assist motor based on the filament feed rate.
+
+        :param feed_rate: Filament feed rate in mm/s
+        :return: Calculated RPM for the assist motor
+        """
+        if self.remaining_weight <= self.empty_spool_weight:
+            return 0  # No filament left to assist
+
+        # Calculate the effective diameter
+        effective_diameter = self.calculate_effective_diameter(self.remaining_weight)
+
+        # Calculate RPM
+        rpm = (feed_rate * 60) / (math.pi * effective_diameter)
+        return min(rpm, self.max_motor_rpm)  # Clamp to max motor RPM
 
     def calculate_pwm_value(self, feed_rate, rewind=False):
-        return self.drive_stepper.calculate_pwm_value( feed_rate, rewind )
+        """
+        Calculate the PWM value for the assist motor based on the feed rate.
+
+        :param feed_rate: Filament feed rate in mm/s
+        :return: PWM value between 0 and 1
+        """
+        rpm = self.calculate_rpm(feed_rate)
+        if not rewind:
+            pwm_value = rpm / (self.max_motor_rpm / (1 + 9 * self.fwd_speed_multi))
+        else:
+            pwm_value = rpm / (self.max_motor_rpm / (15 + 15 * self.rwd_speed_multi))
+        return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
+
+    def update_remaining_weight(self, distance_moved):
+        """
+        Update the remaining filament weight based on the filament distance moved.
+
+        :param distance_moved: Distance of filament moved in mm.
+        """
+        filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
+        filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
+        self.remaining_weight -= filament_weight_change
+
+        if self.remaining_weight < self.empty_spool_weight:
+            self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
 
     def set_loaded(self):
         """
@@ -766,4 +834,4 @@ class AFCExtruderStepper:
         return response
 
 def load_config_prefix(config):
-    return AFCExtruderStepper(config)
+    return AFCLane(config)
