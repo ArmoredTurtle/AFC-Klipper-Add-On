@@ -128,21 +128,31 @@ class AFCled:
             else:
                 set_color_fn = self.led_helper.set_color
                 check_transmit_fn = self.led_helper.check_transmit
-            set_color_fn(index, colors)
+
+            if "-" in index:
+                start, end = map(int, index.split("-"))
+                for i in range(start, end + 1):
+                    set_color_fn(i, colors)
+            else:
+                set_color_fn(int(index), colors)
+
             if transmit:
                 check_transmit_fn(print_time)
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 
     def turn_off_leds(self):
-        for i in range(self.led_helper.led_count):
-            self.led_change( i, "0,0,0,0", False)
+        for lane in self.AFC.lanes:
+            lane_data = self.AFC.lanes[lane]
+            if lane_data.led_index is not None:
+                self.led_change(lane_data.led_index.split(':')[1], "0,0,0,0", False)
+
         self.keep_leds_off = True
 
     def turn_on_leds(self):
         self.keep_leds_off = False
         for index, value in self.last_led_color.items():
-            self.led_change( int(index), value, False )
+            self.led_change(index, value, False)
 
 def load_config_prefix(config):
     return AFCled(config)
