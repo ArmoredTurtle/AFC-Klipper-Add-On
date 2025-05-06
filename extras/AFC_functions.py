@@ -918,14 +918,15 @@ class afcFunction:
         CUR_HUB.hub_cut(cur_lane)
         self.logger.info('Hub cut Done!')
 
-    cmd_TEST_help = "Test Assist Motors"
+    cmd_TEST_help = "Test Assist Motors, spins spoolers like rewinding spool"
     def cmd_TEST(self, gcmd):
         """
         This function tests the assist motors of a specified lane at various speeds.
-        It performs the following steps:
-        1. Retrieves the lane specified by the 'LANE' parameter.
-        2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
-        3. Reports the status of each test step.
+        Spins the spoolers in reverse like trying to rewind the spool.<br>
+        It performs the following steps:<br>
+        1. Retrieves the lane specified by the 'LANE' parameter.<br>
+        2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.<br>
+        3. Reports the status of each test step.<br>
 
         Usage
         -----
