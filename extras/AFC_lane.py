@@ -9,9 +9,25 @@ from configfile import error
 
 from . import AFC_assist
 try:
-    from extras.AFC_utils import add_filament_switch
+    from extras.AFC_utils import (
+        add_filament_switch,
+        AFCStats_var
+    )
 except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+class AFCLaneStats:
+    def __init__(self, lane_name, lane_obj):
+        afc_stats = lane_obj.afc.moonraker.get_afc_stats()
+        if afc_stats is not None:
+            values = ["values"]
+        else:
+            values = None
+        self.n20_runtime       = AFCStats_var(lane_name, "n20_runtime", values, lane_obj.afc.moonraker)
+        self.lane_change_count = AFCStats_var(lane_name, "change_count", values, lane_obj.afc.moonraker)
+    
+    def increment_lane_count(self):
+        self.lane_change_count.increase_count()
+        return
 
 class AFCLane:
     def __init__(self, config):
@@ -27,6 +43,7 @@ class AFCLane:
         self.hub_obj            = None
         self.buffer_obj         = None
         self.extruder_obj       = None
+        self.lane_stats         = None
 
         #stored status variables
         self.fullname           = config.get_name()
@@ -162,6 +179,8 @@ class AFCLane:
             # Registering lane name in unit
             self.unit_obj.lanes[self.name] = self
             self.afc.lanes[self.name] = self
+
+            self.lane_stats = AFCLaneStats(self.name, self)
 
         self.hub_obj = self.unit_obj.hub_obj
 

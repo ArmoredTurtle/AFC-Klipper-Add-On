@@ -21,7 +21,7 @@ except: raise error("Error trying to import AFC_logger, please rerun install-afc
 try: from extras.AFC_functions import afcDeltaTime
 except: raise error("Error trying to import afcDeltaTime, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
-try: from extras.AFC_utils import add_filament_switch, AFC_moonraker
+try: from extras.AFC_utils import add_filament_switch, AFC_moonraker, AFCStats
 except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 AFC_VERSION="1.0.12"
@@ -241,12 +241,11 @@ class afc:
 
         # SPOOLMAN
         try:
-            # self.moonraker = json.load(urlopen('http://localhost{port}/server/config'.format( port=moonraker_port )))
-            # self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
             self.moonraker = AFC_moonraker( moonraker_port, self.logger )
             self.spoolman = self.moonraker.get_spoolman_server()
-            self.logger.info("Spoolman Server: {}".format(self.spoolman))
-            self.moonraker.get_afc_stats()
+            self.afc_stats = AFCStats(self.moonraker)
+            self.afc_stats.tc_total.increase_count()
+            self.afc_stats.tc_total.value = -1
         except Exception as e:
             self.logger.debug("Spoolman error: {}".format(e))
             self.spoolman = None                      # set to none if not found
@@ -265,6 +264,7 @@ class afc:
         self.gcode.register_command('UNSET_LANE_LOADED',    self.cmd_UNSET_LANE_LOADED,     desc=self.cmd_UNSET_LANE_LOADED_help)
         self.gcode.register_command('TURN_OFF_AFC_LED',     self.cmd_TURN_OFF_AFC_LED,      desc=self.cmd_TURN_OFF_AFC_LED_help)
         self.gcode.register_command('TURN_ON_AFC_LED',      self.cmd_TURN_ON_AFC_LED,       desc=self.cmd_TURN_ON_AFC_LED_help)
+        self.gcode.register_command("PRINT_AFC_STATS",      self.cmd_PRINT_AFC_STATS)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -990,6 +990,10 @@ class afc:
             self.current_state = State.IDLE
             self.afcDeltaTime.log_major_delta("{} is now loaded in toolhead".format(cur_lane.name), False)
 
+            # Increment stat counts
+            self.afc_stats.tc_load.increase_count()
+            cur_lane.lane_stats.increment_lane_count()
+
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
             if cur_hub.state:
@@ -1261,6 +1265,8 @@ class afc:
 
         cur_lane.do_enable(False)
         cur_lane.unit_obj.return_to_home()
+
+        self.afc_stats.tc_tool_unload.increase_count()
 
         self.save_vars()
         self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name))
@@ -1563,3 +1569,6 @@ class afc:
         """
         for led in self.led_obj.values():
             led.turn_on_leds()
+
+    def cmd_PRINT_AFC_STATS(self, gcmd):
+        self.afc_stats.print_stats(self)

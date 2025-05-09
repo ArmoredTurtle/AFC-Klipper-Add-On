@@ -241,8 +241,7 @@ class AFCSpool:
         if self.afc.spoolman is not None:
             if SpoolID !='':
                 try:
-                    url =  urlparse.urljoin(self.afc.spoolman, '/api/v1/spool/{}'.format(SpoolID))
-                    result = json.load(urlopen(url))
+                    result = self.afc.moonraker.get_spool(SpoolID)
                     cur_lane.spool_id = SpoolID
 
                     cur_lane.material       = self._get_filament_values(result['filament'], 'material')
