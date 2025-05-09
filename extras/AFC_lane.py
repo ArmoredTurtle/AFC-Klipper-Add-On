@@ -21,8 +21,8 @@ class AFCLaneState:
     TOOLED           = "Tooled"
     TOOL_LOADED      = "Tool Loaded"
     TOOL_LOADING     = "Tool Loading"
-    TOOL_UNLOADING   = "Tool unloading"
-    HUB_LOADING      = "HUB loading"
+    TOOL_UNLOADING   = "Tool Unloading"
+    HUB_LOADING      = "HUB Loading"
     EJECTING         = "Ejecting"
     CALIBRATING      = "Calibrating"
 
