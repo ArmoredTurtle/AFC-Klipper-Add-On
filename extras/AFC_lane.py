@@ -13,6 +13,17 @@ try:
 except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
+# Class for holding different states so its clear what all valid states are
+class AFCLaneState:
+    ERROR            = "Error"
+    LOADED           = "Loaded"
+    TOOLED           = "Tooled"
+    TOOL_LOADED      = "Tool loaded"
+    TOOL_UNLOADING   = "Tool unloading"
+    HUB_LOADING      = "HUB loading"
+    EJECTING         = "Ejecting"
+    CALIBRATING      = "Calibrating"
+
 class AFCLane:
     def __init__(self, config):
         self.printer            = config.get_printer()
