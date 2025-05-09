@@ -9,6 +9,8 @@ import re
 from configfile import error
 from typing import Any
 
+from extras.AFC_lane import AFCLaneState
+
 try:
     from urllib.request import urlopen
 except:
@@ -663,7 +665,7 @@ class afc:
         cur_lane = self.lanes[lane]
         cur_hub = cur_lane.hub_obj
         if not cur_lane.prep_state: return
-        cur_lane.status = 'HUB Loading'
+        cur_lane.status = AFCLaneState.HUB_LOADING
         if not cur_lane.load_state:
             cur_lane.do_enable(True)
             while not cur_lane.load_state:
@@ -719,7 +721,7 @@ class afc:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
-            cur_lane.status = 'ejecting'
+            cur_lane.status = AFCLaneState.EJECTING
             self.save_vars()
             cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
@@ -816,7 +818,7 @@ class afc:
         self.current_loading = cur_lane.name
 
         # Set the lane status to 'loading' and activate the loading LED.
-        cur_lane.status = 'Tool Loading'
+        cur_lane.status = AFCLaneState.TOOL_LOADING
         self.save_vars()
         self.function.afc_led(cur_lane.led_loading, cur_lane.led_index)
 
@@ -877,7 +879,7 @@ class afc:
             self.afcDeltaTime.log_with_time("Filament loaded to pre-sensor")
 
             # Synchronize lane's extruder stepper and finalize tool loading.
-            cur_lane.status = 'Tool Loaded'
+            cur_lane.status = AFCLaneState.TOOL_LOADED
             self.save_vars()
             cur_lane.sync_to_extruder()
 
@@ -1037,7 +1039,7 @@ class afc:
         self.current_state  = State.UNLOADING
         self.current_loading = cur_lane.name
         self.logger.info("Unloading {}".format(cur_lane.name))
-        cur_lane.status = 'Tool Unloading'
+        cur_lane.status = AFCLaneState.TOOL_UNLOADING
         self.save_vars()
 
         # Verify that printer is in absolute mode

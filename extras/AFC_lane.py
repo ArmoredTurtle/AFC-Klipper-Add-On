@@ -19,6 +19,7 @@ class AFCLaneState:
     LOADED           = "Loaded"
     TOOLED           = "Tooled"
     TOOL_LOADED      = "Tool loaded"
+    TOOL_LOADING     = "Tool Loading"
     TOOL_UNLOADING   = "Tool unloading"
     HUB_LOADING      = "HUB loading"
     EJECTING         = "Ejecting"
@@ -463,9 +464,9 @@ class AFCLane:
                             msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
                             self.afc.error.AFC_error(msg, False)
                             self.afc.function.afc_led(self.afc.led_fault, self.led_index)
-                            self.status=''
+                            self.status = None
                             break
-                    self.status=''
+                    self.status = None
 
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct and still using load sensor
@@ -482,7 +483,7 @@ class AFCLane:
 
                     self.do_enable(False)
                     if self.load_state == True and self.prep_state == True:
-                        self.status = 'Loaded'
+                        self.status = AFCLaneState.LOADED
                         self.afc.function.afc_led(self.afc.led_ready, self.led_index)
                         self.material = self.afc.default_material_type
 
@@ -618,7 +619,7 @@ class AFCLane:
         self.tool_loaded = True
         self.afc.current = self.extruder_obj.lane_loaded = self.name
         self.afc.current_loading = None
-        self.status = 'Tooled'
+        self.status = AFCLaneState.TOOLED
         self.afc.spool.set_active_spool(self.spool_id)
 
     def set_unloaded(self):

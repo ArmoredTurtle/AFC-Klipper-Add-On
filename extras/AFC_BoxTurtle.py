@@ -5,6 +5,9 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configparser import Error as error
+
+from extras.AFC_lane import AFCLaneState
+
 try:
     from extras.AFC_unit import afcUnit
 except:
@@ -72,7 +75,7 @@ class afcBoxTurtle(afcUnit):
                 self.afc.function.afc_led(cur_lane.led_not_ready, cur_lane.led_index)
                 succeeded = False
             else:
-                cur_lane.status = 'Loaded'
+                cur_lane.status = AFCLaneState.LOADED
                 msg +="<span class=success--text> AND LOADED</span>"
 
                 if cur_lane.tool_loaded:
@@ -87,7 +90,7 @@ class afcBoxTurtle(afcUnit):
                             if self.afc.function.get_current_lane() == cur_lane.name:
                                 self.afc.spool.set_active_spool(cur_lane.spool_id)
                                 self.afc.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
-                                cur_lane.status = 'Tooled'
+                                cur_lane.status = AFCLaneState.TOOLED
 
                             cur_lane.enable_buffer()
                         else:
@@ -278,7 +281,7 @@ class afcBoxTurtle(afcUnit):
             return False, msg, 0
 
         self.logger.info('Calibrating {}'.format(cur_lane.name))
-        cur_lane.status = "calibrating"
+        cur_lane.status = AFCLaneState.CALIBRATING
         # reset to extruder
         pos, checkpoint, success = self.calc_position(cur_lane, lambda: cur_lane.load_state, 0, cur_lane.short_move_dis,
                                                       tol, cur_lane.dist_hub + 100, "retract to extruder")
