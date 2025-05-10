@@ -288,7 +288,7 @@ class afcBoxTurtle(afcUnit):
 
         if not success:
             msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return False, msg, 0
 
@@ -296,7 +296,7 @@ class afcBoxTurtle(afcUnit):
             success, message, hub_pos = self.calibrate_hub(cur_lane, tol)
 
             if not success:
-                cur_lane.status = None
+                cur_lane.status = AFCLaneState.NONE
                 cur_lane.unit_obj.return_to_home()
                 return False, message, hub_pos
 
@@ -309,7 +309,7 @@ class afcBoxTurtle(afcUnit):
             cur_lane.do_enable(False)
             cur_lane.dist_hub = cal_dist
             self.afc.function.ConfigRewrite(cur_lane.fullname, "dist_hub", cal_dist, cal_msg)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return True, cal_msg, cal_dist
 

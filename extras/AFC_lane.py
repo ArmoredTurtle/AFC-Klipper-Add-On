@@ -416,7 +416,7 @@ class AFCLane:
                         self._perform_pause_runout()
                 elif self.status != "calibrating":
                     self.afc.function.afc_led(self.led_not_ready, self.led_index)
-                    self.status = None
+                    self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
@@ -629,7 +629,7 @@ class AFCLane:
         """
         self.tool_loaded = False
         self.extruder_obj.lane_loaded = ""
-        self.status = None
+        self.status = AFCLaneState.NONE
         self.afc.current = None
         self.afc.current_loading = None
         self.afc.spool.set_active_spool(None)

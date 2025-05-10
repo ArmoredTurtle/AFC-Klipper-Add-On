@@ -676,7 +676,7 @@ class afc:
             cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
         while cur_hub.state:
             cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
-        cur_lane.status = None
+        cur_lane.status = AFCLaneState.NONE
         cur_lane.do_enable(False)
         cur_lane.loaded_to_hub = True
         self.save_vars()
@@ -731,7 +731,7 @@ class afc:
                cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
             cur_lane.move(cur_hub.move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
             cur_lane.do_enable(False)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             # Put CAM back to lane if its loaded to toolhead
             self.function.select_loaded_lane()
@@ -1227,7 +1227,7 @@ class afc:
         # Finalize unloading and reset lane state.
         cur_lane.loaded_to_hub = True
         self.function.afc_led(cur_lane.led_ready, cur_lane.led_index)
-        cur_lane.status = None
+        cur_lane.status = AFCLaneState.NONE
 
         if cur_lane.hub == 'direct':
             while cur_lane.load_state:
