@@ -50,23 +50,51 @@ unlink_extensions() {
   fi
 }
 
+template_unit_files() {
+  local input_file="$1"
+  local output_file="$2"
+
+  case "${installation_type}" in
+    "HTLF") MCU="${htlf_board_type}" ;;
+    "BoxTurtle (4-Lane)") MCU="AFC" ;;
+    "NightOwl") MCU="ERB" ;;
+    *) MCU="UNKNOWN" ;;  # Optional: fallback
+  esac
+
+  export INSTALL_TYPE="${installation_type}"
+  export MCU
+
+  envsubst < "${input_file}" > "${output_file}"
+}
+
 copy_unit_files() {
-  # If we are installing a BoxTurtle, then copy these files over.
-  if [ "$installation_type" == "BoxTurtle (4-Lane)" ]; then
+  case "$installation_type" in
+  "BoxTurtle (4-Lane)")
     cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
-    # If we are installing a NightOwl, then copy these files over.
-  elif [ "$installation_type" == "NightOwl" ]; then
+    ;;
+
+  "NightOwl")
     cp "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
-    # If we are installing a HTLF, then copy these files over.
-  elif [ "$installation_type" == "HTLF" ]; then
-    if [ "$htlf_board_type" == "MMB_1.0" ] || [ "$htlf_board_type" == "MMB_1.1" ]; then
-      htlf_board_type="MMB"
-    fi
+    ;;
+
+  "HTLF")
+    [[ "$htlf_board_type" == "MMB_1.0" || "$htlf_board_type" == "MMB_1.1" ]] && htlf_board_type="MMB"
     cp "${afc_path}/templates/AFC_HTLF_1-${htlf_board_type}.cfg" "${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}.cfg"
     cp "${afc_path}/templates/AFC_Hardware-HTLF.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
-  fi
+    ;;
+
+  "QuattroBox")
+    if [ "${qb_board_type}" == "MMB_1.0" ]; then
+      cp "${afc_path}/templates/AFC_Hardware-QuattroBox.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
+      cp "${afc_path}/templates/AFC_QuattroBox.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+    else
+      cp "${afc_path}/templates/AFC_Hardware-QuattroBox.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
+      cp "${afc_path}/templates/AFC_QuattroBox.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+    fi
+    ;;
+esac
 }
 
 install_afc() {
@@ -88,6 +116,8 @@ install_afc() {
   update_config_value "${afc_file}" "hub_cut" "${hub_cutter}"
   update_config_value "${afc_file}" "kick" "${kick_macro}"
   update_config_value "${afc_file}" "wipe" "${wipe_macro}"
+  echo $toolhead_sensor
+  echo $toolhead_sensor_pin
   if [ "$toolhead_sensor" == "Sensor" ]; then
     update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "${toolhead_sensor_pin}"
   elif [ "$toolhead_sensor" == "Ramming" ]; then

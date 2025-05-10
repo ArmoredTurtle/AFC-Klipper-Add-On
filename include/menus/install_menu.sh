@@ -5,13 +5,47 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+cycle_array() {
+  local -n arr=$1
+  local -n index=$2
+  local var_name=$3
+  index=$(( (index + 1) % ${#arr[@]} ))
+  eval "$var_name=\"\${arr[$index]}\""
+  message="$4: ${!var_name}"
+}
+
+toggle_option() {
+  local var_name=$1
+  local label=$2
+  local current
+  local new_value
+  local status
+
+  current=$(eval "echo \$$var_name")
+
+  if [ "$current" == "True" ]; then
+    new_value="False"
+    status="Disabled"
+  else
+    new_value="True"
+    status="Enabled"
+  fi
+
+  eval "$var_name=\"$new_value\""
+  message="$label $status"
+}
+
 install_menu() {
-  local message
-  local choice
-  local counter
-  local board_counter
+  local message choice counter board_counter motor index i
+  local toggle_items toggle_labels
   counter=0
   board_counter=0
+  motor=0
+
+  toggle_items=("afc_includes" "tip_forming" "toolhead_cutter" "hub_cutter" "kick_macro" "park_macro" "poop_macro" "wipe_macro")
+  toggle_labels=("Add AFC includes?" "Enable tip-forming?" "Enable toolhead cutter?" "Enable hub cutter?" "Enable kick macro?" "Enable park macro?" "Enable poop macro?" "Enable wipe macro?")
+
+
   while true; do
     clear
     if [ "$installation_type" == "BoxTurtle (4-Lane)" ]; then
@@ -88,7 +122,33 @@ printf "
                           \e[49m                   \e[49;38;5;0m▀▀▀▀▀\e[49m             \e[m
 ";
 printf "                      HappyTurtleLettuceFeeder by ArmoredTurtle\n";
+    elif [ "$installation_type" == "QuattroBox" ]; then
+printf "
+                  \e[49m \e[38;5;97;49m▄\e[38;5;97;48;5;97m▄\e[48;5;97m                              \e[38;5;97;48;5;97m▄\e[38;5;97;49m▄\e[49m                \e[m
+                  \e[38;5;97;48;5;97m▄\e[48;5;97m                                  \e[38;5;97;48;5;97m▄\e[49m               \e[m
+                  \e[48;5;97m      \e[38;5;97;48;5;97m▄▄\e[49;38;5;97m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\e[38;5;97;48;5;97m▄▄\e[48;5;97m     \e[38;5;97;48;5;97m▄▄\e[49m              \e[m
+                  \e[48;5;97m       \e[49m                      \e[48;5;97m        \e[49m              \e[m
+                  \e[48;5;97m      \e[38;5;97;48;5;97m▄\e[49m                      \e[48;5;97m        \e[49m              \e[m
+                  \e[48;5;97m       \e[38;5;97;48;5;97m▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\e[49m  \e[48;5;97m        \e[49m              \e[m
+                  \e[49;38;5;97m▀\e[38;5;97;48;5;97m▄\e[48;5;97m                         \e[49m  \e[48;5;97m        \e[49m              \e[m
+                  \e[49m  \e[49;38;5;97m▀▀\e[38;5;97;48;5;97m▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\e[49m  \e[48;5;97m        \e[49m              \e[m
+                  \e[49m              \e[38;5;97;49m▄▄▄▄▄▄▄▄\e[49m       \e[48;5;97m        \e[49m              \e[m
+                  \e[49m              \e[38;5;97;48;5;97m▄▄▄▄▄▄▄▄\e[49m       \e[48;5;97m        \e[49m              \e[m
+                  \e[49m              \e[48;5;97m        \e[49m       \e[38;5;97;48;5;97m▄▄▄▄▄▄▄▄\e[49m              \e[m
+                  \e[49m              \e[48;5;97m        \e[49m        \e[49;38;5;97m▀▀▀▀▀\e[49m                \e[m
+                  \e[49m              \e[48;5;97m        \e[49m  \e[38;5;97;48;5;97m▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\e[38;5;97;49m▄▄\e[49m  \e[m
+                  \e[49m              \e[48;5;97m        \e[49m  \e[48;5;97m                         \e[38;5;97;48;5;97m▄\e[38;5;97;49m▄\e[m
+                  \e[49m              \e[48;5;97m        \e[49m  \e[38;5;97;48;5;97m▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\e[48;5;97m      \e[38;5;97;48;5;97m▄\e[m
+                  \e[49m              \e[48;5;97m        \e[49m                      \e[38;5;97;48;5;97m▄\e[48;5;97m      \e[m
+                  \e[49m              \e[48;5;97m        \e[49m                      \e[48;5;97m       \e[m
+                  \e[49m              \e[38;5;97;48;5;97m▄▄\e[48;5;97m     \e[38;5;97;48;5;97m▄▄\e[38;5;97;49m▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\e[38;5;97;48;5;97m▄▄\e[48;5;97m      \e[m
+                  \e[49m               \e[38;5;97;48;5;97m▄\e[48;5;97m                                  \e[38;5;97;48;5;97m▄\e[m
+                  \e[49m                \e[49;38;5;97m▀\e[38;5;97;48;5;97m▄\e[48;5;97m                             \e[38;5;97;48;5;97m▄▄\e[49;38;5;97m▀\e[49m \e[m
+";
+printf "\n                               QuattroBox by Batalhoti\n";
 fi
+
+
     printf "%b▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ \n" "$MENU_GREEN"
     printf "█%b                                    AFC Script Help      %b                            █\n" "$RESET" "$MENU_GREEN"
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
@@ -97,40 +157,38 @@ fi
     printf "█%b            Please review the following options to configure your system%b             █\n" "$RESET" "$MENU_GREEN"
     printf "█%b           Type a number or letter and press Enter/Return to toggle choice%b           █\n" "$RESET" "$MENU_GREEN"
     printf "%b▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀%b \n" "$MENU_GREEN" "$RESET"
+
     if [ "$files_updated_or_installed" == "False" ]; then
       printf "T. Installation Type: %s \n" "$installation_type"
-      printf "1. Add the AFC includes to the your printer.cfg automatically? : %s \n" "$afc_includes"
-      printf "2. Enable tip-forming? : %s \n" "$tip_forming"
-      printf "3. Enable a toolhead cutter? : %s \n" "$toolhead_cutter"
-      printf "4. Enable a hub cutter? : %s \n" "$hub_cutter"
-      printf "5. Enable the kick macro? : %s \n" "$kick_macro"
-      printf "6. Enable Park Macro? : %s \n" "$park_macro"
-      printf "7. Enable Poop Macro? : %s \n" "$poop_macro"
-      printf "8. Enable Wipe Macro? : %s \n" "$wipe_macro"
+      for i in "${!toggle_items[@]}"; do
+        printf "%s. %s : %s\n" "$((i + 1))" "${toggle_labels[$i]}" "${!toggle_items[$i]}"
+      done
       printf "9. Use a toolhead sensor or ramming with a TN/TN2 buffer? : %s \n" "$toolhead_sensor"
       if [ "$toolhead_sensor" == "Sensor" ]; then
         if [ "$toolhead_sensor_pin" == "Unknown" ]; then
-          printf "A. Toolhead sensor pin: ${RED}%s${RESET} \n" "$toolhead_sensor_pin"
-        else
-          printf "A. Toolhead sensor pin: %s \n" "$toolhead_sensor_pin"
-        fi
+        printf "A. Toolhead sensor pin: ${RED}%s${RESET} \n" "$toolhead_sensor_pin"
+      else
+        printf "A. Toolhead sensor pin: %s \n" "$toolhead_sensor_pin"
       fi
-      if [ "$installation_type" == "BoxTurtle (4-Lane)" ] || [ "$installation_type" == "BoxTurtle (8-Lane)" ]; then
-        printf "B. Buffer type: %s \n" "$buffer_type"
       fi
-      if [ "$installation_type" == "BoxTurtle (4-Lane)" ] || [ "$installation_type" == "BoxTurtle (8-Lane)" ]; then
-        printf "C. BoxTurtle Name: %s \n" "$boxturtle_name"
-      fi
-      if [ "$installation_type" == "HTLF" ]; then
-        printf "D. HTLF Board Type: %s \n" "$htlf_board_type"
-      fi
+      case "$installation_type" in
+        "BoxTurtle (4-Lane)"|"BoxTurtle (8-Lane)")
+          printf "B. Buffer type: %s \n" "$buffer_type"
+          printf "C. BoxTurtle Name: %s \n" "$boxturtle_name"
+          ;;
+        "HTLF")
+          printf "D. HTLF Board Type: %s \n" "$htlf_board_type"
+          ;;
+        "QuattroBox")
+          printf "E. QuattroBox Board Type: %s \n" "$qb_board_type"
+          printf "F. QuattroBox Motor Type: %s \n" "$qb_motor_type"
+          ;;
+      esac
+      echo "I. Install system with current selections"
     fi
-    echo ""
-    if [ "$files_updated_or_installed" == "False" ]; then
-      printf "I. Install system with current selections\n"
-    fi
-    printf "M. Return to Main Menu\n"
-    printf "Q. Quit\n"
+
+    echo "M. Return to Main Menu"
+    echo "Q. Quit"
     echo ""
     read -p "Enter your choice: " choice
 
@@ -138,81 +196,34 @@ fi
 
     case $choice in
       T)
-        # Increment the counter and reset if it exceeds the array length
-        counter=$(( (counter + 1) % ${#installation_options[@]} ))
-
-        # Set the installation type to the current option
-        installation_type="${installation_options[$counter]}"
-
-        # Update the message
-        message="Installation Type: $installation_type"
-        export message ;;
-      1)
-        afc_includes=$([ "$afc_includes" == "True" ] && echo "False" || echo "True")
-        message="AFC Includes $([ "$afc_includes" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      2)
-        tip_forming=$([ "$tip_forming" == "True" ] && echo "False" || echo "True")
-        message="Tip Forming $([ "$tip_forming" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      3)
-        toolhead_cutter=$([ "$toolhead_cutter" == "True" ] && echo "False" || echo "True")
-        message="Toolhead Cutter $([ "$toolhead_cutter" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      4)
-        hub_cutter=$([ "$hub_cutter" == "True" ] && echo "False" || echo "True")
-        message="Hub Cutter $([ "$hub_cutter" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      5)
-        kick_macro=$([ "$kick_macro" == "True" ] && echo "False" || echo "True")
-        message="Kick Macro $([ "$kick_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      6)
-        park_macro=$([ "$park_macro" == "True" ] && echo "False" || echo "True")
-        message="Park Macro $([ "$park_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      7)
-        poop_macro=$([ "$poop_macro" == "True" ] && echo "False" || echo "True")
-        message="Poop Macro $([ "$poop_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
-      8)
-        wipe_macro=$([ "$wipe_macro" == "True" ] && echo "False" || echo "True")
-        message="Wipe Macro $([ "$wipe_macro" == "True" ] && echo "Enabled" || echo "Disabled")"
-        export message ;;
+        cycle_array installation_options counter installation_type "Installation Type" ;;
+      [1-8])
+        index=$((choice - 1))
+        toggle_option "${toggle_items[$index]}" "${toggle_labels[$index]}" ;;
       9)
         toolhead_sensor=$([ "$toolhead_sensor" == "Sensor" ] && echo "Ramming" || echo "Sensor")
-        message=$([ "$toolhead_sensor" == "Sensor" ] && echo "Using toolhead sensor" || echo "Using ramming with a TN/TN2 buffer")
-        export message ;;
+        message=$([ "$toolhead_sensor" == "Sensor" ] && echo "Using toolhead sensor" || echo "Using ramming with a TN/TN2 buffer") ;;
       A)
         read -p "Enter toolhead sensor pin (Example: nhk:gpio13): " toolhead_sensor_pin
-        message="Toolhead sensor pin set to $toolhead_sensor_pin"
-        export message ;;
+        message="Toolhead sensor pin set to $toolhead_sensor_pin" ;;
       B)
-        buffer_type=$(
-          case "$buffer_type" in
-            "TurtleNeck") echo "TurtleNeckV2" ;;
-            "TurtleNeckV2") echo "None" ;;
-            "None" | *) echo "TurtleNeck" ;;
-          esac
-        )
-        message="Buffer Type: $buffer_type"
-        export message ;;
+        buffer_type=$(case "$buffer_type" in "TurtleNeck") echo "TurtleNeckV2";; "TurtleNeckV2") echo "None";; "None"|*) echo "TurtleNeck";; esac)
+        message="Buffer Type: $buffer_type" ;;
       C)
-        name_unit
-        export message ;;
+        name_unit ;;
       D)
-        # Increment the counter and reset if it exceeds the array length
-        board_counter=$(( (board_counter + 1) % ${#htlf_board_types[@]} ))
-
-        # Set the installation type to the current option
-        htlf_board_type="${htlf_board_types[$board_counter]}"
-
-        # Update the message
-        message="HTLF Board Type: $htlf_board_type"
-        export message ;;
-      Q) exit_afc_install ;;
+        cycle_array htlf_board_types board_counter htlf_board_type "HTLF Board Type" ;;
+      E)
+        cycle_array qb_board_types board_counter qb_board_type "QuattroBox Board Type" ;;
+      F)
+        cycle_array qb_motor_types motor qb_motor_type "QuattroBox Motor Type" ;;
+      I)
+        if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
+          backup_afc_config
+        fi
+        install_afc ;;
       M) main_menu ;;
-      I) install_afc ;;
+      Q) exit_afc_install ;;
       *) echo "Invalid selection" ;;
     esac
   done
