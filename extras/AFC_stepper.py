@@ -470,7 +470,6 @@ class AFCExtruderStepper:
         """
         direction = 1 if distance > 0 else -1
         if direction == -1:
-            self.AFC.ERROR.AFC_error("Move: speed {} factor: {}".format(speed, self.rev_long_moves_speed_factor), False )
             speed = speed * self.rev_long_moves_speed_factor
 
         move_total = abs(distance)
