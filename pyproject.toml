@@ -35,7 +35,7 @@ ignore = [
     "E722",
 
     # Ignore missing docstrings for now
-    "D100", "D101", "D102", "D103", "D104", "D105", "D107",
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
