@@ -9,6 +9,8 @@ Thanks for your interest in contributing! Whether it's a bug report, new feature
 2. Make your changes, following the guidelines below.
 3. Submit a [pull request](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/pulls).
 
+**NOTE** All pull requests should be up to date with the latest changes from the `DEV` branch and PRs should be opened against the `DEV` branch.
+
 ## Guidelines
 
 ### Code Style
