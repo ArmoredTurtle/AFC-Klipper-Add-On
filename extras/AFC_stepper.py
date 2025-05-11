@@ -111,6 +111,8 @@ class AFCExtruderStepper:
         self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
+        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.0)     # scalar speed factor when reversing filamentalist 
+
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
 
@@ -310,6 +312,10 @@ class AFCExtruderStepper:
         if self.max_move_dis is None: self.max_move_dis = self.unit_obj.max_move_dis
         if self.n20_break_delay_time is None: self.n20_break_delay_time = self.unit_obj.n20_break_delay_time
 
+
+        if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
+        if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
+
         # Set hub loading speed depending on distance between extruder and hub
         self.dist_hub_move_speed = self.long_moves_speed if self.dist_hub >= 200 else self.short_moves_speed
         self.dist_hub_move_accel = self.long_moves_accel if self.dist_hub >= 200 else self.short_moves_accel
@@ -463,6 +469,10 @@ class AFCExtruderStepper:
         accel (float): The acceleration of the movement.
         """
         direction = 1 if distance > 0 else -1
+        if direction == -1:
+            self.AFC.ERROR.AFC_error("Move: speed {} factor: {}".format(speed, self.rev_long_moves_speed_factor), False )
+            speed = speed * self.rev_long_moves_speed_factor
+
         move_total = abs(distance)
 
         # Breaks up move length to help with TTC errors
