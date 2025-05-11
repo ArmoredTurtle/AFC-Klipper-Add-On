@@ -13,6 +13,19 @@ try:
 except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
+# Class for holding different states so its clear what all valid states are
+class AFCLaneState:
+    NONE             = "None"
+    ERROR            = "Error"
+    LOADED           = "Loaded"
+    TOOLED           = "Tooled"
+    TOOL_LOADED      = "Tool Loaded"
+    TOOL_LOADING     = "Tool Loading"
+    TOOL_UNLOADING   = "Tool Unloading"
+    HUB_LOADING      = "HUB Loading"
+    EJECTING         = "Ejecting"
+    CALIBRATING      = "Calibrating"
+
 class AFCLane:
     def __init__(self, config):
         self.printer            = config.get_printer()
@@ -40,7 +53,7 @@ class AFCLane:
         self.material           = None
         self.extruder_temp      = None
         self.runout_lane        = 'NONE'
-        self.status             = None
+        self.status             = AFCLaneState.NONE
         self.multi_hubs_found   = False
         self.drive_stepper      = None
         unit                    = config.get('unit')                                    # Unit name(AFC_BoxTurtle/NightOwl/etc) that belongs to this stepper.
@@ -342,7 +355,7 @@ class AFCLane:
             - Swaps mapping between current lane and runout lane so correct lane is loaded with T(n) macro
             - Once changeover is successful print is automatically resumed
         """
-        self.status = None
+        self.status = AFCLaneState.NONE
         self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
         self.logger.info("Infinite Spool triggered for {}".format(self.name))
         empty_lane = self.afc.lanes[self.afc.current]
@@ -381,7 +394,7 @@ class AFCLane:
             if not self.afc.error_state:
                 self.afc.LANE_UNLOAD(self)
         # Pause print
-        self.status = None
+        self.status = AFCLaneState.NONE
         msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
         msg += "\nPlease manually load next spool into toolhead and then hit resume to continue"
         self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
@@ -403,7 +416,7 @@ class AFCLane:
                         self._perform_pause_runout()
                 elif self.status != "calibrating":
                     self.afc.function.afc_led(self.led_not_ready, self.led_index)
-                    self.status = None
+                    self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
@@ -429,7 +442,7 @@ class AFCLane:
         for i in range(1):
             # Hacky way for do{}while(0) loop, DO NOT return from this for loop, use break instead so that self.prep_state variable gets sets correctly
             #  before exiting function
-            if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
+            if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != AFCLaneState.TOOL_UNLOADING:
                 # Only try to load when load state trigger is false
                 if self.prep_state == True and self.load_state == False:
                     x = 0
@@ -443,18 +456,18 @@ class AFCLane:
                         self.afc.error.AFC_error("Cannot load spools while printer is actively moving or homing", False)
                         break
 
-                    while self.load_state == False and self.prep_state == True and self.load != None:
+                    while self.load_state == False and self.prep_state == True and self.load is not None:
                         x += 1
                         self.do_enable(True)
                         self.move(10,500,400)
                         self.reactor.pause(self.reactor.monotonic() + 0.1)
                         if x> 40:
-                            msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                            msg = ' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL'
                             self.afc.error.AFC_error(msg, False)
                             self.afc.function.afc_led(self.afc.led_fault, self.led_index)
-                            self.status=''
+                            self.status = AFCLaneState.NONE
                             break
-                    self.status=''
+                    self.status = AFCLaneState.NONE
 
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct and still using load sensor
@@ -471,11 +484,11 @@ class AFCLane:
 
                     self.do_enable(False)
                     if self.load_state == True and self.prep_state == True:
-                        self.status = 'Loaded'
+                        self.status = AFCLaneState.LOADED
                         self.afc.function.afc_led(self.afc.led_ready, self.led_index)
                         self.material = self.afc.default_material_type
 
-                elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != 'ejecting':
+                elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
                         self._perform_runout()
@@ -488,7 +501,7 @@ class AFCLane:
                     message += '\n    Once cleared try loading again'
                     self.afc.error.AFC_error(message, pause=False)
                 else:
-                    self.status = None
+                    self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
@@ -607,7 +620,7 @@ class AFCLane:
         self.tool_loaded = True
         self.afc.current = self.extruder_obj.lane_loaded = self.name
         self.afc.current_loading = None
-        self.status = 'Tooled'
+        self.status = AFCLaneState.TOOLED
         self.afc.spool.set_active_spool(self.spool_id)
 
     def set_unloaded(self):
@@ -616,7 +629,7 @@ class AFCLane:
         """
         self.tool_loaded = False
         self.extruder_obj.lane_loaded = ""
-        self.status = None
+        self.status = AFCLaneState.NONE
         self.afc.current = None
         self.afc.current_loading = None
         self.afc.spool.set_active_spool(None)

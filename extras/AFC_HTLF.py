@@ -4,6 +4,9 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from configparser import Error as error
+
+from extras.AFC_lane import AFCLaneState
+
 try:
     from extras.AFC_BoxTurtle import afcBoxTurtle
 except:
@@ -166,7 +169,7 @@ class AFC_HTLF(afcBoxTurtle):
 
         :return boolean: Returns true if current lane is loaded and printer is printing but lanes status is not ejecting or calibrating
         """
-        return cur_lane.name == self.afc.function.get_current_lane() and self.afc.function.is_printing() and self.status != 'ejecting' and cur_lane.status != "calibrating"
+        return cur_lane.name == self.afc.function.get_current_lane() and self.afc.function.is_printing() and cur_lane.status != AFCLaneState.EJECTING and cur_lane.status != AFCLaneState.CALIBRATING
 
 def load_config_prefix(config):
     return AFC_HTLF(config)

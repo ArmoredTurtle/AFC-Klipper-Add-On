@@ -6,6 +6,8 @@
 
 import logging
 from extras.AFC import State
+from extras.AFC_lane import AFCLaneState
+
 
 def load_config(config):
     return afcError(config)
@@ -230,7 +232,7 @@ class afcError:
     def handle_lane_failure(self, cur_lane, message, pause=True):
         # Disable the stepper for this lane
         cur_lane.do_enable(False)
-        cur_lane.status = 'Error'
+        cur_lane.status = AFCLaneState.ERROR
         msg = "{} {}".format(cur_lane.name, message)
         self.AFC_error(msg, pause)
         self.afc.function.afc_led(self.afc.led_fault, cur_lane.led_index)

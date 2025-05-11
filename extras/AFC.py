@@ -9,6 +9,8 @@ import re
 from configfile import error
 from typing import Any
 
+from extras.AFC_lane import AFCLaneState
+
 try:
     from urllib.request import urlopen
 except:
@@ -663,7 +665,7 @@ class afc:
         cur_lane = self.lanes[lane]
         cur_hub = cur_lane.hub_obj
         if not cur_lane.prep_state: return
-        cur_lane.status = 'HUB Loading'
+        cur_lane.status = AFCLaneState.HUB_LOADING
         if not cur_lane.load_state:
             cur_lane.do_enable(True)
             while not cur_lane.load_state:
@@ -674,7 +676,7 @@ class afc:
             cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
         while cur_hub.state:
             cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
-        cur_lane.status = None
+        cur_lane.status = AFCLaneState.NONE
         cur_lane.do_enable(False)
         cur_lane.loaded_to_hub = True
         self.save_vars()
@@ -719,7 +721,7 @@ class afc:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
-            cur_lane.status = 'ejecting'
+            cur_lane.status = AFCLaneState.EJECTING
             self.save_vars()
             cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
@@ -729,7 +731,7 @@ class afc:
                cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
             cur_lane.move(cur_hub.move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
             cur_lane.do_enable(False)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             # Put CAM back to lane if its loaded to toolhead
             self.function.select_loaded_lane()
@@ -816,7 +818,7 @@ class afc:
         self.current_loading = cur_lane.name
 
         # Set the lane status to 'loading' and activate the loading LED.
-        cur_lane.status = 'Tool Loading'
+        cur_lane.status = AFCLaneState.TOOL_LOADING
         self.save_vars()
         self.function.afc_led(cur_lane.led_loading, cur_lane.led_index)
 
@@ -877,7 +879,7 @@ class afc:
             self.afcDeltaTime.log_with_time("Filament loaded to pre-sensor")
 
             # Synchronize lane's extruder stepper and finalize tool loading.
-            cur_lane.status = 'Tool Loaded'
+            cur_lane.status = AFCLaneState.TOOL_LOADED
             self.save_vars()
             cur_lane.sync_to_extruder()
 
@@ -1037,7 +1039,7 @@ class afc:
         self.current_state  = State.UNLOADING
         self.current_loading = cur_lane.name
         self.logger.info("Unloading {}".format(cur_lane.name))
-        cur_lane.status = 'Tool Unloading'
+        cur_lane.status = AFCLaneState.TOOL_UNLOADING
         self.save_vars()
 
         # Verify that printer is in absolute mode
@@ -1225,7 +1227,7 @@ class afc:
         # Finalize unloading and reset lane state.
         cur_lane.loaded_to_hub = True
         self.function.afc_led(cur_lane.led_ready, cur_lane.led_index)
-        cur_lane.status = None
+        cur_lane.status = AFCLaneState.NONE
 
         if cur_lane.hub == 'direct':
             while cur_lane.load_state:
