@@ -9,11 +9,11 @@ body:
       value: |
         Thanks for taking the time to fill out this issue!
   - type: textarea
-    id: Other issue
+    id: other
     attributes:
       label: What is the issue?
-      description: Please give us a detailed explanation of your issue if it isn't covered by a bug report or 
-    feature request. 
+      description: Please give us a detailed explanation of your issue if it isn't covered by a bug report or feature
+        request.
       placeholder: Overview of the issue
       value: "I have an issue"
     validations:
