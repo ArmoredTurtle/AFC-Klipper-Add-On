@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-11]
+### Changed
+
+- The `install-afc.sh` script will remove any `velocity` settings present in the `[AFC_buffer <buffer_name>]` 
+  section of the configuration files as they are no longer needed.
+
 ## [2025-05-01]
 ### Added
 - Print assist is now filament usage based and will activate spool after a specified amount of filament is used. This is enabled by default.
