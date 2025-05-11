@@ -5,13 +5,6 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import json
-try:
-    from urllib.request import urlopen
-    import urllib.parse as urlparse
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
-    import urlparse
 
 class AFCSpool:
     def __init__(self, config):
@@ -78,10 +71,12 @@ class AFCSpool:
         self.afc.tool_cmds[map_cmd]=lane
         map_switch=cur_lane.map
         cur_lane.map=map_cmd
+        cur_lane.send_lane_data()
 
         sw_lane = self.afc.lanes[lane_switch]
         self.afc.tool_cmds[map_switch]=lane_switch
         sw_lane.map=map_switch
+        sw_lane.send_lane_data()
         self.afc.save_vars()
 
     cmd_SET_COLOR_help = "Set filaments color for a lane"
@@ -111,6 +106,7 @@ class AFCSpool:
             return
         cur_lane = self.afc.lanes[lane]
         cur_lane.color = '#{}'.format(color.replace('#',''))
+        cur_lane.send_lane_data()
         self.afc.save_vars()
 
     cmd_SET_WEIGHT_help = "Sets filaments weight for a lane"
@@ -167,6 +163,7 @@ class AFCSpool:
             return
         cur_lane = self.afc.lanes[lane]
         cur_lane.material = material
+        cur_lane.send_lane_data()
         self.afc.save_vars()
 
     def set_active_spool(self, ID):
@@ -235,6 +232,7 @@ class AFCSpool:
         cur_lane.color = ''
         cur_lane.weight = ''
         cur_lane.extruder_temp = None
+        cur_lane.bed_temp = None
         cur_lane.material = None
 
     def set_spoolID(self, cur_lane, SpoolID, save_vars=True):
@@ -246,6 +244,7 @@ class AFCSpool:
 
                     cur_lane.material       = self._get_filament_values(result['filament'], 'material')
                     cur_lane.extruder_temp  = self._get_filament_values(result['filament'], 'settings_extruder_temp')
+                    cur_lane.bed_temp       = self._get_filament_values(result['filament'], 'settings_bed_temp')
                     cur_lane.weight         = self._get_filament_values(result, 'remaining_weight')
                     # Check to see if filament is defined as multi color and take the first color for now
                     # Once support for multicolor is added this needs to be updated
@@ -253,6 +252,8 @@ class AFCSpool:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'multi_color_hexes').split(",")[0])
                     else:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'color_hex'))
+
+                    cur_lane.send_lane_data()
 
                 except Exception as e:
                     self.afc.error.AFC_error("Error when trying to get Spoolman data for ID:{}, Error: {}".format(SpoolID, e), False)

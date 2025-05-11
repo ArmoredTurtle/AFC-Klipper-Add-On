@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configfile import error
+from datetime import datetime
 try:
     from extras.AFC_respond import AFCprompt
 except:
@@ -118,9 +119,12 @@ class afcUnit:
         # Send out event so lanes can store units object
         self.printer.send_event("AFC_unit_{}:connect".format(self.name), self)
 
+        self.gcode.register_mux_command("TEST_TD", "UNIT", self.name, self.cmd_TEST_TD)
         self.gcode.register_mux_command('UNIT_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_CALIBRATION, desc=self.cmd_UNIT_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_LANE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_LANE_CALIBRATION, desc=self.cmd_UNIT_LANE_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
+        if self.afc.td1_present:
+            self.gcode.register_mux_command('UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_UNIT_TD_ONE_CALIBRATION_help)
 
     def get_status(self, eventtime=None):
         response = {}
@@ -159,6 +163,8 @@ class afcUnit:
         # Selection buttons
         buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
         buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
+        if self.afc.td1_present:
+            buttons.append(("Calibrate TD-1 Length", "UNIT_TD_ONE_CALIBRATION UNIT={}".format(self.name), "primary"))
         # Button back to previous step
         back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
 
@@ -226,12 +232,12 @@ class afcUnit:
 
         Usage
         -----
-        `UNIT_CALIBRATION UNIT=<unit>`
+        `UNIT_BOW_CALIBRATION UNIT=<unit>`
 
         Example
         -----
         ```
-        UNIT_CALIBRATION UNIT=Turtle_1
+        UNIT_BOW_CALIBRATION UNIT=Turtle_1
         ```
         """
         prompt = AFCprompt(gcmd, self.logger)
@@ -239,7 +245,7 @@ class afcUnit:
         group_buttons = []
         title = 'Bowden Calibration {}'.format(self.name)
         text = ('Select a loaded lane from {} to measure Bowden length. '
-                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT. '
+                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT/hub.'
                 'Config option: afc_bowden_length').format(self.name)
 
         for index, lane in enumerate(self.lanes):
@@ -248,6 +254,57 @@ class afcUnit:
                 # Create a button for each lane
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC BOWDEN={}".format(lane)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                group_buttons.append((button_label, button_command, button_style))
+
+                # Add group to buttons list after every 4 lanes
+                if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                    buttons.append(list(group_buttons))
+                    group_buttons = []
+
+        if group_buttons:
+            buttons.append(list(group_buttons))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons == 0:
+            text = 'No lanes are loaded, please load before calibration'
+
+        back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
+
+        prompt.create_custom_p(title, text, None,
+                               True, buttons, back)
+
+    cmd_UNIT_TD_ONE_CALIBRATION_help = 'open prompt to calibrate the td1_bowden_length from a lane in the unit'
+    def cmd_UNIT_TD_ONE_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to calibrate the Bowden length to a TD1 device for a specific lane in the selected unit. Provides buttons
+        for each lane, with a note to only calibrate one lane per unit.
+
+        Usage
+        -----
+        `UNIT_TD_ONE_CALIBRATION UNIT=<unit>`
+
+        Example
+        -----
+        ```
+        UNIT_TD_ONE_CALIBRATION UNIT=Turtle_1
+        ```
+        """
+        prompt = AFCprompt(gcmd, self.logger)
+        buttons = []
+        group_buttons = []
+        title = 'TD-1 Bowden Calibration {}'.format(self.name)
+        text = ('Select a loaded lane from {} to measure Bowden length to your TD-1 Device. '
+                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT/hub. '
+                'WARNING: This could take some time to complete. '
+                'Config option: afc_bowden_length').format(self.name)
+
+        for index, lane in enumerate(self.lanes):
+            cur_lane = self.lanes[lane]
+            if cur_lane.load_state:
+                # Create a button for each lane
+                button_label = "{}".format(lane)
+                button_command = "CALIBRATE_AFC TD1={} DISTANCE=50".format(lane)
                 button_style = "primary" if index % 2 == 0 else "secondary"
                 group_buttons.append((button_label, button_command, button_style))
 
@@ -297,6 +354,9 @@ class afcUnit:
     def calibrate_bowden(self, cur_lane, dis, tol):
         self._print_function_not_defined(self.calibrate_bowden.__name__)
 
+    def calibrate_td1(self, cur_lane, dis, tol):
+        self._print_function_not_defined(self.calibrate_bowden.__name__)
+
     def calibrate_hub(self, cur_lane, tol):
         self._print_function_not_defined(self.calibrate_hub.__name__)
 
@@ -308,3 +368,20 @@ class afcUnit:
 
     def calibrate_lane(self, cur_lane, tol):
         self._print_function_not_defined(self.calibrate_lane.__name__)
+
+    def cmd_TEST_TD(self, gcmd):
+        lane = gcmd.get("LANE")
+        self.get_td1_data( self.lanes[lane] )
+
+    def get_td1_data(self, cur_lane, compare_time):
+        td1_data = self.afc.moonraker.get_td1_data()
+        # TODO: check for specific id if specified
+        if len(td1_data) > 0:
+            self.logger.debug(f"Data: {td1_data}, Compare_time: {compare_time}")
+            data = list(td1_data.values())[0]
+            scan_time = datetime.fromisoformat( data["scan_time"][:-1]+"+00:00" ).astimezone()
+            if scan_time > compare_time.astimezone() and data['td'] is not None and data['color'] is not None:
+                cur_lane.td1_data = data
+                self.logger.info(f"{cur_lane.name} TD-1 data captured")
+                return True
+        return False

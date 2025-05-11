@@ -14,6 +14,7 @@ class afcPrep:
         self.delay              = config.getfloat('delay_time', 0.1, minval=0.0)                # Time to delay when moving extruders and spoolers during PREP routine
         self.enable             = config.getboolean("enable", False)                            # Set True to disable PREP checks
         self.dis_unload_macro   = config.getboolean("disable_unload_filament_remapping", False) # Set to True to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD macro
+        self.get_td1_data       = config.getboolean("capture_td1_data", False)                  # Set to True to capture TD-1 data for all lanes during prep
 
         # Flag to set once resume rename as occurred for the first time
         self.rename_occurred = False
@@ -62,8 +63,10 @@ class afcPrep:
                 self._rename(self.afc.BASE_UNLOAD_FILAMENT, self.afc.RENAMED_UNLOAD_FILAMENT, self.afc.cmd_TOOL_UNLOAD, self.afc.cmd_TOOL_UNLOAD_help)
 
     def PREP(self, gcmd):
+        overrall_status = True
         while self.printer.state_message != 'Printer is ready':
             self.afc.reactor.pause(self.afc.reactor.monotonic() + 1)
+
         self._rename_macros()
         self.afc.print_version(console_only=True)
 
@@ -112,8 +115,11 @@ class afcPrep:
                     # Check for loaded_to_hub as this is how its being saved version > 1030
                     if 'loaded_to_hub' in units[cur_lane.unit][cur_lane.name]: cur_lane.loaded_to_hub = units[cur_lane.unit][cur_lane.name]['loaded_to_hub']
                     if 'tool_loaded' in units[cur_lane.unit][cur_lane.name]: cur_lane.tool_loaded = units[cur_lane.unit][cur_lane.name]['tool_loaded']
+                    if 'td1_data' in units[cur_lane.unit][cur_lane.name]: cur_lane.td1_data = units[cur_lane.unit][cur_lane.name]['td1_data']
                     # Commenting out until there is better handling of this variable as it could cause someone to not be able to load their lane if klipper crashes
                     # if 'status' in units[cur_lane.unit][cur_lane.name]: cur_lane.status = units[cur_lane.unit][cur_lane.name]['status']
+
+                    # TODO: Load previous TD1 data
 
         for unit in self.afc.units.keys():
             try: cur_unit = self.afc.units[unit]
@@ -142,17 +148,33 @@ class afcPrep:
                 self.logger.raw(cur_unit.logo)
             else:
                 self.logger.raw(cur_unit.logo_error)
+            overrall_status = overrall_status and LaneCheck
         try:
             if self.afc._get_bypass_state():
                 self.logger.info("Filament loaded in bypass, toolchanges deactivated")
         except:
             pass
 
+        capture_td1_data = self.get_td1_data and self.afc.td1_present
         # look up what current lane should be an call select lane, this is more for units that
         # have selectors to make sure the selector is on the correct lane
         current_lane = self.afc.function.get_current_lane_obj()
         if current_lane is not None:
             current_lane.unit_obj.select_lane(current_lane)
+            if capture_td1_data:
+                self.logger.info("Cannot capture TD-1 data during PREP since toolhead is loaded")
+        elif capture_td1_data:
+            if not overrall_status:
+                self.logger.info("Cannot capture TD-1 data, not all of PREP succeeded")
+            else:
+                self.logger.info("Capturing TD-1 data for all loaded lanes")
+                for lane in self.afc.lanes.values():
+                    if lane.load_state and lane.prep_state:
+                        return_status = lane.get_td1_data()
+                        if not return_status:
+                            self.afc.error.AFC_error("Detected error when trying to capture TD-1 data, aborting!!", pause=False)
+                            break
+                self.logger.info("Done capturing TD-1 data")
 
         # Restore previous bypass state if virtual bypass is active
         if 'virtual' in self.afc.bypass.name:

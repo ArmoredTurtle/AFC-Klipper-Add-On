@@ -64,6 +64,8 @@ class afcFunction:
         self.afc.gcode.register_command('AFC_HAPPY_P',     self.cmd_AFC_HAPPY_P,     desc=self.cmd_AFC_HAPPY_P_help)
         self.afc.gcode.register_command('AFC_RESET',       self.cmd_AFC_RESET,       desc=self.cmd_AFC_RESET_help)
         self.afc.gcode.register_command('AFC_LANE_RESET',  self.cmd_AFC_LANE_RESET,  desc=self.cmd_AFC_LANE_RESET_help)
+        self.afc.gcode.register_command('GET_TD_ONE_DATA',  self.cmd_GET_TD_ONE_DATA)
+        self.afc.gcode.register_command('GET_TD_ONE_LANE_DATA',  self.cmd_GET_TD_ONE_LANE_DATA)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -473,6 +475,7 @@ class afcFunction:
         afc_bl = gcmd.get(      'BOWDEN'   , None)
         lanes  = gcmd.get(      'LANE'     , None)
         unit   = gcmd.get(      'UNIT'     , None)
+        td1    = gcmd.get(      'TD1'      , None)
 
         prompt.p_end()
 
@@ -482,6 +485,7 @@ class afcFunction:
 
         calibrated = []
         checked    = False
+
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.afc.lanes:
             self.afc.error.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)
@@ -494,6 +498,9 @@ class afcFunction:
         if afc_bl is not None and afc_bl not in self.afc.lanes:
             self.afc.error.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
+
+        if td1 is not None and not self.afc.td1_present:
+            self.afc.error.AFC_error("TD-1 is not present, will not be able to calibrate bowden length for TD-1", pause=False)
 
         # Determine if a specific lane is provided
         if lanes is not None:
@@ -581,6 +588,22 @@ class afcFunction:
             if set_tool_start_back_to_none:
                 cur_lane.extruder_obj.tool_start = None
 
+        if td1 is not None and self.afc.td1_present:
+            td1_lane = self.afc.lanes[td1]
+            if td1_lane.hub_obj.state:
+                self.afc.error.AFC_error(f"{td1_lane.hub_obj.name} hub is triggered, make sure hub is clear before trying to calibrate TD-1 bowden length", pause=False)
+                return
+
+            checked, msg, pos = td1_lane.unit_obj.calibrate_td1( td1_lane, dis, tol)
+            if not checked:
+                fail_string = f"'{td1} failed to calibrate bowden length {msg}'"
+                self.afc.error.AFC_error(fail_string, pause=False)
+                self.afc.gcode.run_script_from_command(f'AFC_CALI_FAIL FAIL={td1} DISTANCE={pos} msg={fail_string}')
+                return
+            else:
+                calibrated.append(f"'TD1_Bowden_length: {td1}'")
+
+
         if checked:
             lanes_calibrated = ','.join(calibrated)
             self.afc.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(lanes_calibrated))
@@ -643,7 +666,6 @@ class afcFunction:
         footer = []
         title = '{} Completed'.format(step)
         text = 'Happy Printing!'
-        footer.append(('EXIT', 'prompt_end', 'info'))
         prompt.create_custom_p(title, text, buttons,
                                False, None, footer)
         self.afc.reactor.pause(self.afc.reactor.monotonic() + 3)
@@ -674,12 +696,15 @@ class afcFunction:
 
         cali = gcmd.get("FAIL", None)
         dis = gcmd.get("DISTANCE", None)
+        fail_message = gcmd.get("MSG", "")
 
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         footer = []
         title = 'AFC Calibration Failed'
-        text = 'Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'.format(cali)
+        text = 'Calibration failed for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'.format(cali)
+        if fail_message:
+            text += f" Fail message: {fail_message}"
         buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
         footer.append(('EXIT', 'prompt_end', 'info'))
 
@@ -807,6 +832,66 @@ class afcFunction:
         cur_lane.do_enable(False)
 
         self.afc.gcode.respond_info('{} reset to hub, take necessary action'.format(lane))
+
+    def cmd_GET_TD_ONE_DATA(self, gcmd):
+        prompt = AFCprompt(gcmd, self.logger)
+        buttons = []
+        group_buttons = []
+        index = 0
+        title = 'Capture TD-1 Data'
+        text  = ('Select a loaded lane to capture TD-1 data, or select ALL. ')
+
+        # Create buttons for each lane and group every 4 lanes together
+        for lane in self.afc.lanes.values():
+            if lane.load_state:
+                button_label = "{}".format(lane)
+                button_command = "GET_TD_ONE_LANE_DATA LANE={}".format(lane)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                group_buttons.append((button_label, button_command, button_style))
+
+                # Add group to buttons list after every 4 lanes
+                if (index + 1) % 2 == 0 or index == len(self.afc.lanes) - 1:
+                    buttons.append(list(group_buttons))
+                    group_buttons = []
+                index += 1
+
+        if group_buttons:
+            buttons.append(list(group_buttons))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons > 1:
+            all_lanes = [('All lanes', 'GET_TD_ONE_LANE_DATA LANE=all', "default")]
+        else:
+            all_lanes = None
+        if total_buttons == 0:
+            text = 'No lanes are loaded, please load before calibration'
+
+        prompt.create_custom_p(title, text, all_lanes,
+                               True, buttons, None)
+
+    def cmd_GET_TD_ONE_LANE_DATA(self, gcmd):
+        prompt = AFCprompt(gcmd, self.logger)
+        lane = gcmd.get("LANE")
+        lanes_captured = []
+        prompt.p_end()
+        if lane.lower() == "all":
+            self.logger.info("Capturing TD-1 data for all lanes")
+            for cur_lane in self.afc.lanes.values():
+                cur_lane.get_td1_data()
+
+            lanes_captured = "'TD-1 Data captured for all lanes'"
+        else:
+            if lane in self.afc.lanes:
+                self.logger.info(f"Capturing TD-1 data for {lane}")
+                cur_lane = self.afc.lanes[lane]
+                cur_lane.get_td1_data()
+                lanes_captured = f"'TD-1 Data captured for {cur_lane.name}'"
+            else:
+                fail_message = f"'{lane} not valid lane, cannot capture TD-1 data'"
+                self.afc.error.AFC_error(fail_message, pause=False)
+                self.afc.gcode.run_script_from_command(f'AFC_CALI_FAIL FAIL={lane} msg={fail_message}')
+                return
+        self.afc.gcode.run_script_from_command('AFC_HAPPY_P STEP={}'.format(lanes_captured))
 
     def _calc_length(self, config_length, current_length, new_length):
         """

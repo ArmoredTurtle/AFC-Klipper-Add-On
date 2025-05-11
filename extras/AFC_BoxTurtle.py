@@ -5,6 +5,8 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configparser import Error as error
+from datetime import datetime
+
 try:
     from extras.AFC_unit import afcUnit
 except:
@@ -100,6 +102,10 @@ class afcBoxTurtle(afcUnit):
                             return False
 
         if assignTcmd: self.afc.function.TcmdAssign(cur_lane)
+
+        # Now that a T command is assigned, send lane data to moonraker
+        cur_lane.send_lane_data()
+
         cur_lane.do_enable(False)
         self.logger.info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=cur_lane.name, tcmd=cur_lane.map, msg=msg))
         cur_lane.set_afc_prep_done()
@@ -115,7 +121,7 @@ class afcBoxTurtle(afcUnit):
                                                              cur_lane.short_move_dis, 0, cur_lane.dist_hub + 200, "Moving to hub")
 
         if not success:
-            # if movement does not suceed fault and return values to calibration macro
+            # if movement does not succeed fault and return values to calibration macro
             msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
             return False, msg, hub_pos
 
@@ -170,6 +176,44 @@ class afcBoxTurtle(afcUnit):
             return True, "afc_bowden_length successful", bowden_dist
         else:
             self.logger.info('CALIBRATE_AFC is not currently supported without tool start sensor')
+            return False, "CALIBRATE_AFC is not currently supported without tool start sensor", 0
+
+    def calibrate_td1(self, cur_lane, dis, tol):
+        bow_pos = 0
+        cur_hub = cur_lane.hub_obj
+        self.logger.raw(f"Calibrating bowden length to TD-1 device with {cur_lane.name}")
+        hub_pos, checkpoint, success = self.move_until_state(cur_lane, lambda: cur_hub.state, cur_hub.move_dis, tol,
+                                                             cur_lane.short_move_dis, 0, cur_lane.dist_hub + 200, "Moving to hub")
+
+        if not success:
+            # if movement does not succeed fault and return values to calibration macro
+            msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
+            return False, msg, hub_pos
+
+        compare_time = datetime.now()
+        while not self.get_td1_data(cur_lane, compare_time):
+            if bow_pos > cur_hub.afc_bowden_length:
+                # fault if move to TD1 is not detected
+                msg = 'TD-1 failed to detect filament after moving {}mm'.format(bow_pos)
+                return False, msg, bow_pos # TODO: is return the right thing to do here.....
+
+            compare_time = datetime.now()
+            bow_pos += dis
+
+            cur_lane.move(dis, self.short_moves_speed, self.short_moves_accel)
+            self.afc.reactor.pause(self.afc.reactor.monotonic() + 5)
+
+        cur_lane.move(bow_pos * -1, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
+
+        while( cur_hub.state ):
+            # TODO: Add timeout logic here
+            cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+
+        cur_lane.move(cur_hub.hub_clear_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+        cur_hub.td1_bowden_length = bow_pos
+        self.afc.save_vars()
+        self.logger.info(f"td1_bowden_length: {bow_pos}")
+        return True, "td1_bowden_length calibration successful", bow_pos
 
     # Helper functions for movement and calibration
     def calibrate_hub(self, cur_lane, tol):
@@ -202,7 +246,7 @@ class afcBoxTurtle(afcUnit):
         return True, msg, tuned_hub_pos
 
     def move_until_state(self, cur_lane, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
-        # moves filament until specified sensor, returns values for further czlibration
+        # moves filament until specified sensor, returns values for further calibration
         while not state():
             cur_lane.move(move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
             pos += move_dis

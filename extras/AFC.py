@@ -9,12 +9,6 @@ import re
 from configfile import error
 from typing import Any
 
-try:
-    from urllib.request import urlopen
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
-
 try: from extras.AFC_logger import AFC_logger
 except: raise error("Error trying to import AFC_logger, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
@@ -60,15 +54,17 @@ class afc:
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
-        self.current        = None
-        self.current_loading= None
-        self.next_lane_load = None
-        self.error_state    = False
-        self.current_state  = State.INIT
-        self.position_saved = False
-        self.spoolman       = None
-        self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
-        self.in_print_timer = None
+        self.current            = None
+        self.current_loading    = None
+        self.next_lane_load     = None
+        self.error_state        = False
+        self.current_state      = State.INIT
+        self.position_saved     = False
+        self.spoolman           = None
+        self.td1_present        = False
+        self.lane_data_enabled  = False
+        self.prep_done          = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
+        self.in_print_timer     = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -243,6 +239,7 @@ class afc:
         try:
             self.moonraker = AFC_moonraker( moonraker_port, self.logger )
             self.spoolman = self.moonraker.get_spoolman_server()
+            self.td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker)
             self.afc_stats.tc_total.increase_count()
             self.afc_stats.tc_total.value = -1
@@ -279,9 +276,8 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
-    
+
     def _reset_file_callback(self):
-        
         # Set timer to check back to see if printer is printing. This is needed as file and print status is set after
         #  this callback
         self.in_print_timer = self.reactor.register_timer( self.in_print_reactor_timer, self.reactor.monotonic() + 5 )
@@ -297,9 +293,8 @@ class afc:
             # Gather file filament change count from moonraker
             self.number_of_toolchanges  = self.moonraker.get_file_filament_change_count(print_filename)
             self.current_toolchange     = -1 # Reset
-        
+
         return self.reactor.NEVER
-        
 
     def _get_default_material_temps(self, cur_lane):
         """
@@ -1407,6 +1402,8 @@ class afc:
         str["current_toolchange"]       = self.current_toolchange
         str["number_of_toolchanges"]    = self.number_of_toolchanges
         str['spoolman']                 = self.spoolman
+        str["td1_present"]              = self.td1_present
+        str["lane_data_enabled"]        = self.lane_data_enabled
         str['error_state']              = self.error_state
         str["bypass_state"]             = bool(self._get_bypass_state())
         str["position_saved"]           = self.position_saved
@@ -1446,6 +1443,8 @@ class afc:
         str["system"]['num_lanes']              = numoflanes
         str["system"]['num_extruders']          = len(self.tools)
         str["system"]['spoolman']               = self.spoolman
+        str["system"]["td1_present"]            = self.td1_present
+        str["system"]["lane_data_enabled"]      = self.lane_data_enabled
         str["system"]["current_toolchange"]     = self.current_toolchange
         str["system"]["number_of_toolchanges"]  = self.number_of_toolchanges
         str["system"]["extruders"]              = {}

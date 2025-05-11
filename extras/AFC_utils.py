@@ -6,9 +6,9 @@
 
 # File is used to hold common functions that can be called from anywhere and don't belong to a class
 import json
+import re
 from sys import settrace
 
-from urllib import request
 from urllib.request import (
     Request,
     urlopen
@@ -57,8 +57,9 @@ class AFC_moonraker:
         try:
             resp = json.load(urlopen(url_string))
         except:
+            # TODO: throw error here
             resp = None
-        return resp        
+        return resp
 
     def get_spoolman_server(self):
         resp = self._get_results(urljoin(self.local_host, 'server/config'))
@@ -67,22 +68,35 @@ class AFC_moonraker:
         else:
             return None
 
+    def check_for_td1(self):
+        td1 = False
+        lane_data = False
+        resp = self._get_results(urljoin(self.local_host, 'server/config'))
+        if resp is not None:
+            if "td1" in resp['result']['orig']:
+                td1_data = self.get_td1_data()
+                if td1_data is not None and len(td1_data) > 0:
+                    td1 = True
+
+            if "lane_data" in resp['result']['orig']:
+                lane_data = True
+        return td1, lane_data
+
     def get_file_filament_change_count(self, filename ):
         change_count = 0
         resp = self._get_results(urljoin(self.local_host, 'server/files/metadata?filename={}'.format(filename)))
         if resp is not None and 'filament_change_count' in resp['result']:
             change_count =  resp['result']['filament_change_count']
         return change_count
-    
+
     def get_afc_stats(self):
         resp = None
-        req = Request(self.database_url)
         resp = self._get_results(urljoin(self.database_url, "?namespace=afc_stats"))
         if resp is None:
             self.logger.info("AFC_stats not in database")
-        
+
         return resp
-    
+
     def update_afc_stats(self, key, value):
         post_payload = {
             "request_method": "POST",
@@ -90,25 +104,41 @@ class AFC_moonraker:
             "key": key,
             "value": value
         }
-        req = Request(self.database_url, urlencode(post_payload).encode())
+        req = Request( url=self.database_url, data=urlencode(post_payload).encode())
         resp = self._get_results(req)
-    
+
     def get_spool(self, id):
 
         request_payload = {
             "request_method": "GET",
             "path": f"/v1/spool/{id}"
         }
-        spool_url = urljoin(self.local_host, f'server/spoolman/proxy')
-        req = Request( spool_url, urlencode(request_payload).encode() )
+        spool_url = urljoin(self.local_host, 'server/spoolman/proxy')
+        req = Request( url=spool_url, data=urlencode(request_payload).encode() )
         resp = self._get_results(req)
         return resp['result']
+
+    def get_td1_data(self):
+        url = urljoin(self.local_host, "machine/td1_data")
+        req = Request(url=url)
+        resp = self._get_results(req)
+        if resp is not None and "devices" in resp["result"]:
+            return resp["result"]["devices"]
+        else:
+            return None
+
+    def send_lane_data(self, data):
+        url = urljoin( self.local_host, '/machine/set_lane_data')
+        req = Request( url=url, data=json.dumps(data).encode(),
+                       method="POST", headers={"Content-Type": "application/json"})
+        if self._get_results(req) is None:
+            self.logger.error("Error sending lane data")
 
 def check_and_return( value_str, data_values ):
     value = 0
     if value_str in data_values:
         value = data_values[value_str]
-    
+
     return value
 
 class AFCStats_var:
@@ -129,19 +159,19 @@ class AFCStats_var:
     def value(self, value):
         self._value = value
         self.update_database()
-    
+
     def increase_count(self):
         self.value += 1
         self.update_database()
-    
+
     def reset_count(self):
         self.value = 0
         self.update_database()
-    
+
     def update_database(self):
         self.moonraker.update_afc_stats(f"{self.parent_name}.{self.name}", self.value)
         return
-    
+
     def set_current_time(self):
         from datetime import datetime
         time = datetime.now()
@@ -150,10 +180,10 @@ class AFCStats_var:
 
 class AFCStats:
     def __init__(self, moonraker):
-        
+
         self.moonraker = moonraker
         afc_stats = self.moonraker.get_afc_stats()
-        
+
         if afc_stats is not None:
             values = ["values"]
         else:
@@ -164,7 +194,7 @@ class AFCStats:
         self.tc_tool_load       = AFCStats_var("toolchange_count", "tool_load", values, self.moonraker)
         self.tc_without_error   = AFCStats_var("toolchange_count", "changes_without_error", values, self.moonraker)
         self.tc_last_load_error = AFCStats_var("toolchange_count", "last_load_error", values, self.moonraker) # TimeDateValue
-        
+
         if self.tc_last_load_error.value == 0:
             self.tc_last_load_error.set_current_time()
 
@@ -178,7 +208,6 @@ class AFCStats:
         self.average_tool_load_time     = AFCStats_var("average_time", "tool_load",   values, self.moonraker)
 
     def print_stats(self, afc_obj):
-        
         print_str  = f"{'':{'-'}<87}\n"
         print_str += f"|{'Toolchanges':{' '}^42}|{'Cut':{' '}^42}|\n"
         print_str += f"|{'':{'-'}<85}|\n"

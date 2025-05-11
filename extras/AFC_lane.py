@@ -6,6 +6,7 @@
 import math
 from contextlib import contextmanager
 from configfile import error
+from datetime import datetime
 
 from . import AFC_assist
 try:
@@ -24,7 +25,7 @@ class AFCLaneStats:
             values = None
         self.n20_runtime       = AFCStats_var(lane_name, "n20_runtime", values, lane_obj.afc.moonraker)
         self.lane_change_count = AFCStats_var(lane_name, "change_count", values, lane_obj.afc.moonraker)
-    
+
     def increment_lane_count(self):
         self.lane_change_count.increase_count()
         return
@@ -56,6 +57,8 @@ class AFCLane:
         self.weight             = None
         self.material           = None
         self.extruder_temp      = None
+        self.bed_temp           = None
+        self.td1_data           = {}
         self.runout_lane        = 'NONE'
         self.status             = None
         self.multi_hubs_found   = False
@@ -688,6 +691,65 @@ class AFCLane:
             return self.buffer_obj.trailing_state
         else: return None
 
+    def send_lane_data(self):
+        if self.afc.lane_data_enabled and "T" in self.map:
+            color = self.color
+            if "color" in self.td1_data:
+                color = f"#{self.td1_data['color']}"
+            lane_number = self.map.replace("T", "")
+            lane_data = {"data": { self.name : {
+                "color": color,
+                "material": self.material,
+                "bed_temp": self.bed_temp,
+                "nozzle_temp": self.extruder_temp,
+                "scan_time": "",
+                "lane": lane_number
+            }}}
+            self.afc.moonraker.send_lane_data(lane_data)
+
+    def get_td1_data(self):
+        if not self.load_state and not self.prep_state:
+            self.afc.error.AFC_error(f"{self.name} not loaded, cannot capture TD-1 data for lane", pause=False)
+            return False
+
+        if self.hub_obj.state:
+            self.afc.error.AFC_error(f"Hub for {self.name} detects filament, cannot capture TD-1 data for lane", pause=False)
+            return False
+
+        if not self.afc.td1_present:
+            self.afc.error.AFC_error("TD-1 device not detected, cannot capture data", pause=False)
+            return False
+
+        if not self.hub_obj.state:
+            if not self.loaded_to_hub:
+                self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
+
+            while not self.hub_obj.state:
+                # TODO: Add timeout
+                self.move(self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+
+            compare_time = datetime.now()
+            self.move(self.hub_obj.td1_bowden_length, self.long_moves_speed, self.long_moves_accel, True)
+            self.afc.reactor.pause(self.afc.reactor.monotonic() + 5)
+
+            success = self.unit_obj.get_td1_data(self, compare_time)
+            if not success:
+                self.afc.error.AFC_error(f"Not able to gather TD-1 data after moving {self.hub_obj.td1_bowden_length}mm", pause=False)
+
+            self.move(self.hub_obj.td1_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+
+            while( self.hub_obj.state ):
+                # TODO: Add timeout logic here
+                self.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+
+            self.move(self.hub_obj.hub_clear_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+            self.do_enable(False)
+            self.send_lane_data()
+
+        else:
+            self.afc.error.AFC_error("Cannot gather TD-1 data, hub sensor not clear. Please clear hub and try again.", pause=False)
+        return True
+
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
     def cmd_SET_LANE_LOADED(self, gcmd):
         """
@@ -850,6 +912,7 @@ class AFCLane:
         response['filament_status'] = filiment_stat[0]
         response['filament_status_led'] = filiment_stat[1]
         response['status'] = self.status
+        response['td1_data'] = self.td1_data
         return response
 
 def load_config_prefix(config):
