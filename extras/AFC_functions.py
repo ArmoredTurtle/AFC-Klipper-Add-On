@@ -232,7 +232,7 @@ class afcFunction:
 
         error_string, led = self.verify_led_object(idx)
         if led is not None:
-            led.led_change(int(idx.split(':')[1]), status)
+            led.led_change(idx.split(':')[1], status)
         else:
             self.logger.info( error_string )
 
