@@ -88,9 +88,7 @@ class AFCLane:
         self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
-        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.0)     # scalar speed factor when reversing filamentalist 
-        if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
-        if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
+        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist 
 
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
@@ -264,12 +262,17 @@ class AFCLane:
         if self.led_unloading       is None: self.led_unloading     = self.unit_obj.led_unloading
         if self.led_tool_loaded     is None: self.led_tool_loaded   = self.unit_obj.led_tool_loaded
 
-        if self.long_moves_speed    is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
-        if self.long_moves_accel    is None: self.long_moves_accel  = self.unit_obj.long_moves_accel
-        if self.short_moves_speed   is None: self.short_moves_speed = self.unit_obj.short_moves_speed
-        if self.short_moves_accel   is None: self.short_moves_accel = self.unit_obj.short_moves_accel
-        if self.short_move_dis      is None: self.short_move_dis    = self.unit_obj.short_move_dis
-        if self.max_move_dis        is None: self.max_move_dis      = self.unit_obj.max_move_dis
+        if self.rev_long_moves_speed_factor is None: self.rev_long_moves_speed_factor  = self.unit_obj.rev_long_moves_speed_factor
+        if self.long_moves_speed            is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
+        if self.long_moves_accel            is None: self.long_moves_accel  = self.unit_obj.long_moves_accel
+        if self.short_moves_speed           is None: self.short_moves_speed = self.unit_obj.short_moves_speed
+        if self.short_moves_accel           is None: self.short_moves_accel = self.unit_obj.short_moves_accel
+        if self.short_move_dis              is None: self.short_move_dis    = self.unit_obj.short_move_dis
+        if self.max_move_dis                is None: self.max_move_dis      = self.unit_obj.max_move_dis
+        
+
+        if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
+        if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
 
         self.espooler.handle_connect(self)
 
@@ -281,7 +284,7 @@ class AFCLane:
         # TODO: add check so that HTLF stepper lanes do not get registered here
         self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
 
-        self.AFC.gcode.register_mux_command('SET_LONG_MOVE_SPEED',  "LANE", self.name, self.cmd_SET_LONG_MOVE_SPEED,   desc=self.cmd_SET_LONG_MOVE_SPEED_help)
+        self.afc.gcode.register_mux_command('SET_LONG_MOVE_SPEED',   "LANE", self.name, self.cmd_SET_LONG_MOVE_SPEED, desc=self.cmd_SET_LONG_MOVE_SPEED_help)
         self.afc.gcode.register_mux_command('SET_SPEED_MULTIPLIER',  "LANE", self.name, self.cmd_SET_SPEED_MULTIPLIER, desc=self.cmd_SET_SPEED_MULTIPLIER_help)
         self.afc.gcode.register_mux_command('SAVE_SPEED_MULTIPLIER', "LANE", self.name, self.cmd_SAVE_SPEED_MULTIPLIER, desc=self.cmd_SAVE_SPEED_MULTIPLIER_help)
         self.afc.gcode.register_mux_command('SET_HUB_DIST',          "LANE", self.name, self.cmd_SET_HUB_DIST, desc=self.cmd_SET_HUB_DIST_help)
