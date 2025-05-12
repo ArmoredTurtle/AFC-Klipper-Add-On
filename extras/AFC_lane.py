@@ -88,7 +88,7 @@ class AFCLane:
         self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
-        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist 
+        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist
 
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
@@ -269,7 +269,6 @@ class AFCLane:
         if self.short_moves_accel           is None: self.short_moves_accel = self.unit_obj.short_moves_accel
         if self.short_move_dis              is None: self.short_move_dis    = self.unit_obj.short_move_dis
         if self.max_move_dis                is None: self.max_move_dis      = self.unit_obj.max_move_dis
-        
 
         if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
         if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2

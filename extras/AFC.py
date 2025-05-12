@@ -157,7 +157,7 @@ class afc:
         self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 2) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 
-        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist 
+        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
 
         self.z_hop                  = config.getfloat("z_hop", 0)                   # Height to move up before and after a tool change completes
         self.xy_resume              = config.getboolean("xy_resume", False)         # Need description or remove as this is currently an unused variable
