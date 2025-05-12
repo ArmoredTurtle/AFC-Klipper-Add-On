@@ -64,23 +64,26 @@ class AFC_moonraker:
     def get_spoolman_server(self):
         resp = self._get_results(urljoin(self.local_host, 'server/config'))
         if resp is not None:
-            return resp['result']['orig']['spoolman']['server']     # check for spoolman and grab url
+            if "spoolman" in resp['result']['orig']:
+                return resp['result']['orig']['spoolman']['server']     # check for spoolman and grab url
         else:
             return None
 
     def check_for_td1(self):
         td1 = False
+        td1_defined = False
         lane_data = False
         resp = self._get_results(urljoin(self.local_host, 'server/config'))
         if resp is not None:
             if "td1" in resp['result']['orig']:
+                td1_defined = True
                 td1_data = self.get_td1_data()
                 if td1_data is not None and len(td1_data) > 0:
                     td1 = True
 
             if "lane_data" in resp['result']['orig']:
                 lane_data = True
-        return td1, lane_data
+        return td1_defined, td1, lane_data
 
     def get_file_filament_change_count(self, filename ):
         change_count = 0

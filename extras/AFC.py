@@ -61,7 +61,8 @@ class afc:
         self.current_state      = State.INIT
         self.position_saved     = False
         self.spoolman           = None
-        self.td1_present        = False
+        self.td1_defined        = False
+        self._td1_present       = False
         self.lane_data_enabled  = False
         self.prep_done          = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
         self.in_print_timer     = None
@@ -150,6 +151,7 @@ class afc:
 
         self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 2) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
+        self.max_move_tries         = config.getint("max_move_tries", 20)
 
         self.z_hop                  = config.getfloat("z_hop", 0)                   # Height to move up before and after a tool change completes
         self.xy_resume              = config.getboolean("xy_resume", False)         # Need description or remove as this is currently an unused variable
@@ -239,7 +241,7 @@ class afc:
         try:
             self.moonraker = AFC_moonraker( moonraker_port, self.logger )
             self.spoolman = self.moonraker.get_spoolman_server()
-            self.td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
+            self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker)
             self.afc_stats.tc_total.increase_count()
             self.afc_stats.tc_total.value = -1
@@ -276,6 +278,16 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
+    
+    @property
+    def td1_present(self):
+        present = self._td1_present
+        if self.printer.state_message == 'Printer is ready':
+            if not self.function.is_printing(check_movement=True):
+                present = self.moonraker.check_for_td1()[1]
+                self._td1_present = present
+
+        return present
 
     def _reset_file_callback(self):
         # Set timer to check back to see if printer is printing. This is needed as file and print status is set after

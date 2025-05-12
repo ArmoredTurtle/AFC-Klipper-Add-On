@@ -64,8 +64,10 @@ class afcFunction:
         self.afc.gcode.register_command('AFC_HAPPY_P',     self.cmd_AFC_HAPPY_P,     desc=self.cmd_AFC_HAPPY_P_help)
         self.afc.gcode.register_command('AFC_RESET',       self.cmd_AFC_RESET,       desc=self.cmd_AFC_RESET_help)
         self.afc.gcode.register_command('AFC_LANE_RESET',  self.cmd_AFC_LANE_RESET,  desc=self.cmd_AFC_LANE_RESET_help)
-        self.afc.gcode.register_command('GET_TD_ONE_DATA',  self.cmd_GET_TD_ONE_DATA)
-        self.afc.gcode.register_command('GET_TD_ONE_LANE_DATA',  self.cmd_GET_TD_ONE_LANE_DATA)
+
+        if self.afc.td1_defined:
+            self.afc.gcode.register_command('GET_TD_ONE_DATA',  self.cmd_GET_TD_ONE_DATA)
+            self.afc.gcode.register_command('GET_TD_ONE_LANE_DATA',  self.cmd_GET_TD_ONE_LANE_DATA)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -588,7 +590,7 @@ class afcFunction:
             if set_tool_start_back_to_none:
                 cur_lane.extruder_obj.tool_start = None
 
-        if td1 is not None and self.afc.td1_present:
+        if td1 is not None:
             td1_lane = self.afc.lanes[td1]
             if td1_lane.hub_obj.state:
                 self.afc.error.AFC_error(f"{td1_lane.hub_obj.name} hub is triggered, make sure hub is clear before trying to calibrate TD-1 bowden length", pause=False)
@@ -598,7 +600,7 @@ class afcFunction:
             if not checked:
                 fail_string = f"'{td1} failed to calibrate bowden length {msg}'"
                 self.afc.error.AFC_error(fail_string, pause=False)
-                self.afc.gcode.run_script_from_command(f'AFC_CALI_FAIL FAIL={td1} DISTANCE={pos} msg={fail_string}')
+                self.afc.gcode.run_script_from_command(f'AFC_CALI_FAIL FAIL={td1} DISTANCE={pos} msg={fail_string} RESET=0')
                 return
             else:
                 calibrated.append(f"'TD1_Bowden_length: {td1}'")
@@ -694,18 +696,23 @@ class afcFunction:
         NO_DOC: True
         """
 
-        cali = gcmd.get("FAIL", None)
-        dis = gcmd.get("DISTANCE", None)
-        fail_message = gcmd.get("MSG", "")
+        cali            = gcmd.get("FAIL", None)
+        dis             = gcmd.get("DISTANCE", None)
+        reset_lane      = bool(gcmd.get_int("RESET", "False"))
+        fail_message    = gcmd.get("MSG", "")
 
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         footer = []
         title = 'AFC Calibration Failed'
-        text = 'Calibration failed for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'.format(cali)
+        text = 'Calibration failed for {}.'.format(cali)
+        if reset_lane:
+            text += 'First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'
+            buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
+        
         if fail_message:
             text += f" Fail message: {fail_message}"
-        buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
+            
         footer.append(('EXIT', 'prompt_end', 'info'))
 
         prompt.create_custom_p(title, text, buttons,

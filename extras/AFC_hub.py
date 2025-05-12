@@ -27,6 +27,7 @@ class afc_hub:
         self.hub_clear_move_dis     = config.getfloat("hub_clear_move_dis", 25)     # How far to move filament so that it's not block the hub exit
         self.afc_bowden_length      = config.getfloat("afc_bowden_length", 900)     # Length of the Bowden tube from the hub to the toolhead sensor in mm.
         self.td1_bowden_length      = config.getfloat("td1_bowden_length", self.afc_bowden_length-50)     # Length of the Bowden tube from the hub to a TD-1 device in mm.
+        self.td1_before_hub         = config.getboolean("td1_before_hub", False)
         self.afc_unload_bowden_length= config.getfloat("afc_unload_bowden_length", self.afc_bowden_length) # Length to unload when retracting back from toolhead to hub in mm. Defaults to afc_bowden_length
         self.assisted_retract       = config.getboolean("assisted_retract", False)  # if True, retracts are assisted to prevent loose windings on the spool
         self.move_dis               = config.getfloat("move_dis", 50)               # Distance to move the filament within the hub in mm.

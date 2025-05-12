@@ -49,6 +49,8 @@ class AFCLane:
         #stored status variables
         self.fullname           = config.get_name()
         self.name               = self.fullname.split()[-1]
+        # TODO: Put these variables into a common class or something so they are easier to clear out
+        # when lanes are unloaded
         self.tool_loaded        = False
         self.loaded_to_hub      = False
         self.spool_id           = None
@@ -61,6 +63,8 @@ class AFCLane:
         self.td1_data           = {}
         self.runout_lane        = 'NONE'
         self.status             = None
+        # END TODO
+
         self.multi_hubs_found   = False
         self.drive_stepper      = None
         unit                    = config.get('unit')                                    # Unit name(AFC_BoxTurtle/NightOwl/etc) that belongs to this stepper.
@@ -103,6 +107,7 @@ class AFCLane:
         self.sensor_to_show         = config.get("sensor_to_show", None)                # Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
 
         self.assisted_unload = config.getboolean("assisted_unload", None) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.td1_when_loaded    = config.getboolean("td1_when_loaded", True)
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
 
@@ -305,6 +310,18 @@ class AFCLane:
         if self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname:
             self.drive_stepper      = self.unit_obj.drive_stepper_obj
             self.extruder_stepper   = self.drive_stepper.extruder_stepper
+    
+    def get_color(self):
+        color = self.color
+        if "color" in self.td1_data:
+            color = f"#{self.td1_data['color']}"
+        return color
+    
+    def get_speed_accel(self, move_distance):
+        if move_distance > 200:
+            return self.long_moves_speed, self.long_moves_accel, True
+        else:
+            return self.short_moves_speed, self.long_moves_accel, False
 
     @contextmanager
     def assist_move(self, speed, rewind, assist_active=True):
@@ -333,6 +350,10 @@ class AFCLane:
         finally:
             if assist_active:
                 self.espooler.assist(0)
+
+    def move_auto_speed(self, distance):
+        dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(distance)
+        self.move(distance, dist_hub_move_speed, dist_hub_move_accel, assist_active)
 
     def move(self, distance, speed, accel, assist_active=False):
         """
@@ -427,6 +448,7 @@ class AFCLane:
                     self.afc.function.afc_led(self.led_not_ready, self.led_index)
                     self.status = None
                     self.loaded_to_hub = False
+                    self.clear_lane_data()
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
 
@@ -496,6 +518,11 @@ class AFCLane:
                         self.status = 'Loaded'
                         self.afc.function.afc_led(self.afc.led_ready, self.led_index)
                         self.material = self.afc.default_material_type
+                    
+                    if self.td1_when_loaded and not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
+                        self.get_td1_data()
+                    else:
+                        self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != 'ejecting':
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
@@ -514,6 +541,7 @@ class AFCLane:
                     self.loaded_to_hub = False
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
+                    self.clear_lane_data()
 
         self.prep_active = False
         self.afc.save_vars()
@@ -693,21 +721,38 @@ class AFCLane:
 
     def send_lane_data(self):
         if self.afc.lane_data_enabled and "T" in self.map:
-            color = self.color
-            if "color" in self.td1_data:
-                color = f"#{self.td1_data['color']}"
+            scan_time = self.td1_data['scan_time'] if 'scan_time' in self.td1_data else ""
+            td        = self.td1_data['td']        if 'td'        in self.td1_data else ""
+
             lane_number = self.map.replace("T", "")
             lane_data = {"data": { self.name : {
-                "color": color,
-                "material": self.material,
-                "bed_temp": self.bed_temp,
-                "nozzle_temp": self.extruder_temp,
-                "scan_time": "",
-                "lane": lane_number
+                "color"         : self.get_color(),
+                "material"      : self.material,
+                "bed_temp"      : self.bed_temp,
+                "nozzle_temp"   : self.extruder_temp,
+                "scan_time"     : scan_time,
+                "td"            : td,
+                "lane"          : lane_number
+            }}}
+            self.afc.moonraker.send_lane_data(lane_data)
+    
+    def clear_lane_data(self):
+        if self.afc.lane_data_enabled and "T" in self.map:
+            lane_number = self.map.replace("T", "")
+            lane_data = {"data": { self.name : {
+                "color"         :  "",
+                "material"      : "",
+                "bed_temp"      : "",
+                "nozzle_temp"   : "",
+                "scan_time"     : "",
+                "td"            : "",
+                "lane"          : lane_number
             }}}
             self.afc.moonraker.send_lane_data(lane_data)
 
     def get_td1_data(self):
+        max_move_tries = 0
+        status = True
         if not self.load_state and not self.prep_state:
             self.afc.error.AFC_error(f"{self.name} not loaded, cannot capture TD-1 data for lane", pause=False)
             return False
@@ -716,39 +761,59 @@ class AFCLane:
             self.afc.error.AFC_error(f"Hub for {self.name} detects filament, cannot capture TD-1 data for lane", pause=False)
             return False
 
+        # Verify TD-1 is still connected before trying to get data
         if not self.afc.td1_present:
-            self.afc.error.AFC_error("TD-1 device not detected, cannot capture data", pause=False)
+            self.afc.error.AFC_error("TD-1 device not detected anymore, please check before continuing to capture TD-1 data")
             return False
 
         if not self.hub_obj.state:
             if not self.loaded_to_hub:
-                self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
+                self.move_auto_speed(self.dist_hub)
 
             while not self.hub_obj.state:
-                # TODO: Add timeout
-                self.move(self.short_move_dis, self.short_moves_speed, self.short_moves_accel)
+                
+                if max_move_tries >= self.afc.max_move_tries:
+                    fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
+                    fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
+                    self.afc.error.AFC_error(fail_message, pause=False)
+                    return False
+
+                if max_move_tries == 0:
+                    self.move_auto_speed(self.hub_obj.move_dis)
+                else:
+                    self.move_auto_speed(self.short_move_dis)
+                max_move_tries += 1
 
             compare_time = datetime.now()
-            self.move(self.hub_obj.td1_bowden_length, self.long_moves_speed, self.long_moves_accel, True)
+            self.move_auto_speed(self.hub_obj.td1_bowden_length)
             self.afc.reactor.pause(self.afc.reactor.monotonic() + 5)
 
             success = self.unit_obj.get_td1_data(self, compare_time)
             if not success:
                 self.afc.error.AFC_error(f"Not able to gather TD-1 data after moving {self.hub_obj.td1_bowden_length}mm", pause=False)
+                status = False
 
-            self.move(self.hub_obj.td1_bowden_length * -1, self.long_moves_speed, self.long_moves_accel, True)
+            self.move_auto_speed(self.hub_obj.td1_bowden_length * -1)
 
+            max_move_tries = 0
             while( self.hub_obj.state ):
-                # TODO: Add timeout logic here
-                self.move(self.short_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                if max_move_tries >= self.afc.max_move_tries:
+                    fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
+                    fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
+                    self.afc.error.AFC_error(fail_message, pause=False)
+                    return False
 
-            self.move(self.hub_obj.hub_clear_move_dis * -1, self.short_moves_speed, self.short_moves_accel, True)
+                self.move_auto_speed(self.short_move_dis * -1)
+                max_move_tries += 1
+
+            self.move_auto_speed(self.hub_obj.hub_clear_move_dis * -1)
             self.do_enable(False)
             self.send_lane_data()
 
         else:
             self.afc.error.AFC_error("Cannot gather TD-1 data, hub sensor not clear. Please clear hub and try again.", pause=False)
-        return True
+            status = False
+        return status
 
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
     def cmd_SET_LANE_LOADED(self, gcmd):
@@ -904,7 +969,7 @@ class AFCLane:
         response["loaded_to_hub"] = self.loaded_to_hub
         response["material"]=self.material
         response["spool_id"]=self.spool_id
-        response["color"]=self.color
+        response["color"]=self.get_color()
         response["weight"]=self.weight
         response["extruder_temp"] = self.extruder_temp
         response["runout_lane"]=self.runout_lane

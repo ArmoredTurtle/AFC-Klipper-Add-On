@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from configfile import error
-from datetime import datetime
+from datetime import datetime, timedelta
 try:
     from extras.AFC_respond import AFCprompt
 except:
@@ -123,7 +123,7 @@ class afcUnit:
         self.gcode.register_mux_command('UNIT_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_CALIBRATION, desc=self.cmd_UNIT_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_LANE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_LANE_CALIBRATION, desc=self.cmd_UNIT_LANE_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
-        if self.afc.td1_present:
+        if self.afc.td1_defined:
             self.gcode.register_mux_command('UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_UNIT_TD_ONE_CALIBRATION_help)
 
     def get_status(self, eventtime=None):
@@ -163,7 +163,7 @@ class afcUnit:
         # Selection buttons
         buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
         buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
-        if self.afc.td1_present:
+        if self.afc.td1_defined:
             buttons.append(("Calibrate TD-1 Length", "UNIT_TD_ONE_CALIBRATION UNIT={}".format(self.name), "primary"))
         # Button back to previous step
         back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
@@ -375,13 +375,22 @@ class afcUnit:
 
     def get_td1_data(self, cur_lane, compare_time):
         td1_data = self.afc.moonraker.get_td1_data()
+        t_delta = timedelta(seconds = 10)
+        valid_data = False
         # TODO: check for specific id if specified
         if len(td1_data) > 0:
             self.logger.debug(f"Data: {td1_data}, Compare_time: {compare_time}")
             data = list(td1_data.values())[0]
             scan_time = datetime.fromisoformat( data["scan_time"][:-1]+"+00:00" ).astimezone()
-            if scan_time > compare_time.astimezone() and data['td'] is not None and data['color'] is not None:
+
+            if scan_time > compare_time.astimezone():
+                valid_data = True
+            elif ( compare_time.astimezone() - scan_time ) < t_delta:
+                valid_data = True
+
+            if valid_data and data['td'] is not None and data['color'] is not None:
                 cur_lane.td1_data = data
                 self.logger.info(f"{cur_lane.name} TD-1 data captured")
+                self.afc.save_vars()
                 return True
         return False

@@ -181,9 +181,15 @@ class afcBoxTurtle(afcUnit):
     def calibrate_td1(self, cur_lane, dis, tol):
         bow_pos = 0
         cur_hub = cur_lane.hub_obj
+        
+        # Verify TD-1 is still connected before trying to get data
+        if not self.afc.td1_present:
+            msg = "TD-1 device not detected anymore, please check before continuing to calibrate TD-1 bowden length"
+            return False, msg, 0
+
         self.logger.raw(f"Calibrating bowden length to TD-1 device with {cur_lane.name}")
         hub_pos, checkpoint, success = self.move_until_state(cur_lane, lambda: cur_hub.state, cur_hub.move_dis, tol,
-                                                             cur_lane.short_move_dis, 0, cur_lane.dist_hub + 200, "Moving to hub")
+                                                             cur_lane.short_move_dis, 0, cur_lane.dist_hub + cur_lane.hub_obj.move_dis + 200, "Moving to hub")
 
         if not success:
             # if movement does not succeed fault and return values to calibration macro
