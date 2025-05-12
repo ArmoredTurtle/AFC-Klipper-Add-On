@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-12]
+### Added
+- new variable `tool_homing_distance` in `[AFC]` to make the distance over which toolhead homing is attempted.
+- new variable `rev_long_moves_speed_factor` added to `AFC_lane` to allow per lane reverse speed for long moves. i.e. long move speeds will now be `rev_long_moves_speed_factor * long_move_speed`.
+- new macro `SET_LONG_MOVE_SPEED LANE=<lane_name> FWD_SPEED=<fwd_speed> RWD_FACTOR=<rwd_multiplier> SAVE=1/0` to allow modifying `rev_long_moves_speed_factor` and `long_move_speed`
+
+
 ## [2025-05-11]
 ### Changed
 

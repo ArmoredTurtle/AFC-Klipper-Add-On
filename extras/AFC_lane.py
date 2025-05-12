@@ -734,7 +734,7 @@ class AFCLane:
 
         Usage
         -----
-        `SET_LONG_MOVE_SPEED LANE=<lane_name> FWD_SPEED=<fwd_speed> RWD_FACTOR=<rwd_multiplier> SAVE=1/0``
+        `SET_LONG_MOVE_SPEED LANE=<lane_name> FWD_SPEED=<fwd_speed> RWD_FACTOR=<rwd_multiplier> SAVE=<0 or 1>`
 
         Example
         -----
