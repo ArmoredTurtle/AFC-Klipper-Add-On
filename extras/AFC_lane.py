@@ -739,7 +739,7 @@ class AFCLane:
         Example
         -----
         ```
-        SET_SPEED_MULTIPLIER RWD_FACTOR=lane1 RWD=0.9 SAVE=1
+        SET_SPEED_MULTIPLIER LANE=lane1 RWD_FACTOR=0.9 SAVE=1
         ```
         """
         update = gcmd.get_int("SAVE", 0, minval=0, maxval=2)
