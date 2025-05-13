@@ -106,8 +106,13 @@ class AFCLane:
         self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
         self.sensor_to_show         = config.get("sensor_to_show", None)                # Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
 
-        self.assisted_unload = config.getboolean("assisted_unload", None) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.td1_when_loaded    = config.getboolean("td1_when_loaded", True)
+        self.assisted_unload    = config.getboolean("assisted_unload", None) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.td1_when_loaded    = config.getboolean("capture_td1_when_loaded", None)
+        self.td1_device_id      = config.get("td1_device_id", None)
+
+        # If td1_when_loaded is defined, check to make sure [td1] is setup in moonraker config
+        if self.td1_when_loaded is not None:
+            self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
 
@@ -139,7 +144,6 @@ class AFCLane:
         self.fwd_speed_multi    = config.getfloat("fwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.diameter_range     = self.outer_diameter - self.inner_diameter     # Range for effective diameter
 
-
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
 
@@ -170,6 +174,9 @@ class AFCLane:
             error_string, led = self.afc.function.verify_led_object(self.led_index)
             if led is None:
                 raise error(error_string)
+        
+        # If user supplied TD-1 ID verify that it exists
+
 
     def handle_unit_connect(self, unit_obj):
         """
@@ -280,6 +287,8 @@ class AFCLane:
         if self.short_moves_accel   is None: self.short_moves_accel = self.unit_obj.short_moves_accel
         if self.short_move_dis      is None: self.short_move_dis    = self.unit_obj.short_move_dis
         if self.max_move_dis        is None: self.max_move_dis      = self.unit_obj.max_move_dis
+        if self.td1_when_loaded     is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
+        if self.td1_device_id       is None: self.td1_device_id     = self.unit_obj.td1_device_id  
 
         self.espooler.handle_connect(self)
 
@@ -318,7 +327,7 @@ class AFCLane:
         return color
     
     def get_speed_accel(self, move_distance):
-        if move_distance > 200:
+        if abs(move_distance) > 200:
             return self.long_moves_speed, self.long_moves_accel, True
         else:
             return self.short_moves_speed, self.long_moves_accel, False
@@ -519,6 +528,10 @@ class AFCLane:
                         self.afc.function.afc_led(self.afc.led_ready, self.led_index)
                         self.material = self.afc.default_material_type
                     
+                    # Check if user wants to get TD data when loading, only happens if hub is clear and toolhead is not
+                    # loaded. 
+                    # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a 
+                    # different extruder/hub
                     if self.td1_when_loaded and not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
                         self.get_td1_data()
                     else:
@@ -753,30 +766,39 @@ class AFCLane:
     def get_td1_data(self):
         max_move_tries = 0
         status = True
+        msg = ""
         if not self.load_state and not self.prep_state:
-            self.afc.error.AFC_error(f"{self.name} not loaded, cannot capture TD-1 data for lane", pause=False)
-            return False
+            msg = f"{self.name} not loaded, cannot capture TD-1 data for lane"
+            self.afc.error.AFC_error(msg, pause=False)
+            return False, msg
 
         if self.hub_obj.state:
-            self.afc.error.AFC_error(f"Hub for {self.name} detects filament, cannot capture TD-1 data for lane", pause=False)
-            return False
+            msg = f"Hub for {self.name} detects filament, cannot capture TD-1 data for lane"
+            self.afc.error.AFC_error(msg, pause=False)
+            return False, msg
 
         # Verify TD-1 is still connected before trying to get data
         if not self.afc.td1_present:
-            self.afc.error.AFC_error("TD-1 device not detected anymore, please check before continuing to capture TD-1 data")
-            return False
+            msg = "TD-1 device not detected anymore, please check before continuing to capture TD-1 data"
+            self.afc.error.AFC_error(msg, pause=False)
+            return False, msg
+        # If user has specified a specific ID, verify that its connected and found
+        if self.td1_device_id:
+            valid, msg = self.afc.function.check_for_td1_id(self.td1_device_id)
+            if not valid:
+                self.afc.error.AFC_error(msg, pause=False)
+                return False, msg
 
         if not self.hub_obj.state:
             if not self.loaded_to_hub:
                 self.move_auto_speed(self.dist_hub)
 
             while not self.hub_obj.state:
-                
                 if max_move_tries >= self.afc.max_move_tries:
                     fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
                     fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
                     self.afc.error.AFC_error(fail_message, pause=False)
-                    return False
+                    return False, fail_message
 
                 if max_move_tries == 0:
                     self.move_auto_speed(self.hub_obj.move_dis)
@@ -790,7 +812,8 @@ class AFCLane:
 
             success = self.unit_obj.get_td1_data(self, compare_time)
             if not success:
-                self.afc.error.AFC_error(f"Not able to gather TD-1 data after moving {self.hub_obj.td1_bowden_length}mm", pause=False)
+                msg = f"Not able to gather TD-1 data after moving {self.hub_obj.td1_bowden_length}mm"
+                self.afc.error.AFC_error(msg, pause=False)
                 status = False
 
             self.move_auto_speed(self.hub_obj.td1_bowden_length * -1)
@@ -801,7 +824,7 @@ class AFCLane:
                     fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
                     fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
                     self.afc.error.AFC_error(fail_message, pause=False)
-                    return False
+                    return False, fail_message
 
                 self.move_auto_speed(self.short_move_dis * -1)
                 max_move_tries += 1
@@ -811,9 +834,10 @@ class AFCLane:
             self.send_lane_data()
 
         else:
-            self.afc.error.AFC_error("Cannot gather TD-1 data, hub sensor not clear. Please clear hub and try again.", pause=False)
+            msg = "Cannot gather TD-1 data, hub sensor not clear. Please clear hub and try again."
+            self.afc.error.AFC_error(msg, pause=False)
             status = False
-        return status
+        return status, msg
 
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
     def cmd_SET_LANE_LOADED(self, gcmd):

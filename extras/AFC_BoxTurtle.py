@@ -186,6 +186,11 @@ class afcBoxTurtle(afcUnit):
         if not self.afc.td1_present:
             msg = "TD-1 device not detected anymore, please check before continuing to calibrate TD-1 bowden length"
             return False, msg, 0
+        
+        if cur_lane.td1_device_id:
+            valid, msg = self.afc.function.check_for_td1_id(cur_lane.td1_device_id)
+            if not valid:
+                return valid, msg, 0
 
         self.logger.raw(f"Calibrating bowden length to TD-1 device with {cur_lane.name}")
         hub_pos, checkpoint, success = self.move_until_state(cur_lane, lambda: cur_hub.state, cur_hub.move_dis, tol,
@@ -216,9 +221,13 @@ class afcBoxTurtle(afcUnit):
             cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
 
         cur_lane.move(cur_hub.hub_clear_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+        
+        cal_msg = f"\n td1_bowden_length: New: {bow_pos} Old: {cur_hub.td1_bowden_length}"
         cur_hub.td1_bowden_length = bow_pos
+        self.afc.function.ConfigRewrite(cur_hub.fullname, "td1_bowden_length", bow_pos, cal_msg)
+        
         self.afc.save_vars()
-        self.logger.info(f"td1_bowden_length: {bow_pos}")
+        # self.logger.info(f"td1_bowden_length: {bow_pos}")
         return True, "td1_bowden_length calibration successful", bow_pos
 
     # Helper functions for movement and calibration

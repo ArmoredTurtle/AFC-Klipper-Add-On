@@ -6,6 +6,7 @@
 
 import json
 import re
+import traceback
 from configfile import error
 from typing import Any
 
@@ -106,7 +107,7 @@ class afc:
         self.default_material_temps = config.getlists("default_material_temps", None)# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
         self.default_material_temps = list(self.default_material_temps) if self.default_material_temps is not None else None
         self.default_material_type  = config.get("default_material_type", None)     # Default material type to assign to a spool once loaded into a lane
-        self.logger.debug("default material temps - {}".format(self.default_material_temps))
+
         #LED SETTINGS
         self.ind_lights = None
         # led_name is not used, either use or needs to be removed
@@ -166,6 +167,7 @@ class afc:
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
 
+        self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False) and self.afc.td1_defined
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
@@ -243,10 +245,9 @@ class afc:
             self.spoolman = self.moonraker.get_spoolman_server()
             self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker)
-            self.afc_stats.tc_total.increase_count()
-            self.afc_stats.tc_total.value = -1
         except Exception as e:
             self.logger.debug("Spoolman error: {}".format(e))
+            self.logger.debug(traceback.format_exc())
             self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor

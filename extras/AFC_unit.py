@@ -78,6 +78,10 @@ class afcUnit:
         # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
         self.unload_on_runout   = config.getboolean("unload_on_runout", self.afc.unload_on_runout)
 
+        # TD-1 variables
+        self.td1_when_loaded    = config.getboolean("capture_td1_when_loaded", self.afc.td1_when_loaded) and self.afc.td1_defined
+        self.td1_device_id      = config.get("td1_device_id", None)
+
     def __str__(self):
         return self.name
 
@@ -189,14 +193,14 @@ class afcUnit:
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
+        index = 0
         title = '{} Lane Calibration'.format(self.name)
         text  = ('Select a loaded lane from {} to calibrate length from extruder to hub. '
                  'Config option: dist_hub').format(self.name)
 
         # Create buttons for each lane and group every 4 lanes together
-        for index, lane in enumerate(self.lanes):
-            cur_lane = self.lanes[lane]
-            if cur_lane.load_state:
+        for lane in self.lanes.values():
+            if lane.load_state:
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC LANE={}".format(lane)
                 button_style = "primary" if index % 2 == 0 else "secondary"
@@ -206,6 +210,7 @@ class afcUnit:
                 if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
                     buttons.append(list(group_buttons))
                     group_buttons = []
+                index += 1
 
         if group_buttons:
             buttons.append(list(group_buttons))
@@ -243,14 +248,14 @@ class afcUnit:
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
+        index = 0
         title = 'Bowden Calibration {}'.format(self.name)
         text = ('Select a loaded lane from {} to measure Bowden length. '
                 'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT/hub.'
                 'Config option: afc_bowden_length').format(self.name)
 
-        for index, lane in enumerate(self.lanes):
-            cur_lane = self.lanes[lane]
-            if cur_lane.load_state:
+        for lane in self.lanes.values():
+            if lane.load_state:
                 # Create a button for each lane
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC BOWDEN={}".format(lane)
@@ -261,6 +266,7 @@ class afcUnit:
                 if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
                     buttons.append(list(group_buttons))
                     group_buttons = []
+                index += 1
 
         if group_buttons:
             buttons.append(list(group_buttons))
@@ -293,15 +299,15 @@ class afcUnit:
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
+        index = 0
         title = 'TD-1 Bowden Calibration {}'.format(self.name)
         text = ('Select a loaded lane from {} to measure Bowden length to your TD-1 Device. '
                 'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT/hub. '
                 'WARNING: This could take some time to complete. '
-                'Config option: afc_bowden_length').format(self.name)
+                'Config option: td1_bowden_length').format(self.name)
 
-        for index, lane in enumerate(self.lanes):
-            cur_lane = self.lanes[lane]
-            if cur_lane.load_state:
+        for lane in self.lanes.values():
+            if lane.load_state:
                 # Create a button for each lane
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC TD1={} DISTANCE=50".format(lane)
@@ -312,6 +318,7 @@ class afcUnit:
                 if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
                     buttons.append(list(group_buttons))
                     group_buttons = []
+                index += 1
 
         if group_buttons:
             buttons.append(list(group_buttons))
@@ -381,6 +388,14 @@ class afcUnit:
         if len(td1_data) > 0:
             self.logger.debug(f"Data: {td1_data}, Compare_time: {compare_time}")
             data = list(td1_data.values())[0]
+
+            if cur_lane.td1_device_id is not None:
+                if cur_lane.td1_device_id in td1_data:
+                    data = td1_data[cur_lane.td1_device_id ]
+                else:
+                    self.afc.error.AFC_error(f"TD-1 Device ID ({cur_lane.td1_device_id}) supplied but ID not found.", pause=False)
+                    return False
+
             scan_time = datetime.fromisoformat( data["scan_time"][:-1]+"+00:00" ).astimezone()
 
             if scan_time > compare_time.astimezone():

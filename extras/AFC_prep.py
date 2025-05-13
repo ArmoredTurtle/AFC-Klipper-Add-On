@@ -170,9 +170,9 @@ class afcPrep:
                 self.logger.info("Capturing TD-1 data for all loaded lanes")
                 for lane in self.afc.lanes.values():
                     if lane.load_state and lane.prep_state:
-                        return_status = lane.get_td1_data()
+                        return_status, msg = lane.get_td1_data()
                         if not return_status:
-                            self.afc.error.AFC_error("Detected error when trying to capture TD-1 data, aborting!!", pause=False)
+                            self.afc.error.AFC_error(msg, pause=False)
                             break
                 self.logger.info("Done capturing TD-1 data")
 
