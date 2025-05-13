@@ -727,7 +727,7 @@ class AFCLane:
     def cmd_SET_LONG_MOVE_SPEED(self, gcmd):
         """
         Macro call to update long_moves_speed or rev_long_moves_speed_factor values without having to set in config and restart klipper. This macro allows adjusting
-        these values while printing. Multiplier values must be between 0.0 - 1.0
+        these values while printing. Multiplier values must be between 0.5 - 1.2
 
         Use `FWD_SPEED` variable to set forward speed in mm/sec, use `RWD_FACTOR` to set reverse multiplier
 
@@ -746,7 +746,7 @@ class AFCLane:
         old_rev_long_moves_speed_factor= self.rev_long_moves_speed_factor
 
         self.long_moves_speed = gcmd.get_float("FWD_SPEED", self.long_moves_speed, minval=50, maxval=500)
-        self.rev_long_moves_speed_factor = gcmd.get_float("RWD_FACTOR", self.rev_long_moves_speed_factor, minval=0.0, maxval=1.0)
+        self.rev_long_moves_speed_factor = gcmd.get_float("RWD_FACTOR", self.rev_long_moves_speed_factor, minval=0.0, maxval=1.2)
 
         if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
         if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
@@ -763,8 +763,8 @@ class AFCLane:
             self.logger.info("{name} reverse speed multiplier currently set to {new}".format(name=self.name, new=self.rev_long_moves_speed_factor))
 
         if update == 1:
-            self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'long_moves_speed',  self.long_moves_speed, '')
-            self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'rev_long_moves_speed_factor',  self.rev_long_moves_speed_factor, '')
+            self.afc.function.ConfigRewrite(self.fullname, 'long_moves_speed',  self.long_moves_speed, '')
+            self.afc.function.ConfigRewrite(self.fullname, 'rev_long_moves_speed_factor',  self.rev_long_moves_speed_factor, '')
 
 
     cmd_SET_SPEED_MULTIPLIER_help = "Gives ability to set fwd_speed_multiplier or rwd_speed_multiplier values without having to update config and restart"
