@@ -634,7 +634,7 @@ class afc:
 
     def _get_move_speed(self, speed):
         if self.night_mode == True and speed > self.night_moves_speed:
-            return self.night_moves_speed 
+            return self.night_moves_speed
         else:
             return speed
 
