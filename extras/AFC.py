@@ -145,8 +145,8 @@ class afc:
         self.form_tip_cmd           = config.get('form_tip_cmd', None)              # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
 
         # MOVE SETTINGS
-        self.night_mode             = False                                         # Flag indicating if night move is enabled or not
-        self.night_moves_speed      = config.getfloat("night_moves_speed", 50)       # Max speed in mm/s to move filament during nightmode
+        self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
+        self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)       # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
         self.long_moves_accel       = config.getfloat("long_moves_accel", 400)      # Acceleration in mm/s squared when doing long moves
         self.short_moves_speed      = config.getfloat("short_moves_speed", 25)      # Speed in mm/s to move filament when doing short moves
@@ -396,16 +396,16 @@ class afc:
         return False
 
 
-    cmd_NIGHT_MODE_help = "Set night mode speed and enable/disable night mode"
+    cmd_NIGHT_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
     def cmd_NIGHT_MODE(self, gcmd):
         """
         Set lower speed on any filament moves.
 
-        Mainly this would be used to turn down motor noise during late night runs. Only exceptions are during bowden calibration and lane reset, which are manually triggered
+        Mainly this would be used to turn down motor noise during late quiet runs. Only exceptions are during bowden calibration and lane reset, which are manually triggered
 
         Usage
         -------
-        `NIGHT_MODE SPEED=<new nightmode speed> ENABLE=<1 or 0>`
+        `NIGHT_MODE SPEED=<new quietmode speed> ENABLE=<1 or 0>`
 
         Example
         -------
@@ -413,9 +413,9 @@ class afc:
         NIGHT_MODE SPEED=75 ENABLE=1
         ```
         """
-        self.night_mode = bool(gcmd.get_int("ENABLE", self.night_mode, minval=0, maxval=2))
-        self.night_moves_speed = gcmd.get_float("SPEED", self.night_moves_speed, minval=10, maxval=400)
-        self.logger.info("NightMode {}, max speed of {} mm/sec".format(self.night_mode, self.night_moves_speed))
+        self.quiet_mode = bool(gcmd.get_int("ENABLE", self.quiet_mode, minval=0, maxval=2))
+        self.quiet_moves_speed = gcmd.get_float("SPEED", self.quiet_moves_speed, minval=10, maxval=400)
+        self.logger.info("NightMode {}, max speed of {} mm/sec".format(self.quiet_mode, self.quiet_moves_speed))
 
 
     cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
@@ -633,8 +633,8 @@ class afc:
         self.position_saved = False
 
     def _get_move_speed(self, speed):
-        if self.night_mode == True and speed > self.night_moves_speed:
-            return self.night_moves_speed
+        if self.quiet_mode == True and speed > self.quiet_moves_speed:
+            return self.quiet_moves_speed
         else:
             return speed
 
