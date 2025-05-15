@@ -167,7 +167,7 @@ class afc:
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
 
-        self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False) and self.afc.td1_defined
+        self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False)
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )

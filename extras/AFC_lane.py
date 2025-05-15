@@ -111,8 +111,9 @@ class AFCLane:
         self.td1_device_id      = config.get("td1_device_id", None)
 
         # If td1_when_loaded is defined, check to make sure [td1] is setup in moonraker config
-        if self.td1_when_loaded is not None:
-            self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
+        # TODO figure out a different solution for this
+        # if self.td1_when_loaded is not None:
+        #     self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
 
@@ -289,6 +290,9 @@ class AFCLane:
         if self.max_move_dis        is None: self.max_move_dis      = self.unit_obj.max_move_dis
         if self.td1_when_loaded     is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
         if self.td1_device_id       is None: self.td1_device_id     = self.unit_obj.td1_device_id  
+
+        # Update boolean and check to make sure a TD1 device is detected
+        self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
 
         self.espooler.handle_connect(self)
 
@@ -532,10 +536,11 @@ class AFCLane:
                     # loaded. 
                     # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a 
                     # different extruder/hub
-                    if self.td1_when_loaded and not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
-                        self.get_td1_data()
-                    else:
-                        self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
+                    if self.td1_when_loaded:
+                        if self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
+                            self.get_td1_data()
+                        else:
+                            self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != 'ejecting':
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
@@ -1002,6 +1007,7 @@ class AFCLane:
         response['filament_status_led'] = filiment_stat[1]
         response['status'] = self.status
         response['td1_data'] = self.td1_data
+        response['td1_when_loaded'] = self.td1_when_loaded
         return response
 
 def load_config_prefix(config):

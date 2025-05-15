@@ -79,7 +79,7 @@ class afcUnit:
         self.unload_on_runout   = config.getboolean("unload_on_runout", self.afc.unload_on_runout)
 
         # TD-1 variables
-        self.td1_when_loaded    = config.getboolean("capture_td1_when_loaded", self.afc.td1_when_loaded) and self.afc.td1_defined
+        self.td1_when_loaded    = config.getboolean("capture_td1_when_loaded", self.afc.td1_when_loaded)
         self.td1_device_id      = config.get("td1_device_id", None)
 
     def __str__(self):

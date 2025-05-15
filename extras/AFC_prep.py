@@ -156,6 +156,9 @@ class afcPrep:
             pass
 
         capture_td1_data = self.get_td1_data and self.afc.td1_present
+        if self.afc.td1_present:
+            self.logger.info("Found TD-1 device connected to printer")
+
         # look up what current lane should be an call select lane, this is more for units that
         # have selectors to make sure the selector is on the correct lane
         current_lane = self.afc.function.get_current_lane_obj()
