@@ -145,6 +145,8 @@ class afc:
         self.form_tip_cmd           = config.get('form_tip_cmd', None)              # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
 
         # MOVE SETTINGS
+        self.night_mode             = False                                         # Flag indicating if night move is enabled or not
+        self.night_moves_speed      = config.getfloat("night_moves_speed", 50)       # Max speed in mm/s to move filament during nightmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
         self.long_moves_accel       = config.getfloat("long_moves_accel", 400)      # Acceleration in mm/s squared when doing long moves
         self.short_moves_speed      = config.getfloat("short_moves_speed", 25)      # Speed in mm/s to move filament when doing short moves
@@ -257,6 +259,7 @@ class afc:
             self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
 
         # GCODE REGISTERS
+        self.gcode.register_command('NIGHT_MODE',           self.cmd_NIGHT_MODE,            desc=self.cmd_NIGHT_MODE_help)
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
@@ -392,6 +395,29 @@ class afc:
             pass
         return False
 
+
+    cmd_NIGHT_MODE_help = "Set night mode speed and enable/disable night mode"
+    def cmd_NIGHT_MODE(self, gcmd):
+        """
+        Set lower speed on any filament moves.
+
+        Mainly this would be used to turn down motor noise during late night runs. Only exceptions are during bowden calibration and lane reset, which are manually triggered
+
+        Usage
+        -------
+        `NIGHT_MODE SPEED=<new nightmode speed> ENABLE=<1 or 0>`
+
+        Example
+        -------
+        ```
+        NIGHT_MODE SPEED=75 ENABLE=1
+        ```
+        """
+        self.night_mode = bool(gcmd.get_int("ENABLE", self.night_mode, minval=0, maxval=2))
+        self.night_moves_speed = gcmd.get_float("SPEED", self.night_moves_speed, minval=10, maxval=400)
+        self.logger.info("NightMode {}, max speed of {} mm/sec".format(self.night_mode, self.night_moves_speed))
+
+
     cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
     def cmd_UNSET_LANE_LOADED(self, gcmd):
         """
@@ -475,6 +501,7 @@ class afc:
 
         move_speed = cur_lane.long_moves_speed if abs(distance) >= 200 else cur_lane.short_moves_speed
         move_accel = cur_lane.long_moves_accel if abs(distance) >= 200 else cur_lane.short_moves_accel
+        move_speed = self._get_move_speed(move_speed)
 
         cur_lane.set_load_current() # Making current is set correctly when doing lane moves
         cur_lane.do_enable(True)
@@ -605,6 +632,13 @@ class afc:
         self.current_state = State.IDLE
         self.position_saved = False
 
+    def _get_move_speed(self, speed):
+        if self.night_mode == True and speed > self.night_moves_speed:
+            return self.night_moves_speed 
+        else:
+            return speed
+
+
     def save_vars(self):
         """
         save_vars function saves lane variables to var file and prints with indents to
@@ -672,13 +706,13 @@ class afc:
         if not cur_lane.load_state:
             cur_lane.do_enable(True)
             while not cur_lane.load_state:
-                cur_lane.move( cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move( cur_hub.move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
         if not cur_lane.loaded_to_hub:
-            cur_lane.move(cur_lane.dist_hub, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
+            cur_lane.move(cur_lane.dist_hub, self._get_move_speed(cur_lane.dist_hub_move_speed), cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
         while not cur_hub.state:
-            cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+            cur_lane.move(cur_hub.move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
         while cur_hub.state:
-            cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+            cur_lane.move(cur_hub.move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
         cur_lane.status = AFCLaneState.NONE
         cur_lane.do_enable(False)
         cur_lane.loaded_to_hub = True
@@ -731,8 +765,8 @@ class afc:
                 cur_lane.move(cur_lane.dist_hub * -1, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
             cur_lane.loaded_to_hub = False
             while cur_lane.load_state:
-               cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_hub.move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+               cur_lane.move(cur_hub.move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
+            cur_lane.move(cur_hub.move_dis * -5, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
             cur_lane.do_enable(False)
             cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
@@ -845,9 +879,9 @@ class afc:
             # Ensure filament moves past the hub.
             while not cur_hub.state and cur_lane.hub != 'direct':
                 if hub_attempts == 0:
-                    cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                    cur_lane.move(cur_hub.move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
                 else:
-                    cur_lane.move(cur_lane.short_move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                    cur_lane.move(cur_lane.short_move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
                 hub_attempts += 1
                 if hub_attempts > 20:
                     message = 'filament did not trigger hub sensor, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL.'
@@ -861,7 +895,7 @@ class afc:
 
             # Move filament towards the toolhead.
             if cur_lane.hub != 'direct':
-                cur_lane.move(cur_hub.afc_bowden_length, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
+                cur_lane.move(cur_hub.afc_bowden_length, self._get_move_speed(cur_lane.long_moves_speed), cur_lane.long_moves_accel, True)
 
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
@@ -919,7 +953,7 @@ class afc:
                 cur_lane.unsync_to_extruder()
                 load_checks = 0
                 while cur_lane.get_toolhead_pre_sensor_state():
-                    cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                    cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
                     load_checks += 1
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if load_checks > self.tool_max_load_checks:
@@ -1118,7 +1152,7 @@ class afc:
             cur_lane.unsync_to_extruder()
             while not cur_lane.get_trailing():
                 # attempt to return buffer to trailng pin
-                cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
                 if num_tries > self.tool_max_unload_attempts:
@@ -1172,7 +1206,7 @@ class afc:
         # Synchronize and move filament out of the hub.
         cur_lane.unsync_to_extruder()
         if cur_lane.hub != 'direct':
-            cur_lane.move(cur_hub.afc_unload_bowden_length * -1, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
+            cur_lane.move(cur_hub.afc_unload_bowden_length * -1, self._get_move_speed(cur_lane.long_moves_speed), cur_lane.long_moves_accel, True)
         else:
             cur_lane.move(cur_lane.dist_hub * -1, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, cur_lane.dist_hub > 200)
 
@@ -1186,7 +1220,7 @@ class afc:
         # Ensure filament is fully cleared from the hub.
         num_tries = 0
         while cur_hub.state:
-            cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+            cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
             num_tries += 1
             if num_tries > (cur_hub.afc_unload_bowden_length / cur_lane.short_move_dis):
                 # Handle failure if the filament doesn't clear the hub.
@@ -1206,7 +1240,7 @@ class afc:
 
         #Move to make sure hub path is clear based on the move_clear_dis var
         if cur_lane.hub != 'direct':
-            cur_lane.move(cur_hub.hub_clear_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+            cur_lane.move(cur_hub.hub_clear_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
 
             # Cut filament at the hub, if configured.
             if cur_hub.cut:
@@ -1217,7 +1251,7 @@ class afc:
 
                 # Confirm the hub is clear after the cut.
                 while cur_hub.state:
-                    cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+                    cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
                     num_tries += 1
                     # TODO: Figure out max number of tries
                     if num_tries > (cur_hub.afc_unload_bowden_length / cur_lane.short_move_dis):
@@ -1234,8 +1268,8 @@ class afc:
 
         if cur_lane.hub == 'direct':
             while cur_lane.load_state:
-                cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_lane.short_move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
+            cur_lane.move(cur_lane.short_move_dis * -5, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
 
         cur_lane.do_enable(False)
         cur_lane.unit_obj.return_to_home()
