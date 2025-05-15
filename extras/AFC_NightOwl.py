@@ -3,11 +3,14 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import traceback
+
 from configparser import Error as error
-try:
-    from extras.AFC_BoxTurtle import afcBoxTurtle
-except:
-    raise error("Error trying to import AFC_BoxTurtle, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+from extras.AFC_utils import ERROR_STR
+
+try: from extras.AFC_BoxTurtle import afcBoxTurtle
+except: raise error(ERROR_STR.format(import_lib="AFC_BoxTurtle", trace=traceback.format_exc()))
 
 class afcNightOwl(afcBoxTurtle):
     def __init__(self, config):

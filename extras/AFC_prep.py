@@ -158,6 +158,10 @@ class afcPrep:
         if 'virtual' in self.afc.bypass.name:
             if "system" in units and 'bypass' in units["system"]:
                 self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+            else:
+                self.afc.bypass.sensor_enabled = False
+
+        self.afc.afc_stats.check_cut_threshold()
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.afc.current is None:

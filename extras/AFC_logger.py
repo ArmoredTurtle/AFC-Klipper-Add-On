@@ -8,6 +8,7 @@ try:
     from .. import APP_NAME
 except:
     APP_NAME = "Klipper"
+
 import logging
 import re
 import os

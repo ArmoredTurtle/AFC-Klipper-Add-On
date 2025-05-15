@@ -3,16 +3,17 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-from configparser import Error as error
-try:
-    from extras.AFC_BoxTurtle import afcBoxTurtle
-except:
-    raise error("Error trying to import AFC_BoxTurtle, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+import traceback
 
-try:
-    from extras.AFC_utils import add_filament_switch
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+from configparser import Error as error
+
+from extras.AFC_utils import ERROR_STR
+
+try: from extras.AFC_BoxTurtle import afcBoxTurtle
+except: raise error(ERROR_STR.format(import_lib="AFC_BoxTurtle", trace=traceback.format_exc()))
+
+try: from extras.AFC_utils import add_filament_switch
+except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
 
 class AFC_HTLF(afcBoxTurtle):
     VALID_CAM_ANGLES = [30,45,60]

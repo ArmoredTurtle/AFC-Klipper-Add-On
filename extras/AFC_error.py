@@ -111,7 +111,6 @@ class afcError:
         self.logger.error( "{}".format(msg) )
         if pause: self.pause_print()
 
-
     cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
     def cmd_RESET_FAILURE(self, gcmd):
         """

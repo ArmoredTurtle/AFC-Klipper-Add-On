@@ -4,14 +4,6 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-import json
-try:
-    from urllib.request import urlopen
-    import urllib.parse as urlparse
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
-    import urlparse
 
 class AFCSpool:
     def __init__(self, config):

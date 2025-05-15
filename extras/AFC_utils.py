@@ -5,10 +5,10 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 # File is used to hold common functions that can be called from anywhere and don't belong to a class
+import traceback
 import json
-from sys import settrace
 
-from urllib import request
+from datetime import datetime
 from urllib.request import (
     Request,
     urlopen
@@ -17,6 +17,8 @@ from urllib.parse import (
     urlencode,
     urljoin
 )
+
+ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
 
 def add_filament_switch( switch_name, switch_pin, printer ):
     """
@@ -45,45 +47,136 @@ def add_filament_switch( switch_name, switch_pin, printer ):
 
     return fila
 
+def check_and_return( value_str:str, data_values:dict ) -> str:
+    """
+    Common function to check if value exists in dictionary and returns value if it does.
+
+    :param value_str: Key string to check if value exists in dictionary
+    :param data_values: Dictionary of values to check for key
+
+    :return: Returns string of value if found in dictionary
+    """
+    value = "0"
+    if value_str in data_values:
+        value = data_values[value_str]
+
+    return value
+
 class AFC_moonraker:
-    def __init__(self, port, logger):
-        self.port = port
-        self.logger = logger
-        self.local_host = 'http://localhost{port}'.format( port=port )
-        self.database_url = urljoin(self.local_host, "server/database/item")
-        self.data_array = {"namespace":"afc_stats", "key":"", "value":""}
+    """
+    This class is used to communicate with moonraker to look up information and post
+    data into moonrakers database
+
+    Parameters
+    ----------------
+    port: String
+        Port to connect to moonrakers localhost
+    logger: AFC_logger
+        AFC logger object to log and print to console
+    """
+    ERROR_STRING = "Error getting data from moonraker, check AFC.log for more information"
+    def __init__(self, port:str, logger:object):
+        self.port           = port
+        self.logger         = logger
+        self.local_host     = 'http://localhost{port}'.format( port=port )
+        self.database_url   = urljoin(self.local_host, "server/database/item")
+        self.data_array     = {"namespace":"afc_stats", "key":"", "value":""}
+        self.afc_stats      = None
+        self.last_stats_time= None
 
     def _get_results(self, url_string):
-        try:
-            resp = json.load(urlopen(url_string))
-        except:
-            resp = None
-        return resp        
+        """
+        Helper function to get results, check for errors and return data if successful
 
-    def get_spoolman_server(self):
+        :param url_string: URL encoded string to fetch/post data to moonraker
+
+        :returns: Returns result dictionary if data is valid , returns None if and error occurred
+        """
+        data = None
+        try:
+            resp = urlopen(url_string)
+            if resp.status >= 200 and resp.status <= 300:
+                data = json.load(resp)
+            else:
+                self.logger.error(self.ERROR_STRING)
+                self.logger.debug(f"Response: {resp.status} Reason: {resp.reason}")
+        except:
+            self.logger.error(f"{self.ERROR_STR}\n{traceback.format_exc()}")
+            data = None
+        return data['result']
+
+    def get_spoolman_server(self)->str:
+        """
+        Queries moonraker to see if spoolman is configured, returns True when
+        spoolman is configured
+
+        :returns: Returns string for spoolmans IP, returns None if its not configured
+        """
         resp = self._get_results(urljoin(self.local_host, 'server/config'))
-        if resp is not None:
-            return resp['result']['orig']['spoolman']['server']     # check for spoolman and grab url
+        # Check to make sure response is valid and spoolman exists in dictionary
+        if resp is not None and 'orig' in resp and 'spoolman' in resp['orig']:
+            return resp['orig']['spoolman']['server']     # check for spoolman and grab url
         else:
+            self.logger.debug("Spoolman server is not defined")
             return None
 
-    def get_file_filament_change_count(self, filename ):
+    def get_file_filament_change_count(self, filename:str ):
+        """
+        Queries moonraker for files metadata and returns filament change count
+
+        :param filename: Filename to query moonraker and pull metadata
+        :return: Returns number of filament change counts if `filament_change_count` is in metadata.
+                 Returns zero if not found in metadata.
+        """
         change_count = 0
         resp = self._get_results(urljoin(self.local_host, 'server/files/metadata?filename={}'.format(filename)))
-        if resp is not None and 'filament_change_count' in resp['result']:
-            change_count =  resp['result']['filament_change_count']
+        if resp is not None and 'filament_change_count' in resp:
+            change_count =  resp['filament_change_count']
+        else:
+            self.logger.debug(f"Metadata not found for file:{filename}")
         return change_count
-    
+
     def get_afc_stats(self):
+        """
+        Queries moonraker database for all `afc_stats` entries and returns results if afc_stats exist.
+        Function also caches results and refetches data if cache is older than 60s. This is done to help
+        cut down on how much data is fetched from moonraker.
+
+        :return: Dictionary of afc_stats entries, None if afc_stats entry does not exist
+        """
         resp = None
-        req = Request(self.database_url)
-        resp = self._get_results(urljoin(self.database_url, "?namespace=afc_stats"))
-        if resp is None:
-            self.logger.info("AFC_stats not in database")
-        
-        return resp
-    
+        # Initially set to True since first time data always needs to be fetched
+        refetch_data = True
+        current_time = datetime.now()
+
+        # Check to see if data is older than 60 seconds and refreshes
+        if self.last_stats_time is not None:
+            refetch_data = False
+            delta = current_time - self.last_stats_time
+            if delta.seconds > 60:
+                refetch_data = True
+                self.last_stats_time = current_time
+        else:
+            self.last_stats_time = datetime.now()
+
+        # Cache results to keep queries to moonraker down
+        if self.afc_stats is None or refetch_data:
+            resp = self._get_results(urljoin(self.database_url, "?namespace=afc_stats"))
+            if resp is not None:
+                self.afc_stats = resp
+            else:
+                self.logger.debug("AFC_stats not in database")
+
+        return self.afc_stats
+
     def update_afc_stats(self, key, value):
+        """
+        Updates afc_stats in moonrakers database with key, value pair
+
+        :param key: The key indicating the field where the value should be inserted
+        :param value: The value to insert into the database
+        """
+        resp = None
         post_payload = {
             "request_method": "POST",
             "namespace": "afc_stats",
@@ -91,130 +184,29 @@ class AFC_moonraker:
             "value": value
         }
         req = Request(self.database_url, urlencode(post_payload).encode())
-        resp = self._get_results(req)
-    
-    def get_spool(self, id):
 
+        resp = self._get_results(req)
+        if resp is None:
+            self.logger.error(f"Error when trying to update {key} in moonraker, see AFC.log for more info")
+
+    def get_spool(self, id:int):
+        """
+        Uses moonrakers proxy to query spoolID from spoolman
+
+        :param id: SpoolID to lookup and fetch data from spoolman
+        :return: Returns dictionary of spoolID, returns None if error occurred or ID does not exist
+        """
+        resp = None
         request_payload = {
             "request_method": "GET",
             "path": f"/v1/spool/{id}"
         }
-        spool_url = urljoin(self.local_host, f'server/spoolman/proxy')
+        spool_url = urljoin(self.local_host, 'server/spoolman/proxy')
         req = Request( spool_url, urlencode(request_payload).encode() )
+
         resp = self._get_results(req)
-        return resp['result']
-
-def check_and_return( value_str, data_values ):
-    value = 0
-    if value_str in data_values:
-        value = data_values[value_str]
-    
-    return value
-
-class AFCStats_var:
-    def __init__(self, parent_name, name, data, moonraker):
-        self.parent_name = parent_name
-        self.name        = name
-        self.moonraker   = moonraker
-
-        if data is not None and self.parent_name in data:
-            self._value = check_and_return( self.name, data[self.parent_name])
+        if resp is not None:
+            resp = resp
         else:
-            self._value = 0
-            self.update_database()
-    @property
-    def value(self):
-        return self._value
-    @value.setter
-    def value(self, value):
-        self._value = value
-        self.update_database()
-    
-    def increase_count(self):
-        self.value += 1
-        self.update_database()
-    
-    def reset_count(self):
-        self.value = 0
-        self.update_database()
-    
-    def update_database(self):
-        self.moonraker.update_afc_stats(f"{self.parent_name}.{self.name}", self.value)
-        return
-    
-    def set_current_time(self):
-        from datetime import datetime
-        time = datetime.now()
-        self._value = time.strftime("%Y-%m-%d %H:%M")
-        self.update_database()
-
-class AFCStats:
-    def __init__(self, moonraker):
-        
-        self.moonraker = moonraker
-        afc_stats = self.moonraker.get_afc_stats()
-        
-        if afc_stats is not None:
-            values = ["values"]
-        else:
-            values = None
-
-        self.tc_total           = AFCStats_var("toolchange_count", "total", values, self.moonraker)
-        self.tc_tool_unload     = AFCStats_var("toolchange_count", "tool_unload", values, self.moonraker)
-        self.tc_tool_load       = AFCStats_var("toolchange_count", "tool_load", values, self.moonraker)
-        self.tc_without_error   = AFCStats_var("toolchange_count", "changes_without_error", values, self.moonraker)
-        self.tc_last_load_error = AFCStats_var("toolchange_count", "last_load_error", values, self.moonraker) # TimeDateValue
-        
-        if self.tc_last_load_error.value == 0:
-            self.tc_last_load_error.set_current_time()
-
-        self.cut_total                  = AFCStats_var("cut", "cut_total", values, self.moonraker)
-        self.cut_total_since_changed    = AFCStats_var("cut", "cut_total_since_changed", values, self.moonraker)
-        self.last_blade_changed         = AFCStats_var("cut", "last_blade_changed", values, self.moonraker)
-        # self.cut_threshold_for_warning  = AFCStats_var("cut", "cut_total", values, self.moonraker)
-
-        self.average_toolchange_time    = AFCStats_var("average_time", "tool_change", values, self.moonraker)
-        self.average_tool_unload_time   = AFCStats_var("average_time", "tool_unload", values, self.moonraker)
-        self.average_tool_load_time     = AFCStats_var("average_time", "tool_load",   values, self.moonraker)
-
-    def print_stats(self, afc_obj):
-        
-        print_str  = f"{'':{'-'}<87}\n"
-        print_str += f"|{'Toolchanges':{' '}^42}|{'Cut':{' '}^42}|\n"
-        print_str += f"|{'':{'-'}<85}|\n"
-        print_str += f"|{'Total':{' '}>22} : {self.tc_total.value:{' '}<17}|{'Total':{' '}>22} : {self.cut_total.value:{''}<17}|\n"
-        print_str += f"|{'Tool Unload':{' '}>22} : {self.tc_tool_unload.value:{' '}<17}|{'Total since changed':{' '}>22} : {self.cut_total_since_changed.value:{''}<17}|\n"
-        print_str += f"|{'Tool Load':{' '}>22} : {self.tc_tool_load.value:{' '}<17}|{'Blade last changed':{' '}>22} : {self.last_blade_changed.value:{''}<17}|\n"
-        print_str += f"|{'Changes without error':{' '}>22} : {self.tc_without_error.value:{' '}<17}|{'':{''}<42}|\n"
-        print_str += f"|{'Last error date':{' '}>22} : {self.tc_last_load_error.value:{' '}<17}|{'':{''}<42}|\n"
-        print_str += f"{'':{'-'}<87}\n"
-
-        for lane in afc_obj.lanes.values():
-            print_str += f"| {lane.name:{' '}>7} : N20 runtime: {lane.lane_stats.n20_runtime.value:{' '}>6}                Lane change count: {lane.lane_stats.lane_change_count.value:{' '}>6}\n"
-        afc_obj.logger.raw(print_str)
-
-
-# toolchange_count
-#   total
-#   tool_load
-#   tool_unload
-#   without_error
-#   last_load_error
-# cut_count
-#   total
-#   cut_count_since_changed
-#   last_blade_changed
-#   number_cut_for_warning - warn user when they are 1000 cuts away
-# average_toolchange_time
-#   tool_load
-#   tool_unload
-
-# Lane specific
-#   n20_runtime_per_lane
-#     lane1
-#     lane2
-#     etc....
-#   change_count_per_lane
-#     lane1
-#     lane2
-#     etc....
+            self.logger.info(f"SpoolID: {id} not found")
+        return resp

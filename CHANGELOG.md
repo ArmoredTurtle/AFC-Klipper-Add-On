@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-18]
+### Added
+- Added statistics tracking for tool load/unload/total change, n20 runtime, number of cuts,
+  average load/unload/full toolchange times, and number of load per lane.
+- Added ability to track when last blade was changed and how many cuts since last changed
+- `AFC_STATS` macro added to print statistics out. Set `SHORT=1` to print out a skinny version
+- `AFC_CHANGE_BLADE` macro added for when users change blade as this reset count and updates date changed
+- Added common class for easily interacting with moonraker api
+- Updated to use moonrakers proxy when fetching spoolmans data
+- Added getting toolchange count from moonrakers file metadata, `SET_AFC_TOOLCHANGES` will be deprecated
+  Moonrakers version needs to be at least v0.9.3-64
+- Updated import error message to pull from a common error string in AFC_utils.py file
+- Clearing pause in klipper when starting a print
+- Warning message is outputted when number of cuts is within 1K of tool_cut_threshold value
+- Error message is outputted when number of cuts is over tool_cut_threshold
+
+### Fixed
+- Issue where virtual bypass was being set for newly installed instances of AFC
+
 ## [2025-05-01]
 ### Added
 - Print assist is now filament usage based and will activate spool after a specified amount of filament is used. This is enabled by default.
