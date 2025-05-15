@@ -631,12 +631,6 @@ class afc:
         self.current_state = State.IDLE
         self.position_saved = False
 
-    def _get_move_speed(self, speed):
-        if self.quiet_mode == True and speed > self.quiet_moves_speed:
-            return self.quiet_moves_speed
-        else:
-            return speed
-
 
     def save_vars(self):
         """
