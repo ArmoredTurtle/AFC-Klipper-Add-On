@@ -461,9 +461,10 @@ class AFCLane:
                     self.afc.function.afc_led(self.led_not_ready, self.led_index)
                     self.status = None
                     self.loaded_to_hub = False
-                    self.clear_lane_data()
+                    self.td1_data = {}
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
+                    self.clear_lane_data()
 
         self.afc.save_vars()
 
@@ -537,7 +538,7 @@ class AFCLane:
                     # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a 
                     # different extruder/hub
                     if self.td1_when_loaded:
-                        if self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
+                        if not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
                             self.get_td1_data()
                         else:
                             self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
@@ -557,6 +558,7 @@ class AFCLane:
                 else:
                     self.status = None
                     self.loaded_to_hub = False
+                    self.td1_data = {}
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
                     self.clear_lane_data()
