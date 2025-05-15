@@ -343,9 +343,13 @@ class AFCLane:
             if assist_active:
                 self.espooler.assist(0)
 
-    def get_speed_accel(self, mode: SpeedMode, quiet_mode : bool = False  ) -> float:
-        if quiet_mode == True:
-            return self.quiet_moves_speed, self.short_moves_accel
+    def get_speed_accel(self, mode: SpeedMode) -> float:
+        """
+        Helper function to allow selecting the right speed and acceleration of movements
+        mode (Enum SpeedMode): Identifies which speed to use.
+        """
+        if self.afc.quiet_mode == True:
+            return self.afc.quiet_moves_speed, self.short_moves_accel
         elif mode == SpeedMode.LONG:
             return self.long_moves_speed, self.long_moves_accel
         elif mode == SpeedMode.SHORT:
@@ -369,7 +373,7 @@ class AFCLane:
             if self.drive_stepper is not None:
                 self.drive_stepper.move(distance, speed, accel, assist_active)
 
-    def move_advanced(self, distance, speed_mode : SpeedMode, assist_active : AssistActive = AssistActive.NO, quiet_mode : bool = False):
+    def move_advanced(self, distance, speed_mode : SpeedMode, assist_active : AssistActive = AssistActive.NO):
         """
         Wrapper for move function and isused to compute several arguments
         to move the lane accordingly.
@@ -377,9 +381,8 @@ class AFCLane:
         distance (float): The distance to move.
         speed_mode (Enum SpeedMode): Identifies which speed to use.
         assist_active (Enum AssistActive): Determines to force assist or to dynamically determine.
-        quiet__mode: determine if device in quite mode.
         """
-        speed, accel = self.get_speed_accel(speed_mode, quiet_mode)
+        speed, accel = self.get_speed_accel(speed_mode)
 
         assist = False
         if assist_active == AssistActive.YES:
