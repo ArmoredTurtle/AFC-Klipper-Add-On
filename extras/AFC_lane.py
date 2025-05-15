@@ -380,14 +380,12 @@ class AFCLane:
         quiet__mode: determine if device in quite mode.
         """
         speed, accel = self.get_speed_accel(speed_mode, quiet_mode)
-        self.logger.info(f"move_advanced: SpeedMode {speed_mode} AssistActive {assist_active}, quiet_mode {quiet_mode}")
 
         assist = False
         if assist_active == AssistActive.YES: 
             assist = True
         elif assist_active == AssistActive.DYNAMIC: 
             assist = distance > 200
-        self.logger.info(f"move_advanced: speed {speed} accel {accel}, assist {assist}")
 
         self.move(distance, speed, accel, assist)
 
