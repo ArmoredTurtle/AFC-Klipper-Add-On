@@ -7,6 +7,13 @@ import math
 from contextlib import contextmanager
 from configfile import error
 from enum import Enum
+from . import AFC_assist
+try:
+    from extras.AFC_utils import add_filament_switch
+except:
+    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+# Class for holding different states so its clear what all valid states are
 
 class AssistActive(Enum):
     YES = 1
@@ -18,13 +25,6 @@ class SpeedMode(Enum):
     HUB = 3
     NIGHT = 4
 
-from . import AFC_assist
-try:
-    from extras.AFC_utils import add_filament_switch
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
-
-# Class for holding different states so its clear what all valid states are
 class AFCLaneState:
     NONE             = "None"
     ERROR            = "Error"
@@ -371,7 +371,7 @@ class AFCLane:
 
     def move_advanced(self, distance, speed_mode : SpeedMode, assist_active : AssistActive = AssistActive.NO, quiet_mode : bool = False):
         """
-        Wrapper for move function and isused to compute several arguments 
+        Wrapper for move function and isused to compute several arguments
         to move the lane accordingly.
         Parameters:
         distance (float): The distance to move.
@@ -382,9 +382,9 @@ class AFCLane:
         speed, accel = self.get_speed_accel(speed_mode, quiet_mode)
 
         assist = False
-        if assist_active == AssistActive.YES: 
+        if assist_active == AssistActive.YES:
             assist = True
-        elif assist_active == AssistActive.DYNAMIC: 
+        elif assist_active == AssistActive.DYNAMIC:
             assist = distance > 200
 
         self.move(distance, speed, accel, assist)
