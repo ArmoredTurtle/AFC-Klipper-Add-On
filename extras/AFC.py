@@ -9,7 +9,7 @@ import re
 from configfile import error
 from typing import Any
 
-from extras.AFC_lane import AFCLaneState
+from extras.AFC_lane import AFCLaneState, SpeedMode, AssistActive
 
 try:
     from urllib.request import urlopen
@@ -499,13 +499,12 @@ class afc:
         cur_lane = self.lanes[lane]
         self.current_state = State.MOVING_LANE
 
-        move_speed = cur_lane.long_moves_speed if abs(distance) >= 200 else cur_lane.short_moves_speed
-        move_accel = cur_lane.long_moves_accel if abs(distance) >= 200 else cur_lane.short_moves_accel
-        move_speed = self._get_move_speed(move_speed)
+        speed_mode = SpeedMode.SHORT
+        if abs(distance) >= 200: speed_mode = SpeedMode.LONG
 
         cur_lane.set_load_current() # Making current is set correctly when doing lane moves
         cur_lane.do_enable(True)
-        cur_lane.move(distance, move_speed, move_accel, True)
+        cur_lane.move_advanced(distance, speed_mode, assist_active = AssistActive.YES, quiet_mode = self.quiet_mode)
         cur_lane.do_enable(False)
         self.current_state = State.IDLE
         cur_lane.unit_obj.return_to_home()
@@ -706,13 +705,13 @@ class afc:
         if not cur_lane.load_state:
             cur_lane.do_enable(True)
             while not cur_lane.load_state:
-                cur_lane.move( cur_hub.move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                cur_lane.move_advanced( cur_hub.move_dis, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
         if not cur_lane.loaded_to_hub:
-            cur_lane.move(cur_lane.dist_hub, self._get_move_speed(cur_lane.dist_hub_move_speed), cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
+            cur_lane.move_advanced(cur_lane.dist_hub, SpeedMode.HUB, quiet_mode = self.quiet_mode, assist_active = AssistActive.DYNAMIC)
         while not cur_hub.state:
-            cur_lane.move(cur_hub.move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+            cur_lane.move_advanced(cur_hub.move_dis, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
         while cur_hub.state:
-            cur_lane.move(cur_hub.move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+            cur_lane.move_advanced(cur_hub.move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
         cur_lane.status = AFCLaneState.NONE
         cur_lane.do_enable(False)
         cur_lane.loaded_to_hub = True
@@ -762,11 +761,11 @@ class afc:
             self.save_vars()
             cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
-                cur_lane.move(cur_lane.dist_hub * -1, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
+                cur_lane.move_advanced(cur_lane.dist_hub * -1, SpeedMode.HUB, quiet_mode = self.quiet_mode, assist_active = AssistActive.DYNAMIC)
             cur_lane.loaded_to_hub = False
             while cur_lane.load_state:
-               cur_lane.move(cur_hub.move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_hub.move_dis * -5, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                cur_lane.move_advanced(cur_hub.move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
+            cur_lane.move_advanced(cur_hub.move_dis * -5, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
             cur_lane.do_enable(False)
             cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
@@ -870,7 +869,7 @@ class afc:
 
             # Move filament to the hub if it's not already loaded there.
             if not cur_lane.loaded_to_hub or cur_lane.hub == 'direct':
-                cur_lane.move(cur_lane.dist_hub, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, cur_lane.dist_hub > 200)
+                cur_lane.move_advanced(cur_lane.dist_hub, SpeedMode.HUB, quiet_mode = self.quiet_mode, assist_active = AssistActive.DYNAMIC)
                 self.afcDeltaTime.log_with_time("Loaded to hub")
 
             cur_lane.loaded_to_hub = True
@@ -879,9 +878,9 @@ class afc:
             # Ensure filament moves past the hub.
             while not cur_hub.state and cur_lane.hub != 'direct':
                 if hub_attempts == 0:
-                    cur_lane.move(cur_hub.move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                    cur_lane.move_advanced(cur_hub.move_dis, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
                 else:
-                    cur_lane.move(cur_lane.short_move_dis, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                    cur_lane.move_advanced(cur_lane.short_move_dis, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
                 hub_attempts += 1
                 if hub_attempts > 20:
                     message = 'filament did not trigger hub sensor, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL.'
@@ -895,7 +894,7 @@ class afc:
 
             # Move filament towards the toolhead.
             if cur_lane.hub != 'direct':
-                cur_lane.move(cur_hub.afc_bowden_length, self._get_move_speed(cur_lane.long_moves_speed), cur_lane.long_moves_accel, True)
+                cur_lane.move_advanced(cur_hub.afc_bowden_length, SpeedMode.LONG, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
 
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
@@ -953,7 +952,7 @@ class afc:
                 cur_lane.unsync_to_extruder()
                 load_checks = 0
                 while cur_lane.get_toolhead_pre_sensor_state():
-                    cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                    cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
                     load_checks += 1
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if load_checks > self.tool_max_load_checks:
@@ -1152,7 +1151,7 @@ class afc:
             cur_lane.unsync_to_extruder()
             while not cur_lane.get_trailing():
                 # attempt to return buffer to trailng pin
-                cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
                 if num_tries > self.tool_max_unload_attempts:
@@ -1206,9 +1205,9 @@ class afc:
         # Synchronize and move filament out of the hub.
         cur_lane.unsync_to_extruder()
         if cur_lane.hub != 'direct':
-            cur_lane.move(cur_hub.afc_unload_bowden_length * -1, self._get_move_speed(cur_lane.long_moves_speed), cur_lane.long_moves_accel, True)
+            cur_lane.move_advanced(cur_hub.afc_unload_bowden_length * -1, SpeedMode.LONG, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
         else:
-            cur_lane.move(cur_lane.dist_hub * -1, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, cur_lane.dist_hub > 200)
+            cur_lane.move_advanced(cur_lane.dist_hub * -1, SpeedMode.HUB, quiet_mode = self.quiet_mode, assist_active = AssistActive.DYNAMIC)
 
         self.afcDeltaTime.log_with_time("Long retract done")
 
@@ -1220,7 +1219,7 @@ class afc:
         # Ensure filament is fully cleared from the hub.
         num_tries = 0
         while cur_hub.state:
-            cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
+            cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
             num_tries += 1
             if num_tries > (cur_hub.afc_unload_bowden_length / cur_lane.short_move_dis):
                 # Handle failure if the filament doesn't clear the hub.
@@ -1240,7 +1239,7 @@ class afc:
 
         #Move to make sure hub path is clear based on the move_clear_dis var
         if cur_lane.hub != 'direct':
-            cur_lane.move(cur_hub.hub_clear_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
+            cur_lane.move_advanced(cur_hub.hub_clear_move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
 
             # Cut filament at the hub, if configured.
             if cur_hub.cut:
@@ -1251,7 +1250,7 @@ class afc:
 
                 # Confirm the hub is clear after the cut.
                 while cur_hub.state:
-                    cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
+                    cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
                     num_tries += 1
                     # TODO: Figure out max number of tries
                     if num_tries > (cur_hub.afc_unload_bowden_length / cur_lane.short_move_dis):
@@ -1268,8 +1267,8 @@ class afc:
 
         if cur_lane.hub == 'direct':
             while cur_lane.load_state:
-                cur_lane.move(cur_lane.short_move_dis * -1, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_lane.short_move_dis * -5, self._get_move_speed(cur_lane.short_moves_speed), cur_lane.short_moves_accel)
+                cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, quiet_mode = self.quiet_mode, assist_active = AssistActive.YES)
+            cur_lane.move_advanced(cur_lane.short_move_dis * -5, SpeedMode.SHORT, quiet_mode = self.quiet_mode)
 
         cur_lane.do_enable(False)
         cur_lane.unit_obj.return_to_home()
