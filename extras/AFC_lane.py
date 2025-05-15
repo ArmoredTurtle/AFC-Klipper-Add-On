@@ -6,6 +6,17 @@
 import math
 from contextlib import contextmanager
 from configfile import error
+from enum import Enum
+
+class AssistActive(Enum):
+    YES = 1
+    NO = 2
+    DYNAMIC = 3
+class SpeedMode(Enum):
+    LONG = 1
+    SHORT = 2
+    HUB = 3
+    NIGHT = 4
 
 from . import AFC_assist
 try:
@@ -332,6 +343,17 @@ class AFCLane:
             if assist_active:
                 self.espooler.assist(0)
 
+    def get_speed_accel(self, mode: SpeedMode, quiet_mode : bool = False  ) -> float:
+        if quiet_mode == True:
+            return self.quiet_moves_speed, self.short_moves_accel
+        elif mode == SpeedMode.LONG:
+            return self.long_moves_speed, self.long_moves_accel
+        elif mode == SpeedMode.SHORT:
+            return self.short_moves_speed, self.short_moves_accel
+        else:
+            return self.dist_hub_move_speed, self.dist_hub_move_accel
+
+
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -346,6 +368,28 @@ class AFCLane:
         with self.assist_move( speed, distance < 0, assist_active):
             if self.drive_stepper is not None:
                 self.drive_stepper.move(distance, speed, accel, assist_active)
+
+    def move_advanced(self, distance, speed_mode : SpeedMode, assist_active : AssistActive = AssistActive.NO, quiet_mode : bool = False):
+        """
+        Wrapper for move function and isused to compute several arguments 
+        to move the lane accordingly.
+        Parameters:
+        distance (float): The distance to move.
+        speed_mode (Enum SpeedMode): Identifies which speed to use.
+        assist_active (Enum AssistActive): Determines to force assist or to dynamically determine.
+        quiet__mode: determine if device in quite mode.
+        """
+        speed, accel = self.get_speed_accel(speed_mode, quiet_mode)
+        self.logger.info(f"move_advanced: SpeedMode {speed_mode} AssistActive {assist_active}, quiet_mode {quiet_mode}")
+
+        assist = False
+        if assist_active == AssistActive.YES: 
+            assist = True
+        elif assist_active == AssistActive.DYNAMIC: 
+            assist = distance > 200
+        self.logger.info(f"move_advanced: speed {speed} accel {accel}, assist {assist}")
+
+        self.move(distance, speed, accel, assist)
 
     def set_afc_prep_done(self):
         """
