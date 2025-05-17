@@ -762,7 +762,7 @@ class afc:
             cur_lane.loaded_to_hub = False
             while cur_lane.load_state:
                cur_lane.move(cur_hub.short_move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_lane.short_move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+            cur_lane.move(cur_hub.move_dis * -1.5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
             cur_lane.do_enable(False)
             cur_lane.status = None
             cur_lane.unit_obj.return_to_home()
