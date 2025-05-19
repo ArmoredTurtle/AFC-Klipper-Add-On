@@ -7,10 +7,12 @@ import traceback
 
 from configparser import Error as error
 
-from extras.AFC_lane import AFCLaneState
 
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
 
-from extras.AFC_utils import ERROR_STR
+try: from extras.AFC_lane import AFCLaneState
+except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
 
 try: from extras.AFC_unit import afcUnit
 except: raise error(ERROR_STR.format(import_lib="AFC_unit", trace=traceback.format_exc()))

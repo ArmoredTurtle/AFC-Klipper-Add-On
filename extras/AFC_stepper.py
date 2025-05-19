@@ -11,7 +11,8 @@ from kinematics import extruder
 from configfile import error
 from extras.force_move import calc_move_time
 
-from extras.AFC_utils import ERROR_STR
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
 
 try: from extras.AFC_lane import AFCLane
 except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))

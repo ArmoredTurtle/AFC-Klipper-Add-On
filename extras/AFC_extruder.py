@@ -7,7 +7,8 @@ import traceback
 
 from configparser import Error as error
 
-from extras.AFC_utils import ERROR_STR
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
 
 try: from extras.AFC_utils import add_filament_switch
 except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))

@@ -10,10 +10,11 @@ import traceback
 from configfile import error
 from typing import Any
 
-from extras.AFC_lane import AFCLaneState
-
 
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
+
+try: from extras.AFC_lane import AFCLaneState
+except: raise error(ERROR_STR.format(import_lib="AFC_logger", trace=traceback.format_exc()))
 
 try: from extras.AFC_logger import AFC_logger
 except: raise error(ERROR_STR.format(import_lib="AFC_logger", trace=traceback.format_exc()))

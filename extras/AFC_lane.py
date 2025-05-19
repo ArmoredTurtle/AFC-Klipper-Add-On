@@ -9,13 +9,11 @@ import traceback
 from contextlib import contextmanager
 from configfile import error
 
-from extras.AFC_utils import ERROR_STR
+try: from extras.AFC_utils import ERROR_STR, add_filament_switch
+except: raise error("Error when trying to import AFC_utils.ERROR_STR, add_filament_switch\n{trace}".format(trace=traceback.format_exc()))
 
 try: from extras import AFC_assist
 except: raise error(ERROR_STR.format(import_lib="AFC_assist", trace=traceback.format_exc()))
-
-try: from extras.AFC_utils import add_filament_switch
-except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
 
 try: from extras.AFC_stats import AFCStats_var
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))

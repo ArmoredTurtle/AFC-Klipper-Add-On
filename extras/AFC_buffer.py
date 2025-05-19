@@ -7,10 +7,8 @@ import traceback
 
 from configparser import Error as error
 
-from extras.AFC_utils import ERROR_STR
-
 try: from extras.AFC_utils import add_filament_switch
-except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
+except: raise error("Error when trying to import AFC_utils.add_filament_switch\n{trace}".format(trace=traceback.format_exc()))
 
 ADVANCE_STATE_NAME = "Trailing"
 TRAILING_STATE_NAME = "Advancing"

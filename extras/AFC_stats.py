@@ -3,8 +3,12 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import traceback
 
-from extras.AFC_utils import check_and_return
+from configparser import Error as error
+
+try: from extras.AFC_utils import check_and_return
+except: raise error("Error when trying to import AFC_utils.check_and_return\n{trace}".format(trace=traceback.format_exc()))
 
 class AFCStats_var:
     """
