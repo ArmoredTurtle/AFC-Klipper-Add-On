@@ -361,6 +361,7 @@ class afc:
         """
         if self.show_quiet_mode:
             self.quiet_switch.sensor_enabled = val
+            self.quiet_switch.filament_present = val
         else:
             self.quiet_mode = val
 
@@ -371,7 +372,9 @@ class afc:
         :return Returns current state of nightmode switch
         """
         if self.show_quiet_mode:
-            return self.quiet_switch.sensor_enabled
+            state = self.quiet_switch.sensor_enabled
+            self.quiet_switch.filament_present = state
+            return state 
         else:
             return self.quiet_mode
 
@@ -1435,6 +1438,7 @@ class afc:
         str['spoolman']                 = self.spoolman
         str['error_state']              = self.error_state
         str["bypass_state"]             = bool(self._get_bypass_state())
+        str["quiet_mode"]               = bool(self._get_quiet_mode())
         str["position_saved"]           = self.position_saved
 
         unitdisplay =[]
