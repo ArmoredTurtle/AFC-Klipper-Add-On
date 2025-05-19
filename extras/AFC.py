@@ -180,7 +180,7 @@ class afc:
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
 
-        # Setup pin so a virtual filament sensor can be added for bypass and nightmode
+        # Setup pin so a virtual filament sensor can be added for bypass and quiet mode
         self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
         self.printer.lookup_object("pins").register_chip("afc_quiet_mode", self)
 
@@ -264,7 +264,7 @@ class afc:
             self.quiet_switch = add_filament_switch("filament_switch_sensor virtual_quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # GCODE REGISTERS
-        self.gcode.register_command('NIGHT_MODE',           self.cmd_NIGHT_MODE,            desc=self.cmd_NIGHT_MODE_help)
+        self.gcode.register_command('AFC_QUIET_MODE',           self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
@@ -355,7 +355,7 @@ class afc:
 
     def _set_quiet_mode(self, val):
         """
-        Helper function to set nightmode to on or off
+        Helper function to set quiet mode to on or off
 
         :param val: on or off switch
         """
@@ -367,14 +367,14 @@ class afc:
 
     def _get_quiet_mode(self):
         """
-        Helper function to return if nightmode is on or off
+        Helper function to return if quiet is on or off
 
-        :return Returns current state of nightmode switch
+        :return Returns current state of quiet switch
         """
         if self.show_quiet_mode:
             state = self.quiet_switch.sensor_enabled
             self.quiet_switch.filament_present = state
-            return state 
+            return state
         else:
             return self.quiet_mode
 
@@ -426,8 +426,8 @@ class afc:
         return False
 
 
-    cmd_NIGHT_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
-    def cmd_NIGHT_MODE(self, gcmd):
+    cmd_AFC_QUIET_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
+    def cmd_AFC_QUIET_MODE(self, gcmd):
         """
         Set lower speed on any filament moves.
 
