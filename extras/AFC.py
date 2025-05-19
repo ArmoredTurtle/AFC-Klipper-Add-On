@@ -1405,7 +1405,7 @@ class afc:
                 self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
-            if not self.error_state and self.current_toolchange == -1: #and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
+            if not self.error_state and self.current_toolchange == -1:
                 self.current_toolchange += 1
 
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
