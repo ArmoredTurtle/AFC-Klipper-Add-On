@@ -163,7 +163,7 @@ class AFCStats:
             warning_msg_threshold   = "have exceeded"
             span_start              = "<span class=error--text>"
             message_type            = "error"
-            if not self.threshold_error_sent: 
+            if not self.threshold_error_sent:
                 self.threshold_error_sent = send_message = True
 
         elif self.cut_total_since_changed.value >= (self.cut_threshold_for_warning - 1000):
@@ -171,7 +171,7 @@ class AFCStats:
             warning_msg_threshold   = "is about to exceeded"
             span_start              = "<span class=warning--text>"
             message_type            = "warning"
-            if not self.threshold_warning_sent: 
+            if not self.threshold_warning_sent:
                 self.threshold_warning_sent = send_message = True
         else:
             return

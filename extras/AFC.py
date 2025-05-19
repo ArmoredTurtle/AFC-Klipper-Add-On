@@ -4,12 +4,14 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-from inspect import trace
 import json
 import re
 import traceback
 from configfile import error
 from typing import Any
+
+from extras.AFC_lane import AFCLaneState
+
 
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
 
@@ -151,11 +153,14 @@ class afc:
         self.short_moves_speed      = config.getfloat("short_moves_speed", 25)      # Speed in mm/s to move filament when doing short moves
         self.short_moves_accel      = config.getfloat("short_moves_accel", 400)     # Acceleration in mm/s squared when doing short moves
         self.short_move_dis         = config.getfloat("short_move_dis", 10)         # Move distance in mm for failsafe moves.
+        self.tool_homing_distance   = config.getfloat("tool_homing_distance", 200)  # Distance over which toolhead homing is to be attempted.
         self.max_move_dis           = config.getfloat("max_move_dis", 999999)       # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
         self.n20_break_delay_time   = config.getfloat("n20_break_delay_time", 0.200)# Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
 
         self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 2) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
+
+        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
 
         self.z_hop                  = config.getfloat("z_hop", 0)                   # Height to move up before and after a tool change completes
         self.xy_resume              = config.getboolean("xy_resume", False)         # Need description or remove as this is currently an unused variable
@@ -703,7 +708,7 @@ class afc:
         cur_lane = self.lanes[lane]
         cur_hub = cur_lane.hub_obj
         if not cur_lane.prep_state: return
-        cur_lane.status = 'HUB Loading'
+        cur_lane.status = AFCLaneState.HUB_LOADING
         if not cur_lane.load_state:
             cur_lane.do_enable(True)
             while not cur_lane.load_state:
@@ -714,7 +719,7 @@ class afc:
             cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
         while cur_hub.state:
             cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
-        cur_lane.status = None
+        cur_lane.status = AFCLaneState.NONE
         cur_lane.do_enable(False)
         cur_lane.loaded_to_hub = True
         self.save_vars()
@@ -759,7 +764,7 @@ class afc:
             # Setting status as ejecting so if filament is removed and de-activates the prep sensor while
             # extruder motors are still running it does not trigger infinite spool or pause logic
             # once user removes filament lanes status will go to None
-            cur_lane.status = 'ejecting'
+            cur_lane.status = AFCLaneState.EJECTING
             self.save_vars()
             cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
@@ -769,7 +774,7 @@ class afc:
                cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
             cur_lane.move(cur_hub.move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
             cur_lane.do_enable(False)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             # Put CAM back to lane if its loaded to toolhead
             self.function.select_loaded_lane()
@@ -856,7 +861,7 @@ class afc:
         self.current_loading = cur_lane.name
 
         # Set the lane status to 'loading' and activate the loading LED.
-        cur_lane.status = 'Tool Loading'
+        cur_lane.status = AFCLaneState.TOOL_LOADING
         self.save_vars()
         self.function.afc_led(cur_lane.led_loading, cur_lane.led_index)
 
@@ -904,7 +909,7 @@ class afc:
                 while not cur_lane.get_toolhead_pre_sensor_state():
                     tool_attempts += 1
                     cur_lane.move(cur_lane.short_move_dis, cur_extruder.tool_load_speed, cur_lane.long_moves_accel)
-                    if tool_attempts > 20:
+                    if tool_attempts > int(self.tool_homing_distance/cur_lane.short_move_dis):
                         message = 'filament failed to trigger pre extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
                         message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(cur_lane.name)
                         message += '\nManually move filament with LANE_MOVE macro for {} until filament is right before toolhead extruder gears,'.format(cur_lane.name)
@@ -917,7 +922,7 @@ class afc:
             self.afcDeltaTime.log_with_time("Filament loaded to pre-sensor")
 
             # Synchronize lane's extruder stepper and finalize tool loading.
-            cur_lane.status = 'Tool Loaded'
+            cur_lane.status = AFCLaneState.TOOL_LOADED
             self.save_vars()
             cur_lane.sync_to_extruder()
 
@@ -1083,7 +1088,7 @@ class afc:
         self.current_state  = State.UNLOADING
         self.current_loading = cur_lane.name
         self.logger.info("Unloading {}".format(cur_lane.name))
-        cur_lane.status = 'Tool Unloading'
+        cur_lane.status = AFCLaneState.TOOL_UNLOADING
         self.save_vars()
 
         # Verify that printer is in absolute mode
@@ -1272,7 +1277,7 @@ class afc:
         # Finalize unloading and reset lane state.
         cur_lane.loaded_to_hub = True
         self.function.afc_led(cur_lane.led_ready, cur_lane.led_index)
-        cur_lane.status = None
+        cur_lane.status = AFCLaneState.NONE
 
         if cur_lane.hub == 'direct':
             while cur_lane.load_state:

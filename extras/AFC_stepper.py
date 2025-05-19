@@ -98,6 +98,8 @@ class AFCExtruderStepper(AFCLane):
         """
         direction = 1 if distance > 0 else -1
         move_total = abs(distance)
+        if direction == -1:
+            speed = speed * self.rev_long_moves_speed_factor
 
         # Breaks up move length to help with TTC errors
         while move_total > 0:

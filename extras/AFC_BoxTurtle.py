@@ -7,6 +7,9 @@ import traceback
 
 from configparser import Error as error
 
+from extras.AFC_lane import AFCLaneState
+
+
 from extras.AFC_utils import ERROR_STR
 
 try: from extras.AFC_unit import afcUnit
@@ -74,7 +77,7 @@ class afcBoxTurtle(afcUnit):
                 self.afc.function.afc_led(cur_lane.led_not_ready, cur_lane.led_index)
                 succeeded = False
             else:
-                cur_lane.status = 'Loaded'
+                cur_lane.status = AFCLaneState.LOADED
                 msg +="<span class=success--text> AND LOADED</span>"
 
                 if cur_lane.tool_loaded:
@@ -89,7 +92,7 @@ class afcBoxTurtle(afcUnit):
                             if self.afc.function.get_current_lane() == cur_lane.name:
                                 self.afc.spool.set_active_spool(cur_lane.spool_id)
                                 self.afc.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
-                                cur_lane.status = 'Tooled'
+                                cur_lane.status = AFCLaneState.TOOLED
 
                             cur_lane.enable_buffer()
                         else:
@@ -280,14 +283,14 @@ class afcBoxTurtle(afcUnit):
             return False, msg, 0
 
         self.logger.info('Calibrating {}'.format(cur_lane.name))
-        cur_lane.status = "calibrating"
+        cur_lane.status = AFCLaneState.CALIBRATING
         # reset to extruder
         pos, checkpoint, success = self.calc_position(cur_lane, lambda: cur_lane.load_state, 0, cur_lane.short_move_dis,
                                                       tol, cur_lane.dist_hub + 100, "retract to extruder")
 
         if not success:
             msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return False, msg, 0
 
@@ -295,7 +298,7 @@ class afcBoxTurtle(afcUnit):
             success, message, hub_pos = self.calibrate_hub(cur_lane, tol)
 
             if not success:
-                cur_lane.status = None
+                cur_lane.status = AFCLaneState.NONE
                 cur_lane.unit_obj.return_to_home()
                 return False, message, hub_pos
 
@@ -308,7 +311,7 @@ class afcBoxTurtle(afcUnit):
             cur_lane.do_enable(False)
             cur_lane.dist_hub = cal_dist
             self.afc.function.ConfigRewrite(cur_lane.fullname, "dist_hub", cal_dist, cal_msg)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return True, cal_msg, cal_dist
 
