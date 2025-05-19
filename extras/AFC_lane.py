@@ -348,7 +348,7 @@ class AFCLane:
         Helper function to allow selecting the right speed and acceleration of movements
         mode (Enum SpeedMode): Identifies which speed to use.
         """
-        if self.afc.quiet_mode == True:
+        if self.afc._get_quiet_mode() == True:
             return self.afc.quiet_moves_speed, self.short_moves_accel
         elif mode == SpeedMode.LONG:
             return self.long_moves_speed, self.long_moves_accel

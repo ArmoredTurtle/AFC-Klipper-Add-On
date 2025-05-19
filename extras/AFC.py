@@ -146,7 +146,8 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
-        self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)       # Max speed in mm/s to move filament during quietmode
+        self.show_quiet_mode        = config.getboolean("show_quiet_mode", False)   # Flag indicating if quiet move is enabled or not
+        self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
         self.long_moves_accel       = config.getfloat("long_moves_accel", 400)      # Acceleration in mm/s squared when doing long moves
         self.short_moves_speed      = config.getfloat("short_moves_speed", 25)      # Speed in mm/s to move filament when doing short moves
@@ -179,8 +180,9 @@ class afc:
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
 
-        # Setup pin so a virtual filament sensor can be added for bypass
+        # Setup pin so a virtual filament sensor can be added for bypass and nightmode
         self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
+        self.printer.lookup_object("pins").register_chip("afc_quiet_mode", self)
 
         # Printing here will not display in console but it will go to klippy.log
         self.print_version()
@@ -257,6 +259,9 @@ class afc:
             self.bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
         except:
             self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
+
+        if self.show_quiet_mode:
+            self.quiet_switch = add_filament_switch("filament_switch_sensor virtual_quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # GCODE REGISTERS
         self.gcode.register_command('NIGHT_MODE',           self.cmd_NIGHT_MODE,            desc=self.cmd_NIGHT_MODE_help)
@@ -348,6 +353,28 @@ class afc:
 
         return wait
 
+    def _set_quiet_mode(self, val):
+        """
+        Helper function to set nightmode to on or off
+
+        :param val: on or off switch
+        """
+        if self.show_quiet_mode:
+            self.quiet_switch.sensor_enabled = val
+        else:
+            self.quiet_mode = val
+
+    def _get_quiet_mode(self):
+        """
+        Helper function to return if nightmode is on or off
+
+        :return Returns current state of nightmode switch
+        """
+        if self.show_quiet_mode:
+            return self.quiet_switch.sensor_enabled
+        else:
+            return self.quiet_mode
+
     def _get_bypass_state(self):
         """
         Helper function to return if filament is present in bypass sensor
@@ -413,9 +440,9 @@ class afc:
         NIGHT_MODE SPEED=75 ENABLE=1
         ```
         """
-        self.quiet_mode = bool(gcmd.get_int("ENABLE", self.quiet_mode, minval=0, maxval=2))
+        self._set_quiet_mode(bool(gcmd.get_int("ENABLE", self._get_quiet_mode(), minval=0, maxval=2)))
         self.quiet_moves_speed = gcmd.get_float("SPEED", self.quiet_moves_speed, minval=10, maxval=400)
-        self.logger.info("NightMode {}, max speed of {} mm/sec".format(self.quiet_mode, self.quiet_moves_speed))
+        self.logger.info("NightMode {}, max speed of {} mm/sec".format(self._get_quiet_mode(), self.quiet_moves_speed))
 
 
     cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
