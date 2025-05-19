@@ -41,7 +41,7 @@ class AFCStats_var:
                 except:
                     self._value = value
         else:
-            self.moonraker.logger.error("Something happened data when getting data:{} {}".format( bool(data is not None), bool(self.parent_name in data)))
+            self.moonraker.logger.error("No data in database for {}.{}:{} {}".format( self.parent_name, name, bool(data is not None), bool(self.parent_name in data)))
             self._value = 0
 
     def __str__(self):
