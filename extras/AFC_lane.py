@@ -373,7 +373,7 @@ class AFCLane:
             if self.drive_stepper is not None:
                 self.drive_stepper.move(distance, speed, accel, assist_active)
 
-    def move_advanced(self, distance, speed_mode : SpeedMode, assist_active : AssistActive = AssistActive.NO):
+    def move_advanced(self, distance, speed_mode: SpeedMode, assist_active: AssistActive = AssistActive.NO):
         """
         Wrapper for move function and isused to compute several arguments
         to move the lane accordingly.
