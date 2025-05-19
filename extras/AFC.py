@@ -443,7 +443,7 @@ class afc:
         NIGHT_MODE SPEED=75 ENABLE=1
         ```
         """
-        self._set_quiet_mode(bool(gcmd.get_int("ENABLE", self._get_quiet_mode(), minval=0, maxval=2)))
+        self._set_quiet_mode(bool(gcmd.get_int("ENABLE", self._get_quiet_mode(), minval=0, maxval=1)))
         self.quiet_moves_speed = gcmd.get_float("SPEED", self.quiet_moves_speed, minval=10, maxval=400)
         self.logger.info("NightMode {}, max speed of {} mm/sec".format(self._get_quiet_mode(), self.quiet_moves_speed))
 
