@@ -371,7 +371,6 @@ class afc:
 
         :return Returns current state of quiet switch
         """
-        
         if self.show_quiet_mode:
             try:
                 state = self.quiet_switch.sensor_enabled
