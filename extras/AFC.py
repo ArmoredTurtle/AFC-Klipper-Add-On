@@ -261,7 +261,7 @@ class afc:
             self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
 
         if self.show_quiet_mode:
-            self.quiet_switch = add_filament_switch("filament_switch_sensor virtual_quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
+            self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # GCODE REGISTERS
         self.gcode.register_command('AFC_QUIET_MODE',           self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
