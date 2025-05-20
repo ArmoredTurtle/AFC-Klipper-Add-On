@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-05-15]
 ### Added
-- added night mode support. `night_moves_speed` on `AFC.cfg` dictates the max speed when night mode is enabled.
-- new macro `NIGHT_MODE ENABLE=1/0 SPEED=<max_speed>` to allow modifying `night_moves_speed` and enable/disable night mode.
+- added quiet mode support. `quiet_moves_speed` on `AFC.cfg` dictates the max speed when quiet mode is enabled.
+- new macro `AFC_QUIET_MODE ENABLE=1/0 SPEED=<max_speed>` to allow modifying `night_moves_speed` and enable/disable quiet mode.
 
 ## [2025-05-12]
 ### Added
