@@ -101,7 +101,7 @@ class AFC_moonraker:
                 self.logger.error(self.ERROR_STRING)
                 self.logger.debug(f"Response: {resp.status} Reason: {resp.reason}")
         except:
-            self.logger.error(f"{self.ERROR_STR}\n{traceback.format_exc()}")
+            self.logger.error(f"{self.ERROR_STRING}\n{traceback.format_exc()}")
             data = None
         return data['result']
 

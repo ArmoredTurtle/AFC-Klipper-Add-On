@@ -60,7 +60,7 @@ class afc:
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         # Registering for sdcard reset file so that error_state can be reset when starting a print
-        self.printer.register_event_handler("virtual_sdcard:reset_file", self.error.reset_failure)
+        self.printer.register_event_handler("virtual_sdcard:reset_file", self._reset_file_callback)
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
@@ -306,7 +306,7 @@ class afc:
         # Remove timer from reactor
         self.reactor.unregister_timer(self.in_print_timer)
         # Check to see if printer is printing and return filament
-        in_print, print_filename = self.FUNCTION.in_print(return_file=True)
+        in_print, print_filename = self.function.in_print(return_file=True)
         self.logger.debug("In print: {}, Filename: {}".format(in_print, print_filename))
         if in_print:
             # Gather file filament change count from moonraker

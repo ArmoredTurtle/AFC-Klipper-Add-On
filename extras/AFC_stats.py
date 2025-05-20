@@ -247,10 +247,10 @@ class AFCStats:
         strings = []
         for lane in afc_obj.lanes.values():
             espooler_stats = lane.espooler.get_spooler_stats()
-            str = f"{lane.name:{' '}>7} : Lane change count: {lane.lane_load_count.value:{' '}>7}"
+            string = f"{lane.name:{' '}>7} : Lane change count: {lane.lane_load_count.value:{' '}>7}"
             if len(espooler_stats) > 0:
-                str += f"    {espooler_stats}"
-            strings.append(str)
+                string += f"    {espooler_stats}"
+            strings.append(string)
 
         temp_str = ""
         for i, s in enumerate(strings):

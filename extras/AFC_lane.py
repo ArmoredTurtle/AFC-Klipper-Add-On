@@ -45,7 +45,6 @@ class AFCLane:
         self.hub_obj            = None
         self.buffer_obj         = None
         self.extruder_obj       = None
-        self.lane_stats         = None
 
         #stored status variables
         self.fullname           = config.get_name()
