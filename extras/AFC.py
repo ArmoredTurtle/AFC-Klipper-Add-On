@@ -371,10 +371,14 @@ class afc:
 
         :return Returns current state of quiet switch
         """
+        
         if self.show_quiet_mode:
-            state = self.quiet_switch.sensor_enabled
-            self.quiet_switch.filament_present = state
-            return state
+            try:
+                state = self.quiet_switch.sensor_enabled
+                self.quiet_switch.filament_present = state
+                return state
+            except:
+                return False
         else:
             return self.quiet_mode
 
