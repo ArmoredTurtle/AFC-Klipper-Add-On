@@ -34,7 +34,7 @@ class afc_poop:
         step = 1
         if self.verbose:
             self.logger.info('AFC_Poop: {} Move To Purge Location'.format(step))
-        pooppos = self.toolhead.get_position()
+        pooppos = self.afc.gcode_move.position_with_transform()
         pooppos[0] = float(self.purge_loc_xy.split(',')[0])
         pooppos[1] = float(self.purge_loc_xy.split(',')[1])
         self.toolhead.manual_move(pooppos, 100)
@@ -61,7 +61,7 @@ class afc_poop:
             raise_z = (self.iteration_z_raise - z_raise_substract) * extrude_ratio
             duration = extrude_amount / self.purge_spd
             speed = raise_z / duration
-            pooppos = self.toolhead.get_position()
+            pooppos = self.afc.gcode_move.position_with_transform()
             pooppos[2] += raise_z
             pooppos[3] += extrude_amount
             self.toolhead.manual_move(pooppos, speed)
@@ -70,7 +70,7 @@ class afc_poop:
         step += 1
         if self.verbose:
             self.logger.info('AFC_Poop: {} Fast Z Lift to keep poop from sticking'.format(step))
-        pooppos = self.toolhead.get_position()
+        pooppos = self.afc.gcode_move.position_with_transform()
         pooppos[2] = self.z_lift
         self.toolhead.manual_move(pooppos, self.fast_z)
         self.toolhead.wait_moves()

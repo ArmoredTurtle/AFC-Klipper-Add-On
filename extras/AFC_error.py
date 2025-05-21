@@ -165,7 +165,8 @@ class afcError:
 
         # Save current pause state
         temp_is_paused = self.afc.function.is_paused()
-        curr_pos = self.afc.toolhead.get_position()
+        
+        curr_pos = self.afc.gcode_move.position_with_transform()
 
         # Verify that printer is in absolute mode
         self.afc.function.check_absolute_mode("AFC_RESUME")

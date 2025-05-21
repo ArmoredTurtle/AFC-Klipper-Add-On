@@ -566,7 +566,7 @@ class afc:
         :return newpos: Position list with updated z position
         """
         max_z = self.toolhead.get_status(0)['axis_maximum'][2]
-        newpos = self.toolhead.get_position()
+        newpos = self.gcode_move.position_with_transform()
 
         # Determine z movement, get the min value to not exceed max z movement
         newpos[2] = min(max_z - 1, z_amount)
@@ -630,7 +630,7 @@ class afc:
         self.function.log_toolhead_pos("Resume initial pos: ")
 
         self.current_state = State.RESTORING_POS
-        newpos = self.toolhead.get_position()
+        newpos = self.gcode_move.position_with_transform()
 
         # Move toolhead to previous z location with zhop added
         if move_z_first:
@@ -947,7 +947,7 @@ class afc:
             cur_lane.sync_to_extruder()
 
             if cur_extruder.tool_end:
-                pos = self.toolhead.get_position()
+                pos = self.gcode_move.position_with_transform()
                 while not cur_extruder.tool_end_state:
                     tool_attempts += 1
                     pos[3] += cur_lane.short_move_dis
@@ -965,7 +965,7 @@ class afc:
                 self.afcDeltaTime.log_with_time("Filament loaded to post-sensor")
 
             # Adjust tool position for loading.
-            pos = self.toolhead.get_position()
+            pos = self.gcode_move.position_with_transform()
             pos[3] += cur_extruder.tool_stn
             self.toolhead.manual_move(pos, cur_extruder.tool_load_speed)
             self.toolhead.wait_moves()
@@ -1117,7 +1117,7 @@ class afc:
             self.afcDeltaTime.log_with_time("Done heating toolhead")
 
         # Quick pull to prevent oozing.
-        pos = self.toolhead.get_position()
+        pos = self.gcode_move.position_with_transform()
         pos[3] -= 2
         self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
         self.toolhead.wait_moves()
@@ -1188,7 +1188,7 @@ class afc:
                     self.logger.info("<span class=warning--text>{}</span>".format(msg))
                     break
             cur_lane.sync_to_extruder(False)
-            pos = self.toolhead.get_position()
+            pos = self.gcode_move.position_with_transform()
             pos[3] -= cur_extruder.tool_stn_unload
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                 self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
@@ -1210,7 +1210,7 @@ class afc:
                     self.error.handle_lane_failure(cur_lane, message)
                     return False
                 cur_lane.sync_to_extruder()
-                pos = self.toolhead.get_position()
+                pos = self.gcode_move.position_with_transform()
                 pos[3] -= cur_extruder.tool_stn_unload
                 with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                     self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
@@ -1220,7 +1220,7 @@ class afc:
 
         # Move filament past the sensor after the extruder, if applicable.
         if cur_extruder.tool_sensor_after_extruder > 0:
-            pos = self.toolhead.get_position()
+            pos = self.gcode_move.position_with_transform()
             pos[3] -= cur_extruder.tool_sensor_after_extruder
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                 self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)

@@ -34,7 +34,7 @@ class afc_tip_form:
 
 
     def afc_extrude(self, distance, speed):
-        pos = self.afc.toolhead.get_position()
+        pos = self.afc.gcode_move.position_with_transform()
         pos[3] += distance
         self.afc.toolhead.manual_move(pos, speed)
         self.afc.toolhead.wait_moves()
