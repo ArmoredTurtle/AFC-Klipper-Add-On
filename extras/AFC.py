@@ -13,7 +13,7 @@ from typing import Any
 
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
 
-try: from extras.AFC_lane import AFCLaneState
+try: from extras.AFC_lane import AFCLaneState, SpeedMode, AssistActive
 except: raise error(ERROR_STR.format(import_lib="AFC_logger", trace=traceback.format_exc()))
 
 try: from extras.AFC_logger import AFC_logger
@@ -149,6 +149,9 @@ class afc:
         self.form_tip_cmd           = config.get('form_tip_cmd', None)              # Macro to use when tip forming. Change macro name if you would like to use your own tip forming macro
 
         # MOVE SETTINGS
+        self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
+        self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
+        self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
         self.long_moves_accel       = config.getfloat("long_moves_accel", 400)      # Acceleration in mm/s squared when doing long moves
         self.short_moves_speed      = config.getfloat("short_moves_speed", 25)      # Speed in mm/s to move filament when doing short moves
@@ -181,8 +184,9 @@ class afc:
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
 
-        # Setup pin so a virtual filament sensor can be added for bypass
+        # Setup pin so a virtual filament sensor can be added for bypass and quiet mode
         self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
+        self.printer.lookup_object("pins").register_chip("afc_quiet_mode", self)
 
         # Printing here will not display in console but it will go to klippy.log
         self.print_version()
@@ -261,7 +265,11 @@ class afc:
         except:
             self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
 
+        if self.show_quiet_mode:
+            self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
+
         # GCODE REGISTERS
+        self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
@@ -383,6 +391,34 @@ class afc:
 
         return wait
 
+    def _set_quiet_mode(self, val):
+        """
+        Helper function to set quiet mode to on or off
+
+        :param val: on or off switch
+        """
+        if self.show_quiet_mode:
+            self.quiet_switch.sensor_enabled = val
+            self.quiet_switch.filament_present = val
+        else:
+            self.quiet_mode = val
+
+    def _get_quiet_mode(self):
+        """
+        Helper function to return if quiet is on or off
+
+        :return Returns current state of quiet switch
+        """
+        if self.show_quiet_mode:
+            try:
+                state = self.quiet_switch.sensor_enabled
+                self.quiet_switch.filament_present = state
+                return state
+            except:
+                return False
+        else:
+            return self.quiet_mode
+
     def _get_bypass_state(self):
         """
         Helper function to return if filament is present in bypass sensor
@@ -429,6 +465,27 @@ class afc:
         except:
             pass
         return False
+
+    cmd_AFC_QUIET_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
+    def cmd_AFC_QUIET_MODE(self, gcmd):
+        """
+        Set lower speed on any filament moves.
+
+        Mainly this would be used to turn down motor noise during late quiet runs. Only exceptions are during bowden calibration and lane reset, which are manually triggered
+
+        Usage
+        -------
+        `AFC_QUIET_MODE SPEED=<new quietmode speed> ENABLE=<1 or 0>`
+
+        Example
+        -------
+        ```
+        AFC_QUIET_MODE SPEED=75 ENABLE=1
+        ```
+        """
+        self._set_quiet_mode(bool(gcmd.get_int("ENABLE", self._get_quiet_mode(), minval=0, maxval=1)))
+        self.quiet_moves_speed = gcmd.get_float("SPEED", self.quiet_moves_speed, minval=10, maxval=400)
+        self.logger.info("QuietMode {}, max speed of {} mm/sec".format(self._get_quiet_mode(), self.quiet_moves_speed))
 
     cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
     def cmd_UNSET_LANE_LOADED(self, gcmd):
@@ -514,12 +571,12 @@ class afc:
         cur_lane = self.lanes[lane]
         self.current_state = State.MOVING_LANE
 
-        move_speed = cur_lane.long_moves_speed if abs(distance) >= 200 else cur_lane.short_moves_speed
-        move_accel = cur_lane.long_moves_accel if abs(distance) >= 200 else cur_lane.short_moves_accel
+        speed_mode = SpeedMode.SHORT
+        if abs(distance) >= 200: speed_mode = SpeedMode.LONG
 
         cur_lane.set_load_current() # Making current is set correctly when doing lane moves
         cur_lane.do_enable(True)
-        cur_lane.move(distance, move_speed, move_accel, True)
+        cur_lane.move_advanced(distance, speed_mode, assist_active = AssistActive.YES)
         cur_lane.do_enable(False)
         self.current_state = State.IDLE
         cur_lane.unit_obj.return_to_home()
@@ -713,13 +770,13 @@ class afc:
         if not cur_lane.load_state:
             cur_lane.do_enable(True)
             while not cur_lane.load_state:
-                cur_lane.move( cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move_advanced( cur_hub.move_dis, SpeedMode.SHORT)
         if not cur_lane.loaded_to_hub:
-            cur_lane.move(cur_lane.dist_hub, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
+            cur_lane.move_advanced(cur_lane.dist_hub, SpeedMode.HUB, assist_active = AssistActive.DYNAMIC)
         while not cur_hub.state:
-            cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+            cur_lane.move_advanced(cur_hub.move_dis, SpeedMode.SHORT)
         while cur_hub.state:
-            cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+            cur_lane.move_advanced(cur_hub.move_dis * -1, SpeedMode.SHORT)
         cur_lane.status = AFCLaneState.NONE
         cur_lane.do_enable(False)
         cur_lane.loaded_to_hub = True
@@ -769,11 +826,11 @@ class afc:
             self.save_vars()
             cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
-                cur_lane.move(cur_lane.dist_hub * -1, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, True if cur_lane.dist_hub > 200 else False)
+                cur_lane.move_advanced(cur_lane.dist_hub * -1, SpeedMode.HUB, assist_active = AssistActive.DYNAMIC)
             cur_lane.loaded_to_hub = False
             while cur_lane.load_state:
-               cur_lane.move(cur_hub.move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_hub.move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move_advanced(cur_hub.move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
+            cur_lane.move_advanced(cur_hub.move_dis * -5, SpeedMode.SHORT)
             cur_lane.do_enable(False)
             cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
@@ -877,7 +934,7 @@ class afc:
 
             # Move filament to the hub if it's not already loaded there.
             if not cur_lane.loaded_to_hub or cur_lane.hub == 'direct':
-                cur_lane.move(cur_lane.dist_hub, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, cur_lane.dist_hub > 200)
+                cur_lane.move_advanced(cur_lane.dist_hub, SpeedMode.HUB, assist_active = AssistActive.DYNAMIC)
                 self.afcDeltaTime.log_with_time("Loaded to hub")
 
             cur_lane.loaded_to_hub = True
@@ -886,9 +943,9 @@ class afc:
             # Ensure filament moves past the hub.
             while not cur_hub.state and cur_lane.hub != 'direct':
                 if hub_attempts == 0:
-                    cur_lane.move(cur_hub.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                    cur_lane.move_advanced(cur_hub.move_dis, SpeedMode.SHORT)
                 else:
-                    cur_lane.move(cur_lane.short_move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                    cur_lane.move_advanced(cur_lane.short_move_dis, SpeedMode.SHORT)
                 hub_attempts += 1
                 if hub_attempts > 20:
                     message = 'filament did not trigger hub sensor, CHECK FILAMENT PATH\n||=====||==>--||-----||\nTRG   LOAD   HUB   TOOL.'
@@ -902,7 +959,7 @@ class afc:
 
             # Move filament towards the toolhead.
             if cur_lane.hub != 'direct':
-                cur_lane.move(cur_hub.afc_bowden_length, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
+                cur_lane.move_advanced(cur_hub.afc_bowden_length, SpeedMode.LONG, assist_active = AssistActive.YES)
 
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
@@ -960,7 +1017,7 @@ class afc:
                 cur_lane.unsync_to_extruder()
                 load_checks = 0
                 while cur_lane.get_toolhead_pre_sensor_state():
-                    cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                    cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
                     load_checks += 1
                     self.reactor.pause(self.reactor.monotonic() + 0.1)
                     if load_checks > self.tool_max_load_checks:
@@ -1166,7 +1223,7 @@ class afc:
             cur_lane.unsync_to_extruder()
             while not cur_lane.get_trailing():
                 # attempt to return buffer to trailng pin
-                cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
                 if num_tries > self.tool_max_unload_attempts:
@@ -1220,9 +1277,9 @@ class afc:
         # Synchronize and move filament out of the hub.
         cur_lane.unsync_to_extruder()
         if cur_lane.hub != 'direct':
-            cur_lane.move(cur_hub.afc_unload_bowden_length * -1, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
+            cur_lane.move_advanced(cur_hub.afc_unload_bowden_length * -1, SpeedMode.LONG, assist_active = AssistActive.YES)
         else:
-            cur_lane.move(cur_lane.dist_hub * -1, cur_lane.dist_hub_move_speed, cur_lane.dist_hub_move_accel, cur_lane.dist_hub > 200)
+            cur_lane.move_advanced(cur_lane.dist_hub * -1, SpeedMode.HUB, assist_active = AssistActive.DYNAMIC)
 
         self.afcDeltaTime.log_with_time("Long retract done")
 
@@ -1234,7 +1291,7 @@ class afc:
         # Ensure filament is fully cleared from the hub.
         num_tries = 0
         while cur_hub.state:
-            cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+            cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
             num_tries += 1
             if num_tries > (cur_hub.afc_unload_bowden_length / cur_lane.short_move_dis):
                 # Handle failure if the filament doesn't clear the hub.
@@ -1254,7 +1311,7 @@ class afc:
 
         #Move to make sure hub path is clear based on the move_clear_dis var
         if cur_lane.hub != 'direct':
-            cur_lane.move(cur_hub.hub_clear_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+            cur_lane.move_advanced(cur_hub.hub_clear_move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
 
             # Cut filament at the hub, if configured.
             if cur_hub.cut:
@@ -1265,7 +1322,7 @@ class afc:
 
                 # Confirm the hub is clear after the cut.
                 while cur_hub.state:
-                    cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+                    cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
                     num_tries += 1
                     # TODO: Figure out max number of tries
                     if num_tries > (cur_hub.afc_unload_bowden_length / cur_lane.short_move_dis):
@@ -1282,8 +1339,8 @@ class afc:
 
         if cur_lane.hub == 'direct':
             while cur_lane.load_state:
-                cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
-            cur_lane.move(cur_lane.short_move_dis * -5, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
+                cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
+            cur_lane.move_advanced(cur_lane.short_move_dis * -5, SpeedMode.SHORT)
 
         cur_lane.do_enable(False)
         cur_lane.unit_obj.return_to_home()
@@ -1438,6 +1495,7 @@ class afc:
         str['spoolman']                 = self.spoolman
         str['error_state']              = self.error_state
         str["bypass_state"]             = bool(self._get_bypass_state())
+        str["quiet_mode"]               = bool(self._get_quiet_mode())
         str["position_saved"]           = self.position_saved
 
         unitdisplay =[]

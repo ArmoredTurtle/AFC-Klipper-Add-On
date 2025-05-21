@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Issue where virtual bypass was being set for newly installed instances of AFC
 
+## [2025-05-15]
+### Added
+- added quiet mode support. `quiet_moves_speed` on `AFC.cfg` dictates the max speed when quiet mode is enabled.
+- new macro `AFC_QUIET_MODE ENABLE=1/0 SPEED=<max_speed>` to allow modifying `quiet_moves_speed` and enable/disable quiet mode.
+
 ## [2025-05-12]
 ### Added
 - new variable `tool_homing_distance` in `[AFC]` to make the distance over which toolhead homing is attempted.
