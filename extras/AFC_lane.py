@@ -6,7 +6,7 @@
 import math
 from contextlib import contextmanager
 from configfile import error
-
+from enum import Enum
 from . import AFC_assist
 try:
     from extras.AFC_utils import add_filament_switch
@@ -14,6 +14,17 @@ except:
     raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
 
 # Class for holding different states so its clear what all valid states are
+
+class AssistActive(Enum):
+    YES = 1
+    NO = 2
+    DYNAMIC = 3
+class SpeedMode(Enum):
+    LONG = 1
+    SHORT = 2
+    HUB = 3
+    NIGHT = 4
+
 class AFCLaneState:
     NONE             = "None"
     ERROR            = "Error"
@@ -332,6 +343,21 @@ class AFCLane:
             if assist_active:
                 self.espooler.assist(0)
 
+    def get_speed_accel(self, mode: SpeedMode) -> float:
+        """
+        Helper function to allow selecting the right speed and acceleration of movements
+        mode (Enum SpeedMode): Identifies which speed to use.
+        """
+        if self.afc._get_quiet_mode() == True:
+            return self.afc.quiet_moves_speed, self.short_moves_accel
+        elif mode == SpeedMode.LONG:
+            return self.long_moves_speed, self.long_moves_accel
+        elif mode == SpeedMode.SHORT:
+            return self.short_moves_speed, self.short_moves_accel
+        else:
+            return self.dist_hub_move_speed, self.dist_hub_move_accel
+
+
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -346,6 +372,25 @@ class AFCLane:
         with self.assist_move( speed, distance < 0, assist_active):
             if self.drive_stepper is not None:
                 self.drive_stepper.move(distance, speed, accel, assist_active)
+
+    def move_advanced(self, distance, speed_mode: SpeedMode, assist_active: AssistActive = AssistActive.NO):
+        """
+        Wrapper for move function and isused to compute several arguments
+        to move the lane accordingly.
+        Parameters:
+        distance (float): The distance to move.
+        speed_mode (Enum SpeedMode): Identifies which speed to use.
+        assist_active (Enum AssistActive): Determines to force assist or to dynamically determine.
+        """
+        speed, accel = self.get_speed_accel(speed_mode)
+
+        assist = False
+        if assist_active == AssistActive.YES:
+            assist = True
+        elif assist_active == AssistActive.DYNAMIC:
+            assist = distance > 200
+
+        self.move(distance, speed, accel, assist)
 
     def set_afc_prep_done(self):
         """
