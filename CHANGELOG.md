@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-05-21]
 ### Added
-- new macro `TOGGLE_MACRO` to enable disable other macros.
+- new macro `AFC_TOGGLE_MACRO` to enable disable other macros.
 
 
 ## [2025-05-15]
