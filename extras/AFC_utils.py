@@ -80,7 +80,7 @@ class AFC_moonraker:
         self.logger         = logger
         self.local_host     = 'http://localhost{port}'.format( port=port )
         self.database_url   = urljoin(self.local_host, "server/database/item")
-        self.data_array     = {"namespace":"afc_stats", "key":"", "value":""}
+        self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
         self.last_stats_time= None
 
@@ -103,7 +103,7 @@ class AFC_moonraker:
         except:
             self.logger.error(f"{self.ERROR_STRING}\n{traceback.format_exc()}")
             data = None
-        return data['result']
+        return data['result'] if data is not None else data
 
     def get_spoolman_server(self)->str:
         """
@@ -161,7 +161,7 @@ class AFC_moonraker:
 
         # Cache results to keep queries to moonraker down
         if self.afc_stats is None or refetch_data:
-            resp = self._get_results(urljoin(self.database_url, "?namespace=afc_stats"))
+            resp = self._get_results(urljoin(self.database_url, f"?namespace={self.afc_stats_key}"))
             if resp is not None:
                 self.afc_stats = resp
             else:
@@ -179,7 +179,7 @@ class AFC_moonraker:
         resp = None
         post_payload = {
             "request_method": "POST",
-            "namespace": "afc_stats",
+            "namespace": self.afc_stats_key,
             "key": key,
             "value": value
         }

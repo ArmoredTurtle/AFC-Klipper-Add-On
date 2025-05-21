@@ -45,7 +45,7 @@ class AFCStats_var:
                 except:
                     self._value = value
         else:
-            self.moonraker.logger.error("No data in database for {}.{}:{} {}".format( self.parent_name, name, bool(data is not None), bool(self.parent_name in data)))
+            self.moonraker.logger.debug("No data in database for {}.{}:{}".format( self.parent_name, name, bool(data is not None)))
             self._value = 0
 
     def __str__(self):
@@ -136,9 +136,6 @@ class AFCStats:
         self.tc_without_error   = AFCStats_var("toolchange_count", "changes_without_error", values, self.moonraker)
         self.tc_last_load_error = AFCStats_var("toolchange_count", "last_load_error",       values, self.moonraker)
 
-        if self.tc_last_load_error.value == 0:
-            self.tc_last_load_error.set_current_time()
-
         self.cut_total                  = AFCStats_var("cut", "cut_total",                  values, self.moonraker)
         self.cut_total_since_changed    = AFCStats_var("cut", "cut_total_since_changed",    values, self.moonraker)
         self.last_blade_changed         = AFCStats_var("cut", "last_blade_changed",         values, self.moonraker)
@@ -149,6 +146,14 @@ class AFCStats:
         self.average_toolchange_time    = AFCStats_var("average_time", "tool_change", values, self.moonraker)
         self.average_tool_unload_time   = AFCStats_var("average_time", "tool_unload", values, self.moonraker)
         self.average_tool_load_time     = AFCStats_var("average_time", "tool_load",   values, self.moonraker)
+
+        if self.tc_last_load_error.value == 0:
+            self.tc_last_load_error.value = "N/A"
+            self.tc_last_load_error.update_database()
+
+        if self.last_blade_changed.value == 0:
+            self.last_blade_changed.value = "N/A"
+            self.last_blade_changed.update_database()
 
     def check_cut_threshold(self):
         """
