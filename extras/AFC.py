@@ -264,7 +264,7 @@ class afc:
             self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # GCODE REGISTERS
-        self.gcode.register_command('TOGGLE_MACRO',         self.cmd_TOGGLE_MACRO,          desc=self.cmd_TOGGLE_MACRO_help)
+        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_TOGGLE_MACRO_help)
         self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
@@ -429,19 +429,19 @@ class afc:
             pass
         return False
 
-    cmd_TOGGLE_MACRO_help = "Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros"
-    def cmd_TOGGLE_MACRO(self, gcmd):
+    cmd_AFC_TOGGLE_MACRO_help = "Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros"
+    def cmd_AFC_TOGGLE_MACRO(self, gcmd):
         """
         Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros.
 
         Usage
         -------
-        `TOGGLE_MACRO TOOL_CUT=<0 or 1> PARK=<> POOP=<> KICK=<> WIPE=<0 or 1> FORM_TIP=<0 or 1> `
+        `AFC_TOGGLE_MACRO TOOL_CUT=<0/1> PARK=<> POOP=<0/1> KICK=<0/1> WIPE=<0/1> FORM_TIP=<0/1> `
 
         Example
         -------
         ```
-        TOGGLE_MACRO TOOL_CUT=0
+        AFC_TOGGLE_MACRO TOOL_CUT=0
         ```
         """
         self.tool_cut = bool(gcmd.get_int("TOOL_CUT", self.tool_cut, minval=0, maxval=1))
