@@ -118,7 +118,7 @@ class afcError:
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
-        self.logger.error( "{}: {}".format(msg) )
+        self.logger.error( "{}".format(msg) )
         if pause: self.pause_print()
 
     cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
