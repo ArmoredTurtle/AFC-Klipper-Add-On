@@ -401,7 +401,7 @@ class AFCLane:
         if assist_active == AssistActive.YES:
             assist = True
         elif assist_active == AssistActive.DYNAMIC:
-            assist = distance > 200
+            assist = abs(distance) > 200
 
         self.move(distance, speed, accel, assist)
 
