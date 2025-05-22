@@ -150,6 +150,7 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
+        self.auto_home              = config.getboolean("auto_home", True)          # Flag indicating if homing needs to be done if printer is not already homed
         self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
@@ -925,8 +926,12 @@ class afc:
         :return bool: True if load was successful, False if an error occurred.
         """
         if not self.function.is_homed():
-            self.error.AFC_error("Please home printer before doing a tool load", False)
-            return False
+            if self.auto_home:
+                self.gcode.run_script_from_command("G28")
+                self.toolhead.wait_moves()
+            else:
+                self.error.AFC_error("TOOL_LOAD: Please home printer before doing a tool load", False)
+                return False
 
         if cur_lane is None:
             self.error.AFC_error("No lane provided to load, not loading any lane.", pause=self.function.in_print())
@@ -1165,8 +1170,12 @@ class afc:
         if self._check_bypass(unload=True): return False
 
         if not self.function.is_homed():
-            self.error.AFC_error("Please home printer before doing a tool unload", False)
-            return False
+            if self.auto_home:
+                self.gcode.run_script_from_command("G28")
+                self.toolhead.wait_moves()
+            else:
+                self.error.AFC_error("TOOL_UNLOAD: Please home printer before doing a tool load", False)
+                return False
 
         if cur_lane is None:
             # If no lane is provided, exit the function early with a failure.
@@ -1408,8 +1417,12 @@ class afc:
         if self._check_bypass(unload=False): return
 
         if not self.function.is_homed():
-            self.error.AFC_error("Please home printer before doing a tool change", False)
-            return
+            if self.auto_home:
+                self.gcode.run_script_from_command("G28")
+                self.toolhead.wait_moves()
+            else:
+                self.error.AFC_error("CHANGE_TOOL: Please home printer before doing a tool load", False)
+                return False
 
         purge_length = gcmd.get('PURGE_LENGTH', None)
 
