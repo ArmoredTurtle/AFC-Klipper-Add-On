@@ -264,7 +264,8 @@ class afc:
             self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # GCODE REGISTERS
-        self.gcode.register_command('AFC_QUIET_MODE',           self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
+        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_AFC_TOGGLE_MACRO_help)
+        self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
@@ -427,6 +428,32 @@ class afc:
         except:
             pass
         return False
+
+    cmd_AFC_TOGGLE_MACRO_help = "Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros"
+    def cmd_AFC_TOGGLE_MACRO(self, gcmd):
+        """
+        Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros.
+
+        Usage
+        -------
+        `AFC_TOGGLE_MACRO TOOL_CUT=<0/1> PARK=<> POOP=<0/1> KICK=<0/1> WIPE=<0/1> FORM_TIP=<0/1> `
+
+        Example
+        -------
+        ```
+        AFC_TOGGLE_MACRO TOOL_CUT=0
+        ```
+        """
+        self.tool_cut = bool(gcmd.get_int("TOOL_CUT", self.tool_cut, minval=0, maxval=1))
+        self.park = bool(gcmd.get_int("PARK", self.park, minval=0, maxval=1))
+        self.kick = bool(gcmd.get_int("KICK", self.kick, minval=0, maxval=1))
+        self.poop = bool(gcmd.get_int("POOP", self.poop, minval=0, maxval=1))
+        self.wipe = bool(gcmd.get_int("WIPE", self.wipe, minval=0, maxval=1))
+        self.form_tip = bool(gcmd.get_int("FORM_TIP", self.form_tip, minval=0, maxval=1))
+
+        self.logger.info("Tool Cut {}, Park {}".format(self.tool_cut, self.park))
+        self.logger.info("Kick {}, Poop {}".format(self.kick, self.poop))
+        self.logger.info("Wipe {}, Form tip {}".format(self.tool_cut, self.form_tip))
 
 
     cmd_AFC_QUIET_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
