@@ -6,27 +6,29 @@
 
 import json
 import re
+import traceback
 from configfile import error
 from typing import Any
 
-from extras.AFC_lane import AFCLaneState, SpeedMode, AssistActive
 
-try:
-    from urllib.request import urlopen
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
+ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
+
+try: from extras.AFC_lane import AFCLaneState, SpeedMode, AssistActive
+except: raise error(ERROR_STR.format(import_lib="AFC_logger", trace=traceback.format_exc()))
 
 try: from extras.AFC_logger import AFC_logger
-except: raise error("Error trying to import AFC_logger, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+except: raise error(ERROR_STR.format(import_lib="AFC_logger", trace=traceback.format_exc()))
 
 try: from extras.AFC_functions import afcDeltaTime
-except: raise error("Error trying to import afcDeltaTime, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+except: raise error(ERROR_STR.format(import_lib="AFC_functions", trace=traceback.format_exc()))
 
-try: from extras.AFC_utils import add_filament_switch
-except: raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+try: from extras.AFC_utils import add_filament_switch, AFC_moonraker
+except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.12"
+try: from extras.AFC_stats import AFCStats
+except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
+
+AFC_VERSION="1.0.14"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -58,7 +60,7 @@ class afc:
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         # Registering for sdcard reset file so that error_state can be reset when starting a print
-        self.printer.register_event_handler("virtual_sdcard:reset_file", self.error.reset_failure)
+        self.printer.register_event_handler("virtual_sdcard:reset_file", self._reset_file_callback)
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
@@ -70,6 +72,7 @@ class afc:
         self.position_saved = False
         self.spoolman       = None
         self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
+        self.in_print_timer = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -129,6 +132,7 @@ class afc:
         # TOOL Cutting Settings
         self.tool                   = ''
         self.tool_cut               = config.getboolean("tool_cut", False)          # Set to True to enable toolhead cutting
+        self.tool_cut_threshold     = config.getint("tool_cut_threshold", 10000)
         self.tool_cut_cmd           = config.get('tool_cut_cmd', None)              # Macro to use when doing toolhead cutting. Change macro name if you would like to use your own cutting macro
 
         # CHOICES
@@ -146,7 +150,7 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
-        self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)   # Flag indicating if quiet move is enabled or not
+        self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
         self.long_moves_accel       = config.getfloat("long_moves_accel", 400)      # Acceleration in mm/s squared when doing long moves
@@ -174,6 +178,7 @@ class afc:
         self.assisted_unload        = config.getboolean("assisted_unload", True)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
+        self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
@@ -247,11 +252,12 @@ class afc:
         moonraker_port = ""
         if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
 
-        # SPOOLMAN
         try:
-            self.moonraker = json.load(urlopen('http://localhost{port}/server/config'.format( port=moonraker_port )))
-            self.spoolman = self.moonraker['result']['orig']['spoolman']['server']     # check for spoolman and grab url
-        except:
+            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
+            self.spoolman = self.moonraker.get_spoolman_server()
+            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+        except Exception as e:
+            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
             self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor
@@ -273,6 +279,8 @@ class afc:
         self.gcode.register_command('UNSET_LANE_LOADED',    self.cmd_UNSET_LANE_LOADED,     desc=self.cmd_UNSET_LANE_LOADED_help)
         self.gcode.register_command('TURN_OFF_AFC_LED',     self.cmd_TURN_OFF_AFC_LED,      desc=self.cmd_TURN_OFF_AFC_LED_help)
         self.gcode.register_command('TURN_ON_AFC_LED',      self.cmd_TURN_ON_AFC_LED,       desc=self.cmd_TURN_ON_AFC_LED_help)
+        self.gcode.register_command("AFC_STATS",            self.cmd_AFC_STATS,             desc=self.cmd_AFC_STATS_help)
+        self.gcode.register_command("AFC_CHANGE_BLADE",     self.cmd_AFC_CHANGE_BLADE,      desc=self.cmd_AFC_CHANGE_BLADE_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -287,6 +295,39 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
+
+    def _reset_file_callback(self):
+        """
+        Set timer to check back to see if printer is printing. This is needed as file and print status is set after
+        this callback.
+
+        AFC errors are also reset as well as pause states are cleared in klipper's pause_resume module
+        """
+        self.in_print_timer = self.reactor.register_timer( self.in_print_reactor_timer, self.reactor.monotonic() + 5 )
+        self.error.reset_failure()
+        self.gcode.run_script_from_command("CLEAR_PAUSE")
+        self.number_of_toolchanges = 0
+        self.current_toolchange    = -1
+
+    def in_print_reactor_timer(self, eventtime):
+        """
+        Print timer callback to check if printer is currently in a print. If printer is in a print,
+        current filename is looked up and metadata is pulled from moonraker to get total filament change
+        count. Once this is done timer callback is stopped and unregistered.
+        """
+        # Remove timer from reactor
+        self.reactor.unregister_timer(self.in_print_timer)
+        # Check to see if printer is printing and return filament
+        in_print, print_filename = self.function.in_print(return_file=True)
+        self.logger.debug("In print: {}, Filename: {}".format(in_print, print_filename))
+        if in_print:
+            # Gather file filament change count from moonraker
+            self.number_of_toolchanges  = self.moonraker.get_file_filament_change_count(print_filename)
+            self.current_toolchange     = -1 # Reset
+            self.logger.info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
+
+        return self.reactor.NEVER
+
 
     def _get_default_material_temps(self, cur_lane):
         """
@@ -436,7 +477,7 @@ class afc:
 
         Usage
         -------
-        `AFC_TOGGLE_MACRO TOOL_CUT=<0/1> PARK=<> POOP=<0/1> KICK=<0/1> WIPE=<0/1> FORM_TIP=<0/1> `
+        `AFC_TOGGLE_MACRO TOOL_CUT=<0/1> PARK=<0/1> POOP=<0/1> KICK=<0/1> WIPE=<0/1> FORM_TIP=<0/1> `
 
         Example
         -------
@@ -454,7 +495,6 @@ class afc:
         self.logger.info("Tool Cut {}, Park {}".format(self.tool_cut, self.park))
         self.logger.info("Kick {}, Poop {}".format(self.kick, self.poop))
         self.logger.info("Wipe {}, Form tip {}".format(self.tool_cut, self.form_tip))
-
 
     cmd_AFC_QUIET_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
     def cmd_AFC_QUIET_MODE(self, gcmd):
@@ -476,7 +516,6 @@ class afc:
         self._set_quiet_mode(bool(gcmd.get_int("ENABLE", self._get_quiet_mode(), minval=0, maxval=1)))
         self.quiet_moves_speed = gcmd.get_float("SPEED", self.quiet_moves_speed, minval=10, maxval=400)
         self.logger.info("QuietMode {}, max speed of {} mm/sec".format(self._get_quiet_mode(), self.quiet_moves_speed))
-
 
     cmd_UNSET_LANE_LOADED_help = "Removes active lane loaded from toolhead loaded status"
     def cmd_UNSET_LANE_LOADED(self, gcmd):
@@ -525,10 +564,13 @@ class afc:
         ```
 
         """
-        self.number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
-        self.current_toolchange     = 0 # Reset back to one
-        if self.number_of_toolchanges > 0:
-            self.logger.info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
+        number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
+        if number_of_toolchanges > 0:
+            warning_text  = "Please remove SET_AFC_TOOLCHANGES from your slicers 'Change Filament G-Code' section as SET_AFC_TOOLCHANGES "
+            warning_text += "is now deprecated and number of toolchanges will be fetched from files metadata in moonraker when a print starts.\n"
+            warning_text += "Verify that moonrakers version is at least v0.9.3-64 to utilize this feature."
+            self.logger.info(f"<span class=warning--text>{warning_text}</span>")
+            self.message_queue.append((warning_text, "warning"))
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
     def cmd_LANE_MOVE(self, gcmd):
@@ -690,7 +732,6 @@ class afc:
 
         self.current_state = State.IDLE
         self.position_saved = False
-
 
     def save_vars(self):
         """
@@ -1053,7 +1094,13 @@ class afc:
             self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
             self.save_vars()
             self.current_state = State.IDLE
-            self.afcDeltaTime.log_major_delta("{} is now loaded in toolhead".format(cur_lane.name), False)
+            load_time = self.afcDeltaTime.log_major_delta("{} is now loaded in toolhead".format(cur_lane.name), False)
+            self.afc_stats.average_tool_load_time.average_time(load_time)
+
+            # Increment stat counts
+            self.afc_stats.tc_tool_load.increase_count()
+            cur_lane.lane_load_count.increase_count()
+            cur_lane.espooler.stats.update_database()
 
         else:
             # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -1171,6 +1218,7 @@ class afc:
 
         # Perform filament cutting and parking if specified.
         if self.tool_cut:
+            self.afc_stats.increase_cut_total()
             self.gcode.run_script_from_command(self.tool_cut_cmd)
             self.afcDeltaTime.log_with_time("TOOL_UNLOAD: After cut")
             self.function.log_toolhead_pos()
@@ -1327,8 +1375,12 @@ class afc:
         cur_lane.do_enable(False)
         cur_lane.unit_obj.return_to_home()
 
+        self.afc_stats.tc_tool_unload.increase_count()
+        cur_lane.espooler.stats.update_database()
+
         self.save_vars()
-        self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name))
+        unload_time = self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name))
+        self.afc_stats.average_tool_unload_time.average_time(unload_time)
         self.current_state = State.IDLE
         return True
 
@@ -1428,15 +1480,20 @@ class afc:
 
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(cur_lane, purge_length) and not self.error_state:
-                self.afcDeltaTime.log_total_time("Total change time:")
                 if restore_pos:
                     self.restore_pos()
+                total_time = self.afcDeltaTime.log_total_time("Total change time:")
+                self.afc_stats.average_toolchange_time.average_time(total_time)
                 self.in_toolchange = False
                 # Setting next lane load as none since toolchange was successful
                 self.next_lane_load = None
+                self.afc_stats.increase_toolcount_change()
+            else:
+                # Error happened, reset toolchanges without error count
+                self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
-            if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
+            if not self.error_state and self.current_toolchange == -1:
                 self.current_toolchange += 1
 
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
@@ -1629,3 +1686,47 @@ class afc:
         """
         for led in self.led_obj.values():
             led.turn_on_leds()
+
+    cmd_AFC_STATS_help ="Prints AFC toolchange statistics to console"
+    def cmd_AFC_STATS(self, gcmd):
+        """
+        This macro handles printing toolchange statistics to console.
+
+        Optional Values
+        ----
+        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats` variable in `[AFC]` section
+        in AFC.cfg file to True will always print statistics in short form
+
+        Usage
+        -----
+        `AFC_STATS SHORT=<1|0>`
+
+        Example
+        -----
+        ```
+        AFC_STATS
+        ```
+        """
+        short = bool(gcmd.get_int("SHORT", self.short_stats))
+
+        self.afc_stats.print_stats(afc_obj=self, short=short)
+
+    cmd_AFC_CHANGE_BLADE_help = "Sets cutter blade changed date and resets total count since blade was changed"
+    def cmd_AFC_CHANGE_BLADE(self, gcmd):
+        """
+        This macro handles resetting cut total since blade was last changed and updates the data
+        the blade was last changed to current date time when this macro was ran.
+
+        Usage
+        -----
+        `AFC_CHANGE_BLADE`
+
+        Example
+        -----
+        ```
+        AFC_CHANGE_BLADE
+        ```
+        """
+        self.afc_stats.last_blade_changed.set_current_time()
+        self.afc_stats.cut_total_since_changed.reset_count()
+        self.logger.info("Cutter blade stats reset")

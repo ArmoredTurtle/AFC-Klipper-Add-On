@@ -4,14 +4,6 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-import json
-try:
-    from urllib.request import urlopen
-    import urllib.parse as urlparse
-except:
-    # Python 2.7 support
-    from urllib2 import urlopen
-    import urlparse
 
 class AFCSpool:
     def __init__(self, config):
@@ -241,8 +233,7 @@ class AFCSpool:
         if self.afc.spoolman is not None:
             if SpoolID !='':
                 try:
-                    url =  urlparse.urljoin(self.afc.spoolman, '/api/v1/spool/{}'.format(SpoolID))
-                    result = json.load(urlopen(url))
+                    result = self.afc.moonraker.get_spool(SpoolID)
                     cur_lane.spool_id = SpoolID
 
                     cur_lane.material       = self._get_filament_values(result['filament'], 'material')

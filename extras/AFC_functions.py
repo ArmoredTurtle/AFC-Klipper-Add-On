@@ -6,12 +6,16 @@
 
 import os
 import re
+import traceback
+
 from configfile import error
 from datetime import datetime
-try:
-    from extras.AFC_respond import AFCprompt
-except:
-    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_respond import AFCprompt
+except: raise error(ERROR_STR.format(import_lib="AFC_respond", trace=traceback.format_exc()))
 
 def load_config(config):
     return afcFunction(config)
@@ -146,17 +150,23 @@ class afcFunction:
         idle_timeout = self.printer.lookup_object("idle_timeout")
         return idle_timeout.get_status(eventtime)["state"] == "Printing"
 
-    def in_print(self):
+    def in_print(self, return_file=False):
         """
         Helper function to help determine if printer is in a print by checking print_stats object. Printer is printing if state is not in standby or error
 
+        :param return_file: Set to True to return current print filename if printer is in a print
         :return boolean: True if state is not standby or error
         """
         print_stats_idle_states = ['standby', 'error', 'complete', 'cancelled']
         eventtime = self.afc.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
         print_state = print_stats.get_status(eventtime)["state"]
-        return print_state not in print_stats_idle_states
+
+        in_print = print_state not in print_stats_idle_states
+        if return_file:
+            return in_print, print_stats.get_status(eventtime)["filename"]
+        else:
+            return in_print
 
     def is_printing(self, check_movement=False):
         """
@@ -990,6 +1000,7 @@ class afcDeltaTime:
             self.logger.debug("Error in log_with_time function {}".format(e))
 
     def log_major_delta(self, msg, debug=True):
+        delta_time = 0
         try:
             curr_time = datetime.now()
             delta_time = (curr_time - self.major_delta_time ).total_seconds()
@@ -999,7 +1010,10 @@ class afcDeltaTime:
         except Exception as e:
             self.logger.debug("Error in log_major_delta function {}".format(e))
 
+        return delta_time
+
     def log_total_time(self, msg):
+        total_time = 0
         try:
             total_time = (datetime.now() - self.start_time).total_seconds()
             msg = "{} t:{:.3f}".format( msg, total_time )
@@ -1007,3 +1021,5 @@ class afcDeltaTime:
             self.logger.info( msg )
         except Exception as e:
             self.logger.debug("Error in log_total_time function {}".format(e))
+
+        return total_time

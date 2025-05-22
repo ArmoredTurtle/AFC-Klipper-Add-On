@@ -155,9 +155,18 @@ class afcPrep:
             current_lane.unit_obj.select_lane(current_lane)
 
         # Restore previous bypass state if virtual bypass is active
+        bypass_name = "Bypass"
         if 'virtual' in self.afc.bypass.name:
+            bypass_name = "Virtual bypass"
             if "system" in units and 'bypass' in units["system"]:
-                self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+                self.afc.bypass.filament_present = self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+            else:
+                self.afc.bypass.filament_present = self.afc.bypass.sensor_enabled = False
+        # Add warning message so users know that either bypass or virtual bypass is enabled
+        if self.afc.bypass.filament_present:
+            self.logger.raw(f"<span class=warning--text>{bypass_name} enabled</span>")
+
+        self.afc.afc_stats.check_cut_threshold()
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.afc.current is None:

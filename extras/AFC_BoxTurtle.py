@@ -3,15 +3,19 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import traceback
 
 from configparser import Error as error
 
-from extras.AFC_lane import AFCLaneState
 
-try:
-    from extras.AFC_unit import afcUnit
-except:
-    raise error("Error trying to import AFC_unit, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_lane import AFCLaneState
+except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
+
+try: from extras.AFC_unit import afcUnit
+except: raise error(ERROR_STR.format(import_lib="AFC_unit", trace=traceback.format_exc()))
 
 class afcBoxTurtle(afcUnit):
     def __init__(self, config):
