@@ -306,6 +306,8 @@ class afc:
         self.in_print_timer = self.reactor.register_timer( self.in_print_reactor_timer, self.reactor.monotonic() + 5 )
         self.error.reset_failure()
         self.gcode.run_script_from_command("CLEAR_PAUSE")
+        self.number_of_toolchanges = 0
+        self.current_toolchange    = -1
 
     def in_print_reactor_timer(self, eventtime):
         """
