@@ -150,7 +150,7 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
-        self.auto_home              = config.getboolean("auto_home", True)          # Flag indicating if homing needs to be done if printer is not already homed
+        self.auto_home              = config.getboolean("auto_home", False)          # Flag indicating if homing needs to be done if printer is not already homed
         self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
