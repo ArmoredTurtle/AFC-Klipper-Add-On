@@ -159,11 +159,11 @@ class afcPrep:
         if 'virtual' in self.afc.bypass.name:
             bypass_name = "Virtual bypass"
             if "system" in units and 'bypass' in units["system"]:
-                self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+                self.afc.bypass.filament_present = self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
             else:
-                self.afc.bypass.sensor_enabled = False
+                self.afc.bypass.filament_present = self.afc.bypass.sensor_enabled = False
         # Add warning message so users know that either bypass or virtual bypass is enabled
-        if self.afc.bypass.sensor_enabled:
+        if self.afc.bypass.filament_present:
             self.logger.raw(f"<span class=warning--text>{bypass_name} enabled</span>")
 
         self.afc.afc_stats.check_cut_threshold()

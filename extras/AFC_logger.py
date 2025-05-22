@@ -82,12 +82,24 @@ class AFC_logger:
         if self.print_debug_console and not only_debug:
             self.send_callback(message)
 
-    def error(self, message):
+    def error(self, message, traceback=None):
+        """
+        Prints error to console and log, also adds error to message queue when is then displayed
+        in mainsail/fluidd guis
+
+        :param message: Error message to print to console and log
+        :param traceback: Trackback to log to AFC.log file
+        """
         for line in message.lstrip().rstrip().split("\n"):
             self.logger.error( self._format("ERROR: {}".format(line)))
         self.send_callback( "!! {}".format(message) )
 
         self.afc.message_queue.append((message, "error"))
+
+        if traceback is not None:
+            for line in traceback.lstrip().rstrip().split("\n"):
+                self.logger.error( self._format("ERROR: {}".format(line)))
+
 
     def set_debug(self, debug ):
         self.print_debug_console = debug

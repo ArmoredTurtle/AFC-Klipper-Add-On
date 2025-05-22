@@ -237,11 +237,13 @@ class AFCStats:
         avg_tool_unload = f"Avg Tool Unload: {self.average_tool_unload_time.value:4.2f}s"
         avg_tool_change = f"Avg Tool Change: {self.average_toolchange_time.value:4.2f}s"
 
+        cuts_since_change = f"{self.cut_total_since_changed.value}/{self.cut_threshold_for_warning}"
+
         print_str  = f"{'':{'-'}<{MAX_WIDTH}}\n"
         print_str += f"|{'Toolchanges':{' '}^42}|{'Cut':{' '}^42}|\n"
         print_str += f"|{'':{'-'}<{MAX_WIDTH-2}}|\n"
         print_str += f"|{'Total':{' '}>22} : {self.tc_total.value:{' '}<17}|{'Total':{' '}>22} : {self.cut_total.value:{''}<17}|\n"
-        print_str += f"|{'Tool Unload':{' '}>22} : {self.tc_tool_unload.value:{' '}<17}|{'Total since changed':{' '}>22} : {self.cut_total_since_changed.value:{''}<17}|\n"
+        print_str += f"|{'Tool Unload':{' '}>22} : {self.tc_tool_unload.value:{' '}<17}|{'Total since changed':{' '}>22} : {cuts_since_change:{''}<17}|\n"
         print_str += f"|{'Tool Load':{' '}>22} : {self.tc_tool_load.value:{' '}<17}|{'Blade last changed':{' '}>22} : {self.last_blade_changed.value:{''}<17}|\n"
         print_str += f"|{'Changes without error':{' '}>22} : {self.tc_without_error.value:{' '}<17}|{'':{''}<42}|\n"
         print_str += f"|{'Last error date':{' '}>22} : {self.tc_last_load_error.value:{' '}<17}|{'':{''}<42}|\n"
@@ -286,6 +288,8 @@ class AFCStats:
         avg_tool_unload = f"{'Avg Tool Unload':{' '}>22} : {self.average_tool_unload_time.value:4.2f}s"
         avg_tool_change = f"{'Avg Tool Change':{' '}>22} : {self.average_toolchange_time.value:4.2f}s"
 
+        cuts_since_change = f"{self.cut_total_since_changed.value}/{self.cut_threshold_for_warning}"
+
         print_str  = f"{'':{'-'}<{MAX_WIDTH+2}}\n"
         print_str += f"|{'Toolchanges':{' '}^42}|\n"
         print_str += f"|{'':{'-'}<{MAX_WIDTH}}|\n"
@@ -298,7 +302,7 @@ class AFCStats:
         print_str += f"|{'Cut':{' '}^42}|\n"
         print_str += f"|{'':{'-'}<{MAX_WIDTH}}|\n"
         print_str += f"|{'Total':{' '}>22} : {self.cut_total.value:{''}<17}|\n"
-        print_str += f"|{'Total since changed':{' '}>22} : {self.cut_total_since_changed.value:{''}<17}|\n"
+        print_str += f"|{'Total since changed':{' '}>22} : {cuts_since_change:{''}<17}|\n"
         print_str += f"|{'Blade last changed':{' '}>22} : {self.last_blade_changed.value:{''}<17}|\n"
         print_str += f"|{'':{'-'}<{MAX_WIDTH}}|\n"
         print_str += f"|{avg_tool_load:{' '}<42}|\n|{avg_tool_unload:{' '}<42}|\n|{avg_tool_change:{' '}<42}|\n"

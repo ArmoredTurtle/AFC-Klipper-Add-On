@@ -178,6 +178,7 @@ class afc:
         self.assisted_unload        = config.getboolean("assisted_unload", True)    # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
+        self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
@@ -536,9 +537,9 @@ class afc:
         """
         number_of_toolchanges  = gcmd.get_int("TOOLCHANGES")
         if number_of_toolchanges > 0:
-            warning_text  = "SET_AFC_TOOLCHANGES is now deprecated as number of toolchanges will be "
-            warning_text += "fetched from files metadata in moonraker. Verify that moonrakers version is atleast v0.9.3-64"
-            warning_text += "to utilize this feature"
+            warning_text  = "Please remove SET_AFC_TOOLCHANGES from your slicers 'Change Filament G-Code' section as SET_AFC_TOOLCHANGES "
+            warning_text += "is now deprecated and number of toolchanges will be fetched from files metadata in moonraker when a print starts.\n"
+            warning_text += "Verify that moonrakers version is atleast v0.9.3-64 to utilize this feature."
             self.logger.info(f"<span class=warning--text>{warning_text}</span>")
             self.message_queue.append((warning_text, "warning"))
 
@@ -1664,7 +1665,8 @@ class afc:
 
         Optional Values
         ----
-        Set SHORT=1 to have a smaller print that fits better on smaller screens
+        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats` variable in `[AFC]` section
+        in AFC.cfg file to True will always print statistics in short form
 
         Usage
         -----
@@ -1676,7 +1678,7 @@ class afc:
         AFC_STATS
         ```
         """
-        short = bool(gcmd.get_int("SHORT", 0))
+        short = bool(gcmd.get_int("SHORT", self.short_stats))
 
         self.afc_stats.print_stats(afc_obj=self, short=short)
 
