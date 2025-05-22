@@ -264,7 +264,7 @@ class afc:
             self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # GCODE REGISTERS
-        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_TOGGLE_MACRO_help)
+        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_AFC_TOGGLE_MACRO_help)
         self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
