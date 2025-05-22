@@ -5,13 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2025-05-18]
+## [2025-05-22]
 ### Added
 - Added statistics tracking for tool load/unload/total change, n20 runtime, number of cuts,
   average load/unload/full toolchange times, and number of load per lane.
 - Added ability to track when last blade was changed and how many cuts since last changed
 - `AFC_STATS` macro added to print statistics out. Set `SHORT=1` to print out a skinny version
 - `AFC_CHANGE_BLADE` macro added for when users change blade as this reset count and updates date changed
+- `AFC_RESET_MOTOR_TIME` macro added to allow users to reset N20 active time if motor was replaced in a lane
 - Added common class for easily interacting with moonraker api
 - Updated to use moonrakers proxy when fetching spoolmans data
 - Added getting toolchange count from moonrakers file metadata, `SET_AFC_TOOLCHANGES` will be deprecated
@@ -23,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Issue where virtual bypass was being set for newly installed instances of AFC
+
+## [2025-05-21]
+### Added
+- new macro `AFC_TOGGLE_MACRO` to enable disable other macros.
 
 ## [2025-05-15]
 ### Added
