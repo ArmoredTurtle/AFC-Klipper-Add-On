@@ -539,7 +539,7 @@ class afc:
         if number_of_toolchanges > 0:
             warning_text  = "Please remove SET_AFC_TOOLCHANGES from your slicers 'Change Filament G-Code' section as SET_AFC_TOOLCHANGES "
             warning_text += "is now deprecated and number of toolchanges will be fetched from files metadata in moonraker when a print starts.\n"
-            warning_text += "Verify that moonrakers version is atleast v0.9.3-64 to utilize this feature."
+            warning_text += "Verify that moonrakers version is at least v0.9.3-64 to utilize this feature."
             self.logger.info(f"<span class=warning--text>{warning_text}</span>")
             self.message_queue.append((warning_text, "warning"))
 

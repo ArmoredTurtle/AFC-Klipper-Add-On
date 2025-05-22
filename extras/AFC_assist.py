@@ -209,6 +209,13 @@ class AFCEspoolerStats:
 
         self._direction = self._direction_start = self._direction_end = None
 
+    def reset_runtimes(self):
+        """
+        Helper function for resetting FWD/RWD active runtime
+        """
+        self._n20_runtime_fwd.reset_count()
+        self._n20_runtime_rwd.reset_count()
+
     def update_database(self):
         """
         Updates database for both forward and reverse directions if updated flag
@@ -413,6 +420,11 @@ class Espooler:
             self.afc.gcode.register_mux_command("DISABLE_ESPOOLER_ASSIST"   , "LANE", self.name, self.cmd_DISABLE_ESPOOLER_ASSIST,  desc=self.cmd_DISABLE_ESPOOLER_ASSIST_help)
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFCassistMotor(config, "enb")
+
+        # Only register macro if fwd or rwd pins are defined
+        if self.afc_motor_fwd is not None or self.afc_motor_rwd is not None:
+            self.afc.gcode.register_mux_command("AFC_RESET_MOTOR_TIME"      , "LANE", self.name, self.cmd_AFC_RESET_MOTOR_TIME,     desc=self.cmd_AFC_RESET_MOTOR_TIME_help)
+
 
     def handle_ready(self):
         """
@@ -768,3 +780,22 @@ class Espooler:
         self.espooler_values.cruise_time = self.espooler_values.calculate_cruise_time( self.espooler_values._mm_movement )
 
         self.logger.info(f"Espooler values updated for {self.name}, please manually save values in config file.")
+
+    cmd_AFC_RESET_MOTOR_TIME_help = "Resets N20 active time, useful for resetting time for N20 if one was replaced in a lane"
+    def cmd_AFC_RESET_MOTOR_TIME(self, gcmd):
+        """
+        This macro handles resetting N20 fwd/rwd active time for specified lane. Useful to reset time if N20
+        is replaced with a new motor.
+
+        Usage
+        -----
+        `AFC_RESET_MOTOR_TIME LANE=<lane_name>`
+
+        Example
+        -----
+        ```
+        AFC_RESET_MOTOR_TIME LANE=lane1
+        ```
+        """
+        self.stats.reset_runtimes()
+        self.logger.info(f"N20 active time has been reset for {self.name}")
