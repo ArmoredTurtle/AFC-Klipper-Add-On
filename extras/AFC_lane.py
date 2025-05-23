@@ -4,14 +4,20 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
+import traceback
+
 from contextlib import contextmanager
 from configfile import error
 from enum import Enum
-from . import AFC_assist
-try:
-    from extras.AFC_utils import add_filament_switch
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+try: from extras.AFC_utils import ERROR_STR, add_filament_switch
+except: raise error("Error when trying to import AFC_utils.ERROR_STR, add_filament_switch\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras import AFC_assist
+except: raise error(ERROR_STR.format(import_lib="AFC_assist", trace=traceback.format_exc()))
+
+try: from extras.AFC_stats import AFCStats_var
+except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
 # Class for holding different states so its clear what all valid states are
 
@@ -128,6 +134,7 @@ class AFCLane:
         else: self.load_state = True
 
         self.espooler = AFC_assist.Espooler(self.name, config)
+        self.lane_load_count = None
 
         self.filament_diameter  = config.getfloat("filament_diameter", 1.75)    # Diameter of filament being used
         self.filament_density   = config.getfloat("filament_density", 1.24)     # Density of filament being used
@@ -171,6 +178,7 @@ class AFCLane:
             error_string, led = self.afc.function.verify_led_object(self.led_index)
             if led is None:
                 raise error(error_string)
+        self.espooler.handle_ready()
 
     def handle_unit_connect(self, unit_obj):
         """
@@ -188,6 +196,11 @@ class AFCLane:
             # Registering lane name in unit
             self.unit_obj.lanes[self.name] = self
             self.afc.lanes[self.name] = self
+
+            values = None
+            if self.afc.moonraker.afc_stats is not None:
+                values = self.afc.moonraker.afc_stats["value"]
+            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
 
         self.hub_obj = self.unit_obj.hub_obj
 
@@ -388,7 +401,7 @@ class AFCLane:
         if assist_active == AssistActive.YES:
             assist = True
         elif assist_active == AssistActive.DYNAMIC:
-            assist = distance > 200
+            assist = abs(distance) > 200
 
         self.move(distance, speed, accel, assist)
 
