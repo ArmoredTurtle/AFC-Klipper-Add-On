@@ -34,7 +34,7 @@ class afc_tip_form:
 
 
     def afc_extrude(self, distance, speed):
-        self.afc.move_e_post( distance, speed, "form tip")
+        self.afc.move_e_pos( distance, speed, "form tip")
 
     cmd_TEST_AFC_TIP_FORMING_help = "Gives ability to test AFC tip forming without doing a tool change"
     def cmd_TEST_AFC_TIP_FORMING(self, gcmd):
