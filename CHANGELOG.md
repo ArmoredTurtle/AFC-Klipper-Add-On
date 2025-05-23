@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-23]
+### Updated
+- The `PREP` sequence will now check to ensure both the trailing and advance buffer switches are both not triggered. If 
+  both switches are triggered, a warning message will be displayed.
+
 ## [2025-05-22]
 ### Added
 - Added statistics tracking for tool load/unload/total change, n20 runtime, number of cuts,
