@@ -27,7 +27,7 @@ class afcFunction:
         self.afc      = None
         self.logger   = None
         self.mcu      = None
-
+ 
     def register_lane_macros(self, lane_obj):
         """
         Callback function to register macros with proper lane names so that klipper errors out correctly when users supply lanes names that
@@ -307,6 +307,7 @@ class afcFunction:
         :param move_pre: String that get appended before the position data
         """
         msg = "{}Position: {}".format(move_pre, self.afc.toolhead.get_position())
+        msg += f" position_with_transform {self.afc.gcode_move.position_with_transform()}"
         msg += " base_position: {}".format(self.afc.gcode_move.base_position)
         msg += " last_position: {}".format(self.afc.gcode_move.last_position)
         msg += " homing_position: {}".format(self.afc.gcode_move.homing_position)
