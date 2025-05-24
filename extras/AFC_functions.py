@@ -141,6 +141,8 @@ class afcFunction:
             else:
                 self.afc.error.AFC_error("Please home printer before doing a tool load", False, level=2)
                 return False
+        else:
+            return True
 
     def is_homed(self):
         """
