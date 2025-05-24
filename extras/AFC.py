@@ -465,7 +465,7 @@ class afc:
                 else:
                     msg = "Filament loaded in bypass, not doing tool load"
                     # If printing report as error, only pause if in a print and bypass_pause variable is True
-                    self.error.AFC_error(msg, pause= (self.function.in_print() and self.bypass_pause))
+                    self.error.AFC_error(msg, pause= (self.function.in_print() and self.bypass_pause), level=2)
                 return True
         except:
             pass

@@ -139,7 +139,7 @@ class afcFunction:
                 self.afc.toolhead.wait_moves()
                 return True
             else:
-                self.afc.error.AFC_error("Please home printer before doing a tool load", False)
+                self.afc.error.AFC_error("Please home printer before doing a tool load", False, level=2)
                 return False
 
     def is_homed(self):
