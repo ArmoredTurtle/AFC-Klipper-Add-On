@@ -925,13 +925,8 @@ class afc:
 
         :return bool: True if load was successful, False if an error occurred.
         """
-        if not self.function.is_homed():
-            if self.auto_home:
-                self.gcode.run_script_from_command("G28")
-                self.toolhead.wait_moves()
-            else:
-                self.error.AFC_error("TOOL_LOAD: Please home printer before doing a tool load", False)
-                return False
+        if not self.function.check_homed():
+            return False
 
         if cur_lane is None:
             self.error.AFC_error("No lane provided to load, not loading any lane.", pause=self.function.in_print())
@@ -1169,13 +1164,8 @@ class afc:
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
         if self._check_bypass(unload=True): return False
 
-        if not self.function.is_homed():
-            if self.auto_home:
-                self.gcode.run_script_from_command("G28")
-                self.toolhead.wait_moves()
-            else:
-                self.error.AFC_error("TOOL_UNLOAD: Please home printer before doing a tool load", False)
-                return False
+        if not self.function.check_homed():
+            return False
 
         if cur_lane is None:
             # If no lane is provided, exit the function early with a failure.
@@ -1416,13 +1406,8 @@ class afc:
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
-        if not self.function.is_homed():
-            if self.auto_home:
-                self.gcode.run_script_from_command("G28")
-                self.toolhead.wait_moves()
-            else:
-                self.error.AFC_error("CHANGE_TOOL: Please home printer before doing a tool load", False)
-                return False
+        if not self.function.check_homed():
+            return False
 
         purge_length = gcmd.get('PURGE_LENGTH', None)
 
