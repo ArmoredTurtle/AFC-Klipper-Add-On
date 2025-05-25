@@ -1270,7 +1270,7 @@ class afc:
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                 self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
 
-            self.function.log_toolhead_pos(f"Buffer move after ")
+            self.function.log_toolhead_pos("Buffer move after ")
         else:
             while cur_lane.get_toolhead_pre_sensor_state() or cur_extruder.tool_end_state:
                 num_tries += 1
@@ -1292,7 +1292,7 @@ class afc:
                 with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                     self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Sensor move", wait_tool=True)
 
-                self.function.log_toolhead_pos(f"Sensor move after ")
+                self.function.log_toolhead_pos("Sensor move after ")
 
         self.afcDeltaTime.log_with_time("Unloaded from toolhead")
 

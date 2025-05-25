@@ -31,7 +31,7 @@ class afcFunction:
         self.afc      = None
         self.logger   = None
         self.mcu      = None
- 
+
     def register_lane_macros(self, lane_obj):
         """
         Callback function to register macros with proper lane names so that klipper errors out correctly when users supply lanes names that
