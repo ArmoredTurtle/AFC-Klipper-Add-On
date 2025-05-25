@@ -657,9 +657,9 @@ class afc:
         newpos = self.gcode_move.last_position
         newpos[3] += e_amount
 
-        if wait_tool: self.toolhead.wait_moves()
-
         self.gcode_move.move_with_transform(newpos, speed)
+
+        if wait_tool: self.toolhead.wait_moves()
 
     def save_pos(self):
         """
