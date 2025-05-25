@@ -645,7 +645,7 @@ class afc:
 
         return newpos[2]
 
-    def move_e_pos( self, e_amount, speed, log_string="", wait_tool=True):
+    def move_e_pos( self, e_amount, speed, log_string="", wait_tool=False):
         """
         Common function helper to move extruder position
 
@@ -656,6 +656,8 @@ class afc:
         """
         newpos = self.gcode_move.last_position
         newpos[3] += e_amount
+
+        if wait_tool: self.toolhead.wait_moves()
 
         self.gcode_move.move_with_transform(newpos, speed)
 
@@ -1029,7 +1031,7 @@ class afc:
             if cur_extruder.tool_end:
                 while not cur_extruder.tool_end_state:
                     tool_attempts += 1
-                    self.move_e_pos( cur_lane.short_move_dis, cur_extruder.tool_load_speed, "Tool end" )
+                    self.move_e_pos( cur_lane.short_move_dis, cur_extruder.tool_load_speed, "Tool end", wait_tool=True )
                     if tool_attempts > 20:
                         message = 'filament failed to trigger post extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
                         message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(cur_lane.name)
@@ -1254,7 +1256,7 @@ class afc:
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
             cur_lane.unsync_to_extruder()
             while not cur_lane.get_trailing():
-                # attempt to return buffer to trailng pin
+                # attempt to return buffer to trailing pin
                 cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
@@ -1288,7 +1290,7 @@ class afc:
                 cur_lane.sync_to_extruder()
 
                 with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                    self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Sensor move")
+                    self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Sensor move", wait_tool=True)
 
                 self.function.log_toolhead_pos(f"Sensor move after ")
 
