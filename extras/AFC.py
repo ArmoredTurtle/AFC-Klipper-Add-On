@@ -656,12 +656,8 @@ class afc:
         """
         newpos = self.gcode_move.last_position
         newpos[3] += e_amount
-        self.function.log_toolhead_pos(f"move_e_pos({log_string}) before: commanded_pos:{newpos} ")
 
         self.gcode_move.move_with_transform(newpos, speed)
-        if wait_tool: self.toolhead.wait_moves()
-
-        self.function.log_toolhead_pos(f"move_e_pos({log_string}) after: ")
 
     def save_pos(self):
         """
@@ -1208,7 +1204,6 @@ class afc:
         pos = self.gcode_move.last_position
         pos[2] += self.z_hop
         self.move_z_pos(pos[2])
-        # self.toolhead.wait_moves()
 
         # Disable the buffer if it's active.
         cur_lane.disable_buffer()
