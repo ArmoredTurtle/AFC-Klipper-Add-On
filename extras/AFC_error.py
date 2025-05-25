@@ -172,7 +172,8 @@ class afcError:
 
         # Save current pause state
         temp_is_paused = self.afc.function.is_paused()
-        curr_pos = self.afc.toolhead.get_position()
+
+        curr_pos = self.afc.gcode_move.last_position
 
         # Verify that printer is in absolute mode
         self.afc.function.check_absolute_mode("AFC_RESUME")
@@ -180,7 +181,7 @@ class afcError:
         # Check if current position is below saved gcode position, if its lower first raise z above last saved
         #   position so that toolhead does not crash into part
         if curr_pos[2] <= self.afc.last_gcode_position[2]:
-            self.afc._move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
+            self.afc.move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
 
         self.logger.debug("AFC_RESUME: Before User Restore")
         self.afc.function.log_toolhead_pos()
@@ -223,7 +224,7 @@ class afcError:
             # Verify that printer is in absolute mode
             self.afc.function.check_absolute_mode("AFC_PAUSE")
             # Move Z up by z-hop value
-            self.afc._move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
+            self.afc.move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
             # Call users PAUSE
             self.afc.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
             # Set Idle timeout to 10 hours

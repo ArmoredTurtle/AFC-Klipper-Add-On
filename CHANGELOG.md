@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-25]
+### Fixed
+- Exclude object bug where klipper would error out with max extrude error after excluding an object and 
+  trying to do a lane swap or doing TOOL_UNLOAD in PRINT_END function. Fixes issue [#364](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/364)
+- Fixing issue [#348](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/348)
+
 ## [2025-05-23]
 ### Updated
 - The `PREP` sequence will now check to ensure the trailing and advance buffer switches are not both triggered. If 

@@ -319,7 +319,6 @@ class afcFunction:
         msg = "{}Position: {}".format(move_pre, self.afc.toolhead.get_position())
         msg += " base_position: {}".format(self.afc.gcode_move.base_position)
         msg += " last_position: {}".format(self.afc.gcode_move.last_position)
-        msg += " homing_position: {}".format(self.afc.gcode_move.homing_position)
         msg += " speed: {}".format(self.afc.gcode_move.speed)
         msg += " speed_factor: {}".format(self.afc.gcode_move.speed_factor)
         msg += " extrude_factor: {}".format(self.afc.gcode_move.extrude_factor)
@@ -361,7 +360,7 @@ class afcFunction:
 
         if past_extruder_position is None or last_extruder_position > past_extruder_position:
             past_extruder_position = last_extruder_position
-            if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
+            # if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
             return last_extruder_position
         else:
             return past_extruder_position
