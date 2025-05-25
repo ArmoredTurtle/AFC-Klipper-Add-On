@@ -652,7 +652,7 @@ class afc:
         :param e_amount: Amount to move extruder either positive(extruder) or negative(retract)
         :param speed: Speed to perform move at
         :param log_string: Additional string or name to log to logger when recording toolhead position in log
-        :param wait_tool: Set to False to not wait on toolhead moves
+        :param wait_tool: Set to True to wait on toolhead moves
         """
         newpos = self.gcode_move.last_position
         newpos[3] += e_amount
@@ -1068,6 +1068,7 @@ class afc:
             # Update tool and lane status.
             cur_lane.set_loaded()
             cur_lane.enable_buffer()
+            self.save_vars()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
             self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
