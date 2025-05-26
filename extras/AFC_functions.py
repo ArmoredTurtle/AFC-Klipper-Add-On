@@ -17,11 +17,6 @@ except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".f
 try: from extras.AFC_respond import AFCprompt
 except: raise error(ERROR_STR.format(import_lib="AFC_respond", trace=traceback.format_exc()))
 
-AFC_COMMANDS = {
-    'AFC_CALIBRATION': (
-        'Opens a guided prompt to calibrate AFC lanes and Bowden length.',
-    )
-}
 
 def load_config(config):
     return afcFunction(config)
@@ -39,54 +34,6 @@ class afcFunction:
         self.logger   = None
         self.mcu      = None
 
-        self._show_macros = True
-        self._register_commands()
-
-    # The below code is modified from the Shaketune project. See attributions at the top of this file.
-    def _register_commands(self):
-        gcode = self.printer.lookup_object('gcode')
-        afc_commands = [
-            ('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, AFC_COMMANDS['AFC_CALIBRATION']),
-        ]
-
-        # Register AFC macro commands using the official Klipper API (gcode.register_command)
-        # Doing this makes the commands available in Klipper, but they are not shown in the web interfaces
-        # and are only available by typing the full name in the console (like all the other Klipper commands)
-        for name, command, description in afc_commands:
-            gcode.register_command(f'_{name}' if self._show_macros else name, command, desc=description)
-
-        # Then, a hack to inject the macros into Klipper's config system in order to show them in the web
-        # interfaces. This is not a good way to do it, but it's the only way to do it for now to get
-        # a good user experience while using AFC (it's indeed easier to just click a macro button)
-        if self._show_macros:
-            configfile = self.printer.lookup_object('configfile')
-            dirname = os.path.dirname(os.path.realpath(__file__))
-            filename = os.path.join(dirname, 'AFC_dummy_macros.cfg')
-            try:
-                dummy_macros_cfg = configfile.read_config(filename)
-            except Exception as err:
-                raise self.config.error(f'Cannot load AFC dummy macro {filename}') from err
-
-            for gcode_macro in dummy_macros_cfg.get_prefix_sections('gcode_macro '):
-                gcode_macro_name = gcode_macro.get_name()
-
-                # Replace the dummy description by the one from AFC_COMMANDS (to avoid code duplication and define it
-                # in only one place)
-                command = gcode_macro_name.split(' ', 1)[1]
-                description = AFC_COMMANDS.get(command, 'AFC macro')
-                gcode_macro.fileconfig.set(gcode_macro_name, 'description', description)
-
-                # Add the section to the Klipper configuration object with all its options
-                if not self.config.fileconfig.has_section(gcode_macro_name.lower()):
-                    self.config.fileconfig.add_section(gcode_macro_name.lower())
-                for option in gcode_macro.fileconfig.options(gcode_macro_name):
-                    value = gcode_macro.fileconfig.get(gcode_macro_name, option)
-                    self.config.fileconfig.set(gcode_macro_name.lower(), option, value)
-                    # Small trick to ensure the new injected sections are considered valid by Klipper config system
-                    self.config.access_tracking[(gcode_macro_name.lower(), option.lower())] = 1
-
-                # Finally, load the section within the printer objects
-                self.printer.load_object(self.config, gcode_macro_name.lower())
 
     def register_lane_macros(self, lane_obj):
         """
@@ -118,6 +65,7 @@ class afcFunction:
         self.mcu = self.printer.lookup_object('mcu')
         self.afc.gcode.register_command('CALIBRATE_AFC',   self.cmd_CALIBRATE_AFC,   desc=self.cmd_CALIBRATE_AFC_help)
         self.afc.gcode.register_command('ALL_CALIBRATION', self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
+        self.afc.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
         self.afc.gcode.register_command('AFC_CALI_COMP',   self.cmd_AFC_CALI_COMP,   desc=self.cmd_AFC_CALI_COMP_help)
         self.afc.gcode.register_command('AFC_CALI_FAIL',   self.cmd_AFC_CALI_FAIL,   desc=self.cmd_AFC_CALI_FAIL_help)
         self.afc.gcode.register_command('AFC_HAPPY_P',     self.cmd_AFC_HAPPY_P,     desc=self.cmd_AFC_HAPPY_P_help)
