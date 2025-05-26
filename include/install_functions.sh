@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Armored Turtle Automated Filament Changer
 #
-# Copyright (C) 2024 Armored Turtle
+# Copyright (C) 2024-2025 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
@@ -29,6 +29,9 @@ link_extensions() {
   if [ -d "${klipper_dir}/klippy/extras" ]; then
     for extension in "${afc_path}"/extras/*.py; do
       ln -sf "${afc_path}/extras/$(basename "${extension}")" "${klipper_dir}/klippy/extras/$(basename "${extension}")"
+    done
+    for macro in "${afc_path}"/extras/*.cfg; do
+      ln -sf "${afc_path}/extras/$(basename "${macro}")" "${klipper_dir}/klippy/extras/$(basename "${macro}")"
     done
   else
     export message="AFC Klipper extensions not installed; Klipper extras directory not found."

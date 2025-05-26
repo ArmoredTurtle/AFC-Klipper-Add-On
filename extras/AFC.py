@@ -1,10 +1,16 @@
 # Armored Turtle Automated Filament Control
 #
-# Copyright (C) 2024 Armored Turtle
+# Copyright (C) 2024-2025 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+# This file includes code from the Shaketune Project. https://github.com/Frix-x/klippain-shaketune
+# Originally authored by Félix Boisselier and licensed under the GNU General Public License v3.0.
+#
+# Full license text available at: https://www.gnu.org/licenses/gpl-3.0.html
+
 import json
+import os
 import re
 import traceback
 from configfile import error
@@ -28,7 +34,35 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
+
 AFC_VERSION="1.0.14"
+
+AFC_COMMANDS = {
+    'AFC_STATS': (
+        'Prints detailed statistics relating to tool changes, cutter usage, and motor usage.'
+    ),
+    'AFC_QUIET_MODE': (
+        'Set quiet mode speed and enable/disable quiet mode.'
+    ),
+    'AFC_STATUS': (
+        'Return current status of the AFC system.'
+    ),
+    'TURN_ON_AFC_LED': (
+        'Turns on all LEDs for AFC_led configurations and restores state.'
+    ),
+    'TURN_OFF_AFC_LED': (
+        'Turns off all LEDs for AFC_led configurations.'
+    ),
+    'AFC_CHANGE_BLADE': (
+        'Sets cutter blade changed date and resets total count since blade was changed.'
+    ),
+    'AFC_TOGGLE_MACRO': (
+        'Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros.'
+    ),
+    'UNSET_LANE_LOADED': (
+        'Removes active lane loaded from toolhead loaded status.'
+    ),
+}
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -46,6 +80,7 @@ def load_config(config):
 
 class afc:
     def __init__(self, config):
+        self.config = config
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
         self.webhooks = self.printer.lookup_object('webhooks')
@@ -181,6 +216,7 @@ class afc:
         self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
@@ -189,13 +225,71 @@ class afc:
         self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
         self.printer.lookup_object("pins").register_chip("afc_quiet_mode", self)
 
-        # Printing here will not display in console but it will go to klippy.log
+        # Printing here will not display in console, but it will go to klippy.log
         self.print_version()
 
         self.BASE_UNLOAD_FILAMENT    = 'UNLOAD_FILAMENT'
         self.RENAMED_UNLOAD_FILAMENT = '_AFC_RENAMED_{}_'.format(self.BASE_UNLOAD_FILAMENT)
 
         self.afcDeltaTime = afcDeltaTime(self)
+
+        # Register AFC macros
+        self._show_macros = config.getboolean('show_macros', True)  # Show internal python AFC_ macros in the web interfaces (Mainsail/Fluidd)
+        self._register_commands()
+
+    # The below code is modified from the Shaketune project. See attributions at the top of this file.
+    def _register_commands(self):
+        gcode = self.printer.lookup_object('gcode')
+        afc_commands = [
+            ('AFC_STATS', self.cmd_AFC_STATS, AFC_COMMANDS['AFC_STATS']),
+            ('AFC_QUIET_MODE', self.cmd_AFC_QUIET_MODE, AFC_COMMANDS['AFC_QUIET_MODE']),
+            ('AFC_STATUS', self.cmd_AFC_STATUS, AFC_COMMANDS['AFC_STATUS']),
+            ('TURN_ON_AFC_LED', self.cmd_TURN_ON_AFC_LED, AFC_COMMANDS['TURN_ON_AFC_LED']),
+            ('TURN_OFF_AFC_LED', self.cmd_TURN_OFF_AFC_LED, AFC_COMMANDS['TURN_OFF_AFC_LED']),
+            ('AFC_CHANGE_BLADE', self.cmd_AFC_CHANGE_BLADE, AFC_COMMANDS['AFC_CHANGE_BLADE']),
+            ('AFC_TOGGLE_MACRO', self.cmd_AFC_TOGGLE_MACRO, AFC_COMMANDS['AFC_TOGGLE_MACRO']),
+            ('UNSET_LANE_LOADED', self.cmd_UNSET_LANE_LOADED, AFC_COMMANDS['UNSET_LANE_LOADED']),
+        ]
+
+        # Register AFC macro commands using the official Klipper API (gcode.register_command)
+        # Doing this makes the commands available in Klipper, but they are not shown in the web interfaces
+        # and are only available by typing the full name in the console (like all the other Klipper commands)
+        for name, command, description in afc_commands:
+            gcode.register_command(f'_{name}' if self._show_macros else name, command, desc=description)
+
+        # Then, a hack to inject the macros into Klipper's config system in order to show them in the web
+        # interfaces. This is not a good way to do it, but it's the only way to do it for now to get
+        # a good user experience while using AFC (it's indeed easier to just click a macro button)
+        if self._show_macros:
+            configfile = self.printer.lookup_object('configfile')
+            dirname = os.path.dirname(os.path.realpath(__file__))
+            filename = os.path.join(dirname, 'AFC_dummy_macros.cfg')
+            try:
+                dummy_macros_cfg = configfile.read_config(filename)
+            except Exception as err:
+                raise self.config.error(f'Cannot load AFC dummy macro {filename}') from err
+
+            for gcode_macro in dummy_macros_cfg.get_prefix_sections('gcode_macro '):
+                gcode_macro_name = gcode_macro.get_name()
+
+                # Replace the dummy description by the one from AFC_COMMANDS (to avoid code duplication and define it
+                # in only one place)
+                command = gcode_macro_name.split(' ', 1)[1]
+                description = AFC_COMMANDS.get(command, 'AFC macro')
+                gcode_macro.fileconfig.set(gcode_macro_name, 'description', description)
+
+                # Add the section to the Klipper configuration object with all its options
+                if not self.config.fileconfig.has_section(gcode_macro_name.lower()):
+                    self.config.fileconfig.add_section(gcode_macro_name.lower())
+                for option in gcode_macro.fileconfig.options(gcode_macro_name):
+                    value = gcode_macro.fileconfig.get(gcode_macro_name, option)
+                    self.config.fileconfig.set(gcode_macro_name.lower(), option, value)
+                    # Small trick to ensure the new injected sections are considered valid by Klipper config system
+                    self.config.access_tracking[(gcode_macro_name.lower(), option.lower())] = 1
+
+                # Finally, load the section within the printer objects
+                self.printer.load_object(self.config, gcode_macro_name.lower())
+
 
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
@@ -269,18 +363,10 @@ class afc:
         if self.show_quiet_mode:
             self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
-        # GCODE REGISTERS
-        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_AFC_TOGGLE_MACRO_help)
-        self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
+        # Register G-Code commands for macros we don't want to show up in mainsail/fluidd
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
-        self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
-        self.gcode.register_command('UNSET_LANE_LOADED',    self.cmd_UNSET_LANE_LOADED,     desc=self.cmd_UNSET_LANE_LOADED_help)
-        self.gcode.register_command('TURN_OFF_AFC_LED',     self.cmd_TURN_OFF_AFC_LED,      desc=self.cmd_TURN_OFF_AFC_LED_help)
-        self.gcode.register_command('TURN_ON_AFC_LED',      self.cmd_TURN_ON_AFC_LED,       desc=self.cmd_TURN_ON_AFC_LED_help)
-        self.gcode.register_command("AFC_STATS",            self.cmd_AFC_STATS,             desc=self.cmd_AFC_STATS_help)
-        self.gcode.register_command("AFC_CHANGE_BLADE",     self.cmd_AFC_CHANGE_BLADE,      desc=self.cmd_AFC_CHANGE_BLADE_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
