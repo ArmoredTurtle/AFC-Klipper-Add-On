@@ -32,10 +32,8 @@ function show_help() {
 }
 
 function copy_config() {
-  if [ -d "${afc_config_dir}" ]; then
-    mkdir -p "${afc_config_dir}"
-  fi
-  cp -R "${afc_path}/config" "${afc_config_dir}"
+  mkdir -p "${afc_config_dir}"
+  cp -R ${afc_path}/config/* "${afc_config_dir}"
 }
 
 function clone_repo() {
