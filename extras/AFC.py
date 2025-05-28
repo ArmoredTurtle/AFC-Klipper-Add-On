@@ -2,7 +2,6 @@
 #
 # Copyright (C) 2024 Armored Turtle
 #
-# This file may be distributed under the terms of the GNU GPLv3 license.
 
 import json
 import re
@@ -46,6 +45,7 @@ def load_config(config):
 
 class afc:
     def __init__(self, config):
+        self.config  = config
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
         self.webhooks = self.printer.lookup_object('webhooks')
@@ -55,6 +55,7 @@ class afc:
         self.spool      = self.printer.load_object(config, 'AFC_spool')
         self.error      = self.printer.load_object(config, 'AFC_error')
         self.function   = self.printer.load_object(config, 'AFC_functions')
+        self.function.afc = self
         self.gcode      = self.printer.lookup_object('gcode')
 
         # Registering stepper callback so that mux macro can be set properly with valid lane names
@@ -189,13 +190,34 @@ class afc:
         self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
         self.printer.lookup_object("pins").register_chip("afc_quiet_mode", self)
 
-        # Printing here will not display in console but it will go to klippy.log
+        # Printing here will not display in console, but it will go to klippy.log
         self.print_version()
 
         self.BASE_UNLOAD_FILAMENT    = 'UNLOAD_FILAMENT'
         self.RENAMED_UNLOAD_FILAMENT = '_AFC_RENAMED_{}_'.format(self.BASE_UNLOAD_FILAMENT)
 
         self.afcDeltaTime = afcDeltaTime(self)
+
+        # Register AFC macros
+        self.show_macros = config.getboolean('show_macros',
+                                             True)  # Show internal python AFC_ macros in the web interfaces (Mainsail/Fluidd)
+
+        self.function.register_commands(self.show_macros, 'AFC_STATS', self.cmd_AFC_STATS, self.cmd_AFC_STATS_help,
+                                        self.cmd_AFC_STATS_options)
+        self.function.register_commands(self.show_macros, 'AFC_QUIET_MODE', self.cmd_AFC_QUIET_MODE,
+                                        self.cmd_AFC_QUIET_MODE_help, self.cmd_AFC_QUIET_MODE_options)
+        self.function.register_commands(self.show_macros, 'AFC_STATUS', self.cmd_AFC_STATUS,
+                                        self.cmd_AFC_STATUS_help)
+        self.function.register_commands(self.show_macros, 'TURN_ON_AFC_LED', self.cmd_TURN_ON_AFC_LED,
+                                        self.cmd_TURN_ON_AFC_LED_help)
+        self.function.register_commands(self.show_macros, 'TURN_OFF_AFC_LED', self.cmd_TURN_OFF_AFC_LED,
+                                        self.cmd_TURN_OFF_AFC_LED_help)
+        self.function.register_commands(self.show_macros, 'AFC_CHANGE_BLADE', self.cmd_AFC_CHANGE_BLADE,
+                                        self.cmd_AFC_CHANGE_BLADE_help)
+        self.function.register_commands(self.show_macros, 'AFC_TOGGLE_MACRO', self.cmd_AFC_TOGGLE_MACRO,
+                                        self.cmd_AFC_TOGGLE_MACRO_help, self.cmd_AFC_TOGGLE_MACRO_options)
+        self.function.register_commands(self.show_macros, 'UNSET_LANE_LOADED', self.cmd_UNSET_LANE_LOADED,
+                                        self.cmd_UNSET_LANE_LOADED_help)
 
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
@@ -269,18 +291,10 @@ class afc:
         if self.show_quiet_mode:
             self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
-        # GCODE REGISTERS
-        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_AFC_TOGGLE_MACRO_help)
-        self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
+        # Register G-Code commands for macros we don't want to show up in mainsail/fluidd
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
-        self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
-        self.gcode.register_command('UNSET_LANE_LOADED',    self.cmd_UNSET_LANE_LOADED,     desc=self.cmd_UNSET_LANE_LOADED_help)
-        self.gcode.register_command('TURN_OFF_AFC_LED',     self.cmd_TURN_OFF_AFC_LED,      desc=self.cmd_TURN_OFF_AFC_LED_help)
-        self.gcode.register_command('TURN_ON_AFC_LED',      self.cmd_TURN_ON_AFC_LED,       desc=self.cmd_TURN_ON_AFC_LED_help)
-        self.gcode.register_command("AFC_STATS",            self.cmd_AFC_STATS,             desc=self.cmd_AFC_STATS_help)
-        self.gcode.register_command("AFC_CHANGE_BLADE",     self.cmd_AFC_CHANGE_BLADE,      desc=self.cmd_AFC_CHANGE_BLADE_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -471,6 +485,12 @@ class afc:
         return False
 
     cmd_AFC_TOGGLE_MACRO_help = "Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros"
+    cmd_AFC_TOGGLE_MACRO_options = {"TOOL_CUT": {"type": "int", "default": 0},
+                                    "PARK": {"type": "int", "default": 0},
+                                    "POOP": {"type": "int", "default": 0},
+                                    "KICK": {"type": "int", "default": 0},
+                                    "WIPE": {"type": "int", "default": 0},
+                                    "FORM_TIP": {"type": "int", "default": 0}}
     def cmd_AFC_TOGGLE_MACRO(self, gcmd):
         """
         Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros.
@@ -497,6 +517,8 @@ class afc:
         self.logger.info("Wipe {}, Form tip {}".format(self.tool_cut, self.form_tip))
 
     cmd_AFC_QUIET_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
+    cmd_AFC_QUIET_MODE_options = {"SPEED": {"type": "float", "default": 50},
+                                  "ENABLE": {"type": "int", "default": 0}}
     def cmd_AFC_QUIET_MODE(self, gcmd):
         """
         Set lower speed on any filament moves.
@@ -573,6 +595,7 @@ class afc:
             self.message_queue.append((warning_text, "warning"))
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
+    cmd_LANE_MOVE_options = {"LANE": {"type": "string", "default": "lane1"}, "DISTANCE": {"type": "int", "default": 20}}
     def cmd_LANE_MOVE(self, gcmd):
         """
         This function handles the manual movement of a specified lane. It retrieves the lane
@@ -715,7 +738,7 @@ class afc:
         self.current_state = State.RESTORING_POS
         newpos = self.gcode_move.last_position
 
-        # Move toolhead to previous z location with zhop added
+        # Move toolhead to previous z location with z-hop added
         if move_z_first:
             newpos[2] = self.move_z_pos(self.last_gcode_position[2] + self.z_hop)
 
@@ -753,7 +776,7 @@ class afc:
                   make it more readable for users
         """
 
-        # Return early if prep is not done so that file is not overridden until prep is atleast done
+        # Return early if prep is not done so that file is not overridden until prep is at least done
         if not self.prep_done: return
         str = {}
         for UNIT in self.units.keys():
@@ -1048,7 +1071,7 @@ class afc:
 
             self.afcDeltaTime.log_with_time("Filament loaded to nozzle")
 
-            # Check if ramming is enabled, if it is go through ram load sequence.
+            # Check if ramming is enabled, if it is, go through ram load sequence.
             # Lane will load until Advance sensor is True
             # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
             if cur_extruder.tool_start == "buffer":
@@ -1655,7 +1678,8 @@ class afc:
     cmd_TURN_OFF_AFC_LED_help = "Turns off all LEDs for AFC_led configurations"
     def cmd_TURN_OFF_AFC_LED(self, gcmd: Any) -> None:
         """
-        This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors are changed while they are turned off.
+        This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors
+        are changed while they are turned off.
 
         Usage
         -----
@@ -1689,14 +1713,15 @@ class afc:
             led.turn_on_leds()
 
     cmd_AFC_STATS_help ="Prints AFC toolchange statistics to console"
+    cmd_AFC_STATS_options = {"SHORT": {"type": "int", "default": 1}}
     def cmd_AFC_STATS(self, gcmd):
         """
         This macro handles printing toolchange statistics to console.
 
         Optional Values
         ----
-        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats` variable in `[AFC]` section
-        in AFC.cfg file to True will always print statistics in short form
+        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats`
+        variable in `[AFC]` section in the AFC.cfg file to True will always print statistics in short form.
 
         Usage
         -----
@@ -1716,7 +1741,7 @@ class afc:
     def cmd_AFC_CHANGE_BLADE(self, gcmd):
         """
         This macro handles resetting cut total since blade was last changed and updates the data
-        the blade was last changed to current date time when this macro was ran.
+        the blade was last changed to current date time when this macro was run.
 
         Usage
         -----
