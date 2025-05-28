@@ -135,7 +135,7 @@ class AFC_moonraker:
         if resp is not None and 'filament_change_count' in resp:
             change_count =  resp['filament_change_count']
         else:
-            self.logger.debug(f"Metadata not found for file:{filename}")
+            self.logger.debug(f"Filament change count metadata not found for file:{filename}")
         return change_count
 
     def get_afc_stats(self):
