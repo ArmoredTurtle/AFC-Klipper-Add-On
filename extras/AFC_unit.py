@@ -51,7 +51,7 @@ class afcUnit:
         self.short_move_dis              = config.getfloat("short_move_dis", self.afc.short_move_dis)       # Move distance in mm for failsafe moves. Setting value here overrides values set in AFC.cfg file
         self.max_move_dis                = config.getfloat("max_move_dis", self.afc.max_move_dis)            # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in AFC.cfg file
         self.debug                       = config.getboolean("debug",            False)                      # Turns on/off debug messages to console
-        self.rev_long_moves_speed_factor = config.getfloat("rev_long_moves_speed_factor", self.afc.short_moves_speed)
+        self.rev_long_moves_speed_factor = config.getfloat("rev_long_moves_speed_factor", self.afc.rev_long_moves_speed_factor)
 
         # Espooler defines
         # Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in AFC.cfg file
