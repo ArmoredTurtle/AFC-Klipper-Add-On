@@ -15,7 +15,8 @@ from urllib.request import (
 )
 from urllib.parse import (
     urlencode,
-    urljoin
+    urljoin,
+    quote
 )
 
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
@@ -129,7 +130,8 @@ class AFC_moonraker:
                  Returns zero if not found in metadata.
         """
         change_count = 0
-        resp = self._get_results(urljoin(self.local_host, 'server/files/metadata?filename={}'.format(filename)))
+        resp = self._get_results(urljoin(self.local_host,
+                                    'server/files/metadata?filename={}'.format(quote(filename))))
         if resp is not None and 'filament_change_count' in resp:
             change_count =  resp['filament_change_count']
         else:
