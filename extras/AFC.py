@@ -738,7 +738,7 @@ class afc:
         self.current_state = State.RESTORING_POS
         newpos = self.gcode_move.last_position
 
-        # Move toolhead to previous z location with zhop added
+        # Move toolhead to previous z location with z-hop added
         if move_z_first:
             newpos[2] = self.move_z_pos(self.last_gcode_position[2] + self.z_hop)
 
@@ -776,7 +776,7 @@ class afc:
                   make it more readable for users
         """
 
-        # Return early if prep is not done so that file is not overridden until prep is atleast done
+        # Return early if prep is not done so that file is not overridden until prep is at least done
         if not self.prep_done: return
         str = {}
         for UNIT in self.units.keys():
@@ -1071,7 +1071,7 @@ class afc:
 
             self.afcDeltaTime.log_with_time("Filament loaded to nozzle")
 
-            # Check if ramming is enabled, if it is go through ram load sequence.
+            # Check if ramming is enabled, if it is, go through ram load sequence.
             # Lane will load until Advance sensor is True
             # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
             if cur_extruder.tool_start == "buffer":
@@ -1605,7 +1605,6 @@ class afc:
         web_request.send( {"status:" : {"AFC": str}})
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
-    cmd_AFC_STATUS_options = {"": {}}
     def cmd_AFC_STATUS(self, gcmd):
         """
         This function generates a status message for each unit and lane, indicating the preparation,
@@ -1679,7 +1678,8 @@ class afc:
     cmd_TURN_OFF_AFC_LED_help = "Turns off all LEDs for AFC_led configurations"
     def cmd_TURN_OFF_AFC_LED(self, gcmd: Any) -> None:
         """
-        This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors are changed while they are turned off.
+        This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors
+        are changed while they are turned off.
 
         Usage
         -----
@@ -1720,8 +1720,8 @@ class afc:
 
         Optional Values
         ----
-        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats` variable in `[AFC]` section
-        in AFC.cfg file to True will always print statistics in short form
+        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats`
+        variable in `[AFC]` section in the AFC.cfg file to True will always print statistics in short form.
 
         Usage
         -----
@@ -1741,7 +1741,7 @@ class afc:
     def cmd_AFC_CHANGE_BLADE(self, gcmd):
         """
         This macro handles resetting cut total since blade was last changed and updates the data
-        the blade was last changed to current date time when this macro was ran.
+        the blade was last changed to current date time when this macro was run.
 
         Usage
         -----
