@@ -57,6 +57,17 @@ class AFCExtruder:
 
         self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
 
+        self.show_macros = self.afc.show_macros
+        self.function = self.printer.load_object(config, 'AFC_functions')
+        self.function.afc = self
+
+        self.function.register_mux_command(self.show_macros, 'UPDATE_TOOLHEAD_SENSORS', "EXTRUDER", self.name,
+                                           self.cmd_UPDATE_TOOLHEAD_SENSORS, self.cmd_UPDATE_TOOLHEAD_SENSORS_help,
+                                           self.cmd_UPDATE_TOOLHEAD_SENSORS_options)
+        self.function.register_mux_command(self.show_macros, 'SAVE_EXTRUDER_VALUES', "EXTRUDER", self.name,
+                                           self.cmd_SAVE_EXTRUDER_VALUES, self.cmd_SAVE_EXTRUDER_VALUES_help,
+                                           self.cmd_SAVE_EXTRUDER_VALUES_options)
+
     def __str__(self):
         return self.name
 
@@ -68,9 +79,6 @@ class AFCExtruder:
         """
         self.reactor = self.afc.reactor
         self.afc.tools[self.name] = self
-
-        self.afc.gcode.register_mux_command('UPDATE_TOOLHEAD_SENSORS', "EXTRUDER", self.name, self.cmd_UPDATE_TOOLHEAD_SENSORS, desc=self.cmd_UPDATE_TOOLHEAD_SENSORS_help)
-        self.afc.gcode.register_mux_command('SAVE_EXTRUDER_VALUES', "EXTRUDER", self.name, self.cmd_SAVE_EXTRUDER_VALUES, desc=self.cmd_SAVE_EXTRUDER_VALUES_help)
 
     def tool_start_callback(self, eventtime, state):
         self.tool_start_state = state
@@ -124,6 +132,13 @@ class AFCExtruder:
             self.logger.error("tool_sensor_after_extruder length should be greater than zero")
 
     cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn\tool_stn_unload\tool_sensor_after_extruder values without restarting klipper"
+    cmd_UPDATE_TOOLHEAD_SENSORS_options = {
+        "EXTRUDER": {"type": "string", "default": "extruder"},
+        "TOOL_STN": {"type": "float", "default": 0},
+        "TOOL_STN_UNLOAD": {"type": "float", "default": 0},
+        "TOOL_AFTER_EXTRUDER": {"type": "float", "default": 0}
+    }
+
     def cmd_UPDATE_TOOLHEAD_SENSORS(self, gcmd):
         """
         Macro call to adjust `tool_stn` `tool_stn_unload` `tool_sensor_after_extruder` lengths for specified extruder without having to
@@ -161,7 +176,9 @@ class AFCExtruder:
         if tool_sensor_after_extruder != self.tool_sensor_after_extruder:
             self._update_tool_after_extr( tool_sensor_after_extruder )
 
-    cmd_SAVE_EXTRUDER_VALUES_help = "Saves tool_stn, tool_stn_unload and tool_sensor_after_extruder values to config file "
+    cmd_SAVE_EXTRUDER_VALUES_help = ("Saves tool_stn, tool_stn_unload and tool_sensor_after_extruder values to config "
+                                     "file.")
+    cmd_SAVE_EXTRUDER_VALUES_options = {"EXTRUDER": {"type": "string", "default": "extruder"}}
     def cmd_SAVE_EXTRUDER_VALUES(self, gcmd):
         """
         Macro call to write tool_stn, tool_stn_unload and tool_sensor_after_extruder variables to config file for specified extruder.
