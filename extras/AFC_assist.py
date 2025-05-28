@@ -410,7 +410,6 @@ class Espooler:
         self.stats                  = None
 
         self.function = self.printer.load_object(config, 'AFC_functions')
-        self.function.afc = self
         self.show_macros = self.afc.show_macros
 
         if self.afc_motor_rwd is not None:

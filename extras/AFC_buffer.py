@@ -67,7 +67,6 @@ class AFCTrigger:
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
 
         self.function = self.printer.load_object(config, 'AFC_functions')
-        self.function.afc = self
         self.show_macros = self.afc.show_macros
 
         self.function.register_mux_command(self.show_macros, "QUERY_BUFFER", "BUFFER", self.name,

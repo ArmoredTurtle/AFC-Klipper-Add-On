@@ -166,7 +166,6 @@ class AFCLane:
 
         self.show_macros = self.afc.show_macros
         self.function = self.printer.load_object(config, 'AFC_functions')
-        self.function.afc = self
         self.function.register_mux_command(self.show_macros, 'SET_LANE_LOADED', 'LANE', self.name,
                                            self.cmd_SET_LANE_LOADED, self.cmd_SET_LANE_LOADED_help,
                                            self.cmd_SET_LANE_LOAD_options )

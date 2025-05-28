@@ -59,7 +59,6 @@ class AFCExtruder:
 
         self.show_macros = self.afc.show_macros
         self.function = self.printer.load_object(config, 'AFC_functions')
-        self.function.afc = self
 
         self.function.register_mux_command(self.show_macros, 'UPDATE_TOOLHEAD_SENSORS', "EXTRUDER", self.name,
                                            self.cmd_UPDATE_TOOLHEAD_SENSORS, self.cmd_UPDATE_TOOLHEAD_SENSORS_help,
