@@ -182,7 +182,7 @@ class afcError:
         if self.afc.gcode_move.last_position[2] <= move_z_pos:
             self.afc.move_z_pos(move_z_pos, "AFC_RESUME")
         else:
-            self.logger.debug(f"AFC_RESUME: not moving in z cur_pos:{self.gcode.last_position} move_z_pos:{move_z_pos}")
+            self.logger.debug(f"AFC_RESUME: not moving in z cur_pos:{self.afc.gcode_move.last_position} move_z_pos:{move_z_pos}")
 
         self.logger.debug("AFC_RESUME: Before User Restore")
         self.afc.function.log_toolhead_pos()
@@ -230,7 +230,7 @@ class afcError:
                 # Move Z up by z-hop value
                 self.afc.move_z_pos(move_z_pos, "AFC_PAUSE")
             else:
-                self.logger.debug(f"AFC_PAUSE: not moving in z cur_pos:{self.gcode.last_position} move_z_pos:{move_z_pos}")
+                self.logger.debug(f"AFC_PAUSE: not moving in z cur_pos:{self.afc.gcode_move.last_position} move_z_pos:{move_z_pos}")
             # Call users PAUSE
             self.afc.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
             # Set Idle timeout to 10 hours
