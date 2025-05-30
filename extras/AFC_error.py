@@ -173,15 +173,16 @@ class afcError:
         # Save current pause state
         temp_is_paused = self.afc.function.is_paused()
 
-        curr_pos = self.afc.gcode_move.last_position
-
         # Verify that printer is in absolute mode
         self.afc.function.check_absolute_mode("AFC_RESUME")
 
+        move_z_pos = self.afc.last_gcode_position[2] + self.afc.z_hop
         # Check if current position is below saved gcode position, if its lower first raise z above last saved
         #   position so that toolhead does not crash into part
-        if curr_pos[2] <= self.afc.last_gcode_position[2]:
-            self.afc.move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
+        if self.afc.gcode_move.last_position[2] <= move_z_pos:
+            self.afc.move_z_pos(move_z_pos, "AFC_RESUME")
+        else:
+            self.logger.debug(f"AFC_RESUME: not moving in z cur_pos:{self.afc.gcode_move.last_position} move_z_pos:{move_z_pos}")
 
         self.logger.debug("AFC_RESUME: Before User Restore")
         self.afc.function.log_toolhead_pos()
@@ -223,8 +224,13 @@ class afcError:
             self.pause_resume.send_pause_command()
             # Verify that printer is in absolute mode
             self.afc.function.check_absolute_mode("AFC_PAUSE")
-            # Move Z up by z-hop value
-            self.afc.move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
+            move_z_pos = self.afc.last_gcode_position[2] + self.afc.z_hop
+            # Check to see if current position is less than saved postion plus z-hop
+            if self.afc.gcode_move.last_position[2] <= move_z_pos:
+                # Move Z up by z-hop value
+                self.afc.move_z_pos(move_z_pos, "AFC_PAUSE")
+            else:
+                self.logger.debug(f"AFC_PAUSE: not moving in z cur_pos:{self.afc.gcode_move.last_position} move_z_pos:{move_z_pos}")
             # Call users PAUSE
             self.afc.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
             # Set Idle timeout to 10 hours

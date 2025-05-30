@@ -481,7 +481,7 @@ class AFCLane:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
-                        self._perform_runout()
+                        self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
                 elif self.status != "calibrating":
@@ -561,7 +561,7 @@ class AFCLane:
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
-                        self._perform_runout()
+                        self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
 
