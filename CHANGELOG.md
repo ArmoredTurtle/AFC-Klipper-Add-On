@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-30]
+
+### Added
+- Updated park to allow moving to an absolute z height after the x,y move. This is intended to reduce oozing during unload and load prior to using the poop command.
+
 ## [2025-05-27]
 ### Added
 - Some AFC macros are now exposed in Mainsail/Fluidd. 
