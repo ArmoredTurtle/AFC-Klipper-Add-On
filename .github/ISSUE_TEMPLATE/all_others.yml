@@ -1,0 +1,20 @@
+name: All others
+description: Anything else!
+title: "[Other]: "
+labels: ["Other", "triage"]
+projects: ["ArmoredTurtle/AFC-Klipper-Add-On"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this issue!
+  - type: textarea
+    id: other
+    attributes:
+      label: What is the issue?
+      description: Please give us a detailed explanation of your issue if it isn't covered by a bug report or feature
+        request.
+      placeholder: Overview of the issue
+      value: "I have an issue"
+    validations:
+      required: true

@@ -3,6 +3,11 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+#
+# This file includes code modified from the Shaketune Project. https://github.com/Frix-x/klippain-shaketune
+# Originally authored by Félix Boisselier and licensed under the GNU General Public License v3.0.
+#
+# Full license text available at: https://www.gnu.org/licenses/gpl-3.0.html
 
 import os
 import re
@@ -22,6 +27,7 @@ def load_config(config):
 
 class afcFunction:
     def __init__(self, config):
+        self.config = config
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
@@ -31,6 +37,14 @@ class afcFunction:
         self.afc      = None
         self.logger   = None
         self.mcu      = None
+
+        self.show_macros = True
+        self.register_commands(self.show_macros, 'AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, self.cmd_AFC_CALIBRATION_help)
+        self.register_commands(self.show_macros, 'AFC_RESET', self.cmd_AFC_RESET, self.cmd_AFC_RESET_help,
+                               self.cmd_AFC_RESET_options)
+        self.register_commands(self.show_macros, 'AFC_LANE_RESET', self.cmd_AFC_LANE_RESET,
+                               self.cmd_AFC_LANE_RESET_help, self.cmd_AFC_LANE_RESET_options)
+
 
     def register_lane_macros(self, lane_obj):
         """
@@ -61,13 +75,10 @@ class afcFunction:
         self.logger = self.afc.logger
         self.mcu = self.printer.lookup_object('mcu')
         self.afc.gcode.register_command('CALIBRATE_AFC',   self.cmd_CALIBRATE_AFC,   desc=self.cmd_CALIBRATE_AFC_help)
-        self.afc.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
         self.afc.gcode.register_command('ALL_CALIBRATION', self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
         self.afc.gcode.register_command('AFC_CALI_COMP',   self.cmd_AFC_CALI_COMP,   desc=self.cmd_AFC_CALI_COMP_help)
         self.afc.gcode.register_command('AFC_CALI_FAIL',   self.cmd_AFC_CALI_FAIL,   desc=self.cmd_AFC_CALI_FAIL_help)
         self.afc.gcode.register_command('AFC_HAPPY_P',     self.cmd_AFC_HAPPY_P,     desc=self.cmd_AFC_HAPPY_P_help)
-        self.afc.gcode.register_command('AFC_RESET',       self.cmd_AFC_RESET,       desc=self.cmd_AFC_RESET_help)
-        self.afc.gcode.register_command('AFC_LANE_RESET',  self.cmd_AFC_LANE_RESET,  desc=self.cmd_AFC_LANE_RESET_help)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -319,7 +330,6 @@ class afcFunction:
         msg = "{}Position: {}".format(move_pre, self.afc.toolhead.get_position())
         msg += " base_position: {}".format(self.afc.gcode_move.base_position)
         msg += " last_position: {}".format(self.afc.gcode_move.last_position)
-        msg += " homing_position: {}".format(self.afc.gcode_move.homing_position)
         msg += " speed: {}".format(self.afc.gcode_move.speed)
         msg += " speed_factor: {}".format(self.afc.gcode_move.speed_factor)
         msg += " extrude_factor: {}".format(self.afc.gcode_move.extrude_factor)
@@ -361,7 +371,7 @@ class afcFunction:
 
         if past_extruder_position is None or last_extruder_position > past_extruder_position:
             past_extruder_position = last_extruder_position
-            if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
+            # if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
             return last_extruder_position
         else:
             return past_extruder_position
@@ -382,6 +392,61 @@ class afcFunction:
             led[2]=0
 
         return '#{:02x}{:02x}{:02x}'.format(*led)
+
+    def _create_options(self, macro_name, options):
+        option_str = ""
+
+        for key, value in options.items():
+            option_str += f"{{%set dummy=params.{key}|default('{value['default']}')|{value['type']}%}}\n"
+
+        option_str += f"_{macro_name} {{rawparams}}"
+        return option_str
+
+    def _create_no_options(self, macro_name):
+        return f"_{macro_name}"
+
+    # Modified from the ShakeTune project
+    def register_mux_command(self, show_macros, macro_name, key, value, command, description, options=None):
+        gcode = self.printer.lookup_object('gcode')
+
+        # Register AFC macro commands using the official Klipper API (gcode.register_command)
+        # Doing this makes the commands available in Klipper, but they are not shown in the web interfaces
+        # and are only available by typing the full name in the console (like all the other Klipper commands)
+        # for name, command, description in afc_commands:
+        gcode.register_mux_command(f'_{macro_name}' if show_macros else macro_name, key, value, command,
+                                   desc=description)
+        self._register_klipper(show_macros, macro_name, command, description, options)
+
+    # Modified from the ShakeTune project
+    def register_commands(self, show_macros, macro_name, command, description, options=None):
+        gcode = self.printer.lookup_object('gcode')
+
+        # Register AFC macro commands using the official Klipper API (gcode.register_command)
+        # Doing this makes the commands available in Klipper, but they are not shown in the web interfaces
+        # and are only available by typing the full name in the console (like all the other Klipper commands)
+        # for name, command, description in afc_commands:
+        gcode.register_command(f'_{macro_name}' if show_macros else macro_name, command, desc=description)
+
+        self._register_klipper(show_macros, macro_name, command, description, options)
+
+    # Modified from the ShakeTune project
+    def _register_klipper(self, show_macros, macro_name, command, description, options=None):
+        # Then, a hack to inject the macros into Klipper's config system in order to show them in the web
+        # interfaces. This is not a good way to do it, but it's the only way to do it for now to get
+        # a good user experience while using AFC (it's indeed easier to just click a macro button)
+        if show_macros:
+            name = f'gcode_macro {macro_name}'
+            if not self.config.fileconfig.has_section(name):
+                self.config.fileconfig.add_section(name)
+                self.config.fileconfig.set(name, 'description', description)
+                if options is not None:
+                    self.config.fileconfig.set(name, 'gcode', self._create_options(macro_name, options))
+                else:
+                    self.config.fileconfig.set(name, 'gcode', self._create_no_options(macro_name))
+
+                for option in self.config.fileconfig.options(name):
+                    self.config.access_tracking[(name.lower(), option.lower())] = 1
+            self.printer.load_object(self.config, name)
 
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
@@ -692,6 +757,7 @@ class afcFunction:
                                True, None)
 
     cmd_AFC_RESET_help = 'Opens prompt to select lane to reset.'
+    cmd_AFC_RESET_options = {"DISTANCE": {"default": "30", "type": "float"}}
     def cmd_AFC_RESET(self, gcmd):
         """
         This function opens a prompt allowing the user to select a loaded lane for reset. It displays a list of loaded lanes
@@ -740,6 +806,8 @@ class afcFunction:
                         True, None)
 
     cmd_AFC_LANE_RESET_help = 'reset a loaded lane to hub'
+    cmd_AFC_LANE_RESET_options = {"DISTANCE": {"default": "50", "type": "float"},
+                                  "LANE": {"default": "lane1", "type": "string"}}
     def cmd_AFC_LANE_RESET(self, gcmd):
         """
         This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,

@@ -65,7 +65,13 @@ class AFCTrigger:
             self.fila_trail = add_filament_switch(self.trail_filament_switch_name, self.trailing_pin, self.printer )
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
-        self.gcode.register_mux_command("QUERY_BUFFER",         "BUFFER", self.name, self.cmd_QUERY_BUFFER,         desc=self.cmd_QUERY_BUFFER_help)
+
+        self.function = self.printer.load_object(config, 'AFC_functions')
+        self.show_macros = self.afc.show_macros
+
+        self.function.register_mux_command(self.show_macros, "QUERY_BUFFER", "BUFFER", self.name,
+                                            self.cmd_QUERY_BUFFER,
+                                        self.cmd_QUERY_BUFFER_help, self.cmd_QUERY_BUFFER_options)
         self.gcode.register_mux_command("ENABLE_BUFFER",        "BUFFER", self.name, self.cmd_ENABLE_BUFFER)
         self.gcode.register_mux_command("DISABLE_BUFFER",       "BUFFER", self.name, self.cmd_DISABLE_BUFFER)
 
@@ -256,6 +262,7 @@ class AFCTrigger:
             self.logger.info("BUFFER {} CAN'T CHANGE ROTATION DISTANCE".format(self.name))
 
     cmd_QUERY_BUFFER_help = "Report Buffer sensor state"
+    cmd_QUERY_BUFFER_options = {"BUFFER": {"type": "string", "default": "Turtle_1"}}
     def cmd_QUERY_BUFFER(self, gcmd):
         """
         Reports the current state of the buffer sensor and, if applicable, the rotation

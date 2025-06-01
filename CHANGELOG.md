@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-05-30]
+
+### Added
+- Updated park to allow moving to an absolute z height after the x,y move. This is intended to reduce oozing during unload and load prior to using the poop command.
+
+## [2025-05-27]
+### Added
+- Some AFC macros are now exposed in Mainsail/Fluidd. 
+
+## [2025-05-25]
+### Fixed
+- Exclude object bug where klipper would error out with max extrude error after excluding an object and 
+  trying to do a lane swap or doing TOOL_UNLOAD in PRINT_END function. Fixes issue [#364](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/364)
+- Fixing issue [#348](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/348)
+
 ## [2025-05-24]
 ### Fixed
 

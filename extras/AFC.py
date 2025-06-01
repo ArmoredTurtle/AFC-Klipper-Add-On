@@ -2,7 +2,6 @@
 #
 # Copyright (C) 2024 Armored Turtle
 #
-# This file may be distributed under the terms of the GNU GPLv3 license.
 
 import json
 import re
@@ -46,6 +45,7 @@ def load_config(config):
 
 class afc:
     def __init__(self, config):
+        self.config  = config
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
         self.webhooks = self.printer.lookup_object('webhooks')
@@ -55,6 +55,7 @@ class afc:
         self.spool      = self.printer.load_object(config, 'AFC_spool')
         self.error      = self.printer.load_object(config, 'AFC_error')
         self.function   = self.printer.load_object(config, 'AFC_functions')
+        self.function.afc = self
         self.gcode      = self.printer.lookup_object('gcode')
 
         # Registering stepper callback so that mux macro can be set properly with valid lane names
@@ -189,13 +190,34 @@ class afc:
         self.printer.lookup_object("pins").register_chip("afc_virtual_bypass", self)
         self.printer.lookup_object("pins").register_chip("afc_quiet_mode", self)
 
-        # Printing here will not display in console but it will go to klippy.log
+        # Printing here will not display in console, but it will go to klippy.log
         self.print_version()
 
         self.BASE_UNLOAD_FILAMENT    = 'UNLOAD_FILAMENT'
         self.RENAMED_UNLOAD_FILAMENT = '_AFC_RENAMED_{}_'.format(self.BASE_UNLOAD_FILAMENT)
 
         self.afcDeltaTime = afcDeltaTime(self)
+
+        # Register AFC macros
+        self.show_macros = config.getboolean('show_macros',
+                                             True)  # Show internal python AFC_ macros in the web interfaces (Mainsail/Fluidd)
+
+        self.function.register_commands(self.show_macros, 'AFC_STATS', self.cmd_AFC_STATS, self.cmd_AFC_STATS_help,
+                                        self.cmd_AFC_STATS_options)
+        self.function.register_commands(self.show_macros, 'AFC_QUIET_MODE', self.cmd_AFC_QUIET_MODE,
+                                        self.cmd_AFC_QUIET_MODE_help, self.cmd_AFC_QUIET_MODE_options)
+        self.function.register_commands(self.show_macros, 'AFC_STATUS', self.cmd_AFC_STATUS,
+                                        self.cmd_AFC_STATUS_help)
+        self.function.register_commands(self.show_macros, 'TURN_ON_AFC_LED', self.cmd_TURN_ON_AFC_LED,
+                                        self.cmd_TURN_ON_AFC_LED_help)
+        self.function.register_commands(self.show_macros, 'TURN_OFF_AFC_LED', self.cmd_TURN_OFF_AFC_LED,
+                                        self.cmd_TURN_OFF_AFC_LED_help)
+        self.function.register_commands(self.show_macros, 'AFC_CHANGE_BLADE', self.cmd_AFC_CHANGE_BLADE,
+                                        self.cmd_AFC_CHANGE_BLADE_help)
+        self.function.register_commands(self.show_macros, 'AFC_TOGGLE_MACRO', self.cmd_AFC_TOGGLE_MACRO,
+                                        self.cmd_AFC_TOGGLE_MACRO_help, self.cmd_AFC_TOGGLE_MACRO_options)
+        self.function.register_commands(self.show_macros, 'UNSET_LANE_LOADED', self.cmd_UNSET_LANE_LOADED,
+                                        self.cmd_UNSET_LANE_LOADED_help)
 
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
@@ -269,18 +291,10 @@ class afc:
         if self.show_quiet_mode:
             self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
-        # GCODE REGISTERS
-        self.gcode.register_command('AFC_TOGGLE_MACRO',     self.cmd_AFC_TOGGLE_MACRO,      desc=self.cmd_AFC_TOGGLE_MACRO_help)
-        self.gcode.register_command('AFC_QUIET_MODE',       self.cmd_AFC_QUIET_MODE,        desc=self.cmd_AFC_QUIET_MODE_help)
+        # Register G-Code commands for macros we don't want to show up in mainsail/fluidd
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
-        self.gcode.register_command('AFC_STATUS',           self.cmd_AFC_STATUS,            desc=self.cmd_AFC_STATUS_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
-        self.gcode.register_command('UNSET_LANE_LOADED',    self.cmd_UNSET_LANE_LOADED,     desc=self.cmd_UNSET_LANE_LOADED_help)
-        self.gcode.register_command('TURN_OFF_AFC_LED',     self.cmd_TURN_OFF_AFC_LED,      desc=self.cmd_TURN_OFF_AFC_LED_help)
-        self.gcode.register_command('TURN_ON_AFC_LED',      self.cmd_TURN_ON_AFC_LED,       desc=self.cmd_TURN_ON_AFC_LED_help)
-        self.gcode.register_command("AFC_STATS",            self.cmd_AFC_STATS,             desc=self.cmd_AFC_STATS_help)
-        self.gcode.register_command("AFC_CHANGE_BLADE",     self.cmd_AFC_CHANGE_BLADE,      desc=self.cmd_AFC_CHANGE_BLADE_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -471,6 +485,12 @@ class afc:
         return False
 
     cmd_AFC_TOGGLE_MACRO_help = "Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros"
+    cmd_AFC_TOGGLE_MACRO_options = {"TOOL_CUT": {"type": "int", "default": 0},
+                                    "PARK": {"type": "int", "default": 0},
+                                    "POOP": {"type": "int", "default": 0},
+                                    "KICK": {"type": "int", "default": 0},
+                                    "WIPE": {"type": "int", "default": 0},
+                                    "FORM_TIP": {"type": "int", "default": 0}}
     def cmd_AFC_TOGGLE_MACRO(self, gcmd):
         """
         Enable/disable TOOL_CUT/PARK/POOP/KICK/WIPE/FORM_TIP macros.
@@ -497,6 +517,8 @@ class afc:
         self.logger.info("Wipe {}, Form tip {}".format(self.tool_cut, self.form_tip))
 
     cmd_AFC_QUIET_MODE_help = "Set quiet mode speed and enable/disable quiet mode"
+    cmd_AFC_QUIET_MODE_options = {"SPEED": {"type": "float", "default": 50},
+                                  "ENABLE": {"type": "int", "default": 0}}
     def cmd_AFC_QUIET_MODE(self, gcmd):
         """
         Set lower speed on any filament moves.
@@ -573,6 +595,7 @@ class afc:
             self.message_queue.append((warning_text, "warning"))
 
     cmd_LANE_MOVE_help = "Lane Manual Movements"
+    cmd_LANE_MOVE_options = {"LANE": {"type": "string", "default": "lane1"}, "DISTANCE": {"type": "int", "default": 20}}
     def cmd_LANE_MOVE(self, gcmd):
         """
         This function handles the manual movement of a specified lane. It retrieves the lane
@@ -625,27 +648,42 @@ class afc:
         """
         return self.resume_z_speed if self.resume_z_speed > 0 else self.speed
 
-    def _move_z_pos(self, z_amount):
+    def move_z_pos(self, z_amount, string=""):
         """
         Common function helper to move z, also does a check for max z so toolhead does not exceed max height
 
-        :param base_pos: position to apply z amount to
         :param z_amount: amount to add to the base position
+        :param string: String to write to log, this can be used
 
         :return newpos: Position list with updated z position
         """
         max_z = self.toolhead.get_status(0)['axis_maximum'][2]
-        newpos = self.toolhead.get_position()
+        newpos = self.gcode_move.last_position
 
         # Determine z movement, get the min value to not exceed max z movement
         newpos[2] = min(max_z - 1, z_amount)
 
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
-        # Update gcode move last position to current position
-        self.gcode_move.reset_last_position()
-        self.function.log_toolhead_pos("_move_z_pos: ")
+
+        self.function.log_toolhead_pos(f"move_z_pos({string}): ")
 
         return newpos[2]
+
+    def move_e_pos( self, e_amount, speed, log_string="", wait_tool=False):
+        """
+        Common function helper to move extruder position
+
+        :param e_amount: Amount to move extruder either positive(extruder) or negative(retract)
+        :param speed: Speed to perform move at
+        :param log_string: Additional string or name to log to logger when recording toolhead position in log
+        :param wait_tool: Set to True to wait on toolhead moves
+        """
+        newpos = self.gcode_move.last_position
+        newpos[3] += e_amount
+
+        self.gcode_move.move_with_transform(newpos, speed)
+
+        if wait_tool: self.toolhead.wait_moves()
 
     def save_pos(self):
         """
@@ -699,11 +737,11 @@ class afc:
         self.function.log_toolhead_pos("Resume initial pos: ")
 
         self.current_state = State.RESTORING_POS
-        newpos = self.toolhead.get_position()
+        newpos = self.gcode_move.last_position
 
-        # Move toolhead to previous z location with zhop added
+        # Move toolhead to previous z location with z-hop added
         if move_z_first:
-            newpos[2] = self._move_z_pos(self.last_gcode_position[2] + self.z_hop)
+            newpos[2] = self.move_z_pos(self.last_gcode_position[2] + self.z_hop, "restore_pos")
 
         # Move to previous x,y location
         newpos[:2] = self.last_gcode_position[:2]
@@ -739,7 +777,7 @@ class afc:
                   make it more readable for users
         """
 
-        # Return early if prep is not done so that file is not overridden until prep is atleast done
+        # Return early if prep is not done so that file is not overridden until prep is at least done
         if not self.prep_done: return
         str = {}
         for UNIT in self.units.keys():
@@ -1015,12 +1053,9 @@ class afc:
             cur_lane.sync_to_extruder()
 
             if cur_extruder.tool_end:
-                pos = self.toolhead.get_position()
                 while not cur_extruder.tool_end_state:
                     tool_attempts += 1
-                    pos[3] += cur_lane.short_move_dis
-                    self.toolhead.manual_move(pos, cur_extruder.tool_load_speed)
-                    self.toolhead.wait_moves()
+                    self.move_e_pos( cur_lane.short_move_dis, cur_extruder.tool_load_speed, "Tool end", wait_tool=True )
                     if tool_attempts > 20:
                         message = 'filament failed to trigger post extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
                         message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(cur_lane.name)
@@ -1033,14 +1068,11 @@ class afc:
                 self.afcDeltaTime.log_with_time("Filament loaded to post-sensor")
 
             # Adjust tool position for loading.
-            pos = self.toolhead.get_position()
-            pos[3] += cur_extruder.tool_stn
-            self.toolhead.manual_move(pos, cur_extruder.tool_load_speed)
-            self.toolhead.wait_moves()
+            self.move_e_pos( cur_extruder.tool_stn, cur_extruder.tool_load_speed, "tool stn" )
 
             self.afcDeltaTime.log_with_time("Filament loaded to nozzle")
 
-            # Check if ramming is enabled, if it is go through ram load sequence.
+            # Check if ramming is enabled, if it is, go through ram load sequence.
             # Lane will load until Advance sensor is True
             # After the tool_stn distance the lane will retract off the sensor to confirm load and reset buffer
             if cur_extruder.tool_start == "buffer":
@@ -1060,6 +1092,7 @@ class afc:
             # Update tool and lane status.
             cur_lane.set_loaded()
             cur_lane.enable_buffer()
+            self.save_vars()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
             self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
@@ -1191,17 +1224,13 @@ class afc:
             self.afcDeltaTime.log_with_time("Done heating toolhead")
 
         # Quick pull to prevent oozing.
-        pos = self.toolhead.get_position()
-        pos[3] -= 2
-        self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
-        self.toolhead.wait_moves()
-
+        self.move_e_pos( -2, cur_extruder.tool_unload_speed, "Quick Pull", wait_tool=False)
         self.function.log_toolhead_pos("TOOL_UNLOAD quick pull: ")
 
         # Perform Z-hop to avoid collisions during unloading.
+        pos = self.gcode_move.last_position
         pos[2] += self.z_hop
-        self._move_z_pos(pos[2])
-        self.toolhead.wait_moves()
+        self.move_z_pos(pos[2], "Tool_Unload quick pull")
 
         # Disable the buffer if it's active.
         cur_lane.disable_buffer()
@@ -1252,7 +1281,7 @@ class afc:
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
             cur_lane.unsync_to_extruder()
             while not cur_lane.get_trailing():
-                # attempt to return buffer to trailng pin
+                # attempt to return buffer to trailing pin
                 cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
                 num_tries += 1
                 self.reactor.pause(self.reactor.monotonic() + 0.1)
@@ -1263,11 +1292,10 @@ class afc:
                     self.logger.info("<span class=warning--text>{}</span>".format(msg))
                     break
             cur_lane.sync_to_extruder(False)
-            pos = self.toolhead.get_position()
-            pos[3] -= cur_extruder.tool_stn_unload
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
-                self.toolhead.wait_moves()
+                self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
+
+            self.function.log_toolhead_pos("Buffer move after ")
         else:
             while cur_lane.get_toolhead_pre_sensor_state() or cur_extruder.tool_end_state:
                 num_tries += 1
@@ -1285,21 +1313,18 @@ class afc:
                     self.error.handle_lane_failure(cur_lane, message)
                     return False
                 cur_lane.sync_to_extruder()
-                pos = self.toolhead.get_position()
-                pos[3] -= cur_extruder.tool_stn_unload
+
                 with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                    self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
-                    self.toolhead.wait_moves()
+                    self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Sensor move", wait_tool=True)
+
+                self.function.log_toolhead_pos("Sensor move after ")
 
         self.afcDeltaTime.log_with_time("Unloaded from toolhead")
 
         # Move filament past the sensor after the extruder, if applicable.
         if cur_extruder.tool_sensor_after_extruder > 0:
-            pos = self.toolhead.get_position()
-            pos[3] -= cur_extruder.tool_sensor_after_extruder
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                self.toolhead.manual_move(pos, cur_extruder.tool_unload_speed)
-                self.toolhead.wait_moves()
+                self.move_e_pos(cur_extruder.tool_sensor_after_extruder * -1, cur_extruder.tool_unload_speed, "After extruder")
 
             self.afcDeltaTime.log_with_time("Tool sensor after extruder move done")
 
@@ -1654,7 +1679,8 @@ class afc:
     cmd_TURN_OFF_AFC_LED_help = "Turns off all LEDs for AFC_led configurations"
     def cmd_TURN_OFF_AFC_LED(self, gcmd: Any) -> None:
         """
-        This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors are changed while they are turned off.
+        This macro handles turning off all LEDs for AFC_led configurations. Color for LEDs are saved if colors
+        are changed while they are turned off.
 
         Usage
         -----
@@ -1688,14 +1714,15 @@ class afc:
             led.turn_on_leds()
 
     cmd_AFC_STATS_help ="Prints AFC toolchange statistics to console"
+    cmd_AFC_STATS_options = {"SHORT": {"type": "int", "default": 1}}
     def cmd_AFC_STATS(self, gcmd):
         """
         This macro handles printing toolchange statistics to console.
 
         Optional Values
         ----
-        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats` variable in `[AFC]` section
-        in AFC.cfg file to True will always print statistics in short form
+        Set SHORT=1 to have a smaller print that fits better on smaller screens. Setting `print_short_stats`
+        variable in `[AFC]` section in the AFC.cfg file to True will always print statistics in short form.
 
         Usage
         -----
@@ -1715,7 +1742,7 @@ class afc:
     def cmd_AFC_CHANGE_BLADE(self, gcmd):
         """
         This macro handles resetting cut total since blade was last changed and updates the data
-        the blade was last changed to current date time when this macro was ran.
+        the blade was last changed to current date time when this macro was run.
 
         Usage
         -----

@@ -409,6 +409,9 @@ class Espooler:
         self.espooler_values        = Espooler_values(config)
         self.stats                  = None
 
+        self.function = self.printer.load_object(config, 'AFC_functions')
+        self.show_macros = self.afc.show_macros
+
         if self.afc_motor_rwd is not None:
             self.afc_motor_rwd = AFCassistMotor(config, "rwd")
         if self.afc_motor_fwd is not None:
@@ -423,7 +426,9 @@ class Espooler:
 
         # Only register macro if fwd or rwd pins are defined
         if self.afc_motor_fwd is not None or self.afc_motor_rwd is not None:
-            self.afc.gcode.register_mux_command("AFC_RESET_MOTOR_TIME"      , "LANE", self.name, self.cmd_AFC_RESET_MOTOR_TIME,     desc=self.cmd_AFC_RESET_MOTOR_TIME_help)
+            self.function.register_mux_command(self.show_macros, 'AFC_RESET_MOTOR_TIME', 'LANE', self.name,
+                                               self.cmd_AFC_RESET_MOTOR_TIME, self.cmd_AFC_RESET_MOTOR_TIME_help,
+                                               self.cmd_AFC_RESET_MOTOR_TIME_options)
 
 
     def handle_ready(self):
@@ -782,6 +787,7 @@ class Espooler:
         self.logger.info(f"Espooler values updated for {self.name}, please manually save values in config file.")
 
     cmd_AFC_RESET_MOTOR_TIME_help = "Resets N20 active time, useful for resetting time for N20 if one was replaced in a lane"
+    cmd_AFC_RESET_MOTOR_TIME_options = {"LANE": {"type": "string", "default": "lane1"}}
     def cmd_AFC_RESET_MOTOR_TIME(self, gcmd):
         """
         This macro handles resetting N20 fwd/rwd active time for specified lane. Useful to reset time if N20
