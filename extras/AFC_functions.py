@@ -838,10 +838,6 @@ class afcFunction:
             else:
                 length = float(new_length)
 
-        if length < 0:
-            self.afc.error.AFC_error("'{}' is not a valid length. Please check your setup and re-run calibration.".format(length), pause=False)
-            # If length is negative, reset to config value
-            return config_length
         return length
 
     cmd_SET_BOWDEN_LENGTH_help = "Helper to dynamically set length of bowden between hub and toolhead. Pass in HUB if using multiple box turtles"
