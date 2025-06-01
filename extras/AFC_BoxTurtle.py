@@ -174,7 +174,7 @@ class afcBoxTurtle(afcUnit):
 
             if bowden_dist < 0:
                 self.afc.error.AFC_error(
-                    "'{}' is not a valid length. Please check your setup and re-run calibration.".format(length),
+                    "'{}' is not a valid length. Please check your setup and re-run calibration.".format(bowden_dist),
                     pause=False)
                 return False, "Invalid bowden length", bowden_dist
             self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_bowden_length", bowden_dist, cal_msg)
