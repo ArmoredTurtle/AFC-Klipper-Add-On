@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   trying to do a lane swap or doing TOOL_UNLOAD in PRINT_END function. Fixes issue [#364](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/364)
 - Fixing issue [#348](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/348)
 
+## [2025-05-24]
+### Fixed
+
+- The calibration routines will now not allow a negative bowden length value to be set. If a negative value is detected, 
+an error message will be displayed and the value will not be set.
+
 ## [2025-05-23]
 ### Updated
 - The `PREP` sequence will now check to ensure the trailing and advance buffer switches are not both triggered. If 

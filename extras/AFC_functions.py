@@ -885,7 +885,7 @@ class afcFunction:
         """
         Common function to calculate length for afc_bowden_length, afc_unload_bowden_length, and hub_dist
 
-        :param config_length: Current configuration length thats in config file
+        :param config_length: Current configuration length that's in config file
         :param current_length: Current length for bowden or hub_dist
         :param new_length: New length to set, increase(+), decrease(-), or reset to config value
 
