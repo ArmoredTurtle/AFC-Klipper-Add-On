@@ -86,12 +86,25 @@ copy_unit_files() {
     ;;
 
   "QuattroBox")
-    if [ "${qb_board_type}" == "MMB_1.0" ]; then
-      cp "${afc_path}/templates/AFC_Hardware-QuattroBox.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
-      cp "${afc_path}/templates/AFC_QuattroBox.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
-    else
-      cp "${afc_path}/templates/AFC_Hardware-QuattroBox.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
-      cp "${afc_path}/templates/AFC_QuattroBox.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+    cp "${afc_path}/templates/AFC_Hardware-QuattroBox.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
+    if [ "${qb_motor_type}" == "NEMA_14" ]; then
+      cp "${afc_path}/templates/AFC_QuattroBox_14.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      if [ "${qb_board_type}" == "MMB_1.0" ]; then
+        sed -i "s/include mcu\/MMB_QB.cfg/include mcu\/MMB_1.0_QB.cfg/g" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      elif [ "${qb_board_type}" == "MMB_1.1" ]; then
+        sed -i "s/include mcu\/MMB_QB.cfg/include mcu\/MMB_1.1_QB.cfg/g" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      elif [ "${qb_board_type}" == "MMB_2.0" ]; then
+        sed -i "s/include mcu\/MMB_QB.cfg/include mcu\/MMB_2.0_QB.cfg/g" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      fi
+    elif [ "${qb_motor_type}" == "NEMA_17" ]; then
+      cp "${afc_path}/templates/AFC_QuattroBox_17.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      if [ "${qb_board_type}" == "MMB_1.0" ]; then
+        sed -i "s/include mcu\/MMB_QB.cfg/include mcu\/MMB_1.0_QB.cfg/g" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      elif [ "${qb_board_type}" == "MMB_1.1" ]; then
+        sed -i "s/include mcu\/MMB_QB.cfg/include mcu\/MMB_1.1_QB.cfg/g" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      elif [ "${qb_board_type}" == "MMB_2.0" ]; then
+        sed -i "s/include mcu\/MMB_QB.cfg/include mcu\/MMB_2.0_QB.cfg/g" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
+      fi
     fi
     ;;
 esac
@@ -103,7 +116,9 @@ install_afc() {
   copy_config
   copy_unit_files
   # Add our extensions to the klipper gitignore
-  exclude_from_klipper_git
+  if [ "$test_mode" != "True" ]; then
+    exclude_from_klipper_git
+  fi
   # Include the AFC configuration files if selected
   if [ "$afc_includes" == True ]; then
     manage_include "${printer_config_dir}/printer.cfg" "add"
@@ -116,8 +131,8 @@ install_afc() {
   update_config_value "${afc_file}" "hub_cut" "${hub_cutter}"
   update_config_value "${afc_file}" "kick" "${kick_macro}"
   update_config_value "${afc_file}" "wipe" "${wipe_macro}"
-  echo $toolhead_sensor
-  echo $toolhead_sensor_pin
+  echo "$toolhead_sensor"
+  echo "$toolhead_sensor_pin"
   if [ "$toolhead_sensor" == "Sensor" ]; then
     update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "${toolhead_sensor_pin}"
   elif [ "$toolhead_sensor" == "Ramming" ]; then
@@ -140,13 +155,20 @@ install_afc() {
       add_buffer_to_extruder "${afc_config_dir}/AFC_${boxturtle_name}.cfg" "${boxturtle_name}"
     fi
   fi
+  # Setup buffer for QuattroBox
+  if [ "$installation_type" == "QuattroBox" ]; then
+    print_msg WARNING "Ensure you enter the correct pins here for the TN. The default pins are NOT valid for the QuattroBox."
+    query_tn_pins "TN"
+    append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
+    add_buffer_to_extruder "${afc_config_dir}/AFC_QuattroBox_1.cfg" "QuattroBox_1"
+  fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
   update_moonraker_config
 
   export message
   export files_updated_or_installed="True"
-  if [ $test_mode != "True" ]; then
+  if [ "$test_mode" != "True" ]; then
     update_afc_version "$current_install_version"
   fi
   # Final step should be displaying any messages and exit cleanly.
@@ -170,6 +192,12 @@ elif [ "$installation_type" == "HTLF" ]; then
 - Ensure you modify the ${afc_config_dir}/AFC_${htlf_board_type}_${boxturtle_name}_1.cfg file to select the proper rotation distance
   and gear ratio for your stepper motors.
 - Ensure you update any necessary buffer information in the ${afc_config_dir}/AFC_Hardware.cfg file
+  """
+elif [ "$installation_type" == "QuattroBox" ]; then
+  message+="""
+- You must update the ${afc_config_dir}/AFC_Hardware.cfg file to reference the proper buffer configuration and pins.
+
+- Ensure you enter either your CAN bus or serial information in the ${afc_config_dir}/AFC_QuattroBox_1.cfg file
   """
 fi
 
