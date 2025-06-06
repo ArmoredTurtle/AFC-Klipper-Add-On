@@ -155,13 +155,6 @@ install_afc() {
       add_buffer_to_extruder "${afc_config_dir}/AFC_${boxturtle_name}.cfg" "${boxturtle_name}"
     fi
   fi
-  # Setup buffer for QuattroBox
-  if [ "$installation_type" == "QuattroBox" ]; then
-    print_msg WARNING "Ensure you enter the correct pins here for the TN. The default pins are NOT valid for the QuattroBox."
-    query_tn_pins "TN"
-    append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin"
-    add_buffer_to_extruder "${afc_config_dir}/AFC_QuattroBox_1.cfg" "QuattroBox_1"
-  fi
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
   update_moonraker_config
