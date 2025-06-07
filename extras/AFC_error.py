@@ -123,7 +123,7 @@ class afcError:
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
-        self.logger.error( "{}: {}".format(inspect.stack()[level].function, msg) )
+        self.logger.error( message=msg, stack_name=inspect.stack()[level].function )
         if pause: self.pause_print()
 
     cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"

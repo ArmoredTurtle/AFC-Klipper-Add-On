@@ -82,7 +82,7 @@ class AFC_logger:
         if self.print_debug_console and not only_debug:
             self.send_callback(message)
 
-    def error(self, message, traceback=None):
+    def error(self, message, traceback=None, stack_name=""):
         """
         Prints error to console and log, also adds error to message queue when is then displayed
         in mainsail/fluidd guis
@@ -91,7 +91,7 @@ class AFC_logger:
         :param traceback: Trackback to log to AFC.log file
         """
         for line in message.lstrip().rstrip().split("\n"):
-            self.logger.error( self._format("ERROR: {}".format(line)))
+            self.logger.error( self._format(f"ERROR: {stack_name}: {line}") )
         self.send_callback( "!! {}".format(message) )
 
         self.afc.message_queue.append((message, "error"))
