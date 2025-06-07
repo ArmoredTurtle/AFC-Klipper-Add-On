@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - There is now a configurable option `error_timeout` in the `[AFC]` section of the `AFC.cfg` file. This option allows 
 users to set a timeout for how long the printer will stay in a paused state when an error occurs. The default value is 
-`36000` seconds (10 hours). 
+`36000` seconds (10 hours). When a `PAUSE` action is triggered, AFC will now compare the value of the `error_timeout` and
+the `idle_timeout` value (if defined) and choose the larger of the two values. 
 
 ## [2025-05-30]
 
