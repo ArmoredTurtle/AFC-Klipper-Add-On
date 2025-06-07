@@ -13,6 +13,10 @@ users to set a timeout for how long the printer will stay in a paused state when
 `36000` seconds (10 hours). When a `PAUSE` action is triggered, AFC will now compare the value of the `error_timeout` and
 the `idle_timeout` value (if defined) and choose the larger of the two values. 
 
+### Changed
+- The `afc-debug.sh` script will now create a zip file of the logs if the `nc` utility is not available. 
+
+
 ## [2025-05-30]
 
 ### Added
