@@ -645,7 +645,7 @@ class afcFunction:
 
             # Setting tool start to buffer if only tool_end is set and user has buffer so calibration can run
             if cur_lane.extruder_obj.tool_start is None:
-                if cur_lane.extruder_obj.tool_end is not None and cur_lane.buffer_obj is not None:
+                if cur_lane.extruder_obj.tool_end is not None and cur_lane.buffer_obj is None:
                     self.logger.info("Cannot run calibration using post extruder sensor, using buffer to calibrate bowden length")
                     cur_lane.extruder_obj.tool_start = "buffer"
                     set_tool_start_back_to_none = True
