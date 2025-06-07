@@ -169,7 +169,7 @@ class afcBoxTurtle(afcUnit):
             else:
                 bowden_dist = bow_pos - cur_lane.short_move_dis
 
-            # Checking if user has set a custom unload length and adding the delta to the new 
+            # Checking if user has set a custom unload length and adding the delta to the new
             # calibrated bowden distance
             if cur_lane.hub_obj.afc_unload_bowden_length != cur_lane.hub_obj.afc_bowden_length:
                 unload_delta = ( cur_lane.hub_obj.afc_bowden_length - cur_lane.hub_obj.afc_unload_bowden_length ) * -1
