@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-006-06]
+
+### Added
+- There is now a configurable option `error_timeout` in the `[AFC]` section of the `AFC.cfg` file. This option allows 
+users to set a timeout for how long the printer will stay in a paused state when an error occurs. The default value is 
+`36000` seconds (10 hours). 
+
 ## [2025-05-30]
 
 ### Added

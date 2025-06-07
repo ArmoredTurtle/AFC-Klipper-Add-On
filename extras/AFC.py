@@ -170,6 +170,7 @@ class afc:
         self.z_hop                  = config.getfloat("z_hop", 0)                   # Height to move up before and after a tool change completes
         self.xy_resume              = config.getboolean("xy_resume", False)         # Need description or remove as this is currently an unused variable
         self.resume_speed           = config.getfloat("resume_speed", self.speed)   # Speed mm/s of resume move. Set to 0 to use gcode speed
+        self.error_timeout          = config.getfloat("error_timeout", 36000)      # Timeout in seconds to pause before erroring out when AFC is in error state
         self.resume_z_speed         = config.getfloat("resume_z_speed", self.speed) # Speed mm/s of resume move in Z. Set to 0 to use gcode speed
 
         self.global_print_current   = config.getfloat("global_print_current", None) # Global variable to set steppers current to a specified current when printing. Going lower than 0.6 may result in TurtleNeck buffer's not working correctly

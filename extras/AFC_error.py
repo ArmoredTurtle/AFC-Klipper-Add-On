@@ -35,7 +35,8 @@ class afcError:
         """
         self.afc            = self.printer.lookup_object('AFC')
         self.pause_resume   = self.printer.lookup_object("pause_resume")
-        self.logger = self.afc.logger
+        self.logger         = self.afc.logger
+        self.error_timeout  = self.afc.error_timeout
         # Constant variable for renaming RESUME macro
         self.BASE_RESUME_NAME       = 'RESUME'
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_{}_'.format(self.BASE_RESUME_NAME)
@@ -234,7 +235,7 @@ class afcError:
             # Call users PAUSE
             self.afc.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
             # Set Idle timeout to 10 hours
-            self.afc.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT=36000")
+            self.afc.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT={error_timeout}".format(error_timeout=self.error_timeout))
         else:
             self.logger.debug("AFC_PAUSE: Not Pausing")
 
