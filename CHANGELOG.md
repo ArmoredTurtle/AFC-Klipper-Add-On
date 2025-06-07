@@ -41,6 +41,10 @@ an error message will be displayed and the value will not be set.
 
 ## [2025-05-22]
 ### Added
+- Added `auto_home` support,
+
+## [2025-05-22]
+### Added
 - Added statistics tracking for tool load/unload/total change, n20 runtime, number of cuts,
   average load/unload/full toolchange times, and number of load per lane.
 - Added ability to track when last blade was changed and how many cuts since last changed

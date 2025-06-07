@@ -151,6 +151,7 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
+        self.auto_home              = config.getboolean("auto_home", False)          # Flag indicating if homing needs to be done if printer is not already homed
         self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
@@ -479,7 +480,7 @@ class afc:
                 else:
                     msg = "Filament loaded in bypass, not doing tool load"
                     # If printing report as error, only pause if in a print and bypass_pause variable is True
-                    self.error.AFC_error(msg, pause= (self.function.in_print() and self.bypass_pause))
+                    self.error.AFC_error(msg, pause= (self.function.in_print() and self.bypass_pause), level=2)
                 return True
         except:
             pass
@@ -963,8 +964,7 @@ class afc:
 
         :return bool: True if load was successful, False if an error occurred.
         """
-        if not self.function.is_homed():
-            self.error.AFC_error("Please home printer before doing a tool load", False)
+        if not self.function.check_homed():
             return False
 
         if cur_lane is None:
@@ -1198,8 +1198,7 @@ class afc:
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
         if self._check_bypass(unload=True): return False
 
-        if not self.function.is_homed():
-            self.error.AFC_error("Please home printer before doing a tool unload", False)
+        if not self.function.check_homed():
             return False
 
         if cur_lane is None:
@@ -1433,9 +1432,8 @@ class afc:
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
-        if not self.function.is_homed():
-            self.error.AFC_error("Please home printer before doing a tool change", False)
-            return
+        if not self.function.check_homed():
+            return False
 
         purge_length = gcmd.get('PURGE_LENGTH', None)
 

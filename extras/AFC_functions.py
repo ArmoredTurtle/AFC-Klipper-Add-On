@@ -138,6 +138,23 @@ class afcFunction:
             self.logger.info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[cur_lane.name], tool_macro=cur_lane.map), )
         self.afc.save_vars()
 
+    def check_homed(self):
+        """
+        Helper function to determine if printer is currently homed, if not, then apply G28
+
+        :return boolean: True if xyz is homed
+        """
+        if not self.is_homed():
+            if self.afc.auto_home:
+                self.afc.gcode.run_script_from_command("G28")
+                self.afc.toolhead.wait_moves()
+                return True
+            else:
+                self.afc.error.AFC_error("Please home printer before doing a tool load", False, level=2)
+                return False
+        else:
+            return True
+
     def is_homed(self):
         """
         Helper function to determine if printer is currently homed

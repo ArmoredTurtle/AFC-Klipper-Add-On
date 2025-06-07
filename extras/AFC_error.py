@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import traceback
 import logging
+import inspect
 
 from configparser import Error as error
 
@@ -118,11 +119,11 @@ class afcError:
         self.afc.error_state = state
         self.afc.current_state = State.ERROR if state else State.IDLE
 
-    def AFC_error(self, msg, pause=True):
+    def AFC_error(self, msg, pause=True, level=1):
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
-        self.logger.error( "{}".format(msg) )
+        self.logger.error( "{}: {}".format(inspect.stack()[level].function, msg) )
         if pause: self.pause_print()
 
     cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
@@ -254,5 +255,5 @@ class afcError:
         cur_lane.do_enable(False)
         cur_lane.status = AFCLaneState.ERROR
         msg = "{} {}".format(cur_lane.name, message)
-        self.AFC_error(msg, pause)
+        self.AFC_error(msg, pause, level=2)
         self.afc.function.afc_led(self.afc.led_fault, cur_lane.led_index)
