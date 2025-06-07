@@ -127,7 +127,7 @@ class AFC_HTLF(afcBoxTurtle):
         while not self.home_state and not self.failed_to_home:
             self.selector_stepper_obj.move(-1, 20, 20, False)
             total_moved += 1
-            if total_moved > (self.mm_move_per_rotation/360)*self.MAX_ANGLE_MOVEMENT:
+            if total_moved > (self.mm_move_per_rotation/360)*(self.MAX_ANGLE_MOVEMENT+self.cam_angle):
                 self.failed_to_home = True
                 self.afc.error.AFC_error("Failed to home {}".format(self.name), False)
                 return False
