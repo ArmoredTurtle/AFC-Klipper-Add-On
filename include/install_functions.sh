@@ -87,6 +87,7 @@ copy_unit_files() {
 
   "QuattroBox")
     cp "${afc_path}/templates/AFC_Hardware-QuattroBox.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
+    cp "${afc_path}/templates/qb_macros/Eject_buttons.cfg" "${afc_config_dir}/macros/Eject_buttons.cfg"
     if [ "${qb_motor_type}" == "NEMA_14" ]; then
       cp "${afc_path}/templates/AFC_QuattroBox_14.cfg" "${afc_config_dir}/AFC_QuattroBox_1.cfg"
       if [ "${qb_board_type}" == "MMB_1.0" ]; then
