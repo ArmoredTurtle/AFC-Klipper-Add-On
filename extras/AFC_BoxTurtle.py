@@ -3,12 +3,19 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import traceback
 
 from configparser import Error as error
-try:
-    from extras.AFC_unit import afcUnit
-except:
-    raise error("Error trying to import AFC_unit, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_lane import AFCLaneState
+except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
+
+try: from extras.AFC_unit import afcUnit
+except: raise error(ERROR_STR.format(import_lib="AFC_unit", trace=traceback.format_exc()))
 
 class afcBoxTurtle(afcUnit):
     def __init__(self, config):
@@ -72,7 +79,7 @@ class afcBoxTurtle(afcUnit):
                 self.afc.function.afc_led(cur_lane.led_not_ready, cur_lane.led_index)
                 succeeded = False
             else:
-                cur_lane.status = 'Loaded'
+                cur_lane.status = AFCLaneState.LOADED
                 msg +="<span class=success--text> AND LOADED</span>"
                 self.afc.function.afc_led(cur_lane.led_spool_illum, cur_lane.led_spool_index)
 
@@ -88,7 +95,7 @@ class afcBoxTurtle(afcUnit):
                             if self.afc.function.get_current_lane() == cur_lane.name:
                                 self.afc.spool.set_active_spool(cur_lane.spool_id)
                                 cur_lane.unit_obj.lane_tool_loaded( cur_lane )
-                                cur_lane.status = 'Tooled'
+                                cur_lane.status = AFCLaneState.TOOLED
 
                             cur_lane.enable_buffer()
                         else:
@@ -165,6 +172,12 @@ class afcBoxTurtle(afcUnit):
 
             cal_msg = '\n afc_bowden_length: New: {} Old: {}'.format(bowden_dist, cur_lane.hub_obj.afc_bowden_length)
             cur_lane.hub_obj.afc_bowden_length = bowden_dist
+
+            if bowden_dist < 0:
+                self.afc.error.AFC_error(
+                    "'{}' is not a valid length. Please check your setup and re-run calibration.".format(bowden_dist),
+                    pause=False)
+                return False, "Invalid bowden length", bowden_dist
             self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_bowden_length", bowden_dist, cal_msg)
             cur_lane.do_enable(False)
             self.afc.save_vars()
@@ -279,14 +292,14 @@ class afcBoxTurtle(afcUnit):
             return False, msg, 0
 
         self.logger.info('Calibrating {}'.format(cur_lane.name))
-        cur_lane.status = "calibrating"
+        cur_lane.status = AFCLaneState.CALIBRATING
         # reset to extruder
         pos, checkpoint, success = self.calc_position(cur_lane, lambda: cur_lane.load_state, 0, cur_lane.short_move_dis,
                                                       tol, cur_lane.dist_hub + 100, "retract to extruder")
 
         if not success:
             msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return False, msg, 0
 
@@ -294,7 +307,7 @@ class afcBoxTurtle(afcUnit):
             success, message, hub_pos = self.calibrate_hub(cur_lane, tol)
 
             if not success:
-                cur_lane.status = None
+                cur_lane.status = AFCLaneState.NONE
                 cur_lane.unit_obj.return_to_home()
                 return False, message, hub_pos
 
@@ -307,7 +320,7 @@ class afcBoxTurtle(afcUnit):
             cur_lane.do_enable(False)
             cur_lane.dist_hub = cal_dist
             self.afc.function.ConfigRewrite(cur_lane.fullname, "dist_hub", cal_dist, cal_msg)
-            cur_lane.status = None
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return True, cal_msg, cal_dist
 

@@ -5,6 +5,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-006-06]
+
+### Added
+- There is now a configurable option `error_timeout` in the `[AFC]` section of the `AFC.cfg` file. This option allows 
+users to set a timeout for how long the printer will stay in a paused state when an error occurs. The default value is 
+`36000` seconds (10 hours). When a `PAUSE` action is triggered, AFC will now compare the value of the `error_timeout` and
+the `idle_timeout` value (if defined) and choose the larger of the two values. 
+
+### Changed
+- The `afc-debug.sh` script will now create a zip file of the logs if the `nc` utility is not available. 
+
+
+## [2025-05-30]
+
+### Added
+- Updated park to allow moving to an absolute z height after the x,y move. This is intended to reduce oozing during unload and load prior to using the poop command.
+
+## [2025-05-27]
+### Added
+- Some AFC macros are now exposed in Mainsail/Fluidd. 
+
+## [2025-05-25]
+### Fixed
+- Exclude object bug where klipper would error out with max extrude error after excluding an object and 
+  trying to do a lane swap or doing TOOL_UNLOAD in PRINT_END function. Fixes issue [#364](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/364)
+- Fixing issue [#348](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/348)
+
+## [2025-05-24]
+### Fixed
+
+- The calibration routines will now not allow a negative bowden length value to be set. If a negative value is detected, 
+an error message will be displayed and the value will not be set.
+
+## [2025-05-23]
+### Updated
+- The `PREP` sequence will now check to ensure the trailing and advance buffer switches are not both triggered. If 
+  both switches are triggered, a warning message will be displayed.
+
+## [2025-05-22]
+### Added
+- Added `auto_home` support,
+
+## [2025-05-22]
+### Added
+- Added statistics tracking for tool load/unload/total change, n20 runtime, number of cuts,
+  average load/unload/full toolchange times, and number of load per lane.
+- Added ability to track when last blade was changed and how many cuts since last changed
+- `AFC_STATS` macro added to print statistics out. Set `SHORT=1` to print out a skinny version
+- `AFC_CHANGE_BLADE` macro added for when users change blade as this reset count and updates date changed
+- `AFC_RESET_MOTOR_TIME` macro added to allow users to reset N20 active time if motor was replaced in a lane
+- Added common class for easily interacting with moonraker api
+- Updated to use moonrakers proxy when fetching spoolmans data
+- Added getting toolchange count from moonrakers file metadata, `SET_AFC_TOOLCHANGES` will be deprecated
+  Moonrakers version needs to be at least v0.9.3-64
+- Updated import error message to pull from a common error string in AFC_utils.py file
+- Clearing pause in klipper when starting a print
+- Warning message is outputted when number of cuts is within 1K of tool_cut_threshold value
+- Error message is outputted when number of cuts is over tool_cut_threshold
+
+### Fixed
+- Issue where virtual bypass was being set for newly installed instances of AFC
+
+## [2025-05-21]
+### Added
+- new macro `AFC_TOGGLE_MACRO` to enable disable other macros.
+
+## [2025-05-15]
+### Added
+- added quiet mode support. `quiet_moves_speed` on `AFC.cfg` dictates the max speed when quiet mode is enabled.
+- new macro `AFC_QUIET_MODE ENABLE=1/0 SPEED=<max_speed>` to allow modifying `quiet_moves_speed` and enable/disable quiet mode.
+
+## [2025-05-12]
+### Added
+- new variable `tool_homing_distance` in `[AFC]` to make the distance over which toolhead homing is attempted.
+- new variable `rev_long_moves_speed_factor` added to `AFC_lane` to allow per lane reverse speed for long moves. i.e. long move speeds will now be `rev_long_moves_speed_factor * long_move_speed`.
+- new macro `SET_LONG_MOVE_SPEED LANE=<lane_name> FWD_SPEED=<fwd_speed> RWD_FACTOR=<rwd_multiplier> SAVE=1/0` to allow modifying `rev_long_moves_speed_factor` and `long_move_speed`
+
+
+## [2025-05-11]
+### Changed
+
+- The `install-afc.sh` script will remove any `velocity` settings present in the `[AFC_buffer <buffer_name>]` 
+  section of the configuration files as they are no longer needed.
+
 ## [2025-05-01]
 ### Added
 - Print assist is now filament usage based and will activate spool after a specified amount of filament is used. This is enabled by default.

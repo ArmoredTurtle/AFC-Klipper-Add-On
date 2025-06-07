@@ -3,9 +3,20 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import traceback
 import logging
-from extras.AFC import State
+import inspect
+
+from configparser import Error as error
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC import State
+except: raise error(ERROR_STR.format(import_lib="AFC", trace=traceback.format_exc()))
+
+try: from extras.AFC_lane import AFCLaneState
+except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
 
 def load_config(config):
     return afcError(config)
@@ -25,7 +36,11 @@ class afcError:
         """
         self.afc            = self.printer.lookup_object('AFC')
         self.pause_resume   = self.printer.lookup_object("pause_resume")
-        self.logger = self.afc.logger
+        self.logger         = self.afc.logger
+        self.error_timeout  = self.afc.error_timeout
+        self.idle_timeout_obj = self.printer.lookup_object("idle_timeout")
+        self.idle_timeout_val = self.idle_timeout_obj.idle_timeout
+
         # Constant variable for renaming RESUME macro
         self.BASE_RESUME_NAME       = 'RESUME'
         self.AFC_RENAME_RESUME_NAME = '_AFC_RENAMED_{}_'.format(self.BASE_RESUME_NAME)
@@ -104,13 +119,12 @@ class afcError:
         self.afc.error_state = state
         self.afc.current_state = State.ERROR if state else State.IDLE
 
-    def AFC_error(self, msg, pause=True):
+    def AFC_error(self, msg, pause=True, level=1):
         # Print to logger since respond_raw does not write to logger
         logging.warning(msg)
         # Handle AFC errors
-        self.logger.error( "{}".format(msg) )
+        self.logger.error( message=msg, stack_name=inspect.stack()[level].function )
         if pause: self.pause_print()
-
 
     cmd_RESET_FAILURE_help = "CLEAR STATUS ERROR"
     def cmd_RESET_FAILURE(self, gcmd):
@@ -163,15 +177,17 @@ class afcError:
 
         # Save current pause state
         temp_is_paused = self.afc.function.is_paused()
-        curr_pos = self.afc.toolhead.get_position()
 
         # Verify that printer is in absolute mode
         self.afc.function.check_absolute_mode("AFC_RESUME")
 
+        move_z_pos = self.afc.last_gcode_position[2] + self.afc.z_hop
         # Check if current position is below saved gcode position, if its lower first raise z above last saved
         #   position so that toolhead does not crash into part
-        if curr_pos[2] <= self.afc.last_gcode_position[2]:
-            self.afc._move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
+        if self.afc.gcode_move.last_position[2] <= move_z_pos:
+            self.afc.move_z_pos(move_z_pos, "AFC_RESUME")
+        else:
+            self.logger.debug(f"AFC_RESUME: not moving in z cur_pos:{self.afc.gcode_move.last_position} move_z_pos:{move_z_pos}")
 
         self.logger.debug("AFC_RESUME: Before User Restore")
         self.afc.function.log_toolhead_pos()
@@ -213,12 +229,19 @@ class afcError:
             self.pause_resume.send_pause_command()
             # Verify that printer is in absolute mode
             self.afc.function.check_absolute_mode("AFC_PAUSE")
-            # Move Z up by z-hop value
-            self.afc._move_z_pos(self.afc.last_gcode_position[2] + self.afc.z_hop)
+            move_z_pos = self.afc.last_gcode_position[2] + self.afc.z_hop
+            # Check to see if current position is less than saved postion plus z-hop
+            if self.afc.gcode_move.last_position[2] <= move_z_pos:
+                # Move Z up by z-hop value
+                self.afc.move_z_pos(move_z_pos, "AFC_PAUSE")
+            else:
+                self.logger.debug(f"AFC_PAUSE: not moving in z cur_pos:{self.afc.gcode_move.last_position} move_z_pos:{move_z_pos}")
             # Call users PAUSE
             self.afc.gcode.run_script_from_command("{macro_name} {user_params}".format(macro_name=self.AFC_RENAME_PAUSE_NAME, user_params=gcmd.get_raw_command_parameters()))
-            # Set Idle timeout to 10 hours
-            self.afc.gcode.run_script_from_command("SET_IDLE_TIMEOUT TIMEOUT=36000")
+
+            timeout_to_use = max(self.error_timeout, self.idle_timeout_val)
+            self.afc.gcode.run_script_from_command(f"SET_IDLE_TIMEOUT TIMEOUT={timeout_to_use}")
+
         else:
             self.logger.debug("AFC_PAUSE: Not Pausing")
 
@@ -230,7 +253,7 @@ class afcError:
     def handle_lane_failure(self, cur_lane, message, pause=True):
         # Disable the stepper for this lane
         cur_lane.do_enable(False)
-        cur_lane.status = 'Error'
+        cur_lane.status = AFCLaneState.ERROR
         msg = "{} {}".format(cur_lane.name, message)
-        self.AFC_error(msg, pause)
+        self.AFC_error(msg, pause, level=2)
         self.afc.function.afc_led(self.afc.led_fault, cur_lane.led_index)
