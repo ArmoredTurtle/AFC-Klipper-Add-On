@@ -123,7 +123,7 @@ class AFCled:
             colors = status
         else:
             colors=list(map(float,status.split(',')))
-        
+
         transmit = 1
         def lookahead_bgfunc(print_time):
             if hasattr(self.led_helper, "_set_color"):
