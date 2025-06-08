@@ -28,22 +28,52 @@ class afcQuattroBox(afcNightOwl):
         self.set_logo_color(self.led_logo_color)
 
     def lane_loaded(self, lane):
+        """
+        Sets QuattroBox lanes led when lane is loaded and illuminates spool led's 
+        once a spool is loaded
+
+        :param lane: Lane object to set led
+        """
         super().lane_loaded(lane)
         self.afc.function.afc_led(lane.led_spool_illum, lane.led_spool_index)
     
     def lane_unloaded(self, lane):
+        """
+        Sets QuattroBox lanes led when lane is unloaded, and turns off spool 
+        illumination once a spool is ejected
+
+        :param lane: Lane object to set led
+        """
         super().lane_loaded(lane)
         self.afc.function.afc_led(self.afc.led_off, lane.led_spool_index)
 
     def lane_loading(self, lane):
+        """
+        Sets QuattroBox lanes led when lane is loading, and sets logo led's to
+        `led_logo_loading` color
+
+        :param lane: Lane object to set led
+        """
         super().lane_loading(lane)
         self.set_logo_color( self.led_logo_loading )
 
     def lane_tool_loaded(self, lane):
+        """
+        Sets QuattroBox lanes led when lane is tool loaded, and sets logo to 
+        lanes color
+
+        :param lane: Lane object to set led
+        """
         super().lane_tool_loaded(lane)
         self.set_logo_color(lane.color)
 
     def lane_tool_unloaded(self, lane):
+        """
+        Sets QuattroBox lanes led when lane is tool unloaded, and sets logo
+        color back to `led_logo_color` color
+
+        :param lane: Lane object to set led
+        """
         super().lane_tool_unloaded(lane)
         self.set_logo_color(self.led_logo_color)
 

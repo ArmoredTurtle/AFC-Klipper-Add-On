@@ -3,16 +3,21 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-from configparser import Error as error
-try:
-    from extras.AFC_BoxTurtle import afcBoxTurtle
-except:
-    raise error("Error trying to import AFC_BoxTurtle, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+import traceback
 
-try:
-    from extras.AFC_utils import add_filament_switch
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+from configparser import Error as error
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_lane import AFCLaneState
+except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
+
+try: from extras.AFC_BoxTurtle import afcBoxTurtle
+except: raise error(ERROR_STR.format(import_lib="AFC_BoxTurtle", trace=traceback.format_exc()))
+
+try: from extras.AFC_utils import add_filament_switch
+except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
 
 class AFC_HTLF(afcBoxTurtle):
     VALID_CAM_ANGLES = [30,45,60]
@@ -166,7 +171,7 @@ class AFC_HTLF(afcBoxTurtle):
 
         :return boolean: Returns true if current lane is loaded and printer is printing but lanes status is not ejecting or calibrating
         """
-        return cur_lane.name == self.afc.function.get_current_lane() and self.afc.function.is_printing() and self.status != 'ejecting' and cur_lane.status != "calibrating"
+        return cur_lane.name == self.afc.function.get_current_lane() and self.afc.function.is_printing() and cur_lane.status != AFCLaneState.EJECTING and cur_lane.status != AFCLaneState.CALIBRATING
 
 def load_config_prefix(config):
     return AFC_HTLF(config)

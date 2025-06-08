@@ -4,6 +4,14 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
+import traceback
+
+from configfile import error
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_stats import AFCStats_var
+except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
 #respooler
 PIN_MIN_TIME = 0.100
@@ -84,6 +92,143 @@ class AFCassistMotor:
         self._set_pin(print_time + PIN_MIN_TIME, self.last_value, True)
         return systime + self.resend_interval
 
+class EspoolerDir:
+    FWD = "Forwards"
+    RWD = "Reverse"
+
+class AFCEspoolerStats:
+    """
+    Holds stats for Espooler forward/reverse runtime. Has functions for calculating runtime
+    for when spoolers are started and then stopped.
+
+    Parameters
+    ----------------
+    espooler_name:
+        espooler lane name to insert into database
+    espooler_obj:
+        Espooler object to easily get access to logger and moonraker objects
+    """
+    def __init__(self, espooler_name:str, espooler_obj:object):
+        afc_stats = espooler_obj.afc.moonraker.get_afc_stats()
+        if afc_stats is not None:
+            values = afc_stats["value"]
+        else:
+            values = None
+        self._n20_runtime_fwd   = AFCStats_var(espooler_name, "n20_runtime_fwd", values, espooler_obj.afc.moonraker)
+        self._n20_runtime_rwd   = AFCStats_var(espooler_name, "n20_runtime_rwd", values, espooler_obj.afc.moonraker)
+        self._fwd_updated       = False
+        self._rwd_updated       = False
+        self._direction         = None
+        self._direction_start   = None
+        self._direction_end     = None
+        self._delta             = None
+        self.logger = espooler_obj.logger
+
+    def _convert_value(self, value:int) -> tuple[int, str]:
+        """
+        Helper function for turning seconds into minutes and hours for printing
+        runtime to console
+
+        :param value
+        :return: Returns tuple of value, unit of converted value
+        """
+        unit = 's'
+        if value > 9999:
+            value /=60
+            unit = 'm'
+
+        if value > 9999:
+            value /= 60
+            unit = 'h'
+        return value, unit
+
+    @property
+    def n20_runtime_fwd(self):
+        val, unit = self._convert_value(self._n20_runtime_fwd.value)
+        return f"{val:.2f}{unit}"
+    @property
+    def n20_runtime_rwd(self):
+        val, unit = self._convert_value(self._n20_runtime_rwd.value)
+        return f"{val:.2f}{unit}"
+
+    @property
+    def direction(self):
+        return self._direction
+    @direction.setter
+    def direction(self, value):
+        """
+        Sets direction if direction has not already been set
+        """
+        if self._direction is None:
+            self._direction = value
+
+    @property
+    def start_time(self):
+        return self._direction_start
+    @start_time.setter
+    def start_time(self, eventtime):
+        """
+        Sets start time if time has not already been set
+        """
+        if self._direction_start is None:
+            self._direction_start = eventtime
+
+    @property
+    def end_time(self):
+        return self._direction_end
+    @end_time.setter
+    def end_time(self, eventtime):
+        """
+        End time setter for runtime, once this is called a delta of end_time - start-time
+        is calculated and applied to direction that espoolers were running. A flag is then
+        set to signify that respective direction has been updated. This does not automatically
+        push to moonrakers database.
+
+        Once calculation is done, direction start, end and direction is set back to None
+
+        :param eventtime: Current time to apply to end_time
+        """
+
+        # Checking to make sure all 3 variables are set
+        if self._direction is None and self._direction_end is None and \
+           self._direction_start is None:
+            return
+
+        self._direction_end = eventtime
+
+        # Only calculate if end time is greater than start time
+        if self._direction_end > self._direction_start:
+            self._delta = self._direction_end - self._direction_start
+
+            if self._direction == EspoolerDir.FWD:
+                self._n20_runtime_fwd.value += self._delta
+                self._fwd_updated      = True
+            else:
+                self._n20_runtime_rwd.value += self._delta
+                self._rwd_updated      = True
+
+        self._direction = self._direction_start = self._direction_end = None
+
+    def reset_runtimes(self):
+        """
+        Helper function for resetting FWD/RWD active runtime
+        """
+        self._n20_runtime_fwd.reset_count()
+        self._n20_runtime_rwd.reset_count()
+
+    def update_database(self):
+        """
+        Updates database for both forward and reverse directions if updated flag
+        is set
+        """
+        if self._fwd_updated:
+            self._n20_runtime_fwd.update_database()
+            self._fwd_updated = False
+
+        if self._rwd_updated:
+            self._n20_runtime_rwd.update_database()
+            self._rwd_updated = False
+
 class Espooler_values:
     """
     This class holds the common values for espooler assist, it consists of setters and getters for the values so that
@@ -98,8 +243,8 @@ class Espooler_values:
     def __init__(self, config):
         # Time in seconds to enable spooler at full speed to help with getting the spool to spin. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._kick_start_time        = config.getfloat("kick_start_time",       None)
-        # Distance per full rotation in mm. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self._mm_per_rotation        = config.getfloat("mm_per_rotation",       None)
+        # Current spools outer diameter
+        self._spool_outer_diameter   = config.getfloat("spool_outer_diameter",  None)
         # Cycles per rotation in milliseconds. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._cycles_per_rotation    = config.getfloat("cycles_per_rotation",   None)
         # PWM cycle time. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -108,7 +253,7 @@ class Espooler_values:
         self._delta_movement         = config.getfloat("delta_movement",        None)
         # Amount to move in mm once filament has moved by delta movement amount. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._mm_movement            = config.getfloat("mm_movement",           None)
-        # Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        # Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self._scaling                = config.getfloat("spoolrate",             None)
 
     def calculate_cruise_time(self, mm_movement):
@@ -118,24 +263,24 @@ class Espooler_values:
         :param mm_movement: Amount to move spool in mm
         :return float: Amount of time to be enabled to move mm amount
         """
-        rotations = mm_movement / self.mm_per_rotation
+        rotations = mm_movement / self.spool_circum
         correction_factor = 1.0 + ( 1.68 * math.exp(-rotations * 5.0) )
         cruise_time = rotations * self.cycles_per_rotation * correction_factor
 
         return cruise_time/1000
 
-    def handle_connect(self, unit_obj):
+    def handle_connect(self, lane_obj):
         """
         Should only be called during handle_connect callback to update values from unit. If values are not set per
         lane this function will update values from their unit.
         """
-        if self._kick_start_time     is None: self.kick_start_time      = unit_obj.kick_start_time
-        if self._mm_per_rotation     is None: self.mm_per_rotation      = unit_obj.mm_per_rotation
-        if self._cycles_per_rotation is None: self.cycles_per_rotation  = unit_obj.cycles_per_rotation
-        if self._pwm_value           is None: self.pwm_value            = unit_obj.pwm_value
-        if self._mm_movement         is None: self.mm_movement          = unit_obj.mm_movement
-        if self._delta_movement      is None: self.delta_movement       = unit_obj.delta_movement
-        if self._scaling             is None: self.scaling              = unit_obj.scaling
+        if self._kick_start_time      is None: self.kick_start_time      = lane_obj.unit_obj.kick_start_time
+        if self._spool_outer_diameter is None: self._spool_outer_diameter= lane_obj.outer_diameter
+        if self._cycles_per_rotation  is None: self.cycles_per_rotation  = lane_obj.unit_obj.cycles_per_rotation
+        if self._pwm_value            is None: self.pwm_value            = lane_obj.unit_obj.pwm_value
+        if self._mm_movement          is None: self.mm_movement          = lane_obj.unit_obj.mm_movement
+        if self._delta_movement       is None: self.delta_movement       = lane_obj.unit_obj.delta_movement
+        if self._scaling              is None: self.scaling              = lane_obj.unit_obj.scaling
 
         # Since cruise time is always going to be the same, calculate it now instead of everytime inside the timer callback
         self._cruise_time            = self.calculate_cruise_time(self.mm_movement)
@@ -161,14 +306,13 @@ class Espooler_values:
         self._kick_start_time = value
 
     @property
-    def mm_per_rotation(self):
+    def spool_circum(self):
         """
-        Returns mm per rotation, this value is scaled by scaling factor
+        Calculates and returns spools circumference based off current spool_outer_diameter,
+        this value is scaled by scaling factor
         """
-        return self._mm_per_rotation * self._scaling
-    @mm_per_rotation.setter
-    def mm_per_rotation(self, value):
-        self._mm_per_rotation = value
+        radius = (self._spool_outer_diameter * self._scaling) / 2
+        return 2*math.pi*radius
 
     @property
     def cycles_per_rotation(self):
@@ -239,6 +383,7 @@ class Espooler:
         self.logger                 = self.afc.logger
         self.reactor                = self.printer.get_reactor()
         self.callback_timer         = self.reactor.register_timer( self.timer_callback )    # Defaults to never trigger
+        self.stats_timer            = self.reactor.register_timer( self.timer_stats_callback )
 
         self.afc_motor_rwd          = config.get("afc_motor_rwd", None)                     # Reverse pin on MCU for spoolers
         self.afc_motor_fwd          = config.get("afc_motor_fwd", None)                     # Forwards pin on MCU for spoolers
@@ -262,6 +407,10 @@ class Espooler:
         self.past_extruder_position = -1
 
         self.espooler_values        = Espooler_values(config)
+        self.stats                  = None
+
+        self.function = self.printer.load_object(config, 'AFC_functions')
+        self.show_macros = self.afc.show_macros
 
         if self.afc_motor_rwd is not None:
             self.afc_motor_rwd = AFCassistMotor(config, "rwd")
@@ -275,18 +424,47 @@ class Espooler:
         if self.afc_motor_enb is not None:
             self.afc_motor_enb = AFCassistMotor(config, "enb")
 
-    def handle_connect(self, unit_obj):
+        # Only register macro if fwd or rwd pins are defined
+        if self.afc_motor_fwd is not None or self.afc_motor_rwd is not None:
+            self.function.register_mux_command(self.show_macros, 'AFC_RESET_MOTOR_TIME', 'LANE', self.name,
+                                               self.cmd_AFC_RESET_MOTOR_TIME, self.cmd_AFC_RESET_MOTOR_TIME_help,
+                                               self.cmd_AFC_RESET_MOTOR_TIME_options)
+
+
+    def handle_ready(self):
+        """
+        Ready callback to check and either RWD of FWD pins are defined, if they are starts
+        timer_stats_callback timer.
+        """
+        if self.afc_motor_fwd is not None or self.afc_motor_rwd is not None:
+            self.reactor.update_timer( self.stats_timer, self.reactor.monotonic() + 30 )
+        else:
+            self.logger.info(f"Not starting timer for {self.name}")
+
+    def handle_connect(self, lane_obj):
         """
         Should only be called during handle_connect callback to update values from unit. If values are not set per
         lane this function will update values from their unit.
         """
-        self.espooler_values.handle_connect(unit_obj)
+        self.espooler_values.handle_connect(lane_obj)
+        self.stats = AFCEspoolerStats(self.name, self)
 
-        if self.n20_break_delay_time    is None: self.n20_break_delay_time  = unit_obj.n20_break_delay_time
-        if self.timer_delay             is None: self.timer_delay           = unit_obj.timer_delay
-        if self.enable_assist           is None: self.enable_assist         = unit_obj.enable_assist
-        if self.debug                   is None: self.debug                 = unit_obj.debug
-        if self.enable_kick_start       is None: self.enable_kick_start     = unit_obj.enable_kick_start
+        if self.n20_break_delay_time    is None: self.n20_break_delay_time  = lane_obj.unit_obj.n20_break_delay_time
+        if self.timer_delay             is None: self.timer_delay           = lane_obj.unit_obj.timer_delay
+        if self.enable_assist           is None: self.enable_assist         = lane_obj.unit_obj.enable_assist
+        if self.debug                   is None: self.debug                 = lane_obj.unit_obj.debug
+        if self.enable_kick_start       is None: self.enable_kick_start     = lane_obj.unit_obj.enable_kick_start
+
+    def timer_stats_callback(self, eventtime):
+        """
+        Callback function that runs every 30 seconds that checks and see if espooler
+        active time values need to be sent to moonraker. This function will not
+        send data to moonraker if printer is currently in a print and printing
+        """
+        if not self.afc.function.is_printing(True):
+            self.stats.update_database()
+
+        return self.reactor.monotonic() + 30
 
     def timer_callback(self, eventtime):
         """
@@ -338,6 +516,12 @@ class Espooler:
         """
         if self.afc_motor_enb is not None:
             self.afc_motor_enb._set_pin( print_time, value)
+            # Setting start/end time based on enable pin
+
+        if value == 0:
+            self.stats.end_time = print_time
+        else:
+            self.stats.start_time = print_time
 
     def do_assist_move(self, movement=100):
         """
@@ -364,6 +548,7 @@ class Espooler:
         :param print_time: This value should be a float and is a time when to set the pin
         :param value: This value should be a float between 0.0 and 1.0
         """
+        self.stats.direction = EspoolerDir.FWD
         self.set_enable_pin(print_time, 1)
         self.afc_motor_fwd._set_pin(print_time, value)
 
@@ -374,6 +559,7 @@ class Espooler:
         :param print_time: This value should be a float and is a time when to set the pin
         :param value: This value should be a float between 0.0 and 1.0
         """
+        self.stats.direction = EspoolerDir.RWD
         self.set_enable_pin(print_time, 1)
         self.afc_motor_rwd._set_pin(print_time, value)
 
@@ -393,12 +579,17 @@ class Espooler:
             value *= -1
             assist_motor=self.afc_motor_rwd
             reverse = True
+            self.stats.direction = EspoolerDir.RWD
+            self.stats.start_time  = print_time
         elif value > 0:
             if self.afc_motor_fwd is None:
                 return
+            self.stats.direction = EspoolerDir.FWD
+            self.stats.start_time = print_time
             assist_motor=self.afc_motor_fwd
         elif value == 0:
             self.break_espooler()
+            self.stats.end_time = print_time
             return
 
         value /= assist_motor.scale
@@ -458,6 +649,34 @@ class Espooler:
 
         self.past_extruder_position = -1
         self.reactor.update_timer( self.callback_timer, self.reactor.NEVER)
+
+    def get_spooler_stats(self, short=False):
+        """
+        Returns N20 active time in a format for printing to console. Only returns
+        forwards and reverse if pins are defined.
+
+        :param short: Set to True to return string for printing to console in shorter format
+        :return: String for reverse or forwards active time for espoolers
+        """
+        ret_str = "N20 active time:"
+
+        if self.afc_motor_fwd is None and self.afc_motor_rwd is None:
+            ret_str = ""
+
+        if self.afc_motor_fwd is not None:
+            if short:
+                ret_str += " fwd:"
+                ret_str = f"{ret_str:{' '}>31}{self.stats.n20_runtime_fwd:>8}   |\n"
+            else:
+                ret_str += f" fwd:{self.stats.n20_runtime_fwd:>8}"
+
+        if self.afc_motor_rwd is not None:
+            if short:
+                ret_str += "|" + f"{'rwd:':{' '}>31}{self.stats.n20_runtime_rwd:>8}   "
+            else:
+                ret_str += f" rwd:{self.stats.n20_runtime_rwd:>8}"
+
+        return ret_str
 
     ### MACROS ###
     cmd_TEST_ESPOOLER_ASSIST_help="Test espooler print assist for a specified lane"
@@ -526,17 +745,17 @@ class Espooler:
 
         Optional Values
         ----
-        BREAK_DELAY - Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
-        KICK_START_TIME - Time in seconds to enable spooler at full speed to help with getting the spool to spin
-        MM_PER_ROTATION - Distance per full rotation in mm
-        CYCLES_PER_ROTATION - Cycles per rotation in milliseconds
-        PWM_VALUE - PWM cycle time
-        MM_MOVEMENT - Amount to move in mm once filament has moved by delta movement amount
-        DELTA_MOVEMENT - Delta amount in mm from last move to trigger assist
-        SPOOLRATE - Scaling factor for the following variables: kick_start_time, mm_per_rotation, cycles_per_rotation, pwm_value, delta_movement, mm_movement
-        TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist
-        ENABLE_ASSIST - Setting to True enables espooler assist while printing
-        DEBUG - Turns on/off debug messages to console
+        BREAK_DELAY - Time in seconds to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.<br>
+        KICK_START_TIME - Time in seconds to enable spooler at full speed to help with getting the spool to spin<br>
+        SPOOL_OUTER_DIAMETER - Current spools outer diameter<br>
+        CYCLES_PER_ROTATION - Time it takes to in milliseconds to turn a spool a full rotation<br>
+        PWM_VALUE - PWM cycle time<br>
+        MM_MOVEMENT - Amount to move during the assist in mm once filament has moved by `delta_movement` amount<br>
+        DELTA_MOVEMENT - Delta amount in mm to move from last assist to trigger another assist move<br>
+        SPOOLRATE - Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement<br>
+        TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist<br>
+        ENABLE_ASSIST - Setting to True enables espooler assist while printing<br>
+        DEBUG - Turns on/off debug messages to console<br>
         ENABLE_KICK_START - Setting to True enables full speed espoolers for kick_start_time amount
 
         USAGE
@@ -551,7 +770,7 @@ class Espooler:
         """
         self.n20_break_delay_time                   = gcmd.get_float("BREAK_DELAY"          , self.n20_break_delay_time)
         self.espooler_values.kick_start_time        = gcmd.get_float("KICK_START_TIME"      , self.espooler_values._kick_start_time)
-        self.espooler_values.mm_per_rotation        = gcmd.get_float("MM_PER_ROTATION"      , self.espooler_values._mm_per_rotation)
+        self.espooler_values._spool_outer_diameter  = gcmd.get_float("SPOOL_OUTER_DIAMETER" , self.espooler_values._spool_outer_diameter)
         self.espooler_values.cycles_per_rotation    = gcmd.get_float("CYCLES_PER_ROTATION"  , self.espooler_values._cycles_per_rotation)
         self.espooler_values.pwm_value              = gcmd.get_float("PWM_VALUE"            , self.espooler_values._pwm_value)
         self.espooler_values.mm_movement            = gcmd.get_float("MM_MOVEMENT"          , self.espooler_values._mm_movement)
@@ -566,3 +785,23 @@ class Espooler:
         self.espooler_values.cruise_time = self.espooler_values.calculate_cruise_time( self.espooler_values._mm_movement )
 
         self.logger.info(f"Espooler values updated for {self.name}, please manually save values in config file.")
+
+    cmd_AFC_RESET_MOTOR_TIME_help = "Resets N20 active time, useful for resetting time for N20 if one was replaced in a lane"
+    cmd_AFC_RESET_MOTOR_TIME_options = {"LANE": {"type": "string", "default": "lane1"}}
+    def cmd_AFC_RESET_MOTOR_TIME(self, gcmd):
+        """
+        This macro handles resetting N20 fwd/rwd active time for specified lane. Useful to reset time if N20
+        is replaced with a new motor.
+
+        Usage
+        -----
+        `AFC_RESET_MOTOR_TIME LANE=<lane_name>`
+
+        Example
+        -----
+        ```
+        AFC_RESET_MOTOR_TIME LANE=lane1
+        ```
+        """
+        self.stats.reset_runtimes()
+        self.logger.info(f"N20 active time has been reset for {self.name}")

@@ -3,21 +3,31 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+#
+# This file includes code modified from the Shaketune Project. https://github.com/Frix-x/klippain-shaketune
+# Originally authored by Félix Boisselier and licensed under the GNU General Public License v3.0.
+#
+# Full license text available at: https://www.gnu.org/licenses/gpl-3.0.html
 
 import os
 import re
+import traceback
+
 from configfile import error
 from datetime import datetime
-try:
-    from extras.AFC_respond import AFCprompt
-except:
-    raise error("Error trying to import AFC_respond, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_respond import AFCprompt
+except: raise error(ERROR_STR.format(import_lib="AFC_respond", trace=traceback.format_exc()))
 
 def load_config(config):
     return afcFunction(config)
 
 class afcFunction:
     def __init__(self, config):
+        self.config = config
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
@@ -27,6 +37,14 @@ class afcFunction:
         self.afc      = None
         self.logger   = None
         self.mcu      = None
+
+        self.show_macros = True
+        self.register_commands(self.show_macros, 'AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, self.cmd_AFC_CALIBRATION_help)
+        self.register_commands(self.show_macros, 'AFC_RESET', self.cmd_AFC_RESET, self.cmd_AFC_RESET_help,
+                               self.cmd_AFC_RESET_options)
+        self.register_commands(self.show_macros, 'AFC_LANE_RESET', self.cmd_AFC_LANE_RESET,
+                               self.cmd_AFC_LANE_RESET_help, self.cmd_AFC_LANE_RESET_options)
+
 
     def register_lane_macros(self, lane_obj):
         """
@@ -57,13 +75,10 @@ class afcFunction:
         self.logger = self.afc.logger
         self.mcu = self.printer.lookup_object('mcu')
         self.afc.gcode.register_command('CALIBRATE_AFC',   self.cmd_CALIBRATE_AFC,   desc=self.cmd_CALIBRATE_AFC_help)
-        self.afc.gcode.register_command('AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, desc=self.cmd_AFC_CALIBRATION_help)
         self.afc.gcode.register_command('ALL_CALIBRATION', self.cmd_ALL_CALIBRATION, desc=self.cmd_ALL_CALIBRATION_help)
         self.afc.gcode.register_command('AFC_CALI_COMP',   self.cmd_AFC_CALI_COMP,   desc=self.cmd_AFC_CALI_COMP_help)
         self.afc.gcode.register_command('AFC_CALI_FAIL',   self.cmd_AFC_CALI_FAIL,   desc=self.cmd_AFC_CALI_FAIL_help)
         self.afc.gcode.register_command('AFC_HAPPY_P',     self.cmd_AFC_HAPPY_P,     desc=self.cmd_AFC_HAPPY_P_help)
-        self.afc.gcode.register_command('AFC_RESET',       self.cmd_AFC_RESET,       desc=self.cmd_AFC_RESET_help)
-        self.afc.gcode.register_command('AFC_LANE_RESET',  self.cmd_AFC_LANE_RESET,  desc=self.cmd_AFC_LANE_RESET_help)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -123,6 +138,23 @@ class afcFunction:
             self.logger.info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[cur_lane.name], tool_macro=cur_lane.map), )
         self.afc.save_vars()
 
+    def check_homed(self):
+        """
+        Helper function to determine if printer is currently homed, if not, then apply G28
+
+        :return boolean: True if xyz is homed
+        """
+        if not self.is_homed():
+            if self.afc.auto_home:
+                self.afc.gcode.run_script_from_command("G28")
+                self.afc.toolhead.wait_moves()
+                return True
+            else:
+                self.afc.error.AFC_error("Please home printer before doing a tool load", False, level=2)
+                return False
+        else:
+            return True
+
     def is_homed(self):
         """
         Helper function to determine if printer is currently homed
@@ -146,17 +178,23 @@ class afcFunction:
         idle_timeout = self.printer.lookup_object("idle_timeout")
         return idle_timeout.get_status(eventtime)["state"] == "Printing"
 
-    def in_print(self):
+    def in_print(self, return_file=False):
         """
         Helper function to help determine if printer is in a print by checking print_stats object. Printer is printing if state is not in standby or error
 
+        :param return_file: Set to True to return current print filename if printer is in a print
         :return boolean: True if state is not standby or error
         """
         print_stats_idle_states = ['standby', 'error', 'complete', 'cancelled']
         eventtime = self.afc.reactor.monotonic()
         print_stats = self.printer.lookup_object("print_stats")
         print_state = print_stats.get_status(eventtime)["state"]
-        return print_state not in print_stats_idle_states
+
+        in_print = print_state not in print_stats_idle_states
+        if return_file:
+            return in_print, print_stats.get_status(eventtime)["filename"]
+        else:
+            return in_print
 
     def is_printing(self, check_movement=False):
         """
@@ -227,6 +265,15 @@ class afcFunction:
         return error_string, led
 
     def _get_led_indexes(self, index_values):
+        """
+        Helper function for creating a list for index values that have dashes and commas 
+        so the led's can be set correctly.
+
+        eg. 1-4,9,10 would turn in to [1,2,3,4,9,10]
+
+        :params index_value: String of index values to turn into a proper list
+        :return list: list of index values for led's
+        """
         led_indexes = []
         for idx in index_values.split(","):
             if "-" not in idx:
@@ -244,9 +291,7 @@ class afcFunction:
         if led is not None:
             led_indexes = idx.split(":")[1]
             range_index = self._get_led_indexes(led_indexes)
-            for idx in range_index:
-                led.led_change(idx, status)
-            # led.led_change(int(idx.split(':')[1]), status)
+            led.led_change(range_index, status)
         else:
             self.logger.info( error_string )
 
@@ -328,7 +373,6 @@ class afcFunction:
         msg = "{}Position: {}".format(move_pre, self.afc.toolhead.get_position())
         msg += " base_position: {}".format(self.afc.gcode_move.base_position)
         msg += " last_position: {}".format(self.afc.gcode_move.last_position)
-        msg += " homing_position: {}".format(self.afc.gcode_move.homing_position)
         msg += " speed: {}".format(self.afc.gcode_move.speed)
         msg += " speed_factor: {}".format(self.afc.gcode_move.speed_factor)
         msg += " extrude_factor: {}".format(self.afc.gcode_move.extrude_factor)
@@ -370,7 +414,7 @@ class afcFunction:
 
         if past_extruder_position is None or last_extruder_position > past_extruder_position:
             past_extruder_position = last_extruder_position
-            if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
+            # if last_extruder_position > 0: self.logger.debug("Extruder last position: {}".format(last_extruder_position))
             return last_extruder_position
         else:
             return past_extruder_position
@@ -393,6 +437,12 @@ class afcFunction:
         return '#{:02x}{:02x}{:02x}'.format(*led)
     
     def HexToLedString(self, led_value):
+        """
+        Helper function for turning a hex value into a comma seperated list
+
+        :param led_value: Hex color value
+        :return list: List of comma seperated float values ranging from 0.0 to 1.0
+        """
         n = 2
         new_value = [ int(led_value[i:i+n], base=16)/255.0 for i in range(0, len(led_value), n)]
         if led_value == "FFFFFF":
@@ -400,6 +450,61 @@ class afcFunction:
         else:
             new_value.append(0.0)
         return new_value
+
+    def _create_options(self, macro_name, options):
+        option_str = ""
+
+        for key, value in options.items():
+            option_str += f"{{%set dummy=params.{key}|default('{value['default']}')|{value['type']}%}}\n"
+
+        option_str += f"_{macro_name} {{rawparams}}"
+        return option_str
+
+    def _create_no_options(self, macro_name):
+        return f"_{macro_name}"
+
+    # Modified from the ShakeTune project
+    def register_mux_command(self, show_macros, macro_name, key, value, command, description, options=None):
+        gcode = self.printer.lookup_object('gcode')
+
+        # Register AFC macro commands using the official Klipper API (gcode.register_command)
+        # Doing this makes the commands available in Klipper, but they are not shown in the web interfaces
+        # and are only available by typing the full name in the console (like all the other Klipper commands)
+        # for name, command, description in afc_commands:
+        gcode.register_mux_command(f'_{macro_name}' if show_macros else macro_name, key, value, command,
+                                   desc=description)
+        self._register_klipper(show_macros, macro_name, command, description, options)
+
+    # Modified from the ShakeTune project
+    def register_commands(self, show_macros, macro_name, command, description, options=None):
+        gcode = self.printer.lookup_object('gcode')
+
+        # Register AFC macro commands using the official Klipper API (gcode.register_command)
+        # Doing this makes the commands available in Klipper, but they are not shown in the web interfaces
+        # and are only available by typing the full name in the console (like all the other Klipper commands)
+        # for name, command, description in afc_commands:
+        gcode.register_command(f'_{macro_name}' if show_macros else macro_name, command, desc=description)
+
+        self._register_klipper(show_macros, macro_name, command, description, options)
+
+    # Modified from the ShakeTune project
+    def _register_klipper(self, show_macros, macro_name, command, description, options=None):
+        # Then, a hack to inject the macros into Klipper's config system in order to show them in the web
+        # interfaces. This is not a good way to do it, but it's the only way to do it for now to get
+        # a good user experience while using AFC (it's indeed easier to just click a macro button)
+        if show_macros:
+            name = f'gcode_macro {macro_name}'
+            if not self.config.fileconfig.has_section(name):
+                self.config.fileconfig.add_section(name)
+                self.config.fileconfig.set(name, 'description', description)
+                if options is not None:
+                    self.config.fileconfig.set(name, 'gcode', self._create_options(macro_name, options))
+                else:
+                    self.config.fileconfig.set(name, 'gcode', self._create_no_options(macro_name))
+
+                for option in self.config.fileconfig.options(name):
+                    self.config.access_tracking[(name.lower(), option.lower())] = 1
+            self.printer.load_object(self.config, name)
 
     cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
@@ -710,6 +815,7 @@ class afcFunction:
                                True, None)
 
     cmd_AFC_RESET_help = 'Opens prompt to select lane to reset.'
+    cmd_AFC_RESET_options = {"DISTANCE": {"default": "30", "type": "float"}}
     def cmd_AFC_RESET(self, gcmd):
         """
         This function opens a prompt allowing the user to select a loaded lane for reset. It displays a list of loaded lanes
@@ -758,6 +864,8 @@ class afcFunction:
                         True, None)
 
     cmd_AFC_LANE_RESET_help = 'reset a loaded lane to hub'
+    cmd_AFC_LANE_RESET_options = {"DISTANCE": {"default": "50", "type": "float"},
+                                  "LANE": {"default": "lane1", "type": "string"}}
     def cmd_AFC_LANE_RESET(self, gcmd):
         """
         This function resets a specified lane to the hub position in the AFC system. It checks for various error conditions,
@@ -835,7 +943,7 @@ class afcFunction:
         """
         Common function to calculate length for afc_bowden_length, afc_unload_bowden_length, and hub_dist
 
-        :param config_length: Current configuration length thats in config file
+        :param config_length: Current configuration length that's in config file
         :param current_length: Current length for bowden or hub_dist
         :param new_length: New length to set, increase(+), decrease(-), or reset to config value
 
@@ -941,14 +1049,15 @@ class afcFunction:
         CUR_HUB.hub_cut(cur_lane)
         self.logger.info('Hub cut Done!')
 
-    cmd_TEST_help = "Test Assist Motors"
+    cmd_TEST_help = "Test Assist Motors, spins spoolers like rewinding spool"
     def cmd_TEST(self, gcmd):
         """
         This function tests the assist motors of a specified lane at various speeds.
-        It performs the following steps:
-        1. Retrieves the lane specified by the 'LANE' parameter.
-        2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.
-        3. Reports the status of each test step.
+        Spins the spoolers in reverse like trying to rewind the spool.<br>
+        It performs the following steps:<br>
+        1. Retrieves the lane specified by the 'LANE' parameter.<br>
+        2. Tests the assist motor at full speed, 50%, 30%, and 10% speeds.<br>
+        3. Reports the status of each test step.<br>
 
         Usage
         -----
@@ -1017,6 +1126,7 @@ class afcDeltaTime:
             self.logger.debug("Error in log_with_time function {}".format(e))
 
     def log_major_delta(self, msg, debug=True):
+        delta_time = 0
         try:
             curr_time = datetime.now()
             delta_time = (curr_time - self.major_delta_time ).total_seconds()
@@ -1026,7 +1136,10 @@ class afcDeltaTime:
         except Exception as e:
             self.logger.debug("Error in log_major_delta function {}".format(e))
 
+        return delta_time
+
     def log_total_time(self, msg):
+        total_time = 0
         try:
             total_time = (datetime.now() - self.start_time).total_seconds()
             msg = "{} t:{:.3f}".format( msg, total_time )
@@ -1034,3 +1147,5 @@ class afcDeltaTime:
             self.logger.info( msg )
         except Exception as e:
             self.logger.debug("Error in log_total_time function {}".format(e))
+
+        return total_time
