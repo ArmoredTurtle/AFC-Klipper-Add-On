@@ -730,7 +730,6 @@ class afcFunction:
         footer = []
         title = '{} Completed'.format(step)
         text = 'Happy Printing!'
-        footer.append(('EXIT', 'prompt_end', 'info'))
         prompt.create_custom_p(title, text, buttons,
                                False, None, footer)
         self.afc.reactor.pause(self.afc.reactor.monotonic() + 3)
