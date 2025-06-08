@@ -3,32 +3,47 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+
 import math
+import traceback
+
 from contextlib import contextmanager
 from configfile import error
 from datetime import datetime
+from enum import Enum
 
-from . import AFC_assist
-try:
-    from extras.AFC_utils import (
-        add_filament_switch,
-        AFCStats_var
-    )
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
-class AFCLaneStats:
-    def __init__(self, lane_name, lane_obj):
-        afc_stats = lane_obj.afc.moonraker.get_afc_stats()
-        if afc_stats is not None:
-            values = ["values"]
-        else:
-            values = None
-        self.n20_runtime       = AFCStats_var(lane_name, "n20_runtime", values, lane_obj.afc.moonraker)
-        self.lane_change_count = AFCStats_var(lane_name, "change_count", values, lane_obj.afc.moonraker)
+try: from extras.AFC_utils import ERROR_STR, add_filament_switch
+except: raise error("Error when trying to import AFC_utils.ERROR_STR, add_filament_switch\n{trace}".format(trace=traceback.format_exc()))
 
-    def increment_lane_count(self):
-        self.lane_change_count.increase_count()
-        return
+try: from extras import AFC_assist
+except: raise error(ERROR_STR.format(import_lib="AFC_assist", trace=traceback.format_exc()))
+
+try: from extras.AFC_stats import AFCStats_var
+except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
+
+# Class for holding different states so its clear what all valid states are
+
+class AssistActive(Enum):
+    YES = 1
+    NO = 2
+    DYNAMIC = 3
+class SpeedMode(Enum):
+    LONG = 1
+    SHORT = 2
+    HUB = 3
+    NIGHT = 4
+
+class AFCLaneState:
+    NONE             = "None"
+    ERROR            = "Error"
+    LOADED           = "Loaded"
+    TOOLED           = "Tooled"
+    TOOL_LOADED      = "Tool Loaded"
+    TOOL_LOADING     = "Tool Loading"
+    TOOL_UNLOADING   = "Tool Unloading"
+    HUB_LOADING      = "HUB Loading"
+    EJECTING         = "Ejecting"
+    CALIBRATING      = "Calibrating"
 
 class AFCLane:
     def __init__(self, config):
@@ -62,7 +77,7 @@ class AFCLane:
         self.bed_temp           = None
         self.td1_data           = {}
         self.runout_lane        = 'NONE'
-        self.status             = None
+        self.status             = AFCLaneState.NONE
         # END TODO
 
         self.multi_hubs_found   = False
@@ -99,6 +114,8 @@ class AFCLane:
         self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
+        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist
+
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
 
@@ -133,6 +150,7 @@ class AFCLane:
         else: self.load_state = True
 
         self.espooler = AFC_assist.Espooler(self.name, config)
+        self.lane_load_count = None
 
         self.filament_diameter  = config.getfloat("filament_diameter", 1.75)    # Diameter of filament being used
         self.filament_density   = config.getfloat("filament_density", 1.24)     # Density of filament being used
@@ -160,6 +178,12 @@ class AFCLane:
         self.prep_active = False
         self.last_prep_time = 0
 
+        self.show_macros = self.afc.show_macros
+        self.function = self.printer.load_object(config, 'AFC_functions')
+        self.function.register_mux_command(self.show_macros, 'SET_LANE_LOADED', 'LANE', self.name,
+                                           self.cmd_SET_LANE_LOADED, self.cmd_SET_LANE_LOADED_help,
+                                           self.cmd_SET_LANE_LOAD_options )
+
     def __str__(self):
         return self.name
 
@@ -175,7 +199,7 @@ class AFCLane:
             error_string, led = self.afc.function.verify_led_object(self.led_index)
             if led is None:
                 raise error(error_string)
-        
+        self.espooler.handle_ready()
         # If user supplied TD-1 ID verify that it exists
 
 
@@ -196,7 +220,10 @@ class AFCLane:
             self.unit_obj.lanes[self.name] = self
             self.afc.lanes[self.name] = self
 
-            self.lane_stats = AFCLaneStats(self.name, self)
+            values = None
+            if self.afc.moonraker.afc_stats is not None:
+                values = self.afc.moonraker.afc_stats["value"]
+            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
 
         self.hub_obj = self.unit_obj.hub_obj
 
@@ -282,17 +309,21 @@ class AFCLane:
         if self.led_unloading       is None: self.led_unloading     = self.unit_obj.led_unloading
         if self.led_tool_loaded     is None: self.led_tool_loaded   = self.unit_obj.led_tool_loaded
 
-        if self.long_moves_speed    is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
-        if self.long_moves_accel    is None: self.long_moves_accel  = self.unit_obj.long_moves_accel
-        if self.short_moves_speed   is None: self.short_moves_speed = self.unit_obj.short_moves_speed
-        if self.short_moves_accel   is None: self.short_moves_accel = self.unit_obj.short_moves_accel
-        if self.short_move_dis      is None: self.short_move_dis    = self.unit_obj.short_move_dis
-        if self.max_move_dis        is None: self.max_move_dis      = self.unit_obj.max_move_dis
-        if self.td1_when_loaded     is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
-        if self.td1_device_id       is None: self.td1_device_id     = self.unit_obj.td1_device_id  
+        if self.rev_long_moves_speed_factor is None: self.rev_long_moves_speed_factor  = self.unit_obj.rev_long_moves_speed_factor
+        if self.long_moves_speed            is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
+        if self.long_moves_accel            is None: self.long_moves_accel  = self.unit_obj.long_moves_accel
+        if self.short_moves_speed           is None: self.short_moves_speed = self.unit_obj.short_moves_speed
+        if self.short_moves_accel           is None: self.short_moves_accel = self.unit_obj.short_moves_accel
+        if self.short_move_dis              is None: self.short_move_dis    = self.unit_obj.short_move_dis
+        if self.max_move_dis                is None: self.max_move_dis      = self.unit_obj.max_move_dis
+        if self.td1_when_loaded             is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
+        if self.td1_device_id               is None: self.td1_device_id     = self.unit_obj.td1_device_id  
 
         # Update boolean and check to make sure a TD1 device is detected
         self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
+
+        if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
+        if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
 
         self.espooler.handle_connect(self)
 
@@ -302,8 +333,7 @@ class AFCLane:
 
         # Register macros
         # TODO: add check so that HTLF stepper lanes do not get registered here
-        self.gcode.register_mux_command('SET_LANE_LOADED',    "LANE", self.name, self.cmd_SET_LANE_LOADED, desc=self.cmd_SET_LANE_LOADED_help)
-
+        self.afc.gcode.register_mux_command('SET_LONG_MOVE_SPEED',   "LANE", self.name, self.cmd_SET_LONG_MOVE_SPEED, desc=self.cmd_SET_LONG_MOVE_SPEED_help)
         self.afc.gcode.register_mux_command('SET_SPEED_MULTIPLIER',  "LANE", self.name, self.cmd_SET_SPEED_MULTIPLIER, desc=self.cmd_SET_SPEED_MULTIPLIER_help)
         self.afc.gcode.register_mux_command('SAVE_SPEED_MULTIPLIER', "LANE", self.name, self.cmd_SAVE_SPEED_MULTIPLIER, desc=self.cmd_SAVE_SPEED_MULTIPLIER_help)
         self.afc.gcode.register_mux_command('SET_HUB_DIST',          "LANE", self.name, self.cmd_SET_HUB_DIST, desc=self.cmd_SET_HUB_DIST_help)
@@ -368,6 +398,21 @@ class AFCLane:
         dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(distance)
         self.move(distance, dist_hub_move_speed, dist_hub_move_accel, assist_active)
 
+    def get_speed_accel(self, mode: SpeedMode) -> float:
+        """
+        Helper function to allow selecting the right speed and acceleration of movements
+        mode (Enum SpeedMode): Identifies which speed to use.
+        """
+        if self.afc._get_quiet_mode() == True:
+            return self.afc.quiet_moves_speed, self.short_moves_accel
+        elif mode == SpeedMode.LONG:
+            return self.long_moves_speed, self.long_moves_accel
+        elif mode == SpeedMode.SHORT:
+            return self.short_moves_speed, self.short_moves_accel
+        else:
+            return self.dist_hub_move_speed, self.dist_hub_move_accel
+
+
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -382,6 +427,25 @@ class AFCLane:
         with self.assist_move( speed, distance < 0, assist_active):
             if self.drive_stepper is not None:
                 self.drive_stepper.move(distance, speed, accel, assist_active)
+
+    def move_advanced(self, distance, speed_mode: SpeedMode, assist_active: AssistActive = AssistActive.NO):
+        """
+        Wrapper for move function and isused to compute several arguments
+        to move the lane accordingly.
+        Parameters:
+        distance (float): The distance to move.
+        speed_mode (Enum SpeedMode): Identifies which speed to use.
+        assist_active (Enum AssistActive): Determines to force assist or to dynamically determine.
+        """
+        speed, accel = self.get_speed_accel(speed_mode)
+
+        assist = False
+        if assist_active == AssistActive.YES:
+            assist = True
+        elif assist_active == AssistActive.DYNAMIC:
+            assist = abs(distance) > 200
+
+        self.move(distance, speed, accel, assist)
 
     def set_afc_prep_done(self):
         """
@@ -398,7 +462,7 @@ class AFCLane:
             - Swaps mapping between current lane and runout lane so correct lane is loaded with T(n) macro
             - Once changeover is successful print is automatically resumed
         """
-        self.status = None
+        self.status = AFCLaneState.NONE
         self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
         self.logger.info("Infinite Spool triggered for {}".format(self.name))
         empty_lane = self.afc.lanes[self.afc.current]
@@ -437,7 +501,7 @@ class AFCLane:
             if not self.afc.error_state:
                 self.afc.LANE_UNLOAD(self)
         # Pause print
-        self.status = None
+        self.status = AFCLaneState.NONE
         msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
         msg += "\nPlease manually load next spool into toolhead and then hit resume to continue"
         self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
@@ -454,12 +518,12 @@ class AFCLane:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
-                        self._perform_runout()
+                        self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
                 elif self.status != "calibrating":
                     self.afc.function.afc_led(self.led_not_ready, self.led_index)
-                    self.status = None
+                    self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.td1_data = {}
                     self.afc.spool._clear_values(self)
@@ -487,7 +551,7 @@ class AFCLane:
         for i in range(1):
             # Hacky way for do{}while(0) loop, DO NOT return from this for loop, use break instead so that self.prep_state variable gets sets correctly
             #  before exiting function
-            if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != 'Tool Unloading':
+            if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != AFCLaneState.TOOL_UNLOADING:
                 # Only try to load when load state trigger is false
                 if self.prep_state == True and self.load_state == False:
                     x = 0
@@ -501,18 +565,18 @@ class AFCLane:
                         self.afc.error.AFC_error("Cannot load spools while printer is actively moving or homing", False)
                         break
 
-                    while self.load_state == False and self.prep_state == True and self.load != None:
+                    while self.load_state == False and self.prep_state == True and self.load is not None:
                         x += 1
                         self.do_enable(True)
                         self.move(10,500,400)
                         self.reactor.pause(self.reactor.monotonic() + 0.1)
                         if x> 40:
-                            msg = (' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL')
+                            msg = ' FAILED TO LOAD, CHECK FILAMENT AT TRIGGER\n||==>--||----||------||\nTRG   LOAD   HUB    TOOL'
                             self.afc.error.AFC_error(msg, False)
                             self.afc.function.afc_led(self.afc.led_fault, self.led_index)
-                            self.status=''
+                            self.status = AFCLaneState.NONE
                             break
-                    self.status=''
+                    self.status = AFCLaneState.NONE
 
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct and still using load sensor
@@ -529,7 +593,7 @@ class AFCLane:
 
                     self.do_enable(False)
                     if self.load_state == True and self.prep_state == True:
-                        self.status = 'Loaded'
+                        self.status = AFCLaneState.LOADED
                         self.afc.function.afc_led(self.afc.led_ready, self.led_index)
                         self.material = self.afc.default_material_type
                     
@@ -543,10 +607,10 @@ class AFCLane:
                         else:
                             self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
 
-                elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != 'ejecting':
+                elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
-                        self._perform_runout()
+                        self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
 
@@ -556,7 +620,7 @@ class AFCLane:
                     message += '\n    Once cleared try loading again'
                     self.afc.error.AFC_error(message, pause=False)
                 else:
-                    self.status = None
+                    self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.td1_data = {}
                     self.afc.spool._clear_values(self)
@@ -677,7 +741,7 @@ class AFCLane:
         self.tool_loaded = True
         self.afc.current = self.extruder_obj.lane_loaded = self.name
         self.afc.current_loading = None
-        self.status = 'Tooled'
+        self.status = AFCLaneState.TOOLED
         self.afc.spool.set_active_spool(self.spool_id)
 
     def set_unloaded(self):
@@ -686,7 +750,7 @@ class AFCLane:
         """
         self.tool_loaded = False
         self.extruder_obj.lane_loaded = ""
-        self.status = None
+        self.status = AFCLaneState.NONE
         self.afc.current = None
         self.afc.current_loading = None
         self.afc.spool.set_active_spool(None)
@@ -847,6 +911,7 @@ class AFCLane:
         return status, msg
 
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
+    cmd_SET_LANE_LOAD_options = {"LANE": {"type": "string", "default": "lane1"}}
     def cmd_SET_LANE_LOADED(self, gcmd):
         """
         This macro handles manually setting a lane loaded into the toolhead. This is useful when manually loading lanes
@@ -879,6 +944,50 @@ class AFCLane:
         self.afc.save_vars()
         self.unit_obj.select_lane(self)
         self.logger.info("Manually set {} loaded to toolhead".format(self.name))
+
+    cmd_SET_LONG_MOVE_SPEED_help = "Gives ability to set long_moves_speed or rev_long_moves_speed_factor values without having to update config and restart"
+    def cmd_SET_LONG_MOVE_SPEED(self, gcmd):
+        """
+        Macro call to update long_moves_speed or rev_long_moves_speed_factor values without having to set in config and restart klipper. This macro allows adjusting
+        these values while printing. Multiplier values must be between 0.5 - 1.2
+
+        Use `FWD_SPEED` variable to set forward speed in mm/sec, use `RWD_FACTOR` to set reverse multiplier
+
+        Usage
+        -----
+        `SET_LONG_MOVE_SPEED LANE=<lane_name> FWD_SPEED=<fwd_speed> RWD_FACTOR=<rwd_multiplier> SAVE=<0 or 1>`
+
+        Example
+        -----
+        ```
+        SET_LONG_MOVE_SPEED LANE=lane1 RWD_FACTOR=0.9 SAVE=1
+        ```
+        """
+        update = gcmd.get_int("SAVE", 0, minval=0, maxval=2)
+        old_long_moves_speed = self.long_moves_speed
+        old_rev_long_moves_speed_factor= self.rev_long_moves_speed_factor
+
+        self.long_moves_speed = gcmd.get_float("FWD_SPEED", self.long_moves_speed, minval=50, maxval=500)
+        self.rev_long_moves_speed_factor = gcmd.get_float("RWD_FACTOR", self.rev_long_moves_speed_factor, minval=0.0, maxval=1.2)
+
+        if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
+        if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
+
+        if self.long_moves_speed != old_long_moves_speed:
+            self.logger.info("{name} forward speed set, New: {new}, Old: {old}".format(name=self.name, new=self.long_moves_speed, old=old_long_moves_speed))
+        else:
+            self.logger.info("{name} forward speed currently set to {new}".format(name=self.name, new=self.long_moves_speed))
+
+
+        if self.rev_long_moves_speed_factor != old_rev_long_moves_speed_factor:
+            self.logger.info("{name} reverse speed multiplier set, New: {new}, Old: {old}".format(name=self.name, new=self.rev_long_moves_speed_factor, old=old_rev_long_moves_speed_factor))
+        else:
+            self.logger.info("{name} reverse speed multiplier currently set to {new}".format(name=self.name, new=self.rev_long_moves_speed_factor))
+
+        if update == 1:
+            self.afc.function.ConfigRewrite(self.fullname, 'long_moves_speed',  self.long_moves_speed, '')
+            self.afc.function.ConfigRewrite(self.fullname, 'rev_long_moves_speed_factor',  self.rev_long_moves_speed_factor, '')
+
 
     cmd_SET_SPEED_MULTIPLIER_help = "Gives ability to set fwd_speed_multiplier or rwd_speed_multiplier values without having to update config and restart"
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):

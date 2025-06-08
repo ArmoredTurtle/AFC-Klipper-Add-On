@@ -5,14 +5,17 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import chelper
+import traceback
+
 from kinematics import extruder
 from configfile import error
 from extras.force_move import calc_move_time
 
-try:
-	from extras.AFC_lane import AFCLane
-except:
-    raise error("Error trying to import AFC_lane, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_lane import AFCLane
+except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
 
 class AFCExtruderStepper(AFCLane):
     def __init__(self, config):
@@ -96,6 +99,8 @@ class AFCExtruderStepper(AFCLane):
         """
         direction = 1 if distance > 0 else -1
         move_total = abs(distance)
+        if direction == -1:
+            speed = speed * self.rev_long_moves_speed_factor
 
         # Breaks up move length to help with TTC errors
         while move_total > 0:

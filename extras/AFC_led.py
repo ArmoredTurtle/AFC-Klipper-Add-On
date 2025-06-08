@@ -128,7 +128,12 @@ class AFCled:
             else:
                 set_color_fn = self.led_helper.set_color
                 check_transmit_fn = self.led_helper.check_transmit
-            set_color_fn(index, colors)
+            if isinstance(index, str) and "-" in index:
+                start, end = map(int, index.split("-"))
+                for i in range(start, end + 1):
+                    set_color_fn(i, colors)
+            else:
+                set_color_fn(int(index), colors)
             if transmit:
                 check_transmit_fn(print_time)
         toolhead = self.printer.lookup_object('toolhead')
@@ -142,7 +147,7 @@ class AFCled:
     def turn_on_leds(self):
         self.keep_leds_off = False
         for index, value in self.last_led_color.items():
-            self.led_change( int(index), value, False )
+            self.led_change(index, value, False)
 
 def load_config_prefix(config):
     return AFCled(config)

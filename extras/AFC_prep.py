@@ -18,7 +18,7 @@ class afcPrep:
 
         # Flag to set once resume rename as occurred for the first time
         self.rename_occurred = False
-        # Value gets set to false once prep has been ran for the first time after restarting klipper
+        # Value gets set to false once prep has been run for the first time after restarting klipper
         self.assignTcmd = True
 
     def handle_connect(self):
@@ -159,7 +159,7 @@ class afcPrep:
         if self.afc.td1_present:
             self.logger.info("Found TD-1 device connected to printer")
 
-        # look up what current lane should be an call select lane, this is more for units that
+        # look up what current lane should be a call select lane, this is more for units that
         # have selectors to make sure the selector is on the correct lane
         current_lane = self.afc.function.get_current_lane_obj()
         if current_lane is not None:
@@ -180,18 +180,34 @@ class afcPrep:
                 self.logger.info("Done capturing TD-1 data")
 
         # Restore previous bypass state if virtual bypass is active
+        bypass_name = "Bypass"
         if 'virtual' in self.afc.bypass.name:
+            bypass_name = "Virtual bypass"
             if "system" in units and 'bypass' in units["system"]:
-                self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+                self.afc.bypass.filament_present = self.afc.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
+            else:
+                self.afc.bypass.filament_present = self.afc.bypass.sensor_enabled = False
+        # Add warning message so users know that either bypass or virtual bypass is enabled
+        if self.afc.bypass.filament_present:
+            self.logger.raw(f"<span class=warning--text>{bypass_name} enabled</span>")
+
+        self.afc.afc_stats.check_cut_threshold()
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
         if self.afc.current is None:
             self.afc.spool.set_active_spool(None)
         # Setting value to False so the T commands don't try to get reassigned when users manually
-        #   run PREP after it has already be ran once upon boot
+        # run PREP after it has already been run once upon boot
         self.assignTcmd = False
         self.afc.prep_done = True
         self.afc.save_vars()
+
+        if self.afc.buffers:
+            for buffer_name, buffer_obj in self.afc.buffers.items():
+                if buffer_obj.advance_state and buffer_obj.trailing_state:
+                    self.logger.raw("<span class=warning--text>Warning: Both advance and trailing "
+                                    "switches are triggered on Buffer {}. "
+                                    "Please check your buffer switches or configuration.</span>".format(buffer_name))
 
 def load_config(config):
     return afcPrep(config)
