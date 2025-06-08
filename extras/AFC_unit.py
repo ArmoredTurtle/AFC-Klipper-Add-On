@@ -276,23 +276,53 @@ class afcUnit:
                                True, buttons, back)
 
     def set_logo_color(self, color):
+        """
+        Common function for setting a units logo led's
+
+        :param color: Color to set logo led's, can be hex value or comma seperated list
+        """
         if color is not None and color:
             led_color = self.afc.function.HexToLedString(color.replace("#", ""))
             self.afc.function.afc_led( led_color, self.led_logo_index )
 
     def lane_loaded(self, lane):
+        """
+        Common function for setting a lanes led when lane is loaded
+
+        :param lane: Lane object to set led
+        """
         self.afc.function.afc_led(lane.led_ready, lane.led_index)
 
     def lane_unloaded(self, lane):
+        """
+        Common function for setting a lanes led when lane is unloaded
+
+        :param lane: Lane object to set led
+        """
         self.afc.function.afc_led(lane.led_not_ready, lane.led_index)
 
     def lane_loading(self, lane):
+        """
+        Common function for setting a lanes led when lane is loading
+
+        :param lane: Lane object to set led
+        """
         self.afc.function.afc_led(lane.led_loading, lane.led_index)
 
     def lane_tool_loaded(self, lane):
+        """
+        Common function for setting a lanes led when lane is tool loaded
+
+        :param lane: Lane object to set led
+        """
         self.afc.function.afc_led(lane.led_tool_loaded, lane.led_index)
 
     def lane_tool_unloaded(self, lane):
+        """
+        Common function for setting a lanes led when lane is tool unloaded
+
+        :param lane: Lane object to set led
+        """
         self.afc.function.afc_led(lane.led_ready, lane.led_index)
         return
 

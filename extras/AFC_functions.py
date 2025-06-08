@@ -265,6 +265,15 @@ class afcFunction:
         return error_string, led
 
     def _get_led_indexes(self, index_values):
+        """
+        Helper function for creating a list for index values that have dashes and commas 
+        so the led's can be set correctly.
+
+        eg. 1-4,9,10 would turn in to [1,2,3,4,9,10]
+
+        :params index_value: String of index values to turn into a proper list
+        :return list: list of index values for led's
+        """
         led_indexes = []
         for idx in index_values.split(","):
             if "-" not in idx:
@@ -428,6 +437,12 @@ class afcFunction:
         return '#{:02x}{:02x}{:02x}'.format(*led)
     
     def HexToLedString(self, led_value):
+        """
+        Helper function for turning a hex value into a comma seperated list
+
+        :param led_value: Hex color value
+        :return list: List of comma seperated float values ranging from 0.0 to 1.0
+        """
         n = 2
         new_value = [ int(led_value[i:i+n], base=16)/255.0 for i in range(0, len(led_value), n)]
         if led_value == "FFFFFF":
