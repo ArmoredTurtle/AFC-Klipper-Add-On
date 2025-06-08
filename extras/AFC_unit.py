@@ -388,7 +388,7 @@ class afcUnit:
         td1_data = self.afc.moonraker.get_td1_data()
         t_delta = timedelta(seconds = 10)
         valid_data = False
-        # TODO: check for specific id if specified
+
         if len(td1_data) > 0:
             self.logger.debug(f"Data: {td1_data}, Compare_time: {compare_time}")
             data = list(td1_data.values())[0]
@@ -399,6 +399,9 @@ class afcUnit:
                 else:
                     self.afc.error.AFC_error(f"TD-1 Device ID ({cur_lane.td1_device_id}) supplied but ID not found.", pause=False)
                     return False
+
+            if data["scan_time"] is None:
+                return False
 
             scan_time = datetime.fromisoformat( data["scan_time"][:-1]+"+00:00" ).astimezone()
 
