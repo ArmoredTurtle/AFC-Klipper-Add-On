@@ -136,6 +136,9 @@ class AFCled:
                 start, end = map(int, index.split("-"))
                 for i in range(start, end + 1):
                     set_color_fn(i, colors)
+            elif isinstance(index, list):
+                for i in index:
+                    set_color_fn(i, colors)
             else:
                 set_color_fn(int(index), colors)
             if transmit:

@@ -282,9 +282,7 @@ class afcFunction:
         if led is not None:
             led_indexes = idx.split(":")[1]
             range_index = self._get_led_indexes(led_indexes)
-            for idx in range_index:
-                led.led_change(idx, status)
-            led.led_change(int(idx.split(':')[1]), status)
+            led.led_change(range_index, status)
         else:
             self.logger.info( error_string )
 
