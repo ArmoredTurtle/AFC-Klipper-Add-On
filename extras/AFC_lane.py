@@ -28,6 +28,7 @@ class AssistActive(Enum):
     NO = 2
     DYNAMIC = 3
 class SpeedMode(Enum):
+    NONE = None
     LONG = 1
     SHORT = 2
     HUB = 3
@@ -360,12 +361,6 @@ class AFCLane:
             color = f"#{self.td1_data['color']}"
         return color
     
-    def get_speed_accel(self, move_distance):
-        if abs(move_distance) > 200:
-            return self.long_moves_speed, self.long_moves_accel, True
-        else:
-            return self.short_moves_speed, self.long_moves_accel, False
-
     @contextmanager
     def assist_move(self, speed, rewind, assist_active=True):
         """
@@ -395,22 +390,29 @@ class AFCLane:
                 self.espooler.assist(0)
 
     def move_auto_speed(self, distance):
-        dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(distance)
+        dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(mode=SpeedMode.NONE, 
+                                                                                       distance=distance)
         self.move(distance, dist_hub_move_speed, dist_hub_move_accel, assist_active)
 
-    def get_speed_accel(self, mode: SpeedMode) -> float:
+    def get_speed_accel(self, mode: SpeedMode, distance=None) -> float:
         """
         Helper function to allow selecting the right speed and acceleration of movements
         mode (Enum SpeedMode): Identifies which speed to use.
         """
-        if self.afc._get_quiet_mode() == True:
-            return self.afc.quiet_moves_speed, self.short_moves_accel
-        elif mode == SpeedMode.LONG:
-            return self.long_moves_speed, self.long_moves_accel
-        elif mode == SpeedMode.SHORT:
-            return self.short_moves_speed, self.short_moves_accel
+        if distance is not None and mode is SpeedMode.NONE:
+            if abs(distance) > 200:
+                return self.long_moves_speed, self.long_moves_accel, True
+            else:
+                return self.short_moves_speed, self.long_moves_accel, False
         else:
-            return self.dist_hub_move_speed, self.dist_hub_move_accel
+            if self.afc._get_quiet_mode() == True:
+                return self.afc.quiet_moves_speed, self.short_moves_accel
+            elif mode == SpeedMode.LONG:
+                return self.long_moves_speed, self.long_moves_accel
+            elif mode == SpeedMode.SHORT:
+                return self.short_moves_speed, self.short_moves_accel
+            else:
+                return self.dist_hub_move_speed, self.dist_hub_move_accel
 
 
     def move(self, distance, speed, accel, assist_active=False):
@@ -430,7 +432,7 @@ class AFCLane:
 
     def move_advanced(self, distance, speed_mode: SpeedMode, assist_active: AssistActive = AssistActive.NO):
         """
-        Wrapper for move function and isused to compute several arguments
+        Wrapper for move function and issued to compute several arguments
         to move the lane accordingly.
         Parameters:
         distance (float): The distance to move.

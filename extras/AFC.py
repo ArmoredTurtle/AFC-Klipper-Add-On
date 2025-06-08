@@ -280,14 +280,14 @@ class afc:
 
         moonraker_port = ""
         if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
-
+        
         try:
             self.moonraker = AFC_moonraker( moonraker_port, self.logger )
             self.spoolman = self.moonraker.get_spoolman_server()
             self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
         except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
+            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error error: {}\n{}".format(e, traceback.format_exc()))
             self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor

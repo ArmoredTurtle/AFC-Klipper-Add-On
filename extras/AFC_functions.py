@@ -44,7 +44,8 @@ class afcFunction:
                                self.cmd_AFC_RESET_options)
         self.register_commands(self.show_macros, 'AFC_LANE_RESET', self.cmd_AFC_LANE_RESET,
                                self.cmd_AFC_LANE_RESET_help, self.cmd_AFC_LANE_RESET_options)
-
+        # Always adding this so it will show up as a button in guis
+        self.register_commands(self.show_macros, 'GET_TD_ONE_DATA',         self.cmd_GET_TD_ONE_DATA, self.cmd_GET_TD_ONE_DATA_help)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -81,8 +82,7 @@ class afcFunction:
         self.afc.gcode.register_command('AFC_HAPPY_P',     self.cmd_AFC_HAPPY_P,     desc=self.cmd_AFC_HAPPY_P_help)
 
         if self.afc.td1_defined:
-            self.afc.gcode.register_command('GET_TD_ONE_DATA',  self.cmd_GET_TD_ONE_DATA)
-            self.afc.gcode.register_command('GET_TD_ONE_LANE_DATA',  self.cmd_GET_TD_ONE_LANE_DATA)
+            self.afc.gcode.register_command('GET_TD_ONE_LANE_DATA',    self.cmd_GET_TD_ONE_LANE_DATA)
 
     def ConfigRewrite(self, rawsection, rawkey, rawvalue, msg=""):
         taskdone = False
@@ -936,7 +936,7 @@ class afcFunction:
         cur_lane.do_enable(False)
 
         self.afc.gcode.respond_info('{} reset to hub, take necessary action'.format(lane))
-
+    cmd_GET_TD_ONE_DATA_help = "Display prompt to easily get TD1 data for lanes"
     def cmd_GET_TD_ONE_DATA(self, gcmd):
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
@@ -944,6 +944,7 @@ class afcFunction:
         index = 0
         title = 'Capture TD-1 Data'
         text  = ('Select a loaded lane to capture TD-1 data, or select ALL. ')
+        # TODO: add error here if TD1 does not exist
 
         # Create buttons for each lane and group every 4 lanes together
         for lane in self.afc.lanes.values():
