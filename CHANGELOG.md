@@ -5,8 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2025-006-06]
+## [2025-06-08]
+### Added
+- Support for [QuattroBox](https://github.com/Batalhoti/QuattroBox) filament changer. QuattroBox can be chosen in install script for new or additional units to add to your printer
 
+## [2025-06-07]
+### Fixed
+- `unknown command: Prompt_end` error will no longer show when users try to exit out of Happy Printing popup after AFC_CALIBRATION is done
+- Lanes are now marked a loaded_to_hub when bowden calibration happens
+- Fixed issue where HTLF might error out when first homing during PREP
+
+## [2025-06-06]
 ### Added
 - There is now a configurable option `error_timeout` in the `[AFC]` section of the `AFC.cfg` file. This option allows 
 users to set a timeout for how long the printer will stay in a paused state when an error occurs. The default value is 
@@ -18,9 +27,12 @@ the `idle_timeout` value (if defined) and choose the larger of the two values.
 
 
 ## [2025-05-30]
-
 ### Added
 - Updated park to allow moving to an absolute z height after the x,y move. This is intended to reduce oozing during unload and load prior to using the poop command.
+
+## [2025-05-29]
+### Fixed
+- HTLF infinite runout now works correctly
 
 ## [2025-05-27]
 ### Added
@@ -34,7 +46,6 @@ the `idle_timeout` value (if defined) and choose the larger of the two values.
 
 ## [2025-05-24]
 ### Fixed
-
 - The calibration routines will now not allow a negative bowden length value to be set. If a negative value is detected, 
 an error message will be displayed and the value will not be set.
 
@@ -85,7 +96,6 @@ an error message will be displayed and the value will not be set.
 
 ## [2025-05-11]
 ### Changed
-
 - The `install-afc.sh` script will remove any `velocity` settings present in the `[AFC_buffer <buffer_name>]` 
   section of the configuration files as they are no longer needed.
 
