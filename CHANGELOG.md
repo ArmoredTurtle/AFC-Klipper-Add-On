@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-08]
+### Added
+- Support for [QuattroBox](https://github.com/Batalhoti/QuattroBox) filament changer. QuattroBox can be chosen in install script for new or additional units to add to your printer
+
 ## [2025-06-07]
 ### Fixed
 - `unknown command: Prompt_end` error will no longer show when users try to exit out of Happy Printing popup after AFC_CALIBRATION is done

@@ -89,7 +89,6 @@ class AFCLane:
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         self.map                = config.get('cmd','NONE')
         self.led_index 			= config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
-        self.led_name 			= config.get('led_name',None)
         self.led_fault 			= config.get('led_fault',None)                          # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_ready 			= config.get('led_ready',None)                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_not_ready 		= config.get('led_not_ready',None)                      # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -97,6 +96,8 @@ class AFCLane:
         self.led_prep_loaded 	= config.get('led_loading',None)                        # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_unloading 		= config.get('led_unloading',None)                      # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_tool_loaded 	= config.get('led_tool_loaded',None)                    # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_spool_index    = config.get('led_spool_index', None)                   # LED index to illuminate under spool
+        self.led_spool_illum    = config.get('led_spool_illuminate', None)              # LED color to illuminate under spool
 
         self.long_moves_speed 	= config.getfloat("long_moves_speed", None)             # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.long_moves_accel 	= config.getfloat("long_moves_accel", None)             # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -284,7 +285,6 @@ class AFCLane:
 
         self.get_steppers()
 
-        if self.led_name            is None: self.led_name          = self.unit_obj.led_name
         if self.led_fault           is None: self.led_fault         = self.unit_obj.led_fault
         if self.led_ready           is None: self.led_ready         = self.unit_obj.led_ready
         if self.led_not_ready       is None: self.led_not_ready     = self.unit_obj.led_not_ready
@@ -292,6 +292,7 @@ class AFCLane:
         if self.led_prep_loaded     is None: self.led_prep_loaded   = self.unit_obj.led_prep_loaded
         if self.led_unloading       is None: self.led_unloading     = self.unit_obj.led_unloading
         if self.led_tool_loaded     is None: self.led_tool_loaded   = self.unit_obj.led_tool_loaded
+        if self.led_spool_illum     is None: self.led_spool_illum   = self.unit_obj.led_spool_illum
 
         if self.rev_long_moves_speed_factor is None: self.rev_long_moves_speed_factor  = self.unit_obj.rev_long_moves_speed_factor
         if self.long_moves_speed            is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
@@ -555,7 +556,7 @@ class AFCLane:
                     self.do_enable(False)
                     if self.load_state == True and self.prep_state == True:
                         self.status = AFCLaneState.LOADED
-                        self.afc.function.afc_led(self.afc.led_ready, self.led_index)
+                        self.unit_obj.lane_loaded(self)
                         self.material = self.afc.default_material_type
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
@@ -574,7 +575,7 @@ class AFCLane:
                     self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.afc.spool._clear_values(self)
-                    self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
+                    self.unit_obj.lane_unloaded(self)
 
         self.prep_active = False
         self.afc.save_vars()
@@ -693,6 +694,8 @@ class AFCLane:
         self.status = AFCLaneState.TOOLED
         self.afc.spool.set_active_spool(self.spool_id)
 
+        self.unit_obj.lane_tool_loaded(self)
+
     def set_unloaded(self):
         """
         Helper function for setting multiple variables when lane is unloaded
@@ -703,6 +706,7 @@ class AFCLane:
         self.afc.current = None
         self.afc.current_loading = None
         self.afc.spool.set_active_spool(None)
+        self.unit_obj.lane_tool_unloaded(self)
 
     def enable_buffer(self):
         """

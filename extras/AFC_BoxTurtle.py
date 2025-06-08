@@ -81,6 +81,7 @@ class afcBoxTurtle(afcUnit):
             else:
                 cur_lane.status = AFCLaneState.LOADED
                 msg +="<span class=success--text> AND LOADED</span>"
+                self.afc.function.afc_led(cur_lane.led_spool_illum, cur_lane.led_spool_index)
 
                 if cur_lane.tool_loaded:
                     if cur_lane.get_toolhead_pre_sensor_state() == True or cur_lane.extruder_obj.tool_start == "buffer" or cur_lane.extruder_obj.tool_end_state:
@@ -93,7 +94,7 @@ class afcBoxTurtle(afcUnit):
 
                             if self.afc.function.get_current_lane() == cur_lane.name:
                                 self.afc.spool.set_active_spool(cur_lane.spool_id)
-                                self.afc.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
+                                cur_lane.unit_obj.lane_tool_loaded( cur_lane )
                                 cur_lane.status = AFCLaneState.TOOLED
 
                             cur_lane.enable_buffer()

@@ -264,13 +264,34 @@ class afcFunction:
             error_string = "Error: Cannot find [{}] in config, make sure led_index in config is correct for AFC_stepper {}".format(afc_object, led_name.split(':')[-1])
         return error_string, led
 
+    def _get_led_indexes(self, index_values):
+        """
+        Helper function for creating a list for index values that have dashes and commas
+        so the led's can be set correctly.
+
+        eg. 1-4,9,10 would turn in to [1,2,3,4,9,10]
+
+        :params index_value: String of index values to turn into a proper list
+        :return list: list of index values for led's
+        """
+        led_indexes = []
+        for idx in index_values.split(","):
+            if "-" not in idx:
+                led_indexes.append(int(idx))
+            else:
+                low, high = map(int, idx.split("-"))
+                led_indexes += range(low, high+1)
+        return led_indexes
+
     def afc_led (self, status, idx=None):
         if idx is None:
             return
 
         error_string, led = self.verify_led_object(idx)
         if led is not None:
-            led.led_change(idx.split(':')[1], status)
+            led_indexes = idx.split(":")[1]
+            range_index = self._get_led_indexes(led_indexes)
+            led.led_change(range_index, status)
         else:
             self.logger.info( error_string )
 
@@ -309,7 +330,12 @@ class afcFunction:
         # Switch spoolman ID
         self.afc.spool.set_active_spool(cur_lane_loaded.spool_id)
         # Set lanes tool loaded led
-        self.afc_led(cur_lane_loaded.led_tool_loaded, cur_lane_loaded.led_index)
+        # TODO: Add check to see if users want to change status led to spool color if set
+        # if cur_lane_loaded.color is not None and cur_lane_loaded.color:
+        #     led_color = self.HexToLedString(cur_lane_loaded.color.replace("#", ""))
+        #     self.afc_led( led_color, cur_lane_loaded.led_index )
+        # else:
+        cur_lane_loaded.unit_obj.lane_tool_loaded( cur_lane_loaded )
         # Enable stepper
         cur_lane_loaded.do_enable(True)
         # Enable buffer
@@ -409,6 +435,21 @@ class afcFunction:
             led[2]=0
 
         return '#{:02x}{:02x}{:02x}'.format(*led)
+
+    def HexToLedString(self, led_value):
+        """
+        Helper function for turning a hex value into a comma seperated list
+
+        :param led_value: Hex color value
+        :return list: List of comma seperated float values ranging from 0.0 to 1.0
+        """
+        n = 2
+        new_value = [ int(led_value[i:i+n], base=16)/255.0 for i in range(0, len(led_value), n)]
+        if led_value == "FFFFFF":
+            new_value.append(1.0)
+        else:
+            new_value.append(0.0)
+        return new_value
 
     def _create_options(self, macro_name, options):
         option_str = ""
