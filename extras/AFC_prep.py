@@ -102,6 +102,12 @@ class afcPrep:
                         if 'material' in units[cur_lane.unit][cur_lane.name]: cur_lane.material = units[cur_lane.unit][cur_lane.name]['material']
                         if 'color' in units[cur_lane.unit][cur_lane.name]: cur_lane.color = units[cur_lane.unit][cur_lane.name]['color']
                         if 'weight' in units[cur_lane.unit][cur_lane.name]: cur_lane.weight = units[cur_lane.unit][cur_lane.name]['weight']
+                        if not isinstance(cur_lane.weight, int):
+                            if cur_lane.weight:
+                                cur_lane.weight = int(cur_lane.weight)
+                            else:
+                                cur_lane.weight = 0
+
                     if 'runout_lane' in units[cur_lane.unit][cur_lane.name]: cur_lane.runout_lane = units[cur_lane.unit][cur_lane.name]['runout_lane']
                     if cur_lane.runout_lane == '': cur_lane.runout_lane='NONE'
                     if 'map' in units[cur_lane.unit][cur_lane.name]: cur_lane.map = units[cur_lane.unit][cur_lane.name]['map']

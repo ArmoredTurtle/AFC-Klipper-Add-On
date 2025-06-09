@@ -109,7 +109,7 @@ class afc:
         # Config get section
         self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
         self.unit_order_list        = config.get('unit_order_list','')
-        self.VarFile                = config.get('VarFile','../printer_data/config/AFC/')# Path to the variables file for AFC configuration.
+        self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
         self.cfgloc                 = self._remove_after_last(self.VarFile,"/")
         self.default_material_temps = config.getlists("default_material_temps", None)# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
         self.default_material_temps = list(self.default_material_temps) if self.default_material_temps is not None else None

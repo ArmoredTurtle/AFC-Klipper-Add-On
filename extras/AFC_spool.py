@@ -125,7 +125,7 @@ class AFCSpool:
         if lane is None:
             self.logger.info("No LANE Defined")
             return
-        weight = gcmd.get('WEIGHT', '')
+        weight = gcmd.get_float('WEIGHT', 1000.0)
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
