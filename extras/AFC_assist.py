@@ -547,8 +547,7 @@ class Espooler:
         if self.debug:
             self.logger.debug( (f"Cruise time: {self.espooler_values.cruise_time:0.03f} "
                                 f"{time:0.03f} {print_time:0.03f}, "
-                                f"Weight: {self.lane_obj.weight}, Enable weight: {self.enable_assist_weight}")
-                             )
+                                f"Weight: {self.lane_obj.weight}, Enable weight: {self.enable_assist_weight}") )
 
     def move_forwards(self, print_time, value):
         """

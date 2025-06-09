@@ -184,6 +184,9 @@ class afc:
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
         self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
+        # Setting to True enables espooler assist while printing
+        self.enable_assist          = config.getboolean("enable_assist",        True)
+        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   5000.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
