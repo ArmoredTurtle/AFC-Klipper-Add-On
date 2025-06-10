@@ -479,7 +479,10 @@ class AFCLane:
             self.prep_state = state
 
             if self.load_state:
-                self.afc.function.afc_led(self.led_ready, self.led_index)
+                self.status = AFCLaneState.LOADED
+                self.unit_obj.lane_loaded(self)
+                self.material = self.afc.default_material_type
+                self.weight = 1000 # Defaulting weight to 1000 upon load
             else:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
