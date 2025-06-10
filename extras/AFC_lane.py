@@ -145,13 +145,12 @@ class AFCLane:
         self.inner_diameter     = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
         self.outer_diameter     = config.getfloat("spool_outer_diameter", 200)  # Outer diameter in mm
         self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)    # Empty spool weight in g
-        # self.remaining_weight   = config.getfloat("spool_weight", 1000)         # Remaining spool weight in g
         self.max_motor_rpm      = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
         self.rwd_speed_multi    = config.getfloat("rwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.fwd_speed_multi    = config.getfloat("fwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.diameter_range     = self.outer_diameter - self.inner_diameter     # Range for effective diameter
         self.past_extruder_position = -1
-
+        self.save_counter       = -1
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
@@ -676,28 +675,49 @@ class AFCLane:
         return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
     
     def enable_weight_timer(self):
+        """
+        Helper function to enable weight callback timer, should be called once a lane is loaded
+        to extruder or extruder is switched for multi-toolhead setups.
+        """
         self.past_extruder_position = self.afc.function.get_extruder_pos( None, self.past_extruder_position )
         self.reactor.update_timer( self.cb_update_weight, self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY)
     
     def disable_weight_timer(self):
+        """
+        Helper function to disable weight callback timer for lane and save variables
+        to file. Should only be called when lane is unloaded from extruder or when 
+        swapping extruders for multi-toolhead setups.
+        """
         self.update_weight_callback( None ) # get final movement before disabling timer
         self.reactor.update_timer( self.cb_update_weight, self.reactor.NEVER)
         self.past_extruder_position = -1
+        self.save_counter = -1
+        self.afc.save_vars()
 
     def update_weight_callback(self, eventtime):
+        """
+        Callback function for updating weight based on how much filament has been extruded
 
+        :param eventtime: Current eventtime for timer callback
+        :return int: Next time to call timer callback. Current time + UPDATE_WEIGHT_DELAY
+        """
         extruder_pos = self.afc.function.get_extruder_pos( eventtime, self.past_extruder_position )
         delta_length = extruder_pos - self.past_extruder_position
 
         if -1 == self.past_extruder_position:
             self.past_extruder_position = extruder_pos
 
+        self.save_counter += 1
         if extruder_pos > self.past_extruder_position:
             self.update_remaining_weight(delta_length)
             self.past_extruder_position = extruder_pos
 
             self.logger.debug(f"{self.name} Weight Timer Callback: New weight {self.weight}")
-            #TODO: add a save vars every x seconds
+            
+            # Save vars every 2 minutes
+            if save_counter > 120/self.UPDATE_WEIGHT_DELAY:
+                self.afc.save_vars()
+                self.save_counter = 0
 
         return self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY
 
@@ -995,9 +1015,6 @@ class AFCLane:
         response['filament_status'] = filiment_stat[0]
         response['filament_status_led'] = filiment_stat[1]
         response['status'] = self.status
-        response['density']         = self.filament_density
-        response['td1_data'] = {"scan_time": "", "td": ""}
-        response['td1_when_loaded'] = False
         return response
 
 def load_config_prefix(config):

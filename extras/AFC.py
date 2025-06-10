@@ -330,6 +330,7 @@ class afc:
         self.gcode.run_script_from_command("CLEAR_PAUSE")
         self.number_of_toolchanges = 0
         self.current_toolchange    = -1
+        self.save_vars()
 
     def in_print_reactor_timer(self, eventtime):
         """
@@ -349,7 +350,6 @@ class afc:
             self.logger.info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
 
         return self.reactor.NEVER
-
 
     def _get_default_material_temps(self, cur_lane):
         """
@@ -810,8 +810,11 @@ class afc:
             str["system"]["extruders"][cur_extruder.name]={}
             str["system"]["extruders"][cur_extruder.name]['lane_loaded'] = cur_extruder.lane_loaded
 
-        with open(self.VarFile+ '.unit', 'w') as f:
-            f.write(json.dumps(str, indent=4))
+        try:
+            with open(self.VarFile+ '.unit', 'w') as f:
+                f.write(json.dumps(str, indent=4))
+        except Exception as e:
+            self.logger.debug(f"Error happened when trying to save variables\nError:{e}\n{traceback.format_exc()}", only_debug=True)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
