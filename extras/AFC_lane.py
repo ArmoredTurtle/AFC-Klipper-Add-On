@@ -676,7 +676,7 @@ class AFCLane:
         else:
             pwm_value = rpm / (self.max_motor_rpm / (15 + 15 * self.rwd_speed_multi))
         return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
-    
+
     def enable_weight_timer(self):
         """
         Helper function to enable weight callback timer, should be called once a lane is loaded
@@ -684,11 +684,11 @@ class AFCLane:
         """
         self.past_extruder_position = self.afc.function.get_extruder_pos( None, self.past_extruder_position )
         self.reactor.update_timer( self.cb_update_weight, self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY)
-    
+
     def disable_weight_timer(self):
         """
         Helper function to disable weight callback timer for lane and save variables
-        to file. Should only be called when lane is unloaded from extruder or when 
+        to file. Should only be called when lane is unloaded from extruder or when
         swapping extruders for multi-toolhead setups.
         """
         self.update_weight_callback( None ) # get final movement before disabling timer
@@ -716,9 +716,9 @@ class AFCLane:
             self.past_extruder_position = extruder_pos
 
             self.logger.debug(f"{self.name} Weight Timer Callback: New weight {self.weight}")
-            
+
             # Save vars every 2 minutes
-            if save_counter > 120/self.UPDATE_WEIGHT_DELAY:
+            if self.save_counter > 120/self.UPDATE_WEIGHT_DELAY:
                 self.afc.save_vars()
                 self.save_counter = 0
 
