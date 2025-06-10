@@ -302,6 +302,7 @@ class afc:
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
+        self.gcode.register_command('_AFC_CLEAR_MESSAGE',   self.cmd__AFC_CLEAR_MESSAGE,    desc=self.cmd__AFC_CLEAR_MESSAGE_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -1529,14 +1530,18 @@ class afc:
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
 
-    def _get_message(self):
+    def _get_message(self, clear=False):
         """
         Helper function to return a message from the error message queue
+
+        :param clear: Set to true to pop the first item out of the list
         : return Dictionary in {"message":"", "type":""} format
         """
         message = {"message":"", "type":""}
         try:
-            message['message'], message["type"] = self.message_queue.pop(0)
+            message['message'], message["type"] = self.message_queue[0]
+            if clear:
+                message['message'], message["type"] = self.message_queue.pop(0)
         except IndexError:
             pass
         return message
@@ -1762,3 +1767,7 @@ class afc:
         self.afc_stats.last_blade_changed.set_current_time()
         self.afc_stats.cut_total_since_changed.reset_count()
         self.logger.info("Cutter blade stats reset")
+
+    cmd__AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
+    def cmd__AFC_CLEAR_MESSAGE(self, gcmd):
+        self._get_message(clear=True)

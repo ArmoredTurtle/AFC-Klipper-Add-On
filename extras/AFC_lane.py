@@ -986,7 +986,7 @@ class AFCLane:
         response["tool_loaded"] = self.tool_loaded
         response["loaded_to_hub"] = self.loaded_to_hub
         response["material"]=self.material
-        response["spool_id"]=self.spool_id
+        response["spool_id"]= int(self.spool_id) if self.spool_id else None
         response["color"]=self.color
         response["weight"]=self.weight
         response["extruder_temp"] = self.extruder_temp
