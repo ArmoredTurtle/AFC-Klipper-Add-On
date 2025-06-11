@@ -45,6 +45,7 @@ class AFCLaneState:
     CALIBRATING      = "Calibrating"
 
 class AFCLane:
+    UPDATE_WEIGHT_DELAY = 10.0
     def __init__(self, config):
         self.printer            = config.get_printer()
         self.afc                = self.printer.lookup_object('AFC')
@@ -53,6 +54,7 @@ class AFCLane:
         self.extruder_stepper   = None
         self.logger             = self.afc.logger
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        self.cb_update_weight   = self.reactor.register_timer( self.update_weight_callback )
 
         self.unit_obj           = None
         self.hub_obj            = None
@@ -67,7 +69,7 @@ class AFCLane:
         self.spool_id           = None
         self.material           = None
         self.color              = None
-        self.weight             = None
+        self.weight             = 0
         self.material           = None
         self.extruder_temp      = None
         self.runout_lane        = 'NONE'
@@ -143,12 +145,12 @@ class AFCLane:
         self.inner_diameter     = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
         self.outer_diameter     = config.getfloat("spool_outer_diameter", 200)  # Outer diameter in mm
         self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)    # Empty spool weight in g
-        self.remaining_weight   = config.getfloat("spool_weight", 1000)         # Remaining spool weight in g
         self.max_motor_rpm      = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
         self.rwd_speed_multi    = config.getfloat("rwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.fwd_speed_multi    = config.getfloat("fwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.diameter_range     = self.outer_diameter - self.inner_diameter     # Range for effective diameter
-
+        self.past_extruder_position = -1
+        self.save_counter       = -1
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
@@ -477,7 +479,10 @@ class AFCLane:
             self.prep_state = state
 
             if self.load_state:
-                self.afc.function.afc_led(self.led_ready, self.led_index)
+                self.status = AFCLaneState.LOADED
+                self.unit_obj.lane_loaded(self)
+                self.material = self.afc.default_material_type
+                self.weight = 1000 # Defaulting weight to 1000 upon load
             else:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
@@ -558,6 +563,7 @@ class AFCLane:
                         self.status = AFCLaneState.LOADED
                         self.unit_obj.lane_loaded(self)
                         self.material = self.afc.default_material_type
+                        self.weight = 1000 # Defaulting weight to 1000 upon load
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
@@ -647,11 +653,11 @@ class AFCLane:
         :param feed_rate: Filament feed rate in mm/s
         :return: Calculated RPM for the assist motor
         """
-        if self.remaining_weight <= self.empty_spool_weight:
-            return 0  # No filament left to assist
+        if self.weight <= self.empty_spool_weight:
+            return self.empty_spool_weight  # No filament left to assist
 
         # Calculate the effective diameter
-        effective_diameter = self.calculate_effective_diameter(self.remaining_weight)
+        effective_diameter = self.calculate_effective_diameter(self.weight)
 
         # Calculate RPM
         rpm = (feed_rate * 60) / (math.pi * effective_diameter)
@@ -671,6 +677,53 @@ class AFCLane:
             pwm_value = rpm / (self.max_motor_rpm / (15 + 15 * self.rwd_speed_multi))
         return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
 
+    def enable_weight_timer(self):
+        """
+        Helper function to enable weight callback timer, should be called once a lane is loaded
+        to extruder or extruder is switched for multi-toolhead setups.
+        """
+        self.past_extruder_position = self.afc.function.get_extruder_pos( None, self.past_extruder_position )
+        self.reactor.update_timer( self.cb_update_weight, self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY)
+
+    def disable_weight_timer(self):
+        """
+        Helper function to disable weight callback timer for lane and save variables
+        to file. Should only be called when lane is unloaded from extruder or when
+        swapping extruders for multi-toolhead setups.
+        """
+        self.update_weight_callback( None ) # get final movement before disabling timer
+        self.reactor.update_timer( self.cb_update_weight, self.reactor.NEVER)
+        self.past_extruder_position = -1
+        self.save_counter = -1
+        self.afc.save_vars()
+
+    def update_weight_callback(self, eventtime):
+        """
+        Callback function for updating weight based on how much filament has been extruded
+
+        :param eventtime: Current eventtime for timer callback
+        :return int: Next time to call timer callback. Current time + UPDATE_WEIGHT_DELAY
+        """
+        extruder_pos = self.afc.function.get_extruder_pos( eventtime, self.past_extruder_position )
+        delta_length = extruder_pos - self.past_extruder_position
+
+        if -1 == self.past_extruder_position:
+            self.past_extruder_position = extruder_pos
+
+        self.save_counter += 1
+        if extruder_pos > self.past_extruder_position:
+            self.update_remaining_weight(delta_length)
+            self.past_extruder_position = extruder_pos
+
+            # self.logger.debug(f"{self.name} Weight Timer Callback: New weight {self.weight}")
+
+            # Save vars every 2 minutes
+            if self.save_counter > 120/self.UPDATE_WEIGHT_DELAY:
+                self.afc.save_vars()
+                self.save_counter = 0
+
+        return self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY
+
     def update_remaining_weight(self, distance_moved):
         """
         Update the remaining filament weight based on the filament distance moved.
@@ -679,10 +732,10 @@ class AFCLane:
         """
         filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
         filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
-        self.remaining_weight -= filament_weight_change
+        self.weight -= filament_weight_change
 
-        if self.remaining_weight < self.empty_spool_weight:
-            self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
+        if self.weight < self.empty_spool_weight:
+            self.weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
 
     def set_loaded(self):
         """
@@ -716,6 +769,7 @@ class AFCLane:
         if self.buffer_obj is not None:
             self.buffer_obj.enable_buffer()
         self.espooler.enable_timer()
+        self.enable_weight_timer()
 
     def disable_buffer(self):
         """
@@ -725,6 +779,7 @@ class AFCLane:
         if self.buffer_obj is not None:
             self.buffer_obj.disable_buffer()
         self.espooler.disable_timer()
+        self.disable_weight_timer()
 
     def buffer_status(self):
         """
@@ -954,7 +1009,7 @@ class AFCLane:
         response["tool_loaded"] = self.tool_loaded
         response["loaded_to_hub"] = self.loaded_to_hub
         response["material"]=self.material
-        response["spool_id"]=self.spool_id
+        response["spool_id"]= int(self.spool_id) if self.spool_id else None
         response["color"]=self.color
         response["weight"]=self.weight
         response["extruder_temp"] = self.extruder_temp

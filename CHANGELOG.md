@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-10]
+### Added
+- Ability to turn on print assist if spool falls below a certain weight
+- Weight defaults to 1kg when first inserting spool
+- `AFC_CLEAR_MESSAGE` macro to clear current message that would be displayed in gui's
+- When saving variables and key is not found in current AFC files, a new file `AFC_auto_vars.cfg` will be created and variables will be added to that file
+
 ## [2025-06-08]
 ### Added
 - Support for [QuattroBox](https://github.com/Batalhoti/QuattroBox) filament changer. QuattroBox can be chosen in install script for new or additional units to add to your printer

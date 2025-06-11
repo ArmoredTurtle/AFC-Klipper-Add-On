@@ -109,7 +109,7 @@ class afc:
         # Config get section
         self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
         self.unit_order_list        = config.get('unit_order_list','')
-        self.VarFile                = config.get('VarFile','../printer_data/config/AFC/')# Path to the variables file for AFC configuration.
+        self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
         self.cfgloc                 = self._remove_after_last(self.VarFile,"/")
         self.default_material_temps = config.getlists("default_material_temps", None)# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
         self.default_material_temps = list(self.default_material_temps) if self.default_material_temps is not None else None
@@ -184,6 +184,10 @@ class afc:
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
         self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
+        # Setting to True enables espooler assist while printing
+        self.enable_assist          = config.getboolean("enable_assist",        True)
+        # Weight spool has to be below to activate print assist
+        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   5000.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
@@ -299,6 +303,8 @@ class afc:
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
+        self.gcode.register_command('AFC_CLEAR_MESSAGE',    self.cmd_AFC_CLEAR_MESSAGE,     desc=self.cmd_AFC_CLEAR_MESSAGE_help)
+        self.gcode.register_command('_AFC_TEST_MESSAGES',   self.cmd__AFC_TEST_MESSAGES,    desc=self.cmd__AFC_TEST_MESSAGES_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -326,6 +332,7 @@ class afc:
         self.gcode.run_script_from_command("CLEAR_PAUSE")
         self.number_of_toolchanges = 0
         self.current_toolchange    = -1
+        self.save_vars()
 
     def in_print_reactor_timer(self, eventtime):
         """
@@ -345,7 +352,6 @@ class afc:
             self.logger.info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
 
         return self.reactor.NEVER
-
 
     def _get_default_material_temps(self, cur_lane):
         """
@@ -806,8 +812,12 @@ class afc:
             str["system"]["extruders"][cur_extruder.name]={}
             str["system"]["extruders"][cur_extruder.name]['lane_loaded'] = cur_extruder.lane_loaded
 
-        with open(self.VarFile+ '.unit', 'w') as f:
-            f.write(json.dumps(str, indent=4))
+        try:
+            with open(self.VarFile+ '.unit', 'w') as f:
+                f.write(json.dumps(str, indent=4))
+        except Exception as e:
+            self.logger.error("Error happened when trying to save variables, check AFC.log for error")
+            self.logger.debug(f"Error:{e}\n{traceback.format_exc()}", only_debug=True)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
@@ -1526,14 +1536,18 @@ class afc:
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
 
-    def _get_message(self):
+    def _get_message(self, clear=False):
         """
         Helper function to return a message from the error message queue
+
+        :param clear: Set to true to pop the first item out of the list
         : return Dictionary in {"message":"", "type":""} format
         """
         message = {"message":"", "type":""}
         try:
-            message['message'], message["type"] = self.message_queue.pop(0)
+            message['message'], message["type"] = self.message_queue[0]
+            if clear:
+                message['message'], message["type"] = self.message_queue.pop(0)
         except IndexError:
             pass
         return message
@@ -1759,3 +1773,13 @@ class afc:
         self.afc_stats.last_blade_changed.set_current_time()
         self.afc_stats.cut_total_since_changed.reset_count()
         self.logger.info("Cutter blade stats reset")
+
+    cmd_AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
+    def cmd_AFC_CLEAR_MESSAGE(self, gcmd):
+        self._get_message(clear=True)
+
+    cmd__AFC_TEST_MESSAGES_help = "Macro to send test messages for testing"
+    def cmd__AFC_TEST_MESSAGES(self, gcmd):
+        self.logger.error("Test Message 1")
+        self.logger.error("Test Message 2")
+        self.logger.error("Test Message 3")

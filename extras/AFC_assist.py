@@ -384,6 +384,7 @@ class Espooler:
         self.reactor                = self.printer.get_reactor()
         self.callback_timer         = self.reactor.register_timer( self.timer_callback )    # Defaults to never trigger
         self.stats_timer            = self.reactor.register_timer( self.timer_stats_callback )
+        self.lane_obj               = None
 
         self.afc_motor_rwd          = config.get("afc_motor_rwd", None)                     # Reverse pin on MCU for spoolers
         self.afc_motor_fwd          = config.get("afc_motor_fwd", None)                     # Forwards pin on MCU for spoolers
@@ -399,6 +400,8 @@ class Espooler:
         self.timer_delay            = config.getfloat("timer_delay",            None)
         # Setting to True enables espooler assist while printing. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.enable_assist          = config.getboolean("enable_assist",        None)
+        # Weight spool has to be below to activate print assist
+        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   None)
         # Turns on/off debug messages to console. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.debug                  = config.getboolean("debug",                None)
         # Setting to True enables full speed espoolers for kick_start_time amount. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -447,11 +450,13 @@ class Espooler:
         lane this function will update values from their unit.
         """
         self.espooler_values.handle_connect(lane_obj)
-        self.stats = AFCEspoolerStats(self.name, self)
+        self.stats      = AFCEspoolerStats(self.name, self)
+        self.lane_obj   = lane_obj
 
         if self.n20_break_delay_time    is None: self.n20_break_delay_time  = lane_obj.unit_obj.n20_break_delay_time
         if self.timer_delay             is None: self.timer_delay           = lane_obj.unit_obj.timer_delay
         if self.enable_assist           is None: self.enable_assist         = lane_obj.unit_obj.enable_assist
+        if self.enable_assist_weight    is None: self.enable_assist_weight  = lane_obj.unit_obj.enable_assist_weight
         if self.debug                   is None: self.debug                 = lane_obj.unit_obj.debug
         if self.enable_kick_start       is None: self.enable_kick_start     = lane_obj.unit_obj.enable_kick_start
 
@@ -529,17 +534,21 @@ class Espooler:
 
         :param movement: Amount in mm to move spool
         """
-        print_time = self._kick_start()
-        time = print_time
+        print_time = time = 0.0
+        if self.lane_obj.weight < self.enable_assist_weight:
+            print_time = self._kick_start()
+            time = print_time
 
-        self.move_forwards( print_time, self.espooler_values.pwm_value )
-        print_time += self.espooler_values.cruise_time
+            self.move_forwards( print_time, self.espooler_values.pwm_value )
+            print_time += self.espooler_values.cruise_time
 
-        self.afc_motor_fwd._set_pin( print_time, 0)
-        self.set_enable_pin( print_time, 0)
+            self.afc_motor_fwd._set_pin( print_time, 0)
+            self.set_enable_pin( print_time, 0)
 
         if self.debug:
-            self.logger.debug(f"Cruise time: {self.espooler_values.cruise_time:0.03f} {time:0.03f} {print_time:0.03f}")
+            self.logger.debug( (f"Cruise time: {self.espooler_values.cruise_time:0.03f} "
+                                f"{time:0.03f} {print_time:0.03f}, "
+                                f"Weight: {self.lane_obj.weight}, Enable weight: {self.enable_assist_weight}") )
 
     def move_forwards(self, print_time, value):
         """
@@ -754,37 +763,50 @@ class Espooler:
         DELTA_MOVEMENT - Delta amount in mm to move from last assist to trigger another assist move<br>
         SPOOLRATE - Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement<br>
         TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist<br>
-        ENABLE_ASSIST - Setting to True enables espooler assist while printing<br>
-        DEBUG - Turns on/off debug messages to console<br>
-        ENABLE_KICK_START - Setting to True enables full speed espoolers for kick_start_time amount
+        ASSIST_WEIGHT - Weight spool has to be below to activate print assist<br>
+        ENABLE_ASSIST - Setting to 1 enables espooler assist while printing<br>
+        DEBUG - Turns on/off debug messages to console, set to 1 to enable<br>
+        ENABLE_KICK_START - Setting to 1 enables full speed espoolers for kick_start_time amount
 
         USAGE
         -----
-        `SET_ESPOOLER_VALUES LANE=<lane_name> DEBUG=<True/False> ENABLE_ASSIST=<True/False> ...(other optional values)`
+        `SET_ESPOOLER_VALUES LANE=<lane_name> DEBUG=<1/0> ENABLE_ASSIST=<1/0> ...(other optional values)`
 
         Example
         -----
         ```
-        `SET_ESPOOLER_VALUES LANE=lane1 DEBUG=True ENABLE_ASSIST=True`
+        `SET_ESPOOLER_VALUES LANE=lane1 DEBUG=1 ENABLE_ASSIST=1`
         ```
         """
-        self.n20_break_delay_time                   = gcmd.get_float("BREAK_DELAY"          , self.n20_break_delay_time)
-        self.espooler_values.kick_start_time        = gcmd.get_float("KICK_START_TIME"      , self.espooler_values._kick_start_time)
-        self.espooler_values._spool_outer_diameter  = gcmd.get_float("SPOOL_OUTER_DIAMETER" , self.espooler_values._spool_outer_diameter)
-        self.espooler_values.cycles_per_rotation    = gcmd.get_float("CYCLES_PER_ROTATION"  , self.espooler_values._cycles_per_rotation)
-        self.espooler_values.pwm_value              = gcmd.get_float("PWM_VALUE"            , self.espooler_values._pwm_value)
-        self.espooler_values.mm_movement            = gcmd.get_float("MM_MOVEMENT"          , self.espooler_values._mm_movement)
-        self.espooler_values.delta_movement         = gcmd.get_float("DELTA_MOVEMENT"       , self.espooler_values._delta_movement)
-        self.espooler_values.scaling                = gcmd.get_float("SPOOLRATE"            , self.espooler_values._scaling)
-        self.timer_delay                            = gcmd.get_float("TIMER_DELAY"          , self.timer_delay)
-        self.enable_assist                          = bool(gcmd.get_int("ENABLE_ASSIST"     , self.enable_assist))
-        self.debug                                  = bool(gcmd.get_int("DEBUG"             , self.debug))
-        self.enable_kick_start                      = bool(gcmd.get_int("ENABLE_KICK_START" , self.enable_kick_start))
+        self.n20_break_delay_time                   = self.function.gcode_get_value(gcmd, "get_float", self.n20_break_delay_time,
+                                                                                    "BREAK_DELAY", self.lane_obj.fullname, "n20_break_delay_time")
+        self.espooler_values.kick_start_time        = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values.kick_start_time,
+                                                                                    "KICK_START_TIME", self.lane_obj.fullname)
+        self.espooler_values._spool_outer_diameter  = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values._spool_outer_diameter,
+                                                                                    "SPOOL_OUTER_DIAMETER", self.lane_obj.fullname)
+        self.espooler_values.cycles_per_rotation    = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values.cycles_per_rotation,
+                                                                                    "CYCLES_PER_ROTATION", self.lane_obj.fullname)
+        self.espooler_values.pwm_value              = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values.pwm_value,
+                                                                                    "PWM_VALUE", self.lane_obj.fullname)
+        self.espooler_values.mm_movement            = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values.mm_movement,
+                                                                                    "MM_MOVEMENT", self.lane_obj.fullname)
+        self.espooler_values.delta_movement         = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values.delta_movement,
+                                                                                    "DELTA_MOVEMENT", self.lane_obj.fullname)
+        self.espooler_values.scaling                = self.function.gcode_get_value(gcmd, "get_float", self.espooler_values.scaling,
+                                                                                    "SPOOLRATE", self.lane_obj.fullname)
+        self.timer_delay                            = self.function.gcode_get_value(gcmd, "get_float", self.timer_delay,
+                                                                                    "TIMER_DELAY", self.lane_obj.fullname)
+        self.enable_assist_weight                   = self.function.gcode_get_value(gcmd, "get_float", self.enable_assist_weight,
+                                                                                    "ASSIST_WEIGHT", self.lane_obj.fullname, "enable_assist_weight")
+        self.enable_assist                          = self.function.gcode_get_value(gcmd, "get_int", self.enable_assist,
+                                                                                    "ENABLE_ASSIST", self.lane_obj.fullname, cast_to_bool=True)
+        self.debug                                  = self.function.gcode_get_value(gcmd, "get_int", self.debug,
+                                                                                    "DEBUG", self.lane_obj.fullname, cast_to_bool=True)
+        self.enable_kick_start                      = self.function.gcode_get_value(gcmd, "get_int", self.enable_kick_start,
+                                                                                    "ENABLE_KICK_START", self.lane_obj.fullname, cast_to_bool=True)
 
         # update cruise time with new values
         self.espooler_values.cruise_time = self.espooler_values.calculate_cruise_time( self.espooler_values._mm_movement )
-
-        self.logger.info(f"Espooler values updated for {self.name}, please manually save values in config file.")
 
     cmd_AFC_RESET_MOTOR_TIME_help = "Resets N20 active time, useful for resetting time for N20 if one was replaced in a lane"
     cmd_AFC_RESET_MOTOR_TIME_options = {"LANE": {"type": "string", "default": "lane1"}}
