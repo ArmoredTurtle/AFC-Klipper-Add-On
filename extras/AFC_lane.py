@@ -715,7 +715,7 @@ class AFCLane:
             self.update_remaining_weight(delta_length)
             self.past_extruder_position = extruder_pos
 
-            self.logger.debug(f"{self.name} Weight Timer Callback: New weight {self.weight}")
+            # self.logger.debug(f"{self.name} Weight Timer Callback: New weight {self.weight}")
 
             # Save vars every 2 minutes
             if self.save_counter > 120/self.UPDATE_WEIGHT_DELAY:

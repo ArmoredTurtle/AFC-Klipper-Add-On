@@ -61,6 +61,7 @@ class afcUnit:
         self.n20_break_delay_time   = config.getfloat("n20_break_delay_time",   self.afc.n20_break_delay_time)
         # Setting to True enables espooler assist while printing
         self.enable_assist          = config.getboolean("enable_assist",        self.afc.enable_assist)
+        # Weight spool has to be below to activate print assist
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   self.afc.enable_assist_weight)
         # Number of seconds to wait before checking filament movement for espooler assist
         self.timer_delay            = config.getfloat("timer_delay",            5)

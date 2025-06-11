@@ -400,6 +400,7 @@ class Espooler:
         self.timer_delay            = config.getfloat("timer_delay",            None)
         # Setting to True enables espooler assist while printing. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.enable_assist          = config.getboolean("enable_assist",        None)
+        # Weight spool has to be below to activate print assist
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   None)
         # Turns on/off debug messages to console. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.debug                  = config.getboolean("debug",                None)
@@ -763,18 +764,18 @@ class Espooler:
         SPOOLRATE - Scaling factor for the following variables: kick_start_time, spool_outer_diameter, cycles_per_rotation, pwm_value, delta_movement, mm_movement<br>
         TIMER_DELAY - Number of seconds to wait before checking filament movement for espooler assist<br>
         ASSIST_WEIGHT - Weight spool has to be below to activate print assist<br>
-        ENABLE_ASSIST - Setting to True enables espooler assist while printing<br>
-        DEBUG - Turns on/off debug messages to console<br>
-        ENABLE_KICK_START - Setting to True enables full speed espoolers for kick_start_time amount
+        ENABLE_ASSIST - Setting to 1 enables espooler assist while printing<br>
+        DEBUG - Turns on/off debug messages to console, set to 1 to enable<br>
+        ENABLE_KICK_START - Setting to 1 enables full speed espoolers for kick_start_time amount
 
         USAGE
         -----
-        `SET_ESPOOLER_VALUES LANE=<lane_name> DEBUG=<True/False> ENABLE_ASSIST=<True/False> ...(other optional values)`
+        `SET_ESPOOLER_VALUES LANE=<lane_name> DEBUG=<1/0> ENABLE_ASSIST=<1/0> ...(other optional values)`
 
         Example
         -----
         ```
-        `SET_ESPOOLER_VALUES LANE=lane1 DEBUG=True ENABLE_ASSIST=True`
+        `SET_ESPOOLER_VALUES LANE=lane1 DEBUG=1 ENABLE_ASSIST=1`
         ```
         """
         self.n20_break_delay_time                   = self.function.gcode_get_value(gcmd, "get_float", self.n20_break_delay_time,

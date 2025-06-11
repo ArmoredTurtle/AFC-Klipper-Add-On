@@ -186,6 +186,7 @@ class afc:
         self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
         # Setting to True enables espooler assist while printing
         self.enable_assist          = config.getboolean("enable_assist",        True)
+        # Weight spool has to be below to activate print assist
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   5000.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
@@ -302,7 +303,8 @@ class afc:
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
-        self.gcode.register_command('_AFC_CLEAR_MESSAGE',   self.cmd__AFC_CLEAR_MESSAGE,    desc=self.cmd__AFC_CLEAR_MESSAGE_help)
+        self.gcode.register_command('AFC_CLEAR_MESSAGE',    self.cmd_AFC_CLEAR_MESSAGE,     desc=self.cmd_AFC_CLEAR_MESSAGE_help)
+        self.gcode.register_command('_AFC_TEST_MESSAGES',   self.cmd__AFC_TEST_MESSAGES,    desc=self.cmd__AFC_TEST_MESSAGES_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -814,7 +816,8 @@ class afc:
             with open(self.VarFile+ '.unit', 'w') as f:
                 f.write(json.dumps(str, indent=4))
         except Exception as e:
-            self.logger.debug(f"Error happened when trying to save variables\nError:{e}\n{traceback.format_exc()}", only_debug=True)
+            self.logger.error(f"Error happened when trying to save variables, check AFC.log for error")
+            self.logger.debug(f"Error:{e}\n{traceback.format_exc()}", only_debug=True)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
@@ -1771,6 +1774,12 @@ class afc:
         self.afc_stats.cut_total_since_changed.reset_count()
         self.logger.info("Cutter blade stats reset")
 
-    cmd__AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
-    def cmd__AFC_CLEAR_MESSAGE(self, gcmd):
+    cmd_AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
+    def cmd_AFC_CLEAR_MESSAGE(self, gcmd):
         self._get_message(clear=True)
+
+    cmd__AFC_TEST_MESSAGES_help = "Macro to send test messages for testing"
+    def cmd__AFC_TEST_MESSAGES(self, gcmd):
+        self.logger.error("Test Message 1")
+        self.logger.error("Test Message 2")
+        self.logger.error("Test Message 3")
