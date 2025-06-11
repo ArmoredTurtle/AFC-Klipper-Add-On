@@ -816,7 +816,7 @@ class afc:
             with open(self.VarFile+ '.unit', 'w') as f:
                 f.write(json.dumps(str, indent=4))
         except Exception as e:
-            self.logger.error(f"Error happened when trying to save variables, check AFC.log for error")
+            self.logger.error("Error happened when trying to save variables, check AFC.log for error")
             self.logger.debug(f"Error:{e}\n{traceback.format_exc()}", only_debug=True)
 
     # HUB COMMANDS
