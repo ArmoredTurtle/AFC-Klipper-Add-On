@@ -894,7 +894,7 @@ class AFCLane:
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
         """
         Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
-        these values while printing. Multiplier values must be between 0.0 - 1.0
+        these values while printing.
 
         Use `FWD` variable to set forward multiplier, use `RWD` to set reverse multiplier
 
