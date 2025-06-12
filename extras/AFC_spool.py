@@ -148,7 +148,7 @@ class AFCSpool:
 
         Optional Values
         ----
-        DENISITY - Density value to assign to lane. If this is not provided then a default value will be selected based
+        DENSITY - Density value to assign to lane. If this is not provided then a default value will be selected based
                    of material. Current default values: PLA: 1.24, PETG:1.23, ABS:1.04, ASA:1.07
         DIAMETER - Diameter of filament, defaults to 1.75
         EMPTY_SPOOL_WEIGHT - Weight of spool once its empty. Defaults to 190.
