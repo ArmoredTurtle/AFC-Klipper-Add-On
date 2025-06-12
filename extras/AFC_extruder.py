@@ -130,7 +130,7 @@ class AFCExtruder:
         else:
             self.logger.error("tool_sensor_after_extruder length should be greater than zero")
 
-    cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn\tool_stn_unload\tool_sensor_after_extruder values without restarting klipper"
+    cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn, tool_stn_unload, tool_sensor_after_extruder values without restarting klipper"
     cmd_UPDATE_TOOLHEAD_SENSORS_options = {
         "EXTRUDER": {"type": "string", "default": "extruder"},
         "TOOL_STN": {"type": "float", "default": 0},

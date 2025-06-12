@@ -10,6 +10,9 @@ class AFCSpool:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
+        # Generic default density values
+        self.common_density = {"PLA": 1.24, "PETG":1.23, "ABS":1.04, "ASA":1.07}
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -139,6 +142,17 @@ class AFCSpool:
         This function handles changing the material of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
 
+        Values
+        ----
+        MATERIAL - Material type to set to lane. eg. PLA, ASA, ABS, PETG etc.
+
+        Optional Values
+        ----
+        DENISITY - Density value to assign to lane. If this is not provided then a default value will be selected based
+                   of material. Current default values: PLA: 1.24, PETG:1.23, ABS:1.04, ASA:1.07
+        DIAMETER - Diameter of filament, defaults to 1.75
+        EMPTY_SPOOL_WEIGHT - Weight of spool once its empty. Defaults to 190.
+
         Usage
         -----
         `SET_MATERIAL LANE=<lane> MATERIAL=<material>`
@@ -153,12 +167,21 @@ class AFCSpool:
         if lane is None:
             self.logger.info("No LANE Defined")
             return
-        material = gcmd.get('MATERIAL', '')
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
         cur_lane = self.afc.lanes[lane]
-        cur_lane.material = material
+        cur_lane.material = gcmd.get('MATERIAL')
+        cur_lane.filament_density = gcmd.get('DENSITY', None)
+        cur_lane.filament_diameter = gcmd.get('DIAMETER', cur_lane.filament_diameter)
+        cur_lane.empty_spool_weight = gcmd.get('EMPTY_SPOOL_WEIGHT', cur_lane.empty_spool_weight)
+
+        # Set default value if denisity is not passed in
+        if cur_lane.filament_density is None:
+            for key,value in self.common_density.items():
+                if key in cur_lane.material:
+                    cur_lane.filament_density = value
+                    break
         self.afc.save_vars()
 
     def set_active_spool(self, ID):
@@ -204,7 +227,7 @@ class AFCSpool:
             cur_lane = self.afc.lanes[lane]
             self.set_spoolID(cur_lane, SpoolID)
 
-    def _get_filament_values( self, filament, field):
+    def _get_filament_values( self, filament, field, default=None):
         '''
         Helper function for checking if field is set and returns value if it exists,
         otherwise retruns None
@@ -213,7 +236,7 @@ class AFCSpool:
         :param field:    Field name to check for in dictionary
         :return:         Returns value if field exists or None if field does not exist
         '''
-        value = None
+        value = default
         if field in filament:
             value = filament[field]
         return value
@@ -236,9 +259,12 @@ class AFCSpool:
                     result = self.afc.moonraker.get_spool(SpoolID)
                     cur_lane.spool_id = SpoolID
 
-                    cur_lane.material       = self._get_filament_values(result['filament'], 'material')
-                    cur_lane.extruder_temp  = self._get_filament_values(result['filament'], 'settings_extruder_temp')
-                    cur_lane.weight         = self._get_filament_values(result, 'remaining_weight')
+                    cur_lane.material           = self._get_filament_values(result['filament'], 'material')
+                    cur_lane.extruder_temp      = self._get_filament_values(result['filament'], 'settings_extruder_temp')
+                    cur_lane.filament_density   = self._get_filament_values(result['filament'], 'density')
+                    cur_lane.filament_diameter  = self._get_filament_values(result['filament'], 'diameter')
+                    cur_lane.empty_spool_weight = self._get_filament_values(result, 'spool_weight', default=190)
+                    cur_lane.weight             = self._get_filament_values(result, 'remaining_weight')
                     # Check to see if filament is defined as multi color and take the first color for now
                     # Once support for multicolor is added this needs to be updated
                     if "multi_color_hexes" in result['filament']:

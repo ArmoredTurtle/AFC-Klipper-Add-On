@@ -796,7 +796,7 @@ class afc:
             name=[]
             for NAME in cur_unit.lanes:
                 cur_lane=self.lanes[NAME]
-                str[cur_unit.name][cur_lane.name]=cur_lane.get_status()
+                str[cur_unit.name][cur_lane.name]=cur_lane.get_status(save_to_file=True)
                 name.append(cur_lane.name)
 
         str["system"]={}
