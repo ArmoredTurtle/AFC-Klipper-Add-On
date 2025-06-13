@@ -10,7 +10,7 @@
 printer_config_dir="$HOME/printer_data/config"
 klipper_dir="$HOME/klipper"
 afc_path="$HOME/AFC-Klipper-Add-On"
-afc_config_dir="$printer_config_dir/AFC"
+afc_config_dir="${printer_config_dir}/AFC"
 afc_file="$afc_config_dir/AFC.cfg"
 moonraker_config_file="$printer_config_dir/moonraker.conf"
 klipper_venv="$HOME/klippy-env/bin"

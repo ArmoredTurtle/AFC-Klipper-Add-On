@@ -30,10 +30,10 @@ class AFC_HTLF(afcBoxTurtle):
         self.selector_stepper_obj   = None
         self.current_selected_lane  = None
         self.home_state             = False
-        self.mm_move_per_rotation   = config.getint("mm_move_per_rotation", 32)                                     # How many mm moves pully a full rotation
+        self.mm_move_per_rotation   = config.getint("mm_move_per_rotation", 32)                                     # How many mm moves pulley a full rotation
         self.cam_angle              = config.getint("cam_angle")                                                    # CAM lobe angle thats currently installed. 30,45,60 (recommend using 60)
         self.home_pin               = config.get("home_pin")                                                        # Pin for homing sensor
-        self.MAX_ANGLE_MOVEMENT     = config.getint("MAX_ANGLE_MOVEMENT", 215)                                      # Max angle to move lobes, this is when lobe 1 is fully engauged with its lane
+        self.MAX_ANGLE_MOVEMENT     = config.getint("MAX_ANGLE_MOVEMENT", 215)                                      # Max angle to move lobes, this is when lobe 1 is fully engaged with its lane
         self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui)    # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
         self.prep_homed             = False
         self.failed_to_home         = False
