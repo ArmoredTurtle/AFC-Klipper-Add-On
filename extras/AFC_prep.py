@@ -99,9 +99,19 @@ class afcPrep:
                     if self.afc.spoolman is not None and cur_lane.spool_id:
                         self.afc.spool.set_spoolID(cur_lane, cur_lane.spool_id, save_vars=False)
                     else:
-                        if 'material' in units[cur_lane.unit][cur_lane.name]: cur_lane.material = units[cur_lane.unit][cur_lane.name]['material']
-                        if 'color' in units[cur_lane.unit][cur_lane.name]: cur_lane.color = units[cur_lane.unit][cur_lane.name]['color']
-                        if 'weight' in units[cur_lane.unit][cur_lane.name]: cur_lane.weight = units[cur_lane.unit][cur_lane.name]['weight']
+                        if 'material' in units[cur_lane.unit][cur_lane.name]:
+                            cur_lane.material = units[cur_lane.unit][cur_lane.name]['material']
+                        if 'color' in units[cur_lane.unit][cur_lane.name]:
+                            cur_lane.color = units[cur_lane.unit][cur_lane.name]['color']
+                        if 'weight' in units[cur_lane.unit][cur_lane.name]:
+                            cur_lane.weight = units[cur_lane.unit][cur_lane.name]['weight']
+                        if 'density' in units[cur_lane.unit][cur_lane.name]:
+                            cur_lane.filament_density= units[cur_lane.unit][cur_lane.name]["density"]
+                        if 'diameter' in units[cur_lane.unit][cur_lane.name]:
+                            cur_lane.filament_diameter= units[cur_lane.unit][cur_lane.name]["diameter"]
+                        if 'empty_spool_weight' in units[cur_lane.unit][cur_lane.name]:
+                            cur_lane.empty_spool_weight= units[cur_lane.unit][cur_lane.name]["empty_spool_weight"]
+
                         if not isinstance(cur_lane.weight, int):
                             if cur_lane.weight:
                                 cur_lane.weight = int(cur_lane.weight)

@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.18"
+AFC_VERSION="1.0.20"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -111,9 +111,13 @@ class afc:
         self.unit_order_list        = config.get('unit_order_list','')
         self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
         self.cfgloc                 = self._remove_after_last(self.VarFile,"/")
-        self.default_material_temps = config.getlists("default_material_temps", None)# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
+        self.default_material_temps = config.getlists("default_material_temps",
+                                                      ("default: 235", "PLA:210", "PETG:235", "ABS:235", "ASA:235"))# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
         self.default_material_temps = list(self.default_material_temps) if self.default_material_temps is not None else None
         self.default_material_type  = config.get("default_material_type", None)     # Default material type to assign to a spool once loaded into a lane
+        self.common_density_values  = config.getlists("common_density_values",
+                                                      ("PLA:1.24", "PETG:1.23", "ABS:1.04", "ASA:1.07"))
+        self.common_density_values  = list(self.common_density_values)
 
         #LED SETTINGS
         self.ind_lights = None
@@ -796,7 +800,7 @@ class afc:
             name=[]
             for NAME in cur_unit.lanes:
                 cur_lane=self.lanes[NAME]
-                str[cur_unit.name][cur_lane.name]=cur_lane.get_status()
+                str[cur_unit.name][cur_lane.name]=cur_lane.get_status(save_to_file=True)
                 name.append(cur_lane.name)
 
         str["system"]={}
