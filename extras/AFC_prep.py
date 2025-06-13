@@ -160,7 +160,7 @@ class afcPrep:
                 self.AFC.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
-        if self.AFC_FUNCTION.get_current_lane() is None:
+        if self.AFC.current is None:
             self.AFC.SPOOL.set_active_spool( None )
         # Setting value to False so the T commands don't try to get reassigned when users manually
         #   run PREP after it has already be ran once upon boot

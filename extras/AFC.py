@@ -188,6 +188,10 @@ class afc:
 
         self.afcDeltaTime = afcDeltaTime(self)
 
+    @property
+    def current(self):  
+        return self.FUNCTION.get_current_lane()
+
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
         if last_index != -1:
@@ -623,7 +627,7 @@ class afc:
                 name.append(CUR_LANE.name)
 
         str["system"]={}
-        str["system"]['current_load']= self.FUNCTION.get_current_lane()
+        str["system"]['current_load']= self.current
         str["system"]['num_units'] = len(self.units)
         str["system"]['num_lanes'] = len(self.lanes)
         str["system"]['num_extruders'] = len(self.tools)
@@ -1017,7 +1021,7 @@ class afc:
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
         if self._check_bypass(unload=True): return False
 
-        lane = gcmd.get('LANE', self.AFC_FUNCTION.get_current_lane())
+        lane = gcmd.get('LANE', self.current)
         if lane is None:
             return
         if lane not in self.lanes:
@@ -1329,12 +1333,12 @@ class afc:
         self.next_lane_load = CUR_LANE.name
 
         # If the current extruder is not the one associated with the lane, switch to it.
-        if self.AFC.FUNCTION.get_current_extruder() != CUR_LANE.extruder_obj.name:
+        if self.FUNCTION.get_current_extruder() != CUR_LANE.extruder_obj.name:
             # self.FUNCTION.select_extruder(CUR_LANE.extruder_obj.name) # Future function to change extruders
             pass 
 
         # If the requested lane is not the current lane, proceed with the tool change.
-        if CUR_LANE.name != self.AFC_FUNCTION.get_current_lane():
+        if CUR_LANE.name != self.current:
             # Save the current toolhead position to allow restoration after the tool change.
             self.save_pos()
             # Set the in_toolchange flag to prevent overwriting the saved position during potential failures.
@@ -1343,21 +1347,20 @@ class afc:
             # Check if the lane has completed the preparation process required for tool changes.
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
-                self.logger.info("Tool Change - {} -> {}".format(self.AFC_FUNCTION.get_current_lane(), CUR_LANE.name))
+                self.logger.info("Tool Change - {} -> {}".format(self.current, CUR_LANE.name))
                 if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
                     self.current_toolchange += 1
                     self.logger.raw("//      Change {} out of {}".format(self.current_toolchange, self.number_of_toolchanges))
 
                 # If a current lane is loaded, unload it first.
-                if self.AFC_FUNCTION.get_current_lane() is not None:
-                    c_lane = self.AFC_FUNCTION.get_current_lane()
-                    if c_lane not in self.lanes:
-                        self.ERROR.AFC_error('{} Unknown'.format(c_lane))
+                if self.current is not None:
+                    if self.current not in self.lanes:
+                        self.ERROR.AFC_error('{} Unknown'.format(self.current))
                         return
-                    if not self.TOOL_UNLOAD(self.lanes[c_lane]):
+                    if not self.TOOL_UNLOAD(self.lanes[self.current]):
                         # Abort if the unloading process fails.
                         msg = (' UNLOAD ERROR NOT CLEARED')
-                        self.ERROR.fix(msg, self.lanes[c_lane])  #send to error handling
+                        self.ERROR.fix(msg, self.lanes[self.current])  #send to error handling
                         return
 
             # Load the new lane and restore the toolhead position if successful.
@@ -1393,7 +1396,7 @@ class afc:
         Displays current status of AFC for webhooks
         """
         str = {}
-        str['current_load']             = self.FUNCTION.get_current_lane() 
+        str['current_load']             = self.current 
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
@@ -1437,7 +1440,7 @@ class afc:
             str[unit.name]['system']['hub_loaded'] = unit.hub_obj.state if unit.hub_obj is not None else None
 
         str["system"]                           = {}
-        str["system"]['current_load']           = self.FUNCTION.get_current_lane()
+        str["system"]['current_load']           = self.current
         str["system"]['num_units']              = len(self.units)
         str["system"]['num_lanes']              = numoflanes
         str["system"]['num_extruders']          = len(self.tools)
@@ -1489,8 +1492,8 @@ class afc:
 
             for CUR_LANE in UNIT.lanes.values():
                 lane_msg = ''
-                if self.AFC_FUNCTION.get_current_lane() is not None:
-                    if self.AFC_FUNCTION.get_current_lane() == CUR_LANE.name:
+                if self.current is not None:
+                    if self.current == CUR_LANE.name:
                         if not CUR_LANE.get_toolhead_pre_sensor_state() or not CUR_LANE.hub_obj.state:
                             lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name, max_lane_length)
                         else:

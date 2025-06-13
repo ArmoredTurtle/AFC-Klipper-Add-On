@@ -83,7 +83,7 @@ class afcBoxTurtle(afcUnit):
                             if CUR_LANE.extruder_obj.tool_start == "buffer":
                                 msg += "<span class=warning--text>\n Ram sensor enabled, confirm tool is loaded</span>"
 
-                            if self.AFC.FUNCTION.get_current_lane() == CUR_LANE.name:
+                            if self.AFC.current == CUR_LANE.name:
                                 self.AFC.SPOOL.set_active_spool(CUR_LANE.spool_id)
                                 self.AFC.FUNCTION.afc_led(CUR_LANE.led_tool_loaded, CUR_LANE.led_index)
                                 CUR_LANE.status = 'Tooled'
