@@ -10,6 +10,8 @@ export LC_ALL=C
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+source include/constants.sh
+
 # Menu functions
 source include/menus/main_menu.sh
 source include/menus/install_menu.sh
