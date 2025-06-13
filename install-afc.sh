@@ -18,7 +18,7 @@ source include/menus/install_menu.sh
 source include/menus/update_menu.sh
 source include/menus/utilities_menu.sh
 source include/menus/additional_system_menu.sh
-
+source include/utils.sh
 
 ###################### Main script logic below ######################
 
@@ -53,7 +53,6 @@ source include/install_functions.sh
 source include/uninstall.sh
 source include/update_commands.sh
 source include/update_functions.sh
-source include/utils.sh
 source include/unit_functions.sh
 
 original_args=("$@")
