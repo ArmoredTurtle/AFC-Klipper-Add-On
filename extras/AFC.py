@@ -61,7 +61,7 @@ class afc:
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
-        self.current        = None
+        # self.current        = None
         self.current_loading= None
         self.next_lane_load = None
         self.error_state    = False
@@ -1017,7 +1017,7 @@ class afc:
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
         if self._check_bypass(unload=True): return False
 
-        lane = gcmd.get('LANE', self.current)
+        lane = gcmd.get('LANE', self.AFC_FUNCTION.get_current_lane())
         if lane is None:
             return
         if lane not in self.lanes:
@@ -1328,8 +1328,13 @@ class afc:
 
         self.next_lane_load = CUR_LANE.name
 
+        # If the current extruder is not the one associated with the lane, switch to it.
+        if self.AFC.FUNCTION.get_current_extruder() != CUR_LANE.extruder_obj.name:
+            # self.FUNCTION.select_extruder(CUR_LANE.extruder_obj.name) # Future function to change extruders
+            pass 
+
         # If the requested lane is not the current lane, proceed with the tool change.
-        if CUR_LANE.name != self.current:
+        if CUR_LANE.name != self.AFC_FUNCTION.get_current_lane():
             # Save the current toolhead position to allow restoration after the tool change.
             self.save_pos()
             # Set the in_toolchange flag to prevent overwriting the saved position during potential failures.
@@ -1338,14 +1343,14 @@ class afc:
             # Check if the lane has completed the preparation process required for tool changes.
             if CUR_LANE._afc_prep_done:
                 # Log the tool change operation for debugging or informational purposes.
-                self.logger.info("Tool Change - {} -> {}".format(self.current, CUR_LANE.name))
+                self.logger.info("Tool Change - {} -> {}".format(self.AFC_FUNCTION.get_current_lane(), CUR_LANE.name))
                 if not self.error_state and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
                     self.current_toolchange += 1
                     self.logger.raw("//      Change {} out of {}".format(self.current_toolchange, self.number_of_toolchanges))
 
                 # If a current lane is loaded, unload it first.
-                if self.current is not None:
-                    c_lane = self.current
+                if self.AFC_FUNCTION.get_current_lane() is not None:
+                    c_lane = self.AFC_FUNCTION.get_current_lane()
                     if c_lane not in self.lanes:
                         self.ERROR.AFC_error('{} Unknown'.format(c_lane))
                         return
@@ -1388,7 +1393,7 @@ class afc:
         Displays current status of AFC for webhooks
         """
         str = {}
-        str['current_load']             = self.FUNCTION.get_current_lane() # self.current
+        str['current_load']             = self.FUNCTION.get_current_lane() 
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
@@ -1484,8 +1489,8 @@ class afc:
 
             for CUR_LANE in UNIT.lanes.values():
                 lane_msg = ''
-                if self.current is not None:
-                    if self.current == CUR_LANE.name:
+                if self.AFC_FUNCTION.get_current_lane() is not None:
+                    if self.AFC_FUNCTION.get_current_lane() == CUR_LANE.name:
                         if not CUR_LANE.get_toolhead_pre_sensor_state() or not CUR_LANE.hub_obj.state:
                             lane_msg += '<span class=warning--text>{:<{}} </span>'.format(CUR_LANE.name, max_lane_length)
                         else:

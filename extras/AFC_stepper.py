@@ -549,13 +549,13 @@ class AFCExtruderStepper:
                         self.AFC.FUNCTION.afc_led(self.AFC.led_ready, self.led_index)
                         self.material = self.AFC.default_material_type
 
-                elif self.prep_state == False and self.name == self.AFC.current and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
+                elif self.prep_state == False and self.name == self.AFC.FUNCTION.get_current_lane() and self.AFC.FUNCTION.is_printing() and self.load_state and self.status != 'ejecting':
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
                     if  self.runout_lane != 'NONE':
                         self.status = None
                         self.AFC.FUNCTION.afc_led(self.AFC.led_not_ready, self.led_index)
                         self.logger.info("Infinite Spool triggered for {}".format(self.name))
-                        empty_LANE = self.AFC.lanes[self.AFC.current]
+                        empty_LANE = self.AFC.lanes[self.AFC.FuNCTION.get_current_lane()]
                         change_LANE = self.AFC.lanes[self.runout_lane]
                         # Pause printer with manual command
                         self.AFC.ERROR.pause_resume.send_pause_command()
@@ -729,7 +729,7 @@ class AFCExtruderStepper:
         Helper function for setting multiple variables when lane is loaded
         """
         self.tool_loaded = True
-        self.AFC.current = self.extruder_obj.lane_loaded = self.name
+        self.extruder_obj.lane_loaded = self.name
         self.AFC.current_loading = None
         self.status = 'Tooled'
         self.AFC.SPOOL.set_active_spool(self.spool_id)
@@ -741,7 +741,6 @@ class AFCExtruderStepper:
         self.tool_loaded = False
         self.extruder_obj.lane_loaded = ""
         self.status = None
-        self.AFC.current = None
         self.AFC.current_loading = None
         self.AFC.SPOOL.set_active_spool( None )
 

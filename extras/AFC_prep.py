@@ -86,7 +86,7 @@ class afcPrep:
                   'lane_loaded' in units["system"]["extruders"][PrinterObject.name] and \
                   units["system"]["extruders"][PrinterObject.name]['lane_loaded']:
                     PrinterObject.lane_loaded = units["system"]["extruders"][PrinterObject.name]['lane_loaded']
-                    self.AFC.current = PrinterObject.lane_loaded
+
 
         for LANE in self.AFC.lanes.keys():
             CUR_LANE = self.AFC.lanes[LANE]
@@ -160,7 +160,7 @@ class afcPrep:
                 self.AFC.bypass.sensor_enabled = units["system"]["bypass"]["enabled"]
 
         # Defaulting to no active spool, putting at end so endpoint has time to register
-        if self.AFC.current is None:
+        if self.AFC_FUNCTION.get_current_lane() is None:
             self.AFC.SPOOL.set_active_spool( None )
         # Setting value to False so the T commands don't try to get reassigned when users manually
         #   run PREP after it has already be ran once upon boot

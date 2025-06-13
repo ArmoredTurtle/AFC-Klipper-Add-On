@@ -188,9 +188,8 @@ class afcFunction:
         :return string: Current lane name that is loaded, None if nothing is loaded
         """
         if self.printer.state_message == 'Printer is ready':
-            current_extruder = self.AFC.toolhead.get_extruder().name
-            if current_extruder in self.AFC.tools:
-                return self.AFC.tools[current_extruder].lane_loaded
+            if self.get_current_extruder() is not None:
+                return self.AFC.tools[self.get_current_extruder()].lane_loaded
         return None
 
     def get_current_lane_obj(self):
@@ -204,6 +203,18 @@ class afcFunction:
         if curr_lane in self.AFC.lanes:
             curr_lane_obj = self.AFC.lanes[curr_lane]
         return curr_lane_obj
+    
+    def get_current_extruder(self):
+        """
+        Helper function to lookup current extruder object loaded into active toolhead
+
+        :return string: Name of current extruder/tool, None if no extruder/tool
+        """
+        current_extruder = self.AFC.toolhead.get_extruder().name
+        if current_extruder in self.AFC.tools:
+            return current_extruder
+        else:
+            return None
 
     def verify_led_object(self, led_name):
         """
@@ -445,7 +456,7 @@ class afcFunction:
 
         prompt.p_end()
 
-        if self.AFC.current is not None:
+        if self.get_current_lane() is not None:
             self.logger.info('Tool must be unloaded to calibrate system')
             return
 
@@ -831,10 +842,10 @@ class afcFunction:
         unload_length = gcmd.get('UNLOAD_LENGTH', None)
 
         # If hub is not passed in try and get hub if a lane is currently loaded
-        if hub is None and self.AFC.current is not None:
-            CUR_LANE = self.AFC.lanes[self.current]
+        if hub is None and self.get_current_lane() is not None:
+            CUR_LANE = self.AFC.lanes[self.get_current_lane()]
             hub     = CUR_LANE.hub_obj.name
-        elif hub is None and self.current is None:
+        elif hub is None and self.get_current_lane() is None:
             self.logger.info("A lane is not loaded please specify hub to adjust bowden length")
             return
 
