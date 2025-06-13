@@ -1780,6 +1780,19 @@ class afc:
 
     cmd_AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
     def cmd_AFC_CLEAR_MESSAGE(self, gcmd):
+        """
+        This macro handles clearing one message at a time for messages that show up mainsail/klipperscreen/fluidd gui's.
+
+        USAGE
+        -----
+        `AFC_CLEAR_MESSAGE`
+
+        Example
+        -----
+        ```
+        AFC_CLEAR_MESSAGE
+        ```
+        """
         self._get_message(clear=True)
 
     cmd__AFC_TEST_MESSAGES_help = "Macro to send test messages for testing"
