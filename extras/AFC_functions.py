@@ -201,7 +201,7 @@ class afcFunction:
         curtime = self.afc.reactor.monotonic()
         kin_status = self.afc.toolhead.get_kinematics().get_status(curtime)
         if ('x' not in kin_status['homed_axes'] or 'y' not in kin_status['homed_axes'] or 'z' not in kin_status['homed_axes']) and \
-            not self.AFC.disable_homing_check:
+            not self.afc.disable_homing_check:
             return False
         else:
             return True
@@ -290,8 +290,8 @@ class afcFunction:
 
         :return string: Name of current extruder/tool, None if no extruder/tool
         """
-        current_extruder = self.AFC.toolhead.get_extruder().name
-        if current_extruder in self.AFC.tools:
+        current_extruder = self.afc.toolhead.get_extruder().name
+        if current_extruder in self.afc.tools:
             return current_extruder
         else:
             return None

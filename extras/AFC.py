@@ -237,7 +237,7 @@ class afc:
 
     @property
     def current(self):  
-        return self.FUNCTION.get_current_lane()
+        return self.function.get_current_lane()
 
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
@@ -1000,9 +1000,9 @@ class afc:
         # TODO: add check to make sure current extruder is not loaded with a lane, mainly for scenarios with multuple toolheads
 
         # If the current extruder is not the one associated with the lane, switch to it.
-        if self.FUNCTION.get_current_extruder() != CUR_LANE.extruder_obj.name:
-            # self.FUNCTION.select_extruder(CUR_LANE.extruder_obj.name) # Future function to change extruders
-            pass 
+        if self.function.get_current_extruder() != cur_lane.extruder_obj.name:
+            # self.function.select_extruder(cur_lane.extruder_obj.name) # Future function to change extruders
+            pass
 
         # Check if the bypass filament sensor is triggered; abort loading if filament is already present.
         if self._check_bypass(): return False
@@ -1249,9 +1249,9 @@ class afc:
             return False
 
         # If the current extruder is not the one associated with the lane, switch to it.
-        if self.FUNCTION.get_current_extruder() != CUR_LANE.extruder_obj.name:
-            # self.FUNCTION.select_extruder(CUR_LANE.extruder_obj.name) # Future function to change extruders
-            pass 
+        if self.function.get_current_extruder() != cur_lane.extruder_obj.name:
+            # self.function.select_extruder(cur_lane.extruder_obj.name) # Future function to change extruders
+            pass
 
         self.current_state  = State.UNLOADING
         self.current_loading = cur_lane.name
@@ -1530,8 +1530,8 @@ class afc:
         self.next_lane_load = cur_lane.name
 
         # If the current extruder is not the one associated with the lane, switch to it.
-        if self.FUNCTION.get_current_extruder() != cur_lane.extruder_obj.name:
-            # self.FUNCTION.select_extruder(CUR_LANE.extruder_obj.name) # Future function to change extruders
+        if self.function.get_current_extruder() != cur_lane.extruder_obj.name:
+            # self.function.select_extruder(CUR_LANE.extruder_obj.name) # Future function to change extruders
             pass 
 
         # If the requested lane is not the current lane, proceed with the tool change.
