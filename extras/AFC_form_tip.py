@@ -8,9 +8,9 @@ class afc_tip_form:
     def __init__(self, config):
         self.printer        = config.get_printer()
         self.reactor        = self.printer.get_reactor()
-        self.AFC            = self.printer.lookup_object('AFC')
+        self.afc            = self.printer.lookup_object('AFC')
         self.gcode          = self.printer.lookup_object('gcode')
-        self.logger         = self.AFC.logger
+        self.logger         = self.afc.logger
 
          # TIP FORMING
         self.ramming_volume         = config.getfloat("ramming_volume", 0)
@@ -34,10 +34,7 @@ class afc_tip_form:
 
 
     def afc_extrude(self, distance, speed):
-        pos = self.AFC.toolhead.get_position()
-        pos[3] += distance
-        self.AFC.toolhead.manual_move(pos, speed)
-        self.AFC.toolhead.wait_moves()
+        self.afc.move_e_pos( distance, speed, "form tip")
 
     cmd_TEST_AFC_TIP_FORMING_help = "Gives ability to test AFC tip forming without doing a tool change"
     def cmd_TEST_AFC_TIP_FORMING(self, gcmd):
@@ -133,7 +130,7 @@ class afc_tip_form:
 
     def tip_form(self):
         step = 1
-        extruder = self.AFC.toolhead.get_extruder()
+        extruder = self.afc.toolhead.get_extruder()
         pheaters = self.printer.lookup_object('heaters')
         current_temp = extruder.get_heater().target_temp     # Saving current temp so it can be set back when done if toolchange_temp is not zero
         if self.ramming_volume > 0:

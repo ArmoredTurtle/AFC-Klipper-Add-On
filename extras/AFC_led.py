@@ -16,8 +16,8 @@ class AFCled:
         self.mutex      = printer.get_reactor().mutex()
         self.fullname   = config.get_name()
         self.name       = self.fullname.split()[-1]
-        self.AFC        = self.printer.lookup_object('AFC')
-        self.AFC.led_obj[self.name] = self
+        self.afc        = self.printer.lookup_object('AFC')
+        self.afc.led_obj[self.name] = self
         # Configure neopixel
         ppins = printer.lookup_object('pins')
         pin_params = ppins.lookup_pin(config.get('pin'))
@@ -119,7 +119,11 @@ class AFCled:
         if update_last: self.last_led_color[str(index)] = status
         if self.keep_leds_off: return
 
-        colors=list(map(float,status.split(',')))
+        if isinstance(status, list):
+            colors = status
+        else:
+            colors=list(map(float,status.split(',')))
+
         transmit = 1
         def lookahead_bgfunc(print_time):
             if hasattr(self.led_helper, "_set_color"):
@@ -128,7 +132,15 @@ class AFCled:
             else:
                 set_color_fn = self.led_helper.set_color
                 check_transmit_fn = self.led_helper.check_transmit
-            set_color_fn(index, colors)
+            if isinstance(index, str) and "-" in index:
+                start, end = map(int, index.split("-"))
+                for i in range(start, end + 1):
+                    set_color_fn(i, colors)
+            elif isinstance(index, list):
+                for i in index:
+                    set_color_fn(i, colors)
+            else:
+                set_color_fn(int(index), colors)
             if transmit:
                 check_transmit_fn(print_time)
         toolhead = self.printer.lookup_object('toolhead')
@@ -142,7 +154,7 @@ class AFCled:
     def turn_on_leds(self):
         self.keep_leds_off = False
         for index, value in self.last_led_color.items():
-            self.led_change( int(index), value, False )
+            self.led_change(index, value, False)
 
 def load_config_prefix(config):
     return AFCled(config)
