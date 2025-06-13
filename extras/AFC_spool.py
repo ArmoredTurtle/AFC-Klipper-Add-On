@@ -10,9 +10,6 @@ class AFCSpool:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
-        # Generic default density values
-        self.common_density = {"PLA": 1.24, "PETG":1.23, "ABS":1.04, "ASA":1.07}
-
     def handle_connect(self):
         """
         Handle the connection event.
@@ -171,17 +168,17 @@ class AFCSpool:
             self.logger.info('{} Unknown'.format(lane))
             return
         cur_lane = self.afc.lanes[lane]
+        density = gcmd.get_float('DENSITY', None)
+
         cur_lane.material = gcmd.get('MATERIAL')
-        cur_lane.filament_density = gcmd.get('DENSITY', None)
         cur_lane.filament_diameter = gcmd.get('DIAMETER', cur_lane.filament_diameter)
         cur_lane.empty_spool_weight = gcmd.get('EMPTY_SPOOL_WEIGHT', cur_lane.empty_spool_weight)
 
-        # Set default value if denisity is not passed in
-        if cur_lane.filament_density is None:
-            for key,value in self.common_density.items():
-                if key in cur_lane.material:
-                    cur_lane.filament_density = value
-                    break
+        # Setting density if its not none, doing this after setting material as material setter
+        # automatically sets density based on material name
+        if density is not None:
+            cur_lane.filament_density = density
+
         self.afc.save_vars()
 
     def set_active_spool(self, ID):
@@ -248,9 +245,8 @@ class AFCSpool:
         cur_lane.spool_id = ''
         cur_lane.material = ''
         cur_lane.color = ''
-        cur_lane.weight = ''
+        cur_lane.weight = 0
         cur_lane.extruder_temp = None
-        cur_lane.material = None
 
     def set_spoolID(self, cur_lane, SpoolID, save_vars=True):
         if self.afc.spoolman is not None:

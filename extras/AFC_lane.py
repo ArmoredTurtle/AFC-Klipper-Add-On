@@ -67,10 +67,9 @@ class AFCLane:
         self.tool_loaded        = False
         self.loaded_to_hub      = False
         self.spool_id           = None
-        self.material           = None
         self.color              = None
         self.weight             = 0
-        self.material           = None
+        self._material          = None
         self.extruder_temp      = None
         self.runout_lane        = 'NONE'
         self.status             = AFCLaneState.NONE
@@ -175,6 +174,30 @@ class AFCLane:
 
     def __str__(self):
         return self.name
+
+    @property
+    def material(self):
+        """
+        Returns lanes filament material type
+        """
+        return self._material
+
+    @material.setter
+    def material(self, value):
+        """
+        Sets filament material type and sets filament density based off material type.
+        To use custom density, set density after setting material
+        """
+        self._material = value
+        if not value:
+            self.filament_density = 1.24 # Setting to a default value
+            return
+
+        for density in self.afc.common_density_values:
+            v = density.split(":")
+            if v[0] in value:
+                self.filament_density = float(v[1])
+                break
 
     def _handle_ready(self):
         """
