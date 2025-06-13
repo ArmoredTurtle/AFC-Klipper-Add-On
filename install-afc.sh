@@ -29,6 +29,8 @@ source include/update_functions.sh
 source include/utils.sh
 source include/unit_functions.sh
 
+original_args=("$@")
+
 main() {
   ###################### Main script logic below ######################
 

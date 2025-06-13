@@ -73,7 +73,7 @@ clone_and_maybe_restart() {
       echo "→ New commits detected; rebasing…"
       git -C "${afc_path}" pull --rebase --quiet
       echo "✓ Update applied. Restarting script…"
-      exec "$0" "$@"
+      exec "$0" "${original_args[@]}"
     else
       echo "✓ Already up to date."
     fi

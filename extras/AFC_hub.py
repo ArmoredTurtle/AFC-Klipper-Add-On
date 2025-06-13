@@ -3,17 +3,21 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import traceback
+
 from configparser import Error as error
-try:
-    from extras.AFC_utils import add_filament_switch
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_utils import add_filament_switch
+except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
 
 class afc_hub:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
-        self.AFC = self.printer.lookup_object('AFC')
+        self.afc = self.printer.lookup_object('AFC')
         self.fullname           = config.get_name()
         self.name               = self.fullname.split()[-1]
 
@@ -43,7 +47,7 @@ class afc_hub:
 
         self.config_bowden_length   = self.afc_bowden_length                        # Used by SET_BOWDEN_LENGTH macro
         self.config_unload_bowden_length = self.afc_unload_bowden_length
-        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui) # Set to True to show hub sensor switche as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui) # Set to True to show hub sensor switche as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
 
         buttons = self.printer.load_object(config, "buttons")
         if self.switch_pin is not None:
@@ -56,7 +60,7 @@ class afc_hub:
             self.fila = add_filament_switch(self.filament_switch_name, self.switch_pin, self.printer )
 
         # Adding self to AFC hubs
-        self.AFC.hubs[self.name]=self
+        self.afc.hubs[self.name]=self
 
     def __str__(self):
         return self.name
@@ -67,32 +71,32 @@ class afc_hub:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.gcode = self.AFC.gcode
-        self.reactor = self.AFC.reactor
+        self.gcode = self.afc.gcode
+        self.reactor = self.afc.reactor
 
         self.printer.send_event("afc_hub:register_macros", self)
 
     def switch_pin_callback(self, eventtime, state):
         self.state = state
 
-    def hub_cut(self, CUR_LANE):
+    def hub_cut(self, cur_lane):
         servo_string = 'SET_SERVO SERVO={servo} ANGLE={{angle}}'.format(servo=self.cut_servo_name)
 
         # Prep the servo for cutting.
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_prep_angle))
         # Load the lane until the hub is triggered.
         while not self.state:
-            CUR_LANE.move( self.move_dis, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+            cur_lane.move(self.move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
 
         # To have an accurate reference position for `hub_cut_dist`, move back and forth in smaller steps
         # to find the point where the hub just triggers.
         while self.state:
-            CUR_LANE.move(-10, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, self.assisted_retract)
+            cur_lane.move(-10, cur_lane.short_moves_speed, cur_lane.short_moves_accel, self.assisted_retract)
         while not self.state:
-            CUR_LANE.move(2, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+            cur_lane.move(2, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
 
         # Feed the `hub_cut_dist` amount.
-        CUR_LANE.move( self.cut_dist, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel)
+        cur_lane.move(self.cut_dist, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
         # Have a snooze
         self.reactor.pause(self.reactor.monotonic() + 0.5)
 
@@ -112,7 +116,7 @@ class afc_hub:
         self.gcode.run_script_from_command(servo_string.format(angle=self.cut_servo_pass_angle))
 
         # Retract lane by `hub_cut_clear`.
-        CUR_LANE.move(-self.cut_clear, CUR_LANE.short_moves_speed, CUR_LANE.short_moves_accel, self.assisted_retract)
+        cur_lane.move(-self.cut_clear, cur_lane.short_moves_speed, cur_lane.short_moves_accel, self.assisted_retract)
 
     def get_status(self, eventtime=None):
         self.response = {}
