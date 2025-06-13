@@ -24,7 +24,6 @@ source include/utils.sh
 source include/buffer_configurations.sh
 source include/check_commands.sh
 source include/colors.sh
-source include/constants.sh
 source include/install_functions.sh
 source include/uninstall.sh
 source include/update_commands.sh
@@ -37,7 +36,7 @@ original_args=("$@")
 main() {
   ###################### Main script logic below ######################
 
-  while getopts "a:k:s:m:n:b:p:y:u:th" arg; do
+  while getopts "a:k:s:m:n:b:p:y:th" arg; do
     case ${arg} in
     a) moonraker_address=${OPTARG} ;;
     k) klipper_dir=${OPTARG} ;;
