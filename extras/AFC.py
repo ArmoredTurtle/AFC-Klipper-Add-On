@@ -214,10 +214,6 @@ class afc:
 
         self.afcDeltaTime = afcDeltaTime(self)
 
-        @property
-        def current(self):  
-            return self.FUNCTION.get_current_lane()
-
         # Register AFC macros
         self.show_macros = config.getboolean('show_macros',
                                              True)  # Show internal python AFC_ macros in the web interfaces (Mainsail/Fluidd)
@@ -238,6 +234,10 @@ class afc:
                                         self.cmd_AFC_TOGGLE_MACRO_help, self.cmd_AFC_TOGGLE_MACRO_options)
         self.function.register_commands(self.show_macros, 'UNSET_LANE_LOADED', self.cmd_UNSET_LANE_LOADED,
                                         self.cmd_UNSET_LANE_LOADED_help)
+
+    @property
+    def current(self):  
+        return self.FUNCTION.get_current_lane()
 
     def _remove_after_last(self, string, char):
         last_index = string.rfind(char)
