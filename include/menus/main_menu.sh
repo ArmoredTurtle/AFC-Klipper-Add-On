@@ -90,9 +90,6 @@ completed you will not be able to use this assisted process for any future updat
         export message="To change the moonraker address, please re-run this script with a '-a <address>' option.\n"
         export message+="To change the moonraker port, please re-run this script with a '-n <moonraker port>' option." ;;
       I)
-        if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
-          backup_afc_config
-        fi
         install_menu ;;
       U)
         update_menu ;;

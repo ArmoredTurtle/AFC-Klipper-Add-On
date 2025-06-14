@@ -36,33 +36,45 @@ function copy_config() {
   cp -R ${afc_path}/config/* "${afc_config_dir}"
 }
 
-function clone_repo() {
-  # Function to clone the AFC Klipper Add-On repository if it is not already cloned.
-  # Uses the global variables:
-  #   - afc_path: The path where the repository should be cloned.
-  #   - gitrepo: The URL of the repository to clone.
-  #   - branch: The branch to check out after cloning or pulling the repository.
+clone_and_maybe_restart() {
+  if [[ ! -d "${afc_path}/.git" ]]; then
+    echo "→ Cloning ${branch} from ${gitrepo} into ${afc_path}…"
+    git clone \
+      --branch "${branch}" \
+      --single-branch \
+      --depth 1 \
+      "${gitrepo}" \
+      "${afc_path}"
+    echo "✓ Clone complete."
+  else
+    echo "→ Switching to branch '${branch}'…"
+    git -C "${afc_path}" checkout --quiet "${branch}"
 
-  local afc_dir_name afc_base_name
-  afc_dir_name="$(dirname "${afc_path}")"
-  afc_base_name="$(basename "${afc_path}")"
-
-  if [ ! -d "${afc_path}" ]; then
-    echo "Cloning AFC Klipper Add-On repo..."
-    if git -C $afc_dir_name clone --quiet $gitrepo $afc_base_name; then
-      print_msg INFO "AFC Klipper Add-On repo cloned successfully"
-      pushd "${afc_path}" || exit
-      git checkout --quiet "${branch}"
-      popd || exit
-    else
-      print_msg ERROR "Failed to clone AFC Klipper Add-On repo"
+    echo "→ Checking for uncommitted changes…"
+    if ! git -C "${afc_path}" diff --quiet || \
+       ! git -C "${afc_path}" diff --quiet --cached; then
+      echo "❌ You have uncommitted changes in ${afc_path}."
+      echo "   Please commit or stash them before running this script."
+      echo ""
+      echo "💡 To discard your changes and reset the branch:"
+      echo "   cd \"${afc_path}\""
+      echo "   git checkout ${branch}"
+      echo "   git reset --hard origin/${branch}"
+      echo "   git clean -fd"
       exit 1
     fi
-  else
-    pushd "${afc_path}" || exit
-    git pull --quiet
-    git checkout --quiet "${branch}"
-    popd || exit
+
+    echo "→ Fetching updates in ${afc_path}…"
+    git -C "${afc_path}" fetch --prune --quiet
+
+    if git -C "${afc_path}" status --porcelain --branch | grep -q 'behind'; then
+      echo "→ New commits detected; rebasing…"
+      git -C "${afc_path}" pull --rebase --quiet
+      echo "✓ Update applied. Restarting script…"
+      exec "$0" "${original_args[@]}"
+    else
+      echo "✓ Already up to date."
+    fi
   fi
 }
 
