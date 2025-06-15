@@ -320,19 +320,19 @@ class AFCSpool:
     cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
     def cmd_RESET_AFC_MAPPING(self, gcmd):
         """
-        This commands resets all tool lane mapping to the order that is set up in the configuration. This command
-        will also reset any configured runout lanes to None.
+        Resets all tool lane mapping to the order set up in the configuration.
+        Optionally resets runout lanes unless RUNOUT=no is specified.
 
         Useful to put in your PRINT_END macro to reset mapping
 
         Usage
         -----
-        `RESET_AFC_MAPPING`
+        `RESET_AFC_MAPPING [RUNOUT=yes|no]`
 
         Example
         -----
         ```
-        RESET_AFC_MAPPING
+        RESET_AFC_MAPPING RUNOUT=no
         ```
         """
         t_index = 0
