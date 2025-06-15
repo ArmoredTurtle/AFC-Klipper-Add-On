@@ -74,6 +74,11 @@ copy_unit_files() {
     cp "${afc_path}/templates/AFC_Turtle_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
     ;;
 
+  "BoxTurtle (8-Lane)")
+    cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
+    cp "${afc_path}/templates/AFC_Pro_Turtle_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
+    ;;
+
   "NightOwl")
     cp "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
@@ -132,8 +137,7 @@ install_afc() {
   update_config_value "${afc_file}" "hub_cut" "${hub_cutter}"
   update_config_value "${afc_file}" "kick" "${kick_macro}"
   update_config_value "${afc_file}" "wipe" "${wipe_macro}"
-  echo "$toolhead_sensor"
-  echo "$toolhead_sensor_pin"
+
   if [ "$toolhead_sensor" == "Sensor" ]; then
     update_switch_pin "${afc_config_dir}/AFC_Hardware.cfg" "${toolhead_sensor_pin}"
   elif [ "$toolhead_sensor" == "Ramming" ]; then
