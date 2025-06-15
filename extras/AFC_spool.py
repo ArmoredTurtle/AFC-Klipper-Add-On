@@ -340,6 +340,10 @@ class AFCSpool:
                 self.afc.lanes[lane].map = map_cmd
                 t_index += 1
 
+        # Resetting runout lanes to None
+        for lane in self.afc.lanes.values():
+            lane.runout_lane = None
+
         self.afc.save_vars()
         self.logger.info("Tool mappings reset")
 
