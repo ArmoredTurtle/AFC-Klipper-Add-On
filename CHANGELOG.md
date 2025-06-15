@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-06-15]
 ### Added
-- Added support for the AFC-Pro board in the installer to install an 8-Lane Boxturtle. 
+- Added support for the AFC-Pro board in the installer to install an 8-Lane Boxturtle.
+- The `RESET_AFC_MAPPING` macro will now also reset any runout lane configurations.
 
 ## [2025-06-10]
 ### Added
