@@ -3,19 +3,23 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import traceback
+
 from configparser import Error as error
-try:
-    from extras.AFC_utils import add_filament_switch
-except:
-    raise error("Error trying to import AFC_utils, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper")
+
+try: from extras.AFC_utils import ERROR_STR
+except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
+
+try: from extras.AFC_utils import add_filament_switch
+except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
 
 class AFCExtruder:
     def __init__(self, config):
         self.printer    = config.get_printer()
         buttons         = self.printer.load_object(config, "buttons")
-        self.AFC        = self.printer.lookup_object('AFC')
+        self.afc        = self.printer.lookup_object('AFC')
         self.gcode      = self.printer.lookup_object('gcode')
-        self.logger     = self.AFC.logger
+        self.logger     = self.afc.logger
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
         self.fullname                   = config.get_name()
@@ -26,9 +30,9 @@ class AFCExtruder:
         self.tool_stn_unload            = config.getfloat("tool_stn_unload", 100)                                       # Distance to move in mm while unloading toolhead
         self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)                              # Extra distance to move in mm once pre/post sensors are clear. Useful for when only using post sensor, so this distance can be the amout to move to clear extruder gears
         self.tool_unload_speed          = config.getfloat("tool_unload_speed", 25)                                      # Unload speed in mm/s when unloading toolhead. Default is 25mm/s.
-        self.tool_load_speed            = config.getfloat("tool_load_speed", 25)                                        # Load speed in mm/s when unloading toolhead. Default is 25mm/s.
+        self.tool_load_speed            = config.getfloat("tool_load_speed", 25)                                        # Load speed in mm/s when loading toolhead. Default is 25mm/s.
         self.buffer_name                = config.get('buffer', None)                                                    # Buffer to use for extruder, this variable can be overridden per lane
-        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.AFC.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
 
         self.lane_loaded                = None
         self.lanes                      = {}
@@ -53,6 +57,16 @@ class AFCExtruder:
 
         self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
 
+        self.show_macros = self.afc.show_macros
+        self.function = self.printer.load_object(config, 'AFC_functions')
+
+        self.function.register_mux_command(self.show_macros, 'UPDATE_TOOLHEAD_SENSORS', "EXTRUDER", self.name,
+                                           self.cmd_UPDATE_TOOLHEAD_SENSORS, self.cmd_UPDATE_TOOLHEAD_SENSORS_help,
+                                           self.cmd_UPDATE_TOOLHEAD_SENSORS_options)
+        self.function.register_mux_command(self.show_macros, 'SAVE_EXTRUDER_VALUES', "EXTRUDER", self.name,
+                                           self.cmd_SAVE_EXTRUDER_VALUES, self.cmd_SAVE_EXTRUDER_VALUES_help,
+                                           self.cmd_SAVE_EXTRUDER_VALUES_options)
+
     def __str__(self):
         return self.name
 
@@ -62,11 +76,8 @@ class AFCExtruder:
         This function is called when the printer connects. It looks up AFC info
         and assigns it to the instance variable `self.AFC`.
         """
-        self.reactor = self.AFC.reactor
-        self.AFC.tools[self.name] = self
-
-        self.AFC.gcode.register_mux_command('UPDATE_TOOLHEAD_SENSORS',  "EXTRUDER", self.name, self.cmd_UPDATE_TOOLHEAD_SENSORS,desc=self.cmd_UPDATE_TOOLHEAD_SENSORS_help)
-        self.AFC.gcode.register_mux_command('SAVE_EXTRUDER_VALUES',     "EXTRUDER", self.name, self.cmd_SAVE_EXTRUDER_VALUES,   desc=self.cmd_SAVE_EXTRUDER_VALUES_help)
+        self.reactor = self.afc.reactor
+        self.afc.tools[self.name] = self
 
     def tool_start_callback(self, eventtime, state):
         self.tool_start_state = state
@@ -119,7 +130,14 @@ class AFCExtruder:
         else:
             self.logger.error("tool_sensor_after_extruder length should be greater than zero")
 
-    cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn\tool_stn_unload\tool_sensor_after_extruder values without restarting klipper"
+    cmd_UPDATE_TOOLHEAD_SENSORS_help = "Gives ability to update tool_stn, tool_stn_unload, tool_sensor_after_extruder values without restarting klipper"
+    cmd_UPDATE_TOOLHEAD_SENSORS_options = {
+        "EXTRUDER": {"type": "string", "default": "extruder"},
+        "TOOL_STN": {"type": "float", "default": 0},
+        "TOOL_STN_UNLOAD": {"type": "float", "default": 0},
+        "TOOL_AFTER_EXTRUDER": {"type": "float", "default": 0}
+    }
+
     def cmd_UPDATE_TOOLHEAD_SENSORS(self, gcmd):
         """
         Macro call to adjust `tool_stn` `tool_stn_unload` `tool_sensor_after_extruder` lengths for specified extruder without having to
@@ -157,7 +175,9 @@ class AFCExtruder:
         if tool_sensor_after_extruder != self.tool_sensor_after_extruder:
             self._update_tool_after_extr( tool_sensor_after_extruder )
 
-    cmd_SAVE_EXTRUDER_VALUES_help = "Saves tool_stn, tool_stn_unload and tool_sensor_after_extruder values to config file "
+    cmd_SAVE_EXTRUDER_VALUES_help = ("Saves tool_stn, tool_stn_unload and tool_sensor_after_extruder values to config "
+                                     "file.")
+    cmd_SAVE_EXTRUDER_VALUES_options = {"EXTRUDER": {"type": "string", "default": "extruder"}}
     def cmd_SAVE_EXTRUDER_VALUES(self, gcmd):
         """
         Macro call to write tool_stn, tool_stn_unload and tool_sensor_after_extruder variables to config file for specified extruder.
@@ -172,9 +192,9 @@ class AFCExtruder:
         SAVE_EXTRUDER_VALUES EXTRUDER=extruder
         ```
         """
-        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn',                   self.tool_stn, '')
-        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_stn_unload',            self.tool_stn_unload, '')
-        self.AFC.FUNCTION.ConfigRewrite(self.fullname, 'tool_sensor_after_extruder', self.tool_sensor_after_extruder, '')
+        self.afc.function.ConfigRewrite(self.fullname, 'tool_stn', self.tool_stn, '')
+        self.afc.function.ConfigRewrite(self.fullname, 'tool_stn_unload', self.tool_stn_unload, '')
+        self.afc.function.ConfigRewrite(self.fullname, 'tool_sensor_after_extruder', self.tool_sensor_after_extruder, '')
 
     def get_status(self, eventtime=None):
         self.response = {}
