@@ -757,7 +757,7 @@ class AFCLane:
         filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
         self.weight -= filament_weight_change
 
-        # Weight cannot be negative, force back to zero if its below zero
+        # Weight cannot be negative, force back to zero if it's below zero
         if self.weight < 0:
             self.weight = 0
 
