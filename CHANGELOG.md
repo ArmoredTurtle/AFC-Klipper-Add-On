@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-16]
+### Removed
+- Removed the version checking functionality for force updates from the `install-afc.sh` script. 
+
 ## [2025-06-15]
 ### Added
 - Added support for the AFC-Pro board in the installer to install an 8-Lane Boxturtle.
