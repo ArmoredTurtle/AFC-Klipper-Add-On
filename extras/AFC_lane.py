@@ -676,11 +676,11 @@ class AFCLane:
         :param feed_rate: Filament feed rate in mm/s
         :return: Calculated RPM for the assist motor
         """
-        if self.weight <= self.empty_spool_weight:
-            return self.empty_spool_weight  # No filament left to assist
+        # Figure in weight of empty spool
+        weight = self.weight + self.empty_spool_weight
 
         # Calculate the effective diameter
-        effective_diameter = self.calculate_effective_diameter(self.weight)
+        effective_diameter = self.calculate_effective_diameter(weight)
 
         # Calculate RPM
         rpm = (feed_rate * 60) / (math.pi * effective_diameter)
@@ -757,8 +757,9 @@ class AFCLane:
         filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
         self.weight -= filament_weight_change
 
-        if self.weight < self.empty_spool_weight:
-            self.weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
+        # Weight cannot be negative, force back to zero if its below zero
+        if self.weight < 0:
+            self.weight = 0
 
     def set_loaded(self):
         """
