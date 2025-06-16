@@ -166,9 +166,7 @@ install_afc() {
 
   export message
   export files_updated_or_installed="True"
-  if [ "$test_mode" != "True" ]; then
-    update_afc_version "$current_install_version"
-  fi
+
   # Final step should be displaying any messages and exit cleanly.
   message="""
 - AFC Configuration updated with selected options at ${afc_file}

@@ -73,11 +73,6 @@ main() {
     clone_and_maybe_restart
   fi
   check_existing_install
-  check_version_and_set_force_update
-  #set_install_version_if_missing
-  if [ "$force_update_no_version" == "False" ]; then
-    check_version_and_set_force_update
-  fi
   echo "Starting installation process.."
   sleep 2
   clear
