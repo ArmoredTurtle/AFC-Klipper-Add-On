@@ -220,11 +220,7 @@ fi
         cycle_array qb_board_types board_counter qb_board_type "QuattroBox Board Type" ;;
       F)
         cycle_array qb_motor_types motor qb_motor_type "QuattroBox Motor Type" ;;
-      I)
-        if [ "$force_update" == "True" ] && [ "$prior_installation" == "True" ]; then
-          backup_afc_config
-        fi
-        install_afc ;;
+      I) install_afc ;;
       M) main_menu ;;
       Q) exit_afc_install ;;
       *) echo "Invalid selection" ;;
