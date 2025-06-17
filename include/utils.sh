@@ -139,7 +139,6 @@ restart_klipper() {
 
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
-    update_afc_version "$current_install_version"
     restart_klipper
   fi
   remove_vars_tool_file
@@ -154,25 +153,6 @@ function auto_update() {
   # mv "${AFC_CONFIG_PATH}/AFC_Hardware-temp.cfg" "${AFC_CONFIG_PATH}/AFC_Hardware.cfg"
 }
 
-check_version_and_set_force_update() {
-  local current_version
-  current_version=$(curl -s "$moonraker/server/database/item?namespace=afc-install&key=version" | jq -r .result.value)
-  if [[ -z "$current_version" || "$current_version" == "null" || "$current_version" < "$min_version" ]]; then
-    force_update=True
-  else
-    force_update=False
-  fi
-}
-
-update_afc_version() {
-  local version_update
-  version_update=$1
-  curl -s -XPOST "$moonraker/server/database/item?namespace=afc-install&key=version&value=$version_update" > /dev/null
-}
-
-remove_afc_version() {
-  curl -s -XDELETE "$moonraker/server/database/item?namespace=afc-install&key=version" > /dev/null
-}
 
 remove_vars_tool_file() {
   if [ -f "${afc_config_dir}/*.tool" ]; then
