@@ -192,7 +192,7 @@ class afc:
         # Setting to True enables espooler assist while printing
         self.enable_assist          = config.getboolean("enable_assist",        True)
         # Weight spool has to be below to activate print assist
-        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   5000.0)
+        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean
