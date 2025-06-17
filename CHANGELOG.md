@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Removed the version checking functionality for force updates from the `install-afc.sh` script. 
 
+### Fixed
+- Issue where espoolers would move way faster than normal when weight was below empty spool weight.
+
 ## [2025-06-15]
 ### Added
 - Added support for the AFC-Pro board in the installer to install an 8-Lane Boxturtle.
