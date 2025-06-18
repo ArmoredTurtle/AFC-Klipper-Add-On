@@ -201,7 +201,7 @@ class afcFunction:
         curtime = self.afc.reactor.monotonic()
         kin_status = self.afc.toolhead.get_kinematics().get_status(curtime)
         if ('x' not in kin_status['homed_axes'] or 'y' not in kin_status['homed_axes'] or 'z' not in kin_status['homed_axes']) and \
-            not self.AFC.disable_homing_check:
+            not self.afc.disable_homing_check:
             return False
         else:
             return True
