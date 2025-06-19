@@ -212,6 +212,10 @@ class afc:
 
         self.BASE_UNLOAD_FILAMENT    = 'UNLOAD_FILAMENT'
         self.RENAMED_UNLOAD_FILAMENT = '_AFC_RENAMED_{}_'.format(self.BASE_UNLOAD_FILAMENT)
+        self.BASE_M104              = 'M104'
+        self.RENAMED_M104         = '_AFC_RENAMED_{}_'.format(self.BASE_M104)
+        self.BASE_M109              = 'M109'
+        self.RENAMED_M109         = '_AFC_RENAMED_{}_'.format(self.BASE_M109)
 
         self.afcDeltaTime = afcDeltaTime(self)
 
@@ -318,7 +322,16 @@ class afc:
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
         self.gcode.register_command('AFC_CLEAR_MESSAGE',    self.cmd_AFC_CLEAR_MESSAGE,     desc=self.cmd_AFC_CLEAR_MESSAGE_help)
         self.gcode.register_command('_AFC_TEST_MESSAGES',   self.cmd__AFC_TEST_MESSAGES,    desc=self.cmd__AFC_TEST_MESSAGES_help)
+        self.gcode.register_command('AFC_M104',             self._cmd_AFC_M104,             desc=self._cmd_AFC_M104_help)
+        self.gcode.register_command('AFC_M109',             self._cmd_AFC_M109,             desc=self._cmd_AFC_M109_help)
+
+        self._rename_macros()
+
         self.current_state = State.IDLE
+
+    def _rename_macros(self):
+        self.function._rename(self.BASE_M104, self.RENAMED_M104, self.function._cmd_AFC_M104, self.function._cmd_AFC_M104_help)
+        self.function._rename(self.BASE_M109, self.RENAMED_M109, self.function._cmd_AFC_M109, self.function._cmd_AFC_M109_help)
 
     def print_version(self, console_only=False):
         """
@@ -927,7 +940,7 @@ class afc:
                 cur_lane.move_advanced(cur_hub.move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
             cur_lane.move_advanced(cur_hub.move_dis * -5, SpeedMode.SHORT)
             cur_lane.do_enable(False)
-            cur_lane.status = AFCLaneState.NONE
+            cur_lane.status = AFCLaneState.LOADED
             cur_lane.unit_obj.return_to_home()
             # Put CAM back to lane if its loaded to toolhead
             self.function.select_loaded_lane()
@@ -1671,6 +1684,42 @@ class afc:
             str["system"]["buffers"][buffer.name] = buffer.get_status()
 
         web_request.send( {"status:" : {"AFC": str}})
+
+    _cmd_AFC_M104_help = "Set extruder temperature"
+    def _cmd_AFC_M104(self, gcmd):
+        """
+        This function sets the temperature of the specified extruder.
+
+        Usage
+        -----
+        `AFC_M104 <extruder> <temperature>`
+        """
+        self._cmd_AFC_M109(gcmd, wait=False)
+
+    _cmd_AFC_M109_help = "Set extruder temperature and wait for it to reach the target"
+    def _cmd_AFC_M109(self, gcmd, wait=True):
+        """
+        This function sets the temperature of the specified extruder and waits for it to reach the target temperature.
+
+        Usage
+        -----
+        `AFC_M109 <extruder> <temperature>`
+        """
+        toolnum = gcmd.getint('T', None, minival=0)
+        temp = gcmd.getfloat('S', 0.0)
+        pheaters = self.printer.lookup_object('heaters')
+        extruder = self.function.get_current_extruder()
+
+        if toolnum is not None:
+            map = "T{}".format(toolnum)
+            lane = self.function.get_lane_by_map(map)
+            if lane is not None:
+                extruder = lane.extruder_obj.name
+            else:
+                self.logger.error("extruder not configured for T{}".format(toolnum))
+                return
+
+        pheaters.set_temperature(extruder.get_heater(), temp, wait)
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):
