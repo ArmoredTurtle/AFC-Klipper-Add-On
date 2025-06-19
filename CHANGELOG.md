@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-18]
+## Updated
+- RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane
+
+## Fixed
+- Fixed function that auto assigns T(n) commands to check and verify that other T(n) commands are not already registered outside of AFC
+
 ## [2025-06-17]
 ### Fixed
 - Updated `cycles_per_rotation` value to be less aggressive at 800 for print assist
