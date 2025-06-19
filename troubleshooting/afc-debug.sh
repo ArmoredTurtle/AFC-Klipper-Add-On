@@ -15,6 +15,7 @@ afc_path="$HOME/AFC-Klipper-Add-On"
 afc_config_dir="$printer_config_dir/AFC"
 afc_file="$afc_config_dir/AFC.cfg"
 klipper_venv="$HOME/klippy-env/bin"
+moonraker_config="$HOME/printer_data/config/moonraker.conf"
 
 # Global vars
 temp_log=""
@@ -270,6 +271,12 @@ find "$afc_config_dir" -type f | while read -r file; do
     append_file_to_log "$file_name" "$file"
 done
 
+# Add the moonraker config if it exists
+if [ -f "$moonraker_config" ]; then
+    append_file_to_log "$moonraker_config" "$moonraker_config"
+else
+    echo "Moonraker configuration file not found." >> "$temp_log"
+fi
 
 uploaded_files=()
 
