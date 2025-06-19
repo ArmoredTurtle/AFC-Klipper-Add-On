@@ -162,12 +162,28 @@ class afcFunction:
         self.logger.info(msg)
 
     def TcmdAssign(self, cur_lane):
-        if cur_lane.map == 'NONE' :
+        """
+        Function automatically tries to generate T(n) macros for lanes. If user has already assigned mapping to `map`
+        variable in their configs, this is used instead of an auto assigned command. Before assigning command, checks 
+        happen to make sure auto generated macro has not already be manually assigned in gcode or by something else.
+
+        Auto generated macro and manually assigned macro is then added to a dictionary to easily look up which lane 
+        to switch to when T(n) command is called.
+
+        :param cur_lane: Lane to assign auto generated T(n) macro
+        """
+        if cur_lane.map == None :
             for x in range(99):
                 cmd = 'T{}'.format(x)
-                if cmd not in self.afc.tool_cmds:
-                    cur_lane.map = cmd
-                    break
+                # Checking to see if cmd exists in lanes that have manually assigned mapping
+                # skip cmd and generate next if cmd is manually assigned by user
+                manually_assigned = any( cmd == lane._map for lane in self.afc.lanes.values() )
+                if not manually_assigned and cmd not in self.afc.tool_cmds:
+                    # Checking if macro already exists, generate next valid cmd if current generated cmd exists
+                    existing = self.afc.gcode.ready_gcode_handlers.get(cmd)
+                    if not existing:
+                        cur_lane._map = cur_lane.map = cmd
+                        break
         self.afc.tool_cmds[cur_lane.map]=cur_lane.name
         try:
             self.afc.gcode.register_command(cur_lane.map, self.afc.cmd_CHANGE_TOOL, desc=self.afc.cmd_CHANGE_TOOL_help)
