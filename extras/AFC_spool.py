@@ -320,28 +320,49 @@ class AFCSpool:
     cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
     def cmd_RESET_AFC_MAPPING(self, gcmd):
         """
-        This commands resets all tool lane mapping to the order that is setup in configuration. Useful to put in your PRINT_END macro to reset mapping
+        Resets all tool lane mapping to the order set up in the configuration.
+        Optionally resets runout lanes unless RUNOUT=no is specified.
+
+        Useful to put in your PRINT_END macro to reset mapping
 
         Usage
         -----
-        `RESET_AFC_MAPPING`
+        `RESET_AFC_MAPPING [RUNOUT=yes|no]`
 
         Example
         -----
         ```
-        RESET_AFC_MAPPING
+        RESET_AFC_MAPPING RUNOUT=no
         ```
         """
-        t_index = 0
+
+        # Gathering existing lane mapping and add to list
+        existing_cmds = [lane.map for lane in self.afc.lanes.values()]
+        # Gather manually assigned mappings and add to list
+        manually_assigned = [ lane._map for lane in self.afc.lanes.values()]
+        # Remove manually assigned mappings from auto assigned mappings
+        existing_cmds = list(set(existing_cmds) - set(manually_assigned))
+        # Sort list in numerical order
+        existing_cmds = sorted(existing_cmds, key=lambda x: int("".join([i for i in x if i.isdigit()])))
         for key, unit in self.afc.units.items():
-            for lane in unit.lanes:
-                map_cmd = "T{}".format(t_index)
-                self.afc.tool_cmds[map_cmd] = lane
-                self.afc.lanes[lane].map = map_cmd
-                t_index += 1
+            for lane in unit.lanes.values():
+				# Reassigning manually assigned mapping to lane
+                if lane._map is not None:
+                    map_cmd = lane._map
+                else:
+                    map_cmd = existing_cmds.pop(0)
+
+                self.afc.tool_cmds[map_cmd] = lane.name
+                self.afc.lanes[lane.name].map = map_cmd
+
+        # Resetting runout lanes to None
+        runout_opt = gcmd.get('RUNOUT', 'yes').lower()
+        if runout_opt != 'no':
+            for lane in self.afc.lanes.values():
+                lane.runout_lane = None
 
         self.afc.save_vars()
-        self.logger.info("Tool mappings reset")
+        self.logger.info("Tool mappings reset" + ("" if runout_opt == "no" else " and runout lanes reset"))
 
 def load_config(config):
     return AFCSpool(config)

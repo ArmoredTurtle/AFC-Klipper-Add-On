@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-18]
+## Updated
+- RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane
+
+## Fixed
+- Fixed function that auto assigns T(n) commands to check and verify that other T(n) commands are not already registered outside of AFC
+
+## [2025-06-17]
+### Fixed
+- Updated `cycles_per_rotation` value to be less aggressive at 800 for print assist
+- Updated `enable_assist_weight` value to be 500 so print assist start once weight gets below 500 grams
+
+## [2025-06-16]
+### Removed
+- Removed the version checking functionality for force updates from the `install-afc.sh` script. 
+
+### Fixed
+- Issue where espoolers would move way faster than normal when weight was below empty spool weight.
+
+## [2025-06-15]
+### Added
+- Added support for the AFC-Pro board in the installer to install an 8-Lane Boxturtle.
+- The `RESET_AFC_MAPPING` macro will now also reset any runout lane configurations.
+
 ## [2025-06-10]
 ### Added
 - Ability to turn on print assist if spool falls below a certain weight

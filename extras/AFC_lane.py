@@ -88,7 +88,10 @@ class AFCLane:
             pass
 
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-        self.map                = config.get('cmd','NONE')
+        self.map                = config.get('cmd', None)                               # Keeping this in so it does not break others config that may have used this, use map instead
+        # Saving to self._map so that if a user has it defined it will be reset back to this when
+        # the calling RESET_AFC_MAPPING macro.
+        self._map = self.map    = config.get('map', self.map)
         self.led_index          = config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
         self.led_fault          = config.get('led_fault',None)                          # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_ready          = config.get('led_ready',None)                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -676,11 +679,11 @@ class AFCLane:
         :param feed_rate: Filament feed rate in mm/s
         :return: Calculated RPM for the assist motor
         """
-        if self.weight <= self.empty_spool_weight:
-            return self.empty_spool_weight  # No filament left to assist
+        # Figure in weight of empty spool
+        weight = self.weight + self.empty_spool_weight
 
         # Calculate the effective diameter
-        effective_diameter = self.calculate_effective_diameter(self.weight)
+        effective_diameter = self.calculate_effective_diameter(weight)
 
         # Calculate RPM
         rpm = (feed_rate * 60) / (math.pi * effective_diameter)
@@ -757,8 +760,9 @@ class AFCLane:
         filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
         self.weight -= filament_weight_change
 
-        if self.weight < self.empty_spool_weight:
-            self.weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
+        # Weight cannot be negative, force back to zero if it's below zero
+        if self.weight < 0:
+            self.weight = 0
 
     def set_loaded(self):
         """
