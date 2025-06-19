@@ -164,10 +164,10 @@ class afcFunction:
     def TcmdAssign(self, cur_lane):
         """
         Function automatically tries to generate T(n) macros for lanes. If user has already assigned mapping to `map`
-        variable in their configs, this is used instead of an auto assigned command. Before assigning command, checks 
+        variable in their configs, this is used instead of an auto assigned command. Before assigning command, checks
         happen to make sure auto generated macro has not already be manually assigned in gcode or by something else.
 
-        Auto generated macro and manually assigned macro is then added to a dictionary to easily look up which lane 
+        Auto generated macro and manually assigned macro is then added to a dictionary to easily look up which lane
         to switch to when T(n) command is called.
 
         :param cur_lane: Lane to assign auto generated T(n) macro

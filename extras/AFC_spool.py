@@ -351,7 +351,7 @@ class AFCSpool:
                     map_cmd = lane._map
                 else:
                     map_cmd = existing_cmds.pop(0)
-                
+
                 self.afc.tool_cmds[map_cmd] = lane.name
                 self.afc.lanes[lane.name].map = map_cmd
 
