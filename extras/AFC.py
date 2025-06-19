@@ -83,6 +83,7 @@ class afc:
         self.buffers    = {}
         self.tool_cmds  = {}
         self.led_obj    = {}
+        self.led_state  = True
         self.bypass     = None
         self.bypass_last_state = False
         self.message_queue = []
@@ -1628,6 +1629,7 @@ class afc:
         str["hubs"] = list(self.hubs.keys())
         str["buffers"] = list(self.buffers.keys())
         str["message"] = self._get_message()
+        str["led_state"] = self.led_state
         return str
 
     def _webhooks_status(self, web_request):
@@ -1657,6 +1659,7 @@ class afc:
         str["system"]["extruders"]              = {}
         str["system"]["hubs"]                   = {}
         str["system"]["buffers"]                = {}
+        str["system"]["led_state"] = self.led_state
 
         for extruder in self.tools.values():
             str["system"]["extruders"][extruder.name] = extruder.get_status()
@@ -1756,6 +1759,7 @@ class afc:
         TURN_OFF_AFC_LED
         ```
         """
+        self.led_state = False
         for led in self.led_obj.values():
             led.turn_off_leds()
 
@@ -1774,6 +1778,7 @@ class afc:
         TURN_ON_AFC_LED
         ```
         """
+        self.led_state = True
         for led in self.led_obj.values():
             led.turn_on_leds()
 
@@ -1824,6 +1829,19 @@ class afc:
 
     cmd_AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
     def cmd_AFC_CLEAR_MESSAGE(self, gcmd):
+        """
+        This macro handles clearing one message at a time for messages that show up mainsail/klipperscreen/fluidd gui's.
+
+        USAGE
+        -----
+        `AFC_CLEAR_MESSAGE`
+
+        Example
+        -----
+        ```
+        AFC_CLEAR_MESSAGE
+        ```
+        """
         self._get_message(clear=True)
 
     cmd__AFC_TEST_MESSAGES_help = "Macro to send test messages for testing"
