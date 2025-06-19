@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Added an option to disable skew_correction for kinematic moves.
+
 ## [2025-06-17]
 ### Fixed
 - Updated `cycles_per_rotation` value to be less aggressive at 800 for print assist
