@@ -88,7 +88,7 @@ class AFCLane:
             pass
 
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-        self.map                = config.get('cmd', None)								# Keeping this in so it does not break others config that may have used this, use map instead
+        self.map                = config.get('cmd', None)                               # Keeping this in so it does not break others config that may have used this, use map instead
         # Saving to self._map so that if a user has it defined it will be reset back to this when
         # the calling RESET_AFC_MAPPING macro.
         self._map = self.map    = config.get('map', self.map)
