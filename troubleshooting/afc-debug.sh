@@ -15,7 +15,7 @@ afc_path="$HOME/AFC-Klipper-Add-On"
 afc_config_dir="$printer_config_dir/AFC"
 afc_file="$afc_config_dir/AFC.cfg"
 klipper_venv="$HOME/klippy-env/bin"
-moonraker_config="$HOME/printer_data/config/moonraker.conf"
+moonraker_config="$printer_config_dir/moonraker.conf"
 
 # Global vars
 temp_log=""
