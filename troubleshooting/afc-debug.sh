@@ -275,7 +275,7 @@ done
 if [ -f "$moonraker_config" ]; then
     append_file_to_log "$moonraker_config" "$moonraker_config"
 else
-    echo "Moonraker configuration file not found." >> "$temp_log"
+    echo "File not found: $moonraker_config" >> "$temp_log"
 fi
 
 uploaded_files=()
