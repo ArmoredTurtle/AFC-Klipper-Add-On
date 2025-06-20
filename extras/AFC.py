@@ -1105,10 +1105,10 @@ class afc:
                     if load_checks > self.tool_max_load_checks:
                         msg = ''
                         msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_load_checks)
-                        msg += "Setting and increasing 'tool_max_load_checks' in AFC.cfg may improve loading reliability\n\n"
-                        msg += "Check filament as tool may not be loaded. If filament is loaded into toolhead extruders\n"
-                        msg += f"gears then manually run SET_LANE_LOADED LANE={cur_lane.name} then manually extrude filament\n"
-                        msg += "and clean nozzle."
+                        msg += "Setting and increasing 'tool_max_load_checks' in AFC.cfg may improve loading reliability.\n\n"
+                        msg += "Check that the filament is properly loaded into the toolhead extruder. If filament is loaded\n"
+                        msg += "into toolhead extruders gears, then manually run SET_LANE_LOADED LANE={cur_lane.name} then\n"
+                        msg += "manually extrude filament and clean nozzle."
                         if self.function.in_print():
                             msg += '\nOnce issue is resolved click resume to continue printing'
                         self.error.handle_lane_failure(cur_lane, msg)
@@ -1313,7 +1313,7 @@ class afc:
                     msg = ''
                     msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
                     msg += "Setting and increasing 'tool_max_unload_attempts' in AFC.cfg may improve unloading reliability\n\n"
-                    msg += "Please check to make sure filament is unload from toolheads extruder. If filament is still\n"
+                    msg += "Please check to make sure filament is unloaded from the toolhead's extruder. If filament is still\n"
                     msg += "loaded manually retract back until its free, then run UNSET_LANE_LOADED and then do manual\n"
                     msg += "moves with BT_LANE_MOVE until filament is retracted behind your hub. Or you can run AFC_RESET\n"
                     msg += f"and select {cur_lane.name}, then AFC will slowly move lane until hub is no longer triggered.\n"
@@ -1549,7 +1549,8 @@ class afc:
                 self.afc_stats.increase_toolcount_change()
             else:
                 # Error happened, reset toolchanges without error count
-                if not self.testing: self.afc_stats.reset_toolchange_wo_error()
+                if not self.testing:
+                    self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
             if not self.error_state and self.current_toolchange == -1:
