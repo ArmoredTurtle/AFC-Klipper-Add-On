@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Updated
 - The `afc-debug.sh` script will now also include the `moonraker.conf` file if it is present.
 
+### Added
+- Added an option to disable skew_correction for kinematic moves.
+
 ## [2025-06-18]
 ## Updated
 - RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane
