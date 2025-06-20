@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added an option to disable skew_correction for kinematic moves.
+- AFC now errors out when using buffer as toolhead sensor and it fails to decompress when loading/unloading.
 
 ## [2025-06-18]
 ## Updated

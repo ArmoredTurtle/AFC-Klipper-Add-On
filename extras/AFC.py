@@ -195,7 +195,7 @@ class afc:
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
-        self.testing                = config.getboolean('testing', False)
+        self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
