@@ -72,7 +72,7 @@ class afcPrep:
         if os.path.exists('{}.unit'.format(self.afc.VarFile)) and os.stat('{}.unit'.format(self.afc.VarFile)).st_size > 0:
             units=json.load(open('{}.unit'.format(self.afc.VarFile)))
         else:
-            error_string = 'Error: {}.unit file not found. Please check the path in the'.format(self.afc.VarFile)
+            error_string = 'Error: {}.unit file not found. Please check the path in the '.format(self.afc.VarFile)
             error_string += 'AFC.cfg file and make sure the file and path exists.'
             self.afc.error.AFC_error(error_string, False)
 
