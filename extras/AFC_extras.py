@@ -1,11 +1,14 @@
 # Armored Turtle Automated Filament Changer
 #
-# Copyright (C) 2024 Armored Turtle
+# Copyright (C) 2025 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 
 class AFCExtras:
+    """
+    This class is used for extra functionality that doesn't fit into the main AFC logic.
+    """
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
@@ -28,6 +31,17 @@ class AFCExtras:
         self.afc.logger.info(f"AFC_extras for {self.lane_id} initialized on pin: {pin_name}")
 
     def _button_callback(self, eventtime, state):
+        """
+        Callback function for button press events.
+
+        Args:
+            eventtime: The time of the event.
+            state: The state of the button (True for press, False for release).
+
+        Behavior:
+            - Tracks press duration.
+            - Executes short or long press actions based on the duration.
+        """
         if state:
             self._press_time = eventtime
             return
