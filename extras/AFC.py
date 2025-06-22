@@ -1023,10 +1023,18 @@ class afc:
         # If the current extruder is not the one associated with the lane, switch to it.
         if self.function.get_current_extruder() != cur_lane.extruder_obj.name:
             self.function.log_toolhead_pos("Before toolswap: ")
+            # Save the current position before switching tools and subtract offsets
+            for i in range(0, 3):
+                self.last_gcode_position[i] -= self.gcode_move.base_position[i]
+
             self.tool_swap(cur_lane)
             self.function.log_toolhead_pos("After toolswap: ")
+
             self.base_position          = list(self.gcode_move.base_position)
             self.homing_position        = list(self.gcode_move.homing_position)
+
+            for i in range(0, 3):
+                self.last_gcode_position[i] += self.gcode_move.base_position[i]
 
         if cur_lane.name != self.current:
             # Lookup extruder and hub objects associated with the lane.
@@ -1276,10 +1284,20 @@ class afc:
         self.logger.info("Current extruder: {}, next lane extruder: {}".format(self.function.get_current_extruder(), self.lanes[self.next_lane_load].extruder_obj.name))
         if self.function.get_current_extruder() != self.lanes[self.next_lane_load].extruder_obj.name:
             self.function.log_toolhead_pos("Before toolswap: ")
+            # Save the current position before switching tools and subtract offsets
+            for i in range(0, 3):
+                self.last_gcode_position[i] -= self.gcode_move.base_position[i]
+
             self.tool_swap(self.lanes[self.next_lane_load])
-            self.function.log_toolhead_pos("After toolswap: ")
+
             self.base_position          = list(self.gcode_move.base_position)
             self.homing_position        = list(self.gcode_move.homing_position)
+
+            for i in range(0, 3):
+                self.last_gcode_position[i] += self.gcode_move.base_position[i]
+            
+            self.function.log_toolhead_pos("After toolswap: ")
+
             cur_extruder = self.lanes[self.next_lane_load].extruder_obj
             cur_lane = self.lanes[cur_extruder.lane_loaded]
 
