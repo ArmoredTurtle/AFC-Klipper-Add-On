@@ -89,6 +89,7 @@ class AFCLane:
 
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         self.map                = config.get('cmd','NONE')
+        self.override_mapping   = config.get('override_mapping', False)                 # If True, lane will override and existing T{n} commands with its own mapping.
         self.led_index          = config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
         self.led_fault          = config.get('led_fault',None)                          # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_ready          = config.get('led_ready',None)                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section

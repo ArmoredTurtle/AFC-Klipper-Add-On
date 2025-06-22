@@ -91,6 +91,8 @@ class afcFunction:
         Helper function to get stock macros, rename to something and replace stock macro with AFC functions
         """
         # Renaming users Resume macro so that RESUME calls AFC_Resume function instead
+        self.afc = self.printer.lookup_object('AFC')
+        self.logger = self.afc.logger
         prev_cmd = self.afc.gcode.register_command(base_name, None)
         if prev_cmd is not None:
             pdesc = "Renamed builtin of '%s'" % (base_name,)
@@ -184,9 +186,13 @@ class afcFunction:
                     break
         self.afc.tool_cmds[cur_lane.map]=cur_lane.name
         try:
-            self.afc.gcode.register_command(cur_lane.map, self.afc.cmd_CHANGE_TOOL, desc=self.afc.cmd_CHANGE_TOOL_help)
+            if cur_lane.override_mapping:
+                rename_map = ("_T{}".format(cur_lane.map))
+                self._rename(cur_lane.map, rename_map, self.afc.cmd_CHANGE_TOOL, self.afc.cmd_CHANGE_TOOL_help)
+            else:
+                self.afc.gcode.register_command(cur_lane.map, self.afc.cmd_CHANGE_TOOL, desc=self.afc.cmd_CHANGE_TOOL_help)
         except:
-            self.logger.info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[cur_lane.name], tool_macro=cur_lane.map), )
+                self.logger.info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[cur_lane.name], tool_macro=cur_lane.map), )
         self.afc.save_vars()
 
     def check_homed(self):
@@ -283,9 +289,10 @@ class afcFunction:
         :return object: Lane object if found, None if not found
         """
         lane_name = None
-        for lane_obj in self.afc.lanes:
+        for lane in self.afc.lanes:
+            lane_obj = self.afc.lanes[lane]
             if lane_obj.map == map_name:
-                lane_name = lane_obj.name
+                lane_name = lane_obj
         if lane_name is None:
             self.logger.warning("Lane map {} not found".format(map_name))
         return lane_name
@@ -298,7 +305,7 @@ class afcFunction:
         """
         if self.printer.state_message == 'Printer is ready':
             if self.get_current_extruder() is not None:
-                return self.AFC.tools[self.get_current_extruder()].lane_loaded
+                return self.afc.tools[self.get_current_extruder()].lane_loaded
         return None
 
     def get_current_lane_obj(self):
@@ -394,7 +401,8 @@ class afcFunction:
         for key, obj in self.afc.lanes.items():
             if cur_lane_loaded is None or key != cur_lane_loaded.name:
                 obj.do_enable(False)
-                obj.disable_buffer()
+                if hasattr(obj, 'buffer'):
+                    obj.disable_buffer()
                 if obj.prep_state and obj.load_state:
                     self.afc_led(obj.led_ready, obj.led_index)
                 else:
@@ -417,7 +425,8 @@ class afcFunction:
         # Enable stepper
         cur_lane_loaded.do_enable(True)
         # Enable buffer
-        cur_lane_loaded.enable_buffer()
+        if hasattr(cur_lane_loaded, 'buffer'):
+            cur_lane_loaded.enable_buffer()
 
     def unset_lane_loaded(self):
         """
@@ -716,6 +725,7 @@ class afcFunction:
         prompt.p_end()
 
         if self.afc.current is not None:
+            self.logger.info(f'current afc {self.afc.current} is not None, cannot calibrate')
             self.logger.info('Tool must be unloaded to calibrate system')
             return
 
@@ -1213,8 +1223,8 @@ class afcFunction:
         cur_lane.espooler.assist(0)
 
 class afcDeltaTime:
-    def __init__(self, AFC):
-        self.logger = AFC.logger
+    def __init__(self, afc):
+        self.logger = afc.logger
         self.start_time = None
         self.last_time  = None
 

@@ -142,6 +142,7 @@ class AFCTrigger:
         if self.debug: self.logger.info("Buffer multiplier reset")
 
         cur_stepper = self.afc.function.get_current_lane_obj()
+        self.logger.info(f"cur_stepper: {cur_stepper}")
         if cur_stepper is None: return
 
         cur_stepper.update_rotation_distance( 1 )
