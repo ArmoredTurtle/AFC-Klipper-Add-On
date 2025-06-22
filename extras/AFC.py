@@ -382,9 +382,12 @@ class afc:
             temp_value = cur_lane.extruder_temp
             using_min_value = False
         elif self.default_material_temps is not None and cur_lane.material is not None:
+            lane_material = str(cur_lane.material).strip().lower()
             for mat in self.default_material_temps:
                 m = mat.split(":")
-                if m[0] in cur_lane.material:
+                mat_key = m[0].strip().lower()
+                # Use substring match for material name (case-insensitive, ignore whitespace)
+                if lane_material in mat_key:
                     temp_value = m[1]
                     using_min_value = False
                     break
@@ -402,7 +405,7 @@ class afc:
         pheaters = self.printer.lookup_object('heaters')
         wait = False
 
-        # If extruder can extruder and printing return and do not update temperature, don't want to modify extruder temperature during prints
+        # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
         if self.heater.can_extrude and self.function.is_printing():
             return
         target_temp, using_min_value = self._get_default_material_temps(cur_lane)
@@ -1356,7 +1359,7 @@ class afc:
 
         self.afcDeltaTime.log_with_time("Long retract done")
 
-        # Clear toolhead's loaded state for easier error handling later.
+        # Clear toolhead's loaded status for easier error handling later.
         cur_lane.set_unloaded()
 
         self.save_vars()
