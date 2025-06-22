@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - Fixed function that auto assigns T(n) commands to check and verify that other T(n) commands are not already registered outside of AFC
 
+## [2025-06-21]
+### Fixed
+- Ensure `default_material_temps` name matching in temperature selection logic is case-insensitive.
+
 ## [2025-06-17]
 ### Fixed
 - Updated `cycles_per_rotation` value to be less aggressive at 800 for print assist
