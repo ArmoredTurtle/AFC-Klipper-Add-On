@@ -384,12 +384,11 @@ class afc:
             using_min_value = False
         elif self.default_material_temps is not None and cur_lane.material is not None:
             lane_material = str(cur_lane.material).strip().lower()
-            lane_material = str(cur_lane.material).strip().lower()
             for mat in self.default_material_temps:
                 m = mat.split(":")
                 mat_key = m[0].strip().lower()
                 # Use substring match for material name (case-insensitive, ignore whitespace)
-                if mat_key in lane_material:
+                if lane_material in mat_key:
                     temp_value = m[1]
                     using_min_value = False
                     break
@@ -407,6 +406,7 @@ class afc:
         pheaters = self.printer.lookup_object('heaters')
         wait = False
 
+        # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
         # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
         if self.heater.can_extrude and self.function.is_printing():
             return
