@@ -12,7 +12,7 @@ class AFCExtras:
         self.reactor = self.printer.get_reactor()
 
         self.print_stats = self.printer.lookup_object('print_stats')
-        self.afc = self.printer.lookup_object('AFC', default=None)
+        self.afc = self.printer.lookup_object('AFC')
         self.lane_id = config.get_name().split()[-1]
         self.lane_number = config.getint('lane_number')
         self.long_press_duration = config.getfloat('long_press_duration', 1.2)
@@ -25,7 +25,7 @@ class AFCExtras:
         buttons = self.printer.load_object(config, 'buttons')
         buttons.register_buttons([pin_name], self._button_callback)
 
-        self.gcode.respond_info(f"AFC_extras for {self.lane_id} initialized on pin: {pin_name}")
+        self.afc.logger.info(f"AFC_extras for {self.lane_id} initialized on pin: {pin_name}")
 
     def _button_callback(self, eventtime, state):
         if state:
@@ -34,10 +34,8 @@ class AFCExtras:
         if self._press_time is None:
             return
 
-        status = self.print_stats.get_status(self.reactor.monotonic())
-        if status['state'] == 'printing':
-            self.gcode.respond_info("AFC Button: Action disabled while printing.")
-            self._press_time = None
+        if self.afc.function.is_printing(check_movement=True):
+            self.afc.error.AFC_error("Cannot use buttons while printer is actively moving or homing", False)
             return
 
         held_time = eventtime - self._press_time
@@ -46,32 +44,28 @@ class AFCExtras:
         if held_time < 0.05:
             return
 
-        try:
-            current_lane = self.afc.current_load
-        except AttributeError:
-            self.gcode.respond_info("ERROR: Toolhead is not loaded, unable to process button action.")
-            return
+        cur_lane = self.afc.function.get_current_lane()
 
         # Long Press
         if held_time >= self.long_press_duration:
             # --- LONG PRESS ACTION ---
-            self.gcode.respond_info(f"{self.lane_id}: Long press detected.")
-            if current_lane == self.lane_id:
-                self.gcode.respond_info(f"Unloading {self.lane_id} before ejecting.")
+            self.afc.logger.info(f"{self.lane_id}: Long press detected.")
+            if cur_lane == self.lane_id:
+                self.afc.logger.info(f"Unloading {self.lane_id} before ejecting.")
                 script = f"BT_TOOL_UNLOAD\nG4 P500\nBT_LANE_EJECT LANE={self.lane_number}"
                 self.gcode.run_script_from_command(script)
             else:
                 # If another lane is active, just eject this one
-                self.gcode.respond_info(f"Ejecting {self.lane_id}.")
+                self.afc.logger.info(f"Ejecting {self.lane_id}.")
                 self.gcode.run_script_from_command(f"BT_LANE_EJECT LANE={self.lane_number}")
         # Short Press
         else:
-            self.gcode.respond_info(f"{self.lane_id}: Short press detected.")
-            if current_lane == self.lane_id:
-                self.gcode.respond_info(f"Unloading tool from {self.lane_id}.")
+            self.afc.logger.info(f"{self.lane_id}: Short press detected.")
+            if cur_lane == self.lane_id:
+                self.afc.logger.info(f"Unloading tool from {self.lane_id}.")
                 self.gcode.run_script_from_command("BT_TOOL_UNLOAD")
             else:
-                self.gcode.respond_info(f"Loading tool to {self.lane_id}.")
+                self.afc.logger.info(f"Loading tool to {self.lane_id}.")
                 self.gcode.run_script_from_command(f"BT_CHANGE_TOOL LANE={self.lane_number}")
 
 
