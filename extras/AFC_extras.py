@@ -79,7 +79,7 @@ class AFCExtras:
                 self.afc.TOOL_UNLOAD(self)
             else:
                 self.afc.logger.info(f"Loading tool to {self.lane_id}.")
-                self.gcode.run_script_from_command(f"BT_CHANGE_TOOL LANE={self.lane_number}")
+                self.afc.CHANGE_TOOL(self, self.lane_number)
 
 
 def load_config_prefix(config):
