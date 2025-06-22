@@ -4,10 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [2025-06-21]
 ### Fixed
 - Ensure `default_material_temps` name matching in temperature selection logic is case-insensitive.
+
+## [2025-06-19]
+## Updated
+- The `afc-debug.sh` script will now also include the `moonraker.conf` file if it is present.
+
+### Added
+- Added an option to disable skew_correction for kinematic moves.
+- AFC now errors out when using buffer as toolhead sensor and it fails to decompress when loading/unloading.
+
+## [2025-06-18]
+## Updated
+- RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane
+
+## Fixed
+- Fixed function that auto assigns T(n) commands to check and verify that other T(n) commands are not already registered outside of AFC
 
 ## [2025-06-17]
 ### Fixed

@@ -170,7 +170,7 @@ class afc:
         self.max_move_dis           = config.getfloat("max_move_dis", 999999)       # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
         self.n20_break_delay_time   = config.getfloat("n20_break_delay_time", 0.200)# Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
 
-        self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 2) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
+        self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 4) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 
         self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
@@ -195,6 +195,7 @@ class afc:
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+        self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
@@ -1107,9 +1108,14 @@ class afc:
                     if load_checks > self.tool_max_load_checks:
                         msg = ''
                         msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_load_checks)
-                        msg += "Tool may not be loaded"
-                        self.logger.info("<span class=warning--text>{}</span>".format(msg))
-                        break
+                        msg += "Setting and increasing 'tool_max_load_checks' in AFC.cfg may improve loading reliability.\n\n"
+                        msg += "Check that the filament is properly loaded into the toolhead extruder. If filament is loaded\n"
+                        msg += "into toolhead extruders gears, then manually run SET_LANE_LOADED LANE={cur_lane.name} then\n"
+                        msg += "manually extrude filament and clean nozzle."
+                        if self.function.in_print():
+                            msg += '\nOnce issue is resolved click resume to continue printing'
+                        self.error.handle_lane_failure(cur_lane, msg)
+                        return False
                 cur_lane.sync_to_extruder()
             # Update tool and lane status.
             cur_lane.set_loaded()
@@ -1309,9 +1315,18 @@ class afc:
                 if num_tries > self.tool_max_unload_attempts:
                     msg = ''
                     msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
-                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliability"
-                    self.logger.info("<span class=warning--text>{}</span>".format(msg))
-                    break
+                    msg += "Setting and increasing 'tool_max_unload_attempts' in AFC.cfg may improve unloading reliability\n\n"
+                    msg += "Please check to make sure filament is unloaded from the toolhead's extruder. If filament is still\n"
+                    msg += "loaded manually retract back until its free, then run UNSET_LANE_LOADED and then do manual\n"
+                    msg += "moves with BT_LANE_MOVE until filament is retracted behind your hub. Or you can run AFC_RESET\n"
+                    msg += f"and select {cur_lane.name}, then AFC will slowly move lane until hub is no longer triggered.\n"
+                    if self.next_lane_load is not None:
+                        msg += f"\nOnce lane is behind hub and hub is no longer triggered manually load {self.next_lane_load}\n"
+                        msg += f"with {self.lanes[self.next_lane_load].map} macro.\n"
+                        if self.function.in_print():
+                            msg += "Once lane is loaded click resume to continue printing"
+                    self.error.handle_lane_failure(cur_lane, msg)
+                    return False
             cur_lane.sync_to_extruder(False)
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                 self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
@@ -1330,7 +1345,8 @@ class afc:
                         # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                         if self.next_lane_load is not None:
                             message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                            message += "\nOnce lane is loaded click resume to continue printing"
+                            if self.function.in_print():
+                                message += "\nOnce lane is loaded click resume to continue printing"
                     self.error.handle_lane_failure(cur_lane, message)
                     return False
                 cur_lane.sync_to_extruder()
@@ -1378,7 +1394,8 @@ class afc:
                     # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                     if self.next_lane_load is not None:
                         message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                        message += "\nOnce lane is loaded click resume to continue printing"
+                        if self.function.in_print():
+                            message += "\nOnce lane is loaded click resume to continue printing"
 
                 self.error.handle_lane_failure(cur_lane, message)
                 return False
@@ -1535,7 +1552,8 @@ class afc:
                 self.afc_stats.increase_toolcount_change()
             else:
                 # Error happened, reset toolchanges without error count
-                self.afc_stats.reset_toolchange_wo_error()
+                if not self.testing:
+                    self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
             if not self.error_state and self.current_toolchange == -1:
