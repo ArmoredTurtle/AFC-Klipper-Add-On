@@ -389,7 +389,7 @@ class afc:
                 m = mat.split(":")
                 mat_key = m[0].strip().lower()
                 # Use substring match for material name (case-insensitive, ignore whitespace)
-                if lane_material in mat_key:
+                if mat_key in lane_material:
                     temp_value = m[1]
                     using_min_value = False
                     break
