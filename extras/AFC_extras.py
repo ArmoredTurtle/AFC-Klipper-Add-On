@@ -62,22 +62,21 @@ class AFCExtras:
 
         # Long Press
         if held_time >= self.long_press_duration:
-            # --- LONG PRESS ACTION ---
             self.afc.logger.info(f"{self.lane_id}: Long press detected.")
             if cur_lane == self.lane_id:
                 self.afc.logger.info(f"Unloading {self.lane_id} before ejecting.")
-                script = f"BT_TOOL_UNLOAD\nG4 P500\nBT_LANE_EJECT LANE={self.lane_number}"
-                self.gcode.run_script_from_command(script)
+                if self.afc.TOOL_UNLOAD(self):
+                    self.afc.LANE_UNLOAD(self, cur_lane)
             else:
                 # If another lane is active, just eject this one
-                self.afc.logger.info(f"Ejecting {self.lane_id}.")
-                self.gcode.run_script_from_command(f"BT_LANE_EJECT LANE={self.lane_number}")
+                self.afc.logger.info(f"Ejecting {self.lane_number}.")
+                self.afc.LANE_UNLOAD(self, self.lane_number)
         # Short Press
         else:
             self.afc.logger.info(f"{self.lane_id}: Short press detected.")
             if cur_lane == self.lane_id:
                 self.afc.logger.info(f"Unloading tool from {self.lane_id}.")
-                self.gcode.run_script_from_command("BT_TOOL_UNLOAD")
+                self.afc.TOOL_UNLOAD(self)
             else:
                 self.afc.logger.info(f"Loading tool to {self.lane_id}.")
                 self.gcode.run_script_from_command(f"BT_CHANGE_TOOL LANE={self.lane_number}")
