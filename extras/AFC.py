@@ -1022,19 +1022,8 @@ class afc:
 
         # If the current extruder is not the one associated with the lane, switch to it.
         if self.function.get_current_extruder() != cur_lane.extruder_obj.name:
-            self.function.log_toolhead_pos("Before toolswap: ")
-            # Save the current position before switching tools and subtract offsets
-            for i in range(0, 3):
-                self.last_gcode_position[i] -= self.gcode_move.base_position[i]
-
             self.tool_swap(cur_lane)
-            self.function.log_toolhead_pos("After toolswap: ")
 
-            self.base_position          = list(self.gcode_move.base_position)
-            self.homing_position        = list(self.gcode_move.homing_position)
-
-            for i in range(0, 3):
-                self.last_gcode_position[i] += self.gcode_move.base_position[i]
 
         if cur_lane.name != self.current:
             # Lookup extruder and hub objects associated with the lane.
@@ -1280,28 +1269,25 @@ class afc:
         pos[2] += self.z_hop
         self.move_z_pos(pos[2], "Tool_Unload quick pull")
 
-        # If the current extruder is not the one associated with the lane, switch to it.
-        self.logger.info("Current extruder: {}, next lane extruder: {}".format(self.function.get_current_extruder(), self.lanes[self.next_lane_load].extruder_obj.name))
-        if self.function.get_current_extruder() != self.lanes[self.next_lane_load].extruder_obj.name:
-            self.function.log_toolhead_pos("Before toolswap: ")
-            # Save the current position before switching tools and subtract offsets
-            for i in range(0, 3):
-                self.last_gcode_position[i] -= self.gcode_move.base_position[i]
+        # Check if the current extruder is loaded with the lane to be unloaded.
+        if self.next_lane_load is not None:
+            next_extruder = self.lanes[self.next_lane_load].extruder_obj.name
+        else:
+            next_extruder = None
 
+        # If the next extruder is specified and it is not the current extruder, perform a tool swap.
+        if next_extruder is not None and self.function.get_current_extruder() != next_extruder:
             self.tool_swap(self.lanes[self.next_lane_load])
 
-            self.base_position          = list(self.gcode_move.base_position)
-            self.homing_position        = list(self.gcode_move.homing_position)
-
-            for i in range(0, 3):
-                self.last_gcode_position[i] += self.gcode_move.base_position[i]
-            
-            self.function.log_toolhead_pos("After toolswap: ")
-
+            # Lookup the current extruder and lane objects based on the next lane to load.
+            # This is necessary to ensure the correct extruder and lane are used for unloading.
             cur_extruder = self.lanes[self.next_lane_load].extruder_obj
-            cur_lane = self.lanes[cur_extruder.lane_loaded]
+            if cur_extruder.lane_loaded is not None:
+                cur_lane = self.lanes[cur_extruder.lane_loaded]
+            else:
+                cur_lane = None
 
-        if cur_lane.name != self.next_lane_load and self.current is not None:
+        if self.current is not None and cur_lane.name != self.next_lane_load:
             self.current_state  = State.UNLOADING
             self.current_loading = cur_lane.name
             self.logger.info("Unloading {}".format(cur_lane.name))
@@ -1497,7 +1483,7 @@ class afc:
 
             self.save_vars()
 
-        unload_time = self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name))
+        unload_time = self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name if cur_lane is not None else "None"))
         self.afc_stats.average_tool_unload_time.average_time(unload_time)
         self.current_state = State.IDLE
         return True
@@ -1616,15 +1602,28 @@ class afc:
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
 
     def tool_swap(self, cur_lane):
-            self.current_state = State.TOOL_SWAP
-            self.afcDeltaTime.log_with_time("Performing tool swap")
-            name = cur_lane.extruder_obj.name
-            tool_index = 0 if name == "extruder" else int(name.replace("extruder", ""))
-            self.gcode.run_script_from_command('SELECT_TOOL T={}'.format(tool_index))
-            # Switching toolhead extruders, this is mainly for setups with multiple extruders
-            cur_lane.activate_toolhead_extruder()
-            self.afcDeltaTime.log_with_time("Tool swap done")
-            self.current_state = State.IDLE
+        self.current_state = State.TOOL_SWAP
+        self.function.log_toolhead_pos("Before toolswap: ")
+        # Save the current position before switching tools and subtract offsets
+        for i in range(0, 3):
+            self.last_gcode_position[i] -= self.gcode_move.base_position[i]
+        # Perform a tool swap by selecting the appropriate extruder based on the lane's extruder object.
+        self.afcDeltaTime.log_with_time("Performing tool swap")
+        name = cur_lane.extruder_obj.name
+        tool_index = 0 if name == "extruder" else int(name.replace("extruder", ""))
+        self.gcode.run_script_from_command('SELECT_TOOL T={}'.format(tool_index))
+        # Switching toolhead extruders, this is mainly for setups with multiple extruders
+        cur_lane.activate_toolhead_extruder()
+        self.afcDeltaTime.log_with_time("Tool swap done")
+        self.current_state = State.IDLE
+        # Update the base position and homing position after the tool swap.
+        self.base_position          = list(self.gcode_move.base_position)
+        self.homing_position        = list(self.gcode_move.homing_position)
+        # Update the last_gcode_position to reflect the new base position after the tool swap.
+        for i in range(0, 3):
+            self.last_gcode_position[i] += self.gcode_move.base_position[i]
+        
+        self.function.log_toolhead_pos("After toolswap: ")
 
     def _get_message(self, clear=False):
         """
