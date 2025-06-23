@@ -1052,6 +1052,9 @@ class AFCLane:
         response['status'] = self.status
         return response
 
+    def load_config_prefix(config):
+        return AFCLane(config)
+
     def _is_normal_printing_state(self):
         """
         Returns True if the lane is in a normal printing state (TOOLED or LOADED).
