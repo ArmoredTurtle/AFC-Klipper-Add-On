@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [2025-06-22]
+### Added
+- Robust runout/break/jam detection for all sensors along the filament path (prep, load, hub, toolhead):
+  - The printer now pauses if any sensor detects runout, not just the first sensor.
+  - If the toolhead or hub sensor detects runout but upstream sensors still detect filament, the print is paused and the user is notified of a possible break/jam (no eject or endless spool mode is attempted).
+  - Runout/pause logic only triggers during normal printing states, preventing false positives during lane load/unload or filament swaps.
+- `handle_toolhead_runout` and `handle_hub_runout` methods added to `AFCLane` for special handling of break/jam scenarios at the toolhead and hub.
+- Hub sensor callback now calls `handle_hub_runout` on all associated lanes when runout is detected.
+
+### Changed
+- Enhanced runout logic in `AFC_lane.py`, `AFC_extruder.py`, and `AFC_hub.py` to support multi-sensor and break/jam detection.
+
+### Fixed
+- Addresses issue [#389](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/389) and [#387](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/387):
+  - Prevents false positives and ensures robust detection of filament runout, break, or jam at any sensor location.
+
 ## [2025-06-21]
 ### Fixed
 - Ensure `default_material_temps` name matching in temperature selection logic is case-insensitive.
@@ -832,16 +848,6 @@ gcode:
 ### Fixed
 
   - Minor adjustments to the use of single sensor buffers, retaining functionality for Belay
-
-## [2024-08-28]
-
-### Added
-
-- Addition of two helper macros for the AFC system. 
-  - `BT_LANE_EJECT` - This macro will eject a specified box turtle lane.
-  - `BT_TOOL_UNLOAD` - This macro will unload a specified box turtle tool.
-
-- Sample configuration files for the most popular boards are located in the `Klipper_cfg_example/AFC` directory.
 
 
 
