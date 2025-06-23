@@ -107,7 +107,7 @@ class afcPrep:
                     if 'runout_lane' in units[cur_lane.unit][cur_lane.name]: cur_lane.runout_lane = units[cur_lane.unit][cur_lane.name]['runout_lane']
                     if cur_lane.runout_lane == '': cur_lane.runout_lane='NONE'
                     if 'map' in units[cur_lane.unit][cur_lane.name]: cur_lane.map = units[cur_lane.unit][cur_lane.name]['map']
-                    if cur_lane.map != 'NONE':
+                    if cur_lane.map != None:
                         self.afc.tool_cmds[cur_lane.map] = cur_lane.name
                     # Check first for hub_loaded as this was the old name in software with version <= 1030
                     if 'hub_loaded' in units[cur_lane.unit][cur_lane.name]: lane.loaded_to_hub = units[cur_lane.unit][cur_lane.name]['hub_loaded']

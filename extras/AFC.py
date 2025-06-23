@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.20"
+AFC_VERSION="1.0.22"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -197,7 +197,7 @@ class afc:
         # Setting to True enables espooler assist while printing
         self.enable_assist          = config.getboolean("enable_assist",        True)
         # Weight spool has to be below to activate print assist
-        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   5000.0)
+        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         # Get debug and cast to boolean

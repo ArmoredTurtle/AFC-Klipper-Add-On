@@ -71,7 +71,7 @@ class afcUnit:
         # Time in seconds to enable spooler at full speed to help with getting the spool to spin
         self.kick_start_time        = config.getfloat("kick_start_time",        0.070)
         # Cycles per rotation in milliseconds
-        self.cycles_per_rotation    = config.getfloat("cycles_per_rotation",    1275)
+        self.cycles_per_rotation    = config.getfloat("cycles_per_rotation",    800)
         # PWM cycle time
         self.pwm_value              = config.getfloat("pwm_value",              0.6706)
         # Delta amount in mm from last move to trigger assist
