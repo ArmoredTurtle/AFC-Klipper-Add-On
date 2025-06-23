@@ -496,7 +496,7 @@ class AFCLane:
         self.status = AFCLaneState.NONE
         msg = "Runout triggered for lane {} and runout lane is not setup to switch to another lane".format(self.name)
         msg += "\nPlease manually load next spool into toolhead and then hit resume to continue"
-        self.afc.function.afc_led(self.led_not_ready, self.led_index)
+        self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
         self.afc.error.AFC_error(msg)
 
     def load_callback(self, eventtime, state):

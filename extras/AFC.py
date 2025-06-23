@@ -407,7 +407,6 @@ class afc:
         wait = False
 
         # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
-        # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
         if self.heater.can_extrude and self.function.is_printing():
             return
         target_temp, using_min_value = self._get_default_material_temps(cur_lane)
