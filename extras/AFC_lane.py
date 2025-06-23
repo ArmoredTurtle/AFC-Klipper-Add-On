@@ -1087,8 +1087,8 @@ class AFCLane:
                     self._perform_pause_runout()
 
     def handle_hub_runout(self, sensor=None):
-        # Only trigger runout logic if in a normal printing state
-        if not self._is_normal_printing_state():
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
             return
 
         # Check upstream sensors: prep, load

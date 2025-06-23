@@ -78,11 +78,11 @@ class afc_hub:
 
     def switch_pin_callback(self, eventtime, state):
         self.state = state
-        # If hub sensor is triggered (runout), notify all associated lanes
-        if state is False:
-            for lane in self.lanes.values():
-                if hasattr(lane, 'handle_hub_runout'):
-                    lane.handle_hub_runout(sensor='hub')
+        # Only trigger runout for the currently loaded lane (in the toolhead) if it belongs to this hub
+        current_lane_name = getattr(self.afc, 'current', None)
+        if current_lane_name and current_lane_name in self.lanes:
+            lane = self.lanes[current_lane_name]
+            lane.handle_hub_runout()
 
     def hub_cut(self, cur_lane):
         servo_string = 'SET_SERVO SERVO={servo} ANGLE={{angle}}'.format(servo=self.cut_servo_name)

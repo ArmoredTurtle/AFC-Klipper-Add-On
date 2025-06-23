@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [2025-06-22]
+## [2025-06-23]
 ### Added
-- Runout/break/jam detection for all sensors along the filament path (prep, load, hub, toolhead):
+- Runout/break/jam detection for hub and toolhead sensors:
 - If the toolhead or hub sensor detects runout but upstream sensors still detect filament, the print is paused and the user is notified of a possible break/jam (no eject or endless spool mode is attempted).
 - Runout/pause logic only triggers during normal printing states, preventing false positives during lane load/unload or filament swaps.
 - `handle_toolhead_runout` and `handle_hub_runout` methods added to `AFCLane` for special handling of break/jam scenarios at the toolhead and hub.
@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced runout logic in `AFC_lane.py`, `AFC_extruder.py`, and `AFC_hub.py` to support multi-sensor and break/jam detection.
 
 ### Fixed
-- Addresses issue [#389](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/389) and [#387](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/387):
-- Ensures robust detection of filament runout, break, or jam at any sensor location.
+- Addresses issue [#389](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/389) and [#387](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/387)
+
 
 ## [2025-06-21]
 ### Fixed
