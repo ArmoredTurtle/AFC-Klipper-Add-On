@@ -87,6 +87,9 @@ class AFCExtruder:
             if hasattr(lane, "handle_toolhead_runout"):
                 lane.handle_toolhead_runout(sensor="tool_start")
 
+    def buffer_trailing_callback(self, eventtime, state):
+        self.buffer_trailing = state
+
     def tool_end_callback(self, eventtime, state):
         self.tool_end_state = state
         # Notify the currently loaded lane if filament is missing at toolhead
@@ -94,9 +97,6 @@ class AFCExtruder:
             lane = self.lanes[self.lane_loaded]
             if hasattr(lane, "handle_toolhead_runout"):
                 lane.handle_toolhead_runout(sensor="tool_end")
-
-    def buffer_trailing_callback(self, eventtime, state):
-        self.buffer_trailing = state
 
     def _update_tool_stn(self, length):
         """
