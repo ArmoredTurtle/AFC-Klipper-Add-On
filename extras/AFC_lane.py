@@ -871,13 +871,7 @@ class AFCLane:
             self.afc.error.pause_resume.send_pause_command()
             self.afc.save_pos()
             self.afc.error.AFC_error(msg)
-        else:
-            # Normal runout handling (fall back to existing logic)
-            if self.status != AFCLaneState.EJECTING:
-                if self.runout_lane != 'NONE':
-                    self._perform_infinite_runout()
-                else:
-                    self._perform_pause_runout()
+        # No else: do not trigger infinite runout or pause runout here
 
     def handle_hub_runout(self, sensor=None):
         """
@@ -904,13 +898,7 @@ class AFCLane:
             self.afc.error.pause_resume.send_pause_command()
             self.afc.save_pos()
             self.afc.error.AFC_error(msg)
-        else:
-            # Normal runout handling (fall back to existing logic)
-            if self.afc.function.is_printing() and self.status != AFCLaneState.EJECTING:
-                if self.runout_lane != 'NONE':
-                    self._perform_infinite_runout()
-                else:
-                    self._perform_pause_runout()
+        # No else: do not trigger infinite runout or pause runout here
 
 
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
