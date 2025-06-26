@@ -3,6 +3,10 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+
+# ensure compatibility with python 3.8
+from __future__ import annotations
+
 import math
 import traceback
 
