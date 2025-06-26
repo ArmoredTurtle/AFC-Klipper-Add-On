@@ -202,7 +202,7 @@ class afcFunction:
                         break
         self.afc.tool_cmds[cur_lane.map]=cur_lane.name
         try:
-            if cur_lane.override_mapping:
+            if cur_lane._map:
                 rename_map = ("_T{}".format(cur_lane.map))
                 self._rename(cur_lane.map, rename_map, self.afc.cmd_CHANGE_TOOL, self.afc.cmd_CHANGE_TOOL_help)
             else:
@@ -412,13 +412,15 @@ class afcFunction:
         This will also be tied to a callback once multiple extruders are implemented
         """
         cur_lane_loaded = self.get_current_lane_obj()
+        self.logger.debug("Activating extruder lane: {}".format(cur_lane_loaded.name if cur_lane_loaded else "None"))
 
         # Disable extruder steppers for non active lanes
         for key, obj in self.afc.lanes.items():
+            self.logger.debug("Checking lane: {}".format(key))
             if cur_lane_loaded is None or key != cur_lane_loaded.name:
+                self.logger.debug("Disabling lane: {}".format(key))
                 obj.do_enable(False)
-                if hasattr(obj, 'buffer'):
-                    obj.disable_buffer()
+                obj.disable_buffer()
                 if obj.prep_state and obj.load_state:
                     self.afc_led(obj.led_ready, obj.led_index)
                 else:
@@ -441,8 +443,7 @@ class afcFunction:
         # Enable stepper
         cur_lane_loaded.do_enable(True)
         # Enable buffer
-        if hasattr(cur_lane_loaded, 'buffer'):
-            cur_lane_loaded.enable_buffer()
+        cur_lane_loaded.enable_buffer()
 
     def unset_lane_loaded(self):
         """

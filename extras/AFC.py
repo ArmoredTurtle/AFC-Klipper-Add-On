@@ -1750,7 +1750,12 @@ class afc:
             extruder = self.toolhead.get_extruder()
 
         pheaters = self.printer.lookup_object('heaters')
-        pheaters.set_temperature(extruder.get_heater(), temp, wait)
+        heater = extruder.get_heater()
+        current_temp = heater.get_temp(self.reactor.monotonic())[0]
+
+        # Final decision to wait is based on both the parameter and actual temp delta
+        should_wait = wait and abs(current_temp - temp) > 5
+        pheaters.set_temperature(heater, temp, should_wait)
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):

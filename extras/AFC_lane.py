@@ -92,7 +92,6 @@ class AFCLane:
         # Saving to self._map so that if a user has it defined it will be reset back to this when
         # the calling RESET_AFC_MAPPING macro.
         self._map = self.map    = config.get('map', self.map)
-        self.override_mapping   = config.get('override_mapping', False)                 # If True, lane will override and existing T{n} commands with its own mapping.
         self.led_index          = config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
         self.led_fault          = config.get('led_fault',None)                          # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.led_ready          = config.get('led_ready',None)                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -795,8 +794,8 @@ class AFCLane:
         """
         if self.buffer_obj is not None:
             self.buffer_obj.enable_buffer()
-        self.espooler.enable_timer()
-        self.enable_weight_timer()
+            self.espooler.enable_timer()
+            self.enable_weight_timer()
 
     def disable_buffer(self):
         """
@@ -805,8 +804,8 @@ class AFCLane:
         """
         if self.buffer_obj is not None:
             self.buffer_obj.disable_buffer()
-        self.espooler.disable_timer()
-        self.disable_weight_timer()
+            self.espooler.disable_timer()
+            self.disable_weight_timer()
 
     def buffer_status(self):
         """
