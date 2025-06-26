@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-26]
+### Added
+- `TOOL_SWAP` state and `tool_swap` method: Enables robust tool swapping between extruders.
+- `AFC_M104` and `AFC_M109` commands: Allow setting extruder temperature for a specific tool, supporting `T0`, `T1`, etc.
+- Macro renaming logic: Safely overrides built-in macros (e.g., `M104`, `M109`, `UNLOAD_FILAMENT`) with AFC-specific implementations.
+- `current` property: Provides a consistent way to get the currently loaded lane.
+- `get_lane_by_map` and `get_current_extruder` helpers: Improve lane and extruder lookup by tool mapping.
+- Debug logging: Enhanced debug output for tool changes, tool swaps, and macro registration.
+- Buffer and stepper safety checks: Prevent errors when buffer or stepper objects are missing.
+
+### Changed
+- Tool change and load/unload logic: Improved handling for multiple extruders, including proper tool selection, activation, and synchronization.
+- Extruder temperature handling: Now supports tool selection by name (e.g., `T0`, `T1`) and lane mapping.
+- Lane and extruder state management: Refactored to ensure consistent state after tool changes and buffer operations.
+- Macro registration: Now registers AFC-specific macros for temperature and tool change commands.
+- Buffer enable/disable: Now only enables/disables timers if buffer objects exist.
+- Error handling: Improved error messages and logging for tool and lane operations.
+
+### Removed
+- Direct assignment to `self.current`: Now handled via the `current` property and lane/extruder state logic.
+
+### Fixed
+- Lane and extruder state inconsistencies: Corrected issues where state could become out of sync after tool changes or buffer operations.
+- Potential errors with missing buffer or stepper objects.
+- Lane loaded/unloaded logic: Now properly updates state and
+
 ## [2025-06-18]
 ## Updated
 - RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane

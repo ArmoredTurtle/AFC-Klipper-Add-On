@@ -1226,6 +1226,7 @@ class afc:
         self.afcDeltaTime.set_start_time()
         # TODO figure this out if moving to cur_lane.extruder_obj.lane_loaded structure, maybe get current extruder from toolhead?
         # How would you deal with multiple extruders....
+
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.
         if self._check_bypass(unload=True): return False
 
@@ -1312,9 +1313,8 @@ class afc:
             # Activate LED indicator for unloading.
             self.function.afc_led(cur_lane.led_unloading, cur_lane.led_index)
 
-            if cur_lane.extruder_stepper.motion_queue != cur_lane.extruder_name:
-                # Synchronize the extruder stepper with the lane.
-                cur_lane.sync_to_extruder()
+            # Synchronize the extruder stepper with the lane.
+            cur_lane.sync_to_extruder()
 
             # Enable the lane for unloading operations.
             cur_lane.do_enable(True)
