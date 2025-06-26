@@ -1727,13 +1727,12 @@ class afc:
     def _cmd_AFC_M109(self, gcmd, wait=True):
         """
         This function sets the temperature of the specified extruder and waits for it to reach the target temperature.
-
-        Usage
-        -----
-        `AFC_M109 <extruder> <temperature>`
+        Supports T (tool), S (temp), and D (deadband).
         """
         toolnum  = gcmd.get_int('T', None, minval=0)
         temp     = gcmd.get_float('S', 0.0)
+        deadband = gcmd.get_float('D', None)
+
         if toolnum is not None:
             map = "T{}".format(toolnum)
             lane = self.function.get_lane_by_map(map)
@@ -1751,9 +1750,24 @@ class afc:
 
         pheaters = self.printer.lookup_object('heaters')
         heater = extruder.get_heater()
-        current_temp = heater.get_temp(self.reactor.monotonic())[0]
+        pheaters.set_temperature(heater, temp, False)  # Always set temp, don't wait yet
 
-        # Final decision to wait is based on both the parameter and actual temp delta
+        # If deadband is specified, wait for temp within deadband
+        if wait and deadband is not None and temp > 0:
+            min_temp = temp - (deadband / 2)
+            max_temp = temp + (deadband / 2)
+            reactor = self.printer.get_reactor()
+            eventtime = reactor.monotonic()
+            while not self.printer.is_shutdown():
+                cur_temp, _ = heater.get_temp(eventtime)
+                if min_temp <= cur_temp <= max_temp:
+                    return
+                self.logger.debug(f"{heater.get_name()} temp: {cur_temp:.2f}C (waiting for {min_temp}..{max_temp})")
+                eventtime = reactor.pause(eventtime + 1.0)
+            return
+
+        # Default: wait if needed
+        current_temp = heater.get_temp(self.reactor.monotonic())[0]
         should_wait = wait and abs(current_temp - temp) > 5
         pheaters.set_temperature(heater, temp, should_wait)
 

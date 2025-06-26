@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `TOOL_SWAP` state and `tool_swap` method: Enables robust tool swapping between extruders.
 - `AFC_M104` and `AFC_M109` commands: Allow setting extruder temperature for a specific tool, supporting `T0`, `T1`, etc.
+  - Added deadband variable `D` to `AFC_M109`, to allow for waiting until the temperature is within a specified range of the target, enabling faster tool changes or print starts when exact temperature is not required.
 - Macro renaming logic: Safely overrides built-in macros (e.g., `M104`, `M109`, `UNLOAD_FILAMENT`) with AFC-specific implementations.
 - `current` property: Provides a consistent way to get the currently loaded lane.
 - `get_lane_by_map` and `get_current_extruder` helpers: Improve lane and extruder lookup by tool mapping.
