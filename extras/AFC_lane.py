@@ -838,6 +838,69 @@ class AFCLane:
             return self.buffer_obj.trailing_state
         else: return None
 
+
+    def _is_normal_printing_state(self):
+        """
+        Returns True if the lane is in a normal printing state (TOOLED or LOADED).
+        Prevents runout logic from triggering during transitions or maintenance.
+        """
+        return self.status in (AFCLaneState.TOOLED, AFCLaneState.LOADED)
+
+    def handle_toolhead_runout(self, sensor=None):
+        """
+        Handles runout detection at the toolhead sensor.
+        If all upstream sensors (prep, load, hub) still detect filament, this indicates a break or jam at the toolhead.
+        Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
+        :param sensor: Optional name of the triggering sensor for user notification.
+        """
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
+            return
+
+        # Check upstream sensors: prep, load, hub
+        prep_ok = self.prep_state
+        load_ok = self.load_state
+        hub_ok = self.hub_obj.state if self.hub_obj is not None else True
+
+        # If all upstream sensors are still True, this is a break/jam at the toolhead
+        if prep_ok and load_ok and hub_ok:
+            msg = (
+                f"Toolhead runout detected by {sensor} sensor, but upstream sensors still detect filament.\n"
+                "Possible filament break or jam at the toolhead. Please clear the jam and reload filament manually, then resume the print."
+            )
+            self.afc.error.pause_resume.send_pause_command()
+            self.afc.save_pos()
+            self.afc.error.AFC_error(msg)
+        # No else: do not trigger infinite runout or pause runout here
+
+    def handle_hub_runout(self, sensor=None):
+        """
+        Handles runout detection at the hub sensor.
+        If both upstream sensors (prep, load) still detect filament but hub does not, this indicates a break or jam at the hub.
+        Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
+        :param sensor: Optional name of the triggering sensor for user notification.
+        """
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
+            return
+
+        # Check upstream sensors: prep, load
+        prep_ok = self.prep_state
+        load_ok = self.load_state
+        hub_ok = self.hub_obj.state if self.hub_obj is not None else False
+
+        # If both upstream sensors are still True, but hub is not, this is a break/jam at the hub
+        if prep_ok and load_ok and not hub_ok:
+            msg = (
+                f"Hub runout detected by {sensor or 'hub'} sensor, but upstream sensors still detect filament.\n"
+                "Possible filament break or jam at the hub. Please clear the jam and reload filament manually, then resume the print."
+            )
+            self.afc.error.pause_resume.send_pause_command()
+            self.afc.save_pos()
+            self.afc.error.AFC_error(msg)
+        # No else: do not trigger infinite runout or pause runout here
+
+
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
     cmd_SET_LANE_LOAD_options = {"LANE": {"type": "string", "default": "lane1"}}
     def cmd_SET_LANE_LOADED(self, gcmd):
@@ -1051,6 +1114,8 @@ class AFCLane:
         response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
         return response
+
+
 
 def load_config_prefix(config):
     return AFCLane(config)
