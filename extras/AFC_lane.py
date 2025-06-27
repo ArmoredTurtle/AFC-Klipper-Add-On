@@ -769,7 +769,7 @@ class AFCLane:
         Helper function for setting multiple variables when lane is loaded
         """
         self.tool_loaded = True
-        self.afc.current = self.extruder_obj.lane_loaded = self.name
+        self.extruder_obj.lane_loaded = self.name
         self.afc.current_loading = None
         self.status = AFCLaneState.TOOLED
         self.afc.spool.set_active_spool(self.spool_id)
@@ -781,9 +781,8 @@ class AFCLane:
         Helper function for setting multiple variables when lane is unloaded
         """
         self.tool_loaded = False
-        self.extruder_obj.lane_loaded = ""
+        self.extruder_obj.lane_loaded = None
         self.status = AFCLaneState.NONE
-        self.afc.current = None
         self.afc.current_loading = None
         self.afc.spool.set_active_spool(None)
         self.unit_obj.lane_tool_unloaded(self)

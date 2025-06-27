@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-26]
+### Added
+- `TOOL_SWAP` state and `tool_swap` method: Enables robust tool swapping between extruders.
+- `AFC_M104` and `AFC_M109` commands: Allow setting extruder temperature for a specific tool (e.g., `T0`, `T1`).
+  - `AFC_M109` now supports a `D` (deadband) parameter to allow faster tool changes or print starts when exact temperature isn't required.
+- Macro override logic: Safely renames built-in macros (e.g., `M104`, `M109`) with AFC-specific implementations.
+- `current` property: Provides a consistent interface for getting the currently loaded lane.
+- `get_lane_by_map` and `get_current_extruder` helpers: Simplify tool/lane mapping.
+- `_wait_for_temp_within_tolerance` helper: set and wait for temp with in range. to help with the "deadband" functionality
+- `temp_wait_tolerance` config option, this is used for functions that check and set temperatures. Goes under `[afc]` config section
+
+### Changed
+- Tool change and load/unload logic: Refined for multi-extruder systems with better tool selection, activation, and sync.
+- Temperature control: Now supports tool selection by name and improved lane-to-extruder mapping.
+- Lane and extruder state logic: Refactored for consistency across tool changes and buffer interactions.
+- Error handling: Clearer messages and logs for lane and tool operations.
+
+### Removed
+- Direct assignment to `self.current`: Replaced with controlled access via the `current` property.
+
+### Fixed
+- Inconsistencies in lane/extruder state after tool changes or buffer operations.
+- Errors when buffer or stepper objects were missing.
+
 ## [2025-06-18]
 ## Updated
 - RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane

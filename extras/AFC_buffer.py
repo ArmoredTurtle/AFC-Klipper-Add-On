@@ -143,6 +143,7 @@ class AFCTrigger:
 
         cur_stepper = self.afc.function.get_current_lane_obj()
         if cur_stepper is None: return
+        if cur_stepper.extruder_stepper is None: return
 
         cur_stepper.update_rotation_distance( 1 )
         self.logger.info("Rotation distance reset : {:.4f}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))

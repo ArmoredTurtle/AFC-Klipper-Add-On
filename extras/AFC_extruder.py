@@ -95,6 +95,9 @@ class AFCExtruder:
     def tool_end_callback(self, eventtime, state):
         self.tool_end_state = state
 
+    def get_heater(self):
+        return self.toolhead_extruder.get_heater()
+
     def _update_tool_stn(self, length):
         """
         Helper function to set tool_stn length
