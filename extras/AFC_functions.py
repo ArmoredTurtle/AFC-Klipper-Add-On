@@ -203,7 +203,7 @@ class afcFunction:
         self.afc.tool_cmds[cur_lane.map]=cur_lane.name
         try:
             if cur_lane._map:
-                rename_map = ("_T{}".format(cur_lane.map))
+                rename_map = ("_{}".format(cur_lane.map))
                 self._rename(cur_lane.map, rename_map, self.afc.cmd_CHANGE_TOOL, self.afc.cmd_CHANGE_TOOL_help)
             else:
                 self.afc.gcode.register_command(cur_lane.map, self.afc.cmd_CHANGE_TOOL, desc=self.afc.cmd_CHANGE_TOOL_help)

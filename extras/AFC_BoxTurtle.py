@@ -94,7 +94,7 @@ class afcBoxTurtle(afcUnit):
                             if self.afc.current == cur_lane.name:
                                 self.afc.spool.set_active_spool(cur_lane.spool_id)
                                 self.afc.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
-                                cur_lane.status = 'Tooled'
+                                cur_lane.status = AFCLaneState.TOOLED
 
                             cur_lane.enable_buffer()
                         else:

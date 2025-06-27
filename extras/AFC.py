@@ -942,7 +942,7 @@ class afc:
                 cur_lane.move_advanced(cur_hub.move_dis * -1, SpeedMode.SHORT, assist_active = AssistActive.YES)
             cur_lane.move_advanced(cur_hub.move_dis * -5, SpeedMode.SHORT)
             cur_lane.do_enable(False)
-            cur_lane.status = AFCLaneState.LOADED
+            cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             # Put CAM back to lane if its loaded to toolhead
             self.function.select_loaded_lane()
@@ -1465,7 +1465,7 @@ class afc:
             # Finalize unloading and reset lane state.
             cur_lane.loaded_to_hub = True
             cur_lane.unit_obj.lane_tool_unloaded(cur_lane)
-            cur_lane.status = AFCLaneState.NONE
+            cur_lane.status = AFCLaneState.LOADED
 
             if cur_lane.hub == 'direct':
                 while cur_lane.load_state:
@@ -1603,6 +1603,17 @@ class afc:
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
 
     def tool_swap(self, cur_lane):
+        """
+        Perform a tool swap operation for the specified lane.
+
+        This function handles switching the active extruder/toolhead to the one associated with the given lane.
+        It saves the current toolhead position, updates internal state, and issues a SELECT_TOOL command
+        to switch to the correct extruder. This is primarily used in multi-extruder/toolchanger setups.
+
+        :param cur_lane: The lane object whose extruder/toolhead should be activated.
+
+        :return: None
+        """
         self.current_state = State.TOOL_SWAP
         self.function.log_toolhead_pos("Before toolswap: ")
         # Save the current position before switching tools and subtract offsets
