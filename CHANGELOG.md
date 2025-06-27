@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `current` property: Provides a consistent interface for getting the currently loaded lane.
 - `get_lane_by_map` and `get_current_extruder` helpers: Simplify tool/lane mapping.
 - `_wait_for_temp_within_tolerance` helper: set and wait for temp with in range. to help with the "deadband" functionality
+- `temp_wait_tolerance` config option, this is used for functions that check and set temperatures. Goes under `[afc]` config section
 
 ### Changed
 - Tool change and load/unload logic: Refined for multi-extruder systems with better tool selection, activation, and sync.

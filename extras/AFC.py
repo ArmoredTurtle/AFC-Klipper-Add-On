@@ -120,6 +120,7 @@ class afc:
         self.common_density_values  = config.getlists("common_density_values",
                                                       ("PLA:1.24", "PETG:1.23", "ABS:1.04", "ASA:1.07"))
         self.common_density_values  = list(self.common_density_values)
+        self.temp_wait_tolerance    = config.getfloat("temp_wait_tolerance", 5.0)         # Temperature tolerance in degrees Celsius for wait commands like M109
 
         #LED SETTINGS
         self.ind_lights = None
@@ -432,14 +433,14 @@ class afc:
         current_temp = self.heater.get_temp(self.reactor.monotonic())
 
         # Check if the current temp is below the set temp, if it is heat to set temp
-        if current_temp[0] < (self.heater.target_temp-5):
+        if current_temp[0] < (self.heater.target_temp-self.temp_wait_tolerance):
             wait = False
             pheaters.set_temperature(extruder.get_heater(), current_temp[0], wait=wait)
             self.logger.info('Current temp {:.1f} is below set temp {}'.format(current_temp[0], target_temp))
 
-        # Check to make sure temp is with +/-5 of target temp, not setting if temp is over target temp and using min_extrude_temp value
-        if self.heater.target_temp <= (target_temp-5) or (self.heater.target_temp >= (target_temp+5) and not using_min_value):
-            wait = False if self.heater.target_temp >= (target_temp+5) else True
+        # Check to make sure temp is with +/- self.temp_wait_tolerance of target temp, not setting if temp is over target temp and using min_extrude_temp value
+        if self.heater.target_temp <= (target_temp-self.temp_wait_tolerance) or (self.heater.target_temp >= (target_temp+self.temp_wait_tolerance) and not using_min_value):
+            wait = False if self.heater.target_temp >= (target_temp+self.temp_wait_tolerance) else True
 
             self.logger.info('Setting extruder temperature to {} {}'.format(target_temp, "and waiting for extruder to reach temperature" if wait else ""))
             pheaters.set_temperature(extruder.get_heater(), target_temp, wait=wait)
@@ -1760,7 +1761,7 @@ class afc:
 
         # Default: wait if needed
         current_temp = heater.get_temp(self.reactor.monotonic())[0]
-        should_wait = wait and abs(current_temp - temp) > 5
+        should_wait = wait and abs(current_temp - temp) > self.temp_wait_tolerance
         pheaters.set_temperature(heater, temp, should_wait)
 
     def _wait_for_temp_within_tolerance(self, heater, target_temp, tolerance):
