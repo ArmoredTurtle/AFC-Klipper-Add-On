@@ -1752,24 +1752,36 @@ class afc:
         heater = extruder.get_heater()
         pheaters.set_temperature(heater, temp, False)  # Always set temp, don't wait yet
 
-        # If deadband is specified, wait for temp within deadband
+        # If deadband is specified, wait for temp within tolerance
         if wait and deadband is not None and temp > 0:
-            min_temp = temp - (deadband / 2)
-            max_temp = temp + (deadband / 2)
-            reactor = self.printer.get_reactor()
-            eventtime = reactor.monotonic()
-            while not self.printer.is_shutdown():
-                cur_temp, _ = heater.get_temp(eventtime)
-                if min_temp <= cur_temp <= max_temp:
-                    return
-                self.logger.debug(f"{heater.get_name()} temp: {cur_temp:.2f}C (waiting for {min_temp}..{max_temp})")
-                eventtime = reactor.pause(eventtime + 1.0)
+            self._wait_for_temp_within_tolerance(heater, temp, deadband)
             return
+
 
         # Default: wait if needed
         current_temp = heater.get_temp(self.reactor.monotonic())[0]
         should_wait = wait and abs(current_temp - temp) > 5
         pheaters.set_temperature(heater, temp, should_wait)
+
+    def _wait_for_temp_within_tolerance(self, heater, target_temp, tolerance):
+        """
+        Waits until the heater's temperature is within the specified tolerance.
+        """
+        if tolerance is None or target_temp <= 0:
+            return
+
+        min_temp = target_temp - (tolerance / 2)
+        max_temp = target_temp + (tolerance / 2)
+
+        reactor = self.printer.get_reactor()
+        eventtime = reactor.monotonic()
+        while not self.printer.is_shutdown():
+            cur_temp, _ = heater.get_temp(eventtime)
+            if min_temp <= cur_temp <= max_temp:
+                return
+            self.logger.debug(f"{heater.get_name()} temp: {cur_temp:.2f}C (waiting for {min_temp:.1f}..{max_temp:.1f})")
+            eventtime = reactor.pause(eventtime + 1.0)
+
 
     cmd_AFC_STATUS_help = "Return current status of AFC"
     def cmd_AFC_STATUS(self, gcmd):

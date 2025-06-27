@@ -794,8 +794,8 @@ class AFCLane:
         """
         if self.buffer_obj is not None:
             self.buffer_obj.enable_buffer()
-            self.espooler.enable_timer()
-            self.enable_weight_timer()
+        self.espooler.enable_timer()
+        self.enable_weight_timer()
 
     def disable_buffer(self):
         """
@@ -804,8 +804,8 @@ class AFCLane:
         """
         if self.buffer_obj is not None:
             self.buffer_obj.disable_buffer()
-            self.espooler.disable_timer()
-            self.disable_weight_timer()
+        self.espooler.disable_timer()
+        self.disable_weight_timer()
 
     def buffer_status(self):
         """
