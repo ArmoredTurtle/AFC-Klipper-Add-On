@@ -310,7 +310,7 @@ class afcFunction:
             if lane_obj.map == map_name:
                 lane_name = lane_obj
         if lane_name is None:
-            self.logger.warning("Lane map {} not found".format(map_name))
+            self.logger.info("Lane map {} not found".format(map_name))
         return lane_name
 
     def get_current_lane(self):
