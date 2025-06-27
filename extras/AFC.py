@@ -243,7 +243,7 @@ class afc:
                                         self.cmd_UNSET_LANE_LOADED_help)
 
     @property
-    def current(self):  
+    def current(self):
         return self.function.get_current_lane()
 
     def _remove_after_last(self, string, char):
@@ -1623,7 +1623,7 @@ class afc:
         # Update the last_gcode_position to reflect the new base position after the tool swap.
         for i in range(0, 3):
             self.last_gcode_position[i] += self.gcode_move.base_position[i]
-        
+
         self.function.log_toolhead_pos("After toolswap: ")
 
     def _get_message(self, clear=False):
@@ -1647,7 +1647,7 @@ class afc:
         Displays current status of AFC for webhooks
         """
         str = {}
-        str['current_load']             = self.current 
+        str['current_load']             = self.current
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
