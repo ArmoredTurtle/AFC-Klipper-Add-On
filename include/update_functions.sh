@@ -33,7 +33,7 @@ AFC Macros update failed.
   remove_t_macros
   remove_velocity
   update_message+="""
-AFC Klipper Add-On updated successfully.
+AFC Klipper Add-On updated successfully with version v${afc_version}.
 """
   export update_message
   files_updated_or_installed="True"
