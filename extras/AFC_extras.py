@@ -65,21 +65,21 @@ class AFCExtras:
             self.afc.logger.info(f"{self.lane_id}: Long press detected.")
             if cur_lane == self.lane_id:
                 self.afc.logger.info(f"Unloading {self.lane_id} before ejecting.")
-                if self.afc.TOOL_UNLOAD(self):
-                    self.afc.LANE_UNLOAD(self, cur_lane)
+                if self.afc.TOOL_UNLOAD():
+                    self.afc.LANE_UNLOAD(cur_lane)
             else:
                 # If another lane is active, just eject this one
                 self.afc.logger.info(f"Ejecting {self.lane_number}.")
-                self.afc.LANE_UNLOAD(self, self.lane_number)
+                self.afc.LANE_UNLOAD(self.lane_number)
         # Short Press
         else:
             self.afc.logger.info(f"{self.lane_id}: Short press detected.")
             if cur_lane == self.lane_id:
                 self.afc.logger.info(f"Unloading tool from {self.lane_id}.")
-                self.afc.TOOL_UNLOAD(self)
+                self.afc.TOOL_UNLOAD()
             else:
                 self.afc.logger.info(f"Loading tool to {self.lane_id}.")
-                self.afc.CHANGE_TOOL(self, self.lane_number)
+                self.afc.CHANGE_TOOL(self.lane_id)
 
 
 def load_config_prefix(config):
