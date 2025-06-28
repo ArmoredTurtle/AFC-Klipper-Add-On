@@ -416,13 +416,15 @@ class afcFunction:
 
         # Disable extruder steppers for non active lanes
         for key, obj in self.afc.lanes.items():
-            self.logger.debug("Checking lane: {}".format(key))
             if cur_lane_loaded is None or key != cur_lane_loaded.name:
-                self.logger.debug("Disabling lane: {}".format(key))
                 obj.do_enable(False)
                 obj.disable_buffer()
                 if obj.prep_state and obj.load_state:
-                    self.afc_led(obj.led_ready, obj.led_index)
+                    if obj.tool_loaded:
+                        # If tool is loaded, set led to tool loaded color
+                        self.afc_led(obj.led_tool_loaded_idle, obj.led_index)
+                    else:
+                        self.afc_led(obj.led_ready, obj.led_index)
                 else:
                     self.afc_led(obj.led_not_ready, obj.led_index)
 
