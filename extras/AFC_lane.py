@@ -115,6 +115,10 @@ class AFCLane:
         self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
+        # Custom Load/unload Commands
+        self.custom_load_cmd = config.get('custom_load_cmd', None)  # Custom command to run when loading lane, this will bypass the typical load sequence and run the command instead.
+        self.custom_unload_cmd = config.get('custom_unload_cmd', None)  # Custom command to run when unloading lane, this will bypass the typical unload sequence and run the command instead.
+
         self.rev_long_moves_speed_factor = config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist
 
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
@@ -142,9 +146,6 @@ class AFCLane:
         if self.load is not None:
             buttons.register_buttons([self.load], self.load_callback)
         else: self.load_state = True
-
-        # Custom Load Command
-        self.custom_load_cmd = config.get('custom_load_cmd', None)  # Custom command to run when loading lane, this will bypass the typical load sequence and run the command instead.
 
         self.espooler = AFC_assist.Espooler(self.name, config)
         self.lane_load_count = None

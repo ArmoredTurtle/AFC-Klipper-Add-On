@@ -1027,7 +1027,6 @@ class afc:
         if self.function.get_current_extruder() != cur_lane.extruder_obj.name:
             self.tool_swap(cur_lane)
 
-
         if cur_lane.name != self.current:
             # Lookup extruder and hub objects associated with the lane.
             cur_hub = cur_lane.hub_obj
@@ -1119,6 +1118,8 @@ class afc:
         during the loading process.
 
         :param cur_lane: The lane object to be loaded.
+        :param cur_hub: The hub object associated with the lane.
+        :param cur_extruder: The extruder object associated with the lane.
         """
         # Placeholder for custom load sequence
         if cur_lane.custom_load_cmd:
@@ -1131,7 +1132,7 @@ class afc:
                 message = 'Custom load command did not trigger pre extruder gear toolhead sensor, CHECK FILAMENT PATH\n||=====||====||==>--||\nTRG   LOAD   HUB   TOOL'
                 message += '\nTo resolve set lane loaded with `SET_LANE_LOADED LANE={}` macro.'.format(cur_lane.name)
                 message += '\nManually move filament until filament is right before toolhead extruder gears,'
-                message += '\n then load into extruder gears with extrude button in your gui of choice until the color fully changes'
+                message += '\nthen load into extruder gears with extrude button in your gui of choice until the color fully changes'
                 if self.function.in_print():
                     message += '\nOnce filament is fully loaded click resume to continue printing'
                 self.error.handle_lane_failure(cur_lane, message)
@@ -1332,6 +1333,32 @@ class afc:
             cur_hub = cur_lane.hub_obj
             cur_extruder = cur_lane.extruder_obj
 
+            # Run the unload sequence, which may include custom gcode commands.
+            if not self.unload_sequence(cur_lane, cur_hub, cur_extruder):
+                return False
+
+        unload_time = self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name if cur_lane is not None else "None"))
+        self.afc_stats.average_tool_unload_time.average_time(unload_time)
+        self.current_state = State.IDLE
+        return True
+
+    def unload_sequence(self, cur_lane, cur_hub, cur_extruder):
+        """
+        This function controls the unloading sequence and allows for custom gcode commands to be executed
+        during the loading process.
+
+        :param cur_lane: The lane object to be loaded.
+        :param cur_hub: The hub object associated with the lane.
+        :param cur_extruder: The extruder object associated with the lane.
+        """
+        if cur_lane.custom_unload_cmd:
+            self.logger.info("Running custom unload command for lane {}".format(cur_lane.name))
+            cur_lane.status = AFCLaneState.TOOL_UNLOADING
+            self.gcode.run_script_from_command(cur_lane.custom_unload_cmd)
+            cur_lane.set_unloaded()
+            cur_lane.status = AFCLaneState.NONE
+            self.save_vars()
+        else:
             # Prepare the extruder and heater for unloading.
             if self._check_extruder_temp(cur_lane):
                 self.afcDeltaTime.log_with_time("Done heating toolhead")
@@ -1447,7 +1474,6 @@ class afc:
 
             # Clear toolhead's loaded state for easier error handling later.
             cur_lane.set_unloaded()
-
             self.save_vars()
 
             # Ensure filament is fully cleared from the hub.
@@ -1511,14 +1537,15 @@ class afc:
             cur_lane.do_enable(False)
             cur_lane.unit_obj.return_to_home()
 
-            self.afc_stats.tc_tool_unload.increase_count()
             cur_lane.espooler.stats.update_database()
 
             self.save_vars()
 
-        unload_time = self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name if cur_lane is not None else "None"))
-        self.afc_stats.average_tool_unload_time.average_time(unload_time)
-        self.current_state = State.IDLE
+        # Update tool and lane status.
+        cur_lane.disable_buffer()
+        cur_lane.do_enable(False)
+        self.afc_stats.tc_tool_unload.increase_count()
+        self.save_vars()
         return True
 
     cmd_CHANGE_TOOL_help = "change filaments in tool head"
