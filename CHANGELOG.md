@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-06-29]
+### Added
+- `led_tool_loaded_idle` led status color. This is used when a lane is loaded to a tool but that tool is not active. Primary use, toolchangers.
+  - This is available to be set globally, per unit or per lane.
+- `custom_load_cmd` to AFC_lane. This offers flexiblilty for set ups that aren't using the standard AFC load sequence.
+  - Setting this will override the standard AFC load sequence.
+  - This will still check the toolhead presensor state to confirm load *pre extruder toolhead sensor required*
+- `custom_unload_cmd` to AFC_lane. This offers flexibility in how the system unloads
+  - This will override and bypass the standard AFC load sequence.
+  - There is no check for toolhead sensor after completion so it will assume the unload was successful.
+
+### Changed
+- The load sequence for the command `TOOL_LOAD` is now pulled out to it's own function for more flexiblility
+- The unload sequence for the command `TOOL_UNLOAD` is now pulled out to it's own function for more flexibility
+- The status of a tool loaded lane that is not the current extruder will now be set to `led_tool_loaded_idle` for a more clear led status.
+
 ## [2025-06-26]
 ### Added
 - `TOOL_SWAP` state and `tool_swap` method: Enables robust tool swapping between extruders.
