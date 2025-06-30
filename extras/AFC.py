@@ -667,12 +667,13 @@ class afc:
         """
         return self.resume_z_speed if self.resume_z_speed > 0 else self.speed
 
-    def move_z_pos(self, z_amount, string=""):
+    def move_z_pos(self, z_amount, string="", wait_moves=False):
         """
         Common function helper to move z, also does a check for max z so toolhead does not exceed max height
 
         :param z_amount: amount to add to the base position
         :param string: String to write to log, this can be used
+        :param wait_moves: Set to True to wait on toolhead moves to finish before moving on
 
         :return newpos: Position list with updated z position
         """
@@ -683,6 +684,9 @@ class afc:
         newpos[2] = min(max_z - 1, z_amount)
 
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
+
+        if wait_moves:
+            self.toolhead.wait_moves()
 
         self.function.log_toolhead_pos(f"move_z_pos({string}): ")
 
@@ -1257,7 +1261,8 @@ class afc:
         # Perform Z-hop to avoid collisions during unloading.
         pos = self.gcode_move.last_position
         pos[2] += self.z_hop
-        self.move_z_pos(pos[2], "Tool_Unload quick pull")
+        # toolhead wait is needed here as it will cause TTC for some if wait does not occur
+        self.move_z_pos(pos[2], "Tool_Unload quick pull", wait_moves=True)
 
         # Disable the buffer if it's active.
         cur_lane.disable_buffer()
