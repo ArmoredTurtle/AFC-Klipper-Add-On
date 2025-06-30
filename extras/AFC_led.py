@@ -144,6 +144,7 @@ class AFCled:
         else:
             self.set_color_fn(int(index), colors, update_last)
 
+        # Skip further operations if LEDs are set to remain off.
         if self.keep_leds_off: return
 
         def lookahead_bgfunc(print_time):
