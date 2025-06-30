@@ -134,19 +134,21 @@ class AFCled:
         else:
             colors=list(map(float,status.split(',')))
 
-        transmit = not self.keep_leds_off
+        if isinstance(index, str) and "-" in index:
+            start, end = map(int, index.split("-"))
+            for i in range(start, end + 1):
+                self.set_color_fn(i, colors, update_last)
+        elif isinstance(index, list):
+            for i in index:
+                self.set_color_fn(i, colors, update_last)
+        else:
+            self.set_color_fn(int(index), colors, update_last)
+
+        if self.keep_leds_off: return
+
         def lookahead_bgfunc(print_time):
-            if isinstance(index, str) and "-" in index:
-                start, end = map(int, index.split("-"))
-                for i in range(start, end + 1):
-                    self.set_color_fn(i, colors, update_last)
-            elif isinstance(index, list):
-                for i in index:
-                    self.set_color_fn(i, colors, update_last)
-            else:
-                self.set_color_fn(int(index), colors, update_last)
-            if transmit:
-                self.check_transmit_fn(print_time)
+            self.check_transmit_fn(print_time)
+
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 
