@@ -1614,6 +1614,11 @@ class afc:
 
         self.next_lane_load = cur_lane.name
 
+        if self.next_lane_load.status == AFCLaneState.INFINITE_RUNOUT:
+            if not self._heat_next_extruder(wait=False):
+                self.error.fix("Failed to select or heat next extruder", self.next_lane_load)
+                return
+
         # If the requested lane is not the current lane, proceed with the tool change.
         if cur_lane.name != self.current:
             # Save the current toolhead position to allow restoration after the tool change.
@@ -1641,7 +1646,10 @@ class afc:
                         return
 
             if self.next_lane_load.status == AFCLaneState.INFINITE_RUNOUT:
-                self._heat_next_extruder()
+                if not self._heat_next_extruder():
+                    self.error.fix("Failed to select or heat next extruder", self.next_lane_load)
+                    return
+                self.next_lane_load.status = AFCLaneState.LOADED
 
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(cur_lane, purge_length) and not self.error_state:
@@ -1836,7 +1844,7 @@ class afc:
         should_wait = wait and abs(current_temp - temp) > self.temp_wait_tolerance
         pheaters.set_temperature(heater, temp, should_wait)
 
-    def _heat_next_extruder(self):
+    def _heat_next_extruder(self, wait=True):
         """
         Heats the next extruder if it is not the current extruder.
         This function checks if the next lane to load is specified and if it is different from the current extruder.
@@ -1850,21 +1858,23 @@ class afc:
             # Add correct error state if next lane load is None
             self.error.AFC_error("Next lane load is None, cannot proceed with tool change", pause=self.function.in_print())
             next_extruder = None
-            return
+            return False
         
         # get the current extruder from the toolhead and it's current temperature
         pheaters = self.printer.lookup_object('heaters')
         extruder = self.toolhead.get_extruder()
         self.heater = extruder.get_heater()
         current_temp = self.heater.get_temp(self.reactor.monotonic())
+        next_heater = next_extruder.get_heater()
+        pheaters.set_temperature(next_heater, current_temp, False)
         pheaters.set_temperature(self.heater, 0, False)  # Always set temp of the extruder than ran out to 0
 
         # If the next extruder is specified and it is not the current extruder, heat the next extruder.
-        if next_extruder is not None and self.function.get_current_extruder() != next_extruder:
+        if wait and (next_extruder is not None and self.function.get_current_extruder() != next_extruder):
             deadband = next_extruder.deadband
-            heater = next_extruder.get_heater()
-            pheaters.set_temperature(heater, current_temp, False)
-            self._wait_for_temp_within_tolerance(heater, current_temp, deadband)
+            self._wait_for_temp_within_tolerance(next_heater, current_temp, deadband)
+        
+        return True
 
     def _wait_for_temp_within_tolerance(self, heater, target_temp, tolerance=20):
         """
