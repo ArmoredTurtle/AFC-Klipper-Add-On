@@ -243,6 +243,8 @@ class afc:
                                         self.cmd_AFC_TOGGLE_MACRO_help, self.cmd_AFC_TOGGLE_MACRO_options)
         self.function.register_commands(self.show_macros, 'UNSET_LANE_LOADED', self.cmd_UNSET_LANE_LOADED,
                                         self.cmd_UNSET_LANE_LOADED_help)
+        self.function.register_commands(self.show_macros, 'TEST_INFINITE_RUNOUT', self.cmd_TEST_INFINITE_RUNOUT,
+                                        self.cmd_TEST_INFINITE_RUNOUT_help)
 
     @property
     def current(self):
@@ -1676,6 +1678,31 @@ class afc:
 
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
+
+    cmd_test_infinite_runout_help = "Test command to simulate infinite runout"
+    def cmd_test_infinite_runout(self, gcmd):
+        """
+        This function is a test command to simulate an infinite runout scenario.
+        It sets the current lane to an infinite runout state and performs a tool change.
+
+        Usage
+        -----
+        `TEST_INFINITE_RUNOUT LANE=<lane>`
+
+        Example
+        ------
+        ```
+        TEST_INFINITE_RUNOUT LANE=lane1
+        ```
+        """
+        lane = gcmd.get('LANE', None)
+        if lane is None or lane not in self.lanes:
+            self.logger.info('{} Unknown'.format(lane))
+            return
+
+        cur_lane = self.lanes[lane]
+        cur_lane.status = AFCLaneState.INFINITE_RUNOUT
+        self.CHANGE_TOOL(cur_lane, restore_pos=False)
 
     def tool_swap(self, cur_lane):
         """
