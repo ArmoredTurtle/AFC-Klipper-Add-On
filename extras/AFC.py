@@ -1614,8 +1614,9 @@ class afc:
         infinite_runout = False
 
         self.next_lane_load = cur_lane.name
+        next_extruder = self.lanes[self.next_lane_load].extruder_obj.name
 
-        if self.next_lane_load.status == AFCLaneState.INFINITE_RUNOUT:
+        if self.next_lane_load.status == AFCLaneState.INFINITE_RUNOUT and self.function.get_current_extruder() != next_extruder:
             infinite_runout = True
             result = self._heat_next_extruder(wait=False)
             if not result:
