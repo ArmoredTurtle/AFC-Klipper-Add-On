@@ -259,7 +259,7 @@ class AFCSpool:
         cur_lane.material = self.afc.default_material_type
         cur_lane.weight = 1000 # Defaulting weight to 1000 upon load
 
-        if self.afc.spoolman is not None and self.next_spool_id is not None:
+        if self.afc.spoolman is not None and self.next_spool_id != '':
             spool_id = self.next_spool_id
             self.next_spool_id = ''
             self.set_spoolID(cur_lane, spool_id)
