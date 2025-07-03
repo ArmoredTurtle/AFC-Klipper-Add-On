@@ -251,6 +251,19 @@ class AFCSpool:
             value = filament[field]
         return value
 
+    def _set_values(self, cur_lane):
+        """
+        Helper function for setting lane spool values
+        """
+        # set defaults if there's no spool id, or the spoolman lookup fails
+        cur_lane.material = self.afc.default_material_type
+        cur_lane.weight = 1000 # Defaulting weight to 1000 upon load
+
+        if self.afc.spoolman is not None and self.next_spool_id is not None:
+            spool_id = self.next_spool_id
+            self.next_spool_id = ''
+            self.set_spoolID(cur_lane, spool_id)
+
     def _clear_values(self, cur_lane):
         """
         Helper function for clearing out lane spool values
