@@ -1900,7 +1900,7 @@ class afc:
         self.heater = extruder.get_heater()
         current_temp = self.heater.get_temp(self.reactor.monotonic())
         next_heater = next_extruder.get_heater()
-        set_temp = current_temp[0]
+        set_temp = current_temp[1]
         pheaters.set_temperature(next_heater, set_temp, False)
         self.logger.info("Heating next extruder: {} to {}".format(next_extruder.name, set_temp))
         pheaters.set_temperature(self.heater, 0, False)  # Always set temp of the extruder than ran out to 0
