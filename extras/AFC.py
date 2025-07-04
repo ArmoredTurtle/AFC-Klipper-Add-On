@@ -243,8 +243,8 @@ class afc:
                                         self.cmd_AFC_TOGGLE_MACRO_help, self.cmd_AFC_TOGGLE_MACRO_options)
         self.function.register_commands(self.show_macros, 'UNSET_LANE_LOADED', self.cmd_UNSET_LANE_LOADED,
                                         self.cmd_UNSET_LANE_LOADED_help)
-        self.function.register_commands(self.show_macros, 'TEST_INFINITE_RUNOUT', self.cmd_TEST_INFINITE_RUNOUT,
-                                        self.cmd_TEST_INFINITE_RUNOUT_help)
+        self.function.register_commands(self.show_macros, 'TEST_INFINITE_RUNOUT', self.cmd_test_infinite_runout,
+                                        self.cmd_test_infinite_runout_help)
 
     @property
     def current(self):
@@ -1618,14 +1618,15 @@ class afc:
         self.next_lane_load = cur_lane.name
         next_extruder = self.lanes[self.next_lane_load].extruder_obj.name
 
-        if self.next_lane_load.status == AFCLaneState.INFINITE_RUNOUT and self.function.get_current_extruder() != next_extruder:
+        if cur_lane.status == AFCLaneState.INFINITE_RUNOUT and self.function.get_current_extruder() != next_extruder:
             infinite_runout = True
             result = self._heat_next_extruder(wait=False)
             if not result:
                 self.error.fix("Failed to select or heat next extruder", self.next_lane_load)
                 return
-            self.next_lane_load.status = AFCLaneState.LOADED
-            next_heater, target_temp = result
+            cur_lane.status = AFCLaneState.LOADED
+            next_heater = result[0]
+            target_temp = result[1]
 
         # If the requested lane is not the current lane, proceed with the tool change.
         if cur_lane.name != self.current:
@@ -1654,9 +1655,10 @@ class afc:
                         return
 
             if infinite_runout:
-                infinite_extruder = self.lanes[cur_lane].extruder_obj.name
-                self.logger.info("Heating and waiting for {} for infinite runout".format(infinite_extruder))
+                infinite_extruder = cur_lane.extruder_obj
+                self.logger.info("Heating and waiting for {} for infinite runout".format(infinite_extruder.name))
                 self._wait_for_temp_within_tolerance(next_heater, target_temp, infinite_extruder.deadband)
+                self.logger.info("{} heated and ready to print".format(infinite_extruder.name))
 
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(cur_lane, purge_length) and not self.error_state:
@@ -1885,7 +1887,7 @@ class afc:
         """
         # Check if the current extruder is loaded with the lane to be unloaded.
         if self.next_lane_load is not None:
-            next_extruder = self.lanes[self.next_lane_load].extruder_obj.name
+            next_extruder = self.lanes[self.next_lane_load].extruder_obj
         else:
             # Add correct error state if next lane load is None
             self.error.AFC_error("Next lane load is None, cannot proceed with tool change", pause=self.function.in_print())
@@ -1898,7 +1900,7 @@ class afc:
         self.heater = extruder.get_heater()
         current_temp = self.heater.get_temp(self.reactor.monotonic())
         next_heater = next_extruder.get_heater()
-        set_temp = current_temp
+        set_temp = current_temp[0]
         pheaters.set_temperature(next_heater, set_temp, False)
         self.logger.info("Heating next extruder: {} to {}".format(next_extruder.name, set_temp))
         pheaters.set_temperature(self.heater, 0, False)  # Always set temp of the extruder than ran out to 0

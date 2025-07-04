@@ -35,7 +35,7 @@ class AFCExtruder:
         self.tool_load_speed            = config.getfloat("tool_load_speed", 25)                                        # Load speed in mm/s when loading toolhead. Default is 25mm/s.
         self.buffer_name                = config.get('buffer', None)                                                    # Buffer to use for extruder, this variable can be overridden per lane
         self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
-        self.deadband                   = config.getfloat("deadband", 0)                                               # Deadband for extruder heater, default is 0 degrees Celsius
+        self.deadband                   = config.getfloat("deadband", 2)                                                # Deadband for extruder heater, default is 2 degrees Celsius
 
         self.lane_loaded                = None
         self.lanes                      = {}
