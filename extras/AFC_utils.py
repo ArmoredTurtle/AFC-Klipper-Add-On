@@ -133,7 +133,7 @@ class AFC_moonraker:
                 return True
             else:
                 toolhead.dwell(1)
-        self.logger.info(f"Failed to connect to moonraker after {i*timeout} seconds, check AFC.log for more information")
+        self.logger.info(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
         return False
 
     def get_spoolman_server(self)->str:
