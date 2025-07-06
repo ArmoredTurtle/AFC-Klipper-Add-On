@@ -75,12 +75,17 @@ class AFC_logger:
                 self.logger.info(self._format(line))
         self.send_callback(message)
 
-    def debug(self, message, only_debug=False):
+    def debug(self, message, only_debug=False, traceback=None):
         for line in message.lstrip().rstrip().split("\n"):
             self.logger.debug(self._format("DEBUG: {}".format(line)))
 
         if self.print_debug_console and not only_debug:
             self.send_callback(message)
+
+        if traceback is not None:
+            for line in traceback.lstrip().rstrip().split("\n"):
+                self.logger.debug( self._format("DEBUG: {}".format(line)))
+
 
     def error(self, message, traceback=None, stack_name=""):
         """

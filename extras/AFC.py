@@ -109,6 +109,7 @@ class afc:
 
         # Config get section
         self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
+        self.moonraker_connect_to   = config.get("moonraker_timeout", 30)
         self.unit_order_list        = config.get('unit_order_list','')
         self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
         self.cfgloc                 = self._remove_after_last(self.VarFile,"/")
@@ -275,6 +276,26 @@ class afc:
         self.gcode.register_mux_command('HUB_LOAD',     "LANE", lane_obj.name, self.cmd_HUB_LOAD,       desc=self.cmd_HUB_LOAD_help)
         self.gcode.register_mux_command('TOOL_LOAD',    "LANE", lane_obj.name, self.cmd_TOOL_LOAD,      desc=self.cmd_TOOL_LOAD_help)
 
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        moonraker_port = ""
+        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
+
+        try:
+            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
+            if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
+                return False
+            self.spoolman = self.moonraker.get_spoolman_server()
+            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+        except Exception as e:
+            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
+            self.spoolman = None                      # set to none if not found
+        return True
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -284,17 +305,6 @@ class afc:
         self.toolhead   = self.printer.lookup_object('toolhead')
         self.idle       = self.printer.lookup_object('idle_timeout')
         self.gcode_move = self.printer.lookup_object('gcode_move')
-
-        moonraker_port = ""
-        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
-
-        try:
-            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
-            self.spoolman = self.moonraker.get_spoolman_server()
-            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
-        except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
-            self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor
         try:

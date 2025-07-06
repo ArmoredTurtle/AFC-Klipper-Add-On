@@ -85,26 +85,56 @@ class AFC_moonraker:
         self.afc_stats      = None
         self.last_stats_time= None
 
-    def _get_results(self, url_string):
+    def _get_results(self, url_string, print_error=True):
         """
         Helper function to get results, check for errors and return data if successful
 
         :param url_string: URL encoded string to fetch/post data to moonraker
+        :param print_error: Set to True for error to be displayed in console/mainsail panel, setting
+                            to False will still write error to log via debug message
 
-        :returns: Returns result dictionary if data is valid , returns None if and error occurred
+        :returns: Returns result dictionary if data is valid, returns None if and error occurred
         """
         data = None
+        # Only print error to console when set, else still print errors bug with debug
+        # logger so that messages are still written to log for debugging purposes
+        if print_error:
+            logger = self.logger.error
+        else:
+            logger = self.logger.debug
+
         try:
             resp = urlopen(url_string)
             if resp.status >= 200 and resp.status <= 300:
                 data = json.load(resp)
             else:
-                self.logger.error(self.ERROR_STRING)
-                self.logger.debug(f"Response: {resp.status} Reason: {resp.reason}")
+                logger(self.ERROR_STRING)
+                logger(f"Response: {resp.status} Reason: {resp.reason}")
         except:
-            self.logger.error(self.ERROR_STRING, traceback=traceback.format_exc())
+            logger(self.ERROR_STRING, traceback=traceback.format_exc())
             data = None
         return data['result'] if data is not None else data
+
+    def wait_for_moonraker(self, toolhead, timeout:int=30):
+        """
+        Function to wait for moonraker to start, times out after passed in timeout value
+
+        :param toolhead: Toolhead object so that non blocking waits can happen
+        :param timeout: Timeout out trying after this many seconds
+
+        :return: Returns True if connected to moonraker and a timeout did no occur, returns False if
+                 not connected after waiting max timeout value
+        """
+        self.logger.info(f"Waiting max {timeout}s for moonraker to connect")
+        for i in range(0,timeout):
+            resp = self._get_results(urljoin(self.local_host, 'server/info'), print_error=False)
+            if resp is not None:
+                self.logger.debug(f"Connected to moonraker after {i} tries")
+                return True
+            else:
+                toolhead.dwell(1)
+        self.logger.info(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
+        return False
 
     def get_spoolman_server(self)->str:
         """

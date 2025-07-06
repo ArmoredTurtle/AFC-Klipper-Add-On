@@ -67,6 +67,9 @@ class afcPrep:
         self._rename_macros()
         self.afc.print_version(console_only=True)
 
+        # Try and connect to moonraker
+        moonraker_connected = self.afc.handle_moonraker_connect()
+
         ## load Unit stored variables
         units={}
         if os.path.exists('{}.unit'.format(self.afc.VarFile)) and os.stat('{}.unit'.format(self.afc.VarFile)).st_size > 0:
@@ -90,6 +93,11 @@ class afcPrep:
 
         for lane in self.afc.lanes.keys():
             cur_lane = self.afc.lanes[lane]
+
+            # If moonraker is connected gather all stats
+            if moonraker_connected:
+                cur_lane.handle_moonraker_connect()
+
             cur_lane.unit_obj = self.afc.units[cur_lane.unit]
             if cur_lane.name not in cur_lane.unit_obj.lanes: cur_lane.unit_obj.lanes.append(cur_lane.name)    #add lanes to units list
             # If units section exists in vars file add currently stored data to AFC.units array
