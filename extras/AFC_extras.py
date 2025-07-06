@@ -66,7 +66,7 @@ class AFCExtras:
             if cur_lane == self.lane_id:
                 self.afc.logger.info(f"Unloading {self.lane_id} before ejecting.")
                 if self.afc.TOOL_UNLOAD():
-                    self.afc.LANE_UNLOAD(cur_lane)
+                    self.gcode.run_script_from_command("LANE_UNLOAD LANE={}".format(self.lane_id))
             else:
                 # If another lane is active, just eject this one
                 self.afc.logger.info(f"Ejecting {self.lane_id}.")
