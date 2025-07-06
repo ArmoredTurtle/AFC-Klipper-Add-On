@@ -216,6 +216,19 @@ class AFCLane:
                 raise error(error_string)
         self.espooler.handle_ready()
 
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        if self.unit_obj.type != "HTLF" or (self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname):
+            values = None
+            if self.afc.moonraker.afc_stats is not None:
+                values = self.afc.moonraker.afc_stats["value"]
+            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
+            self.espooler.handle_moonraker_connect()
+
     def handle_unit_connect(self, unit_obj):
         """
         Callback from <unit_name>:connect to verify units/hub/buffer/extruder object. Errors out if user specified names and they do not exist in their configuration
@@ -233,10 +246,6 @@ class AFCLane:
             self.unit_obj.lanes[self.name] = self
             self.afc.lanes[self.name] = self
 
-            values = None
-            if self.afc.moonraker.afc_stats is not None:
-                values = self.afc.moonraker.afc_stats["value"]
-            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
 
         self.hub_obj = self.unit_obj.hub_obj
 
