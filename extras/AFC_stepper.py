@@ -63,8 +63,6 @@ class AFCExtruderStepper(AFCLane):
         accel (float): The acceleration of the movement.
         """
 
-        if assist_active:
-            self.update_remaining_weight(distance)
 
         with self.assist_move(speed, distance < 0, assist_active):
             toolhead = self.printer.lookup_object('toolhead')

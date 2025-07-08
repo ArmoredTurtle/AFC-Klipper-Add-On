@@ -51,6 +51,13 @@ class AFCled:
         self.last_led_color = {}
         self.keep_leds_off = False
 
+        if hasattr(self.led_helper, "_set_color"):
+            self.ledHelper_set_color_fn = self.led_helper._set_color
+            self.check_transmit_fn = self.led_helper._check_transmit
+        else:
+            self.ledHelper_set_color_fn = self.led_helper.set_color
+            self.check_transmit_fn = self.led_helper.check_transmit
+
     def build_config(self):
         bmt = self.mcu.seconds_to_clock(BIT_MAX_TIME)
         rmt = self.mcu.seconds_to_clock(RESET_MIN_TIME)
@@ -115,27 +122,34 @@ class AFCled:
     def get_status(self, eventtime=None):
         return self.led_helper.get_status(eventtime)
 
-    def led_change(self, index, status, update_last=True):
-        if update_last: self.last_led_color[str(index)] = status
+    def set_color_fn(self, index, color, update_last=True):
+        if update_last: self.last_led_color[str(index)] = color
         if self.keep_leds_off: return
 
-        colors=list(map(float,status.split(',')))
-        transmit = 1
+        self.ledHelper_set_color_fn(index, color)
+
+    def led_change(self, index, status, update_last=True):
+        if isinstance(status, list):
+            colors = status
+        else:
+            colors=list(map(float,status.split(',')))
+
+        if isinstance(index, str) and "-" in index:
+            start, end = map(int, index.split("-"))
+            for i in range(start, end + 1):
+                self.set_color_fn(i, colors, update_last)
+        elif isinstance(index, list):
+            for i in index:
+                self.set_color_fn(i, colors, update_last)
+        else:
+            self.set_color_fn(int(index), colors, update_last)
+
+        # Skip further operations if LEDs are set to remain off.
+        if self.keep_leds_off: return
+
         def lookahead_bgfunc(print_time):
-            if hasattr(self.led_helper, "_set_color"):
-                set_color_fn = self.led_helper._set_color
-                check_transmit_fn = self.led_helper._check_transmit
-            else:
-                set_color_fn = self.led_helper.set_color
-                check_transmit_fn = self.led_helper.check_transmit
-            if isinstance(index, str) and "-" in index:
-                start, end = map(int, index.split("-"))
-                for i in range(start, end + 1):
-                    set_color_fn(i, colors)
-            else:
-                set_color_fn(int(index), colors)
-            if transmit:
-                check_transmit_fn(print_time)
+            self.check_transmit_fn(print_time)
+
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lookahead_bgfunc)
 

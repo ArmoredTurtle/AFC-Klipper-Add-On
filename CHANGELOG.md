@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-07-06]
+### Fixes
+- Race condition between klipper and moonraker when trying to get stats from moonraker database
+
+## [2025-06-30]
+### Fixes
+- Issue #476 where turn off led macro didn't turn off LEDs while printing
+- TTC's that some users were having that was induced by commit `1201bcc`
+
+## [2025-06-28]
+### Updated
+- The `install-afc.sh` script will now display the version when an update is completed.
+
+## [2025-06-23]
+### Added
+- Runout/break/jam detection for hub and toolhead sensors:
+- If the toolhead or hub sensor detects runout but upstream sensors still detect filament, the print is paused and the user is notified of a possible break/jam (no eject or endless spool mode is attempted).
+- Runout/pause logic only triggers during normal printing states, preventing false positives during lane load/unload or filament swaps.
+- `handle_toolhead_runout` and `handle_hub_runout` methods added to `AFCLane` for special handling of break/jam scenarios at the toolhead and hub.
+- Hub sensor callback now calls `handle_hub_runout` on all associated lanes when runout is detected.
+
+### Changed
+- Enhanced runout logic in `AFC_lane.py`, `AFC_extruder.py`, and `AFC_hub.py` to support multi-sensor and break/jam detection.
+
+### Fixed
+- Addresses issue [#389](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/389) and [#387](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/387)
+- Added cutting direction check to _MOVE_TO_CUTTER_PIN. This prevents crashes when using front/back cutting motion.
+
+## [2025-06-21]
+### Fixed
+- Ensure `default_material_temps` name matching in temperature selection logic is case-insensitive.
+
+## [2025-06-19]
+## Updated
+- The `afc-debug.sh` script will now also include the `moonraker.conf` file if it is present.
+
+### Added
+- Added an option to disable skew_correction for kinematic moves.
+- AFC now errors out when using buffer as toolhead sensor and it fails to decompress when loading/unloading.
+
+## [2025-06-18]
+## Updated
+- RESET_AFC_MAPPING function to reset manually set lane mapping in config to correct lane
+
+## Fixed
+- Fixed function that auto assigns T(n) commands to check and verify that other T(n) commands are not already registered outside of AFC
+
+## [2025-06-17]
+### Fixed
+- Updated `cycles_per_rotation` value to be less aggressive at 800 for print assist
+- Updated `enable_assist_weight` value to be 500 so print assist start once weight gets below 500 grams
+
+## [2025-06-16]
+### Removed
+- Removed the version checking functionality for force updates from the `install-afc.sh` script. 
+
+### Fixed
+- Issue where espoolers would move way faster than normal when weight was below empty spool weight.
+
+## [2025-06-15]
+### Added
+- Added support for the AFC-Pro board in the installer to install an 8-Lane Boxturtle.
+- The `RESET_AFC_MAPPING` macro will now also reset any runout lane configurations.
+
+## [2025-06-10]
+### Added
+- Ability to turn on print assist if spool falls below a certain weight
+- Weight defaults to 1kg when first inserting spool
+- `AFC_CLEAR_MESSAGE` macro to clear current message that would be displayed in gui's
+- When saving variables and key is not found in current AFC files, a new file `AFC_auto_vars.cfg` will be created and variables will be added to that file
+
+## [2025-06-08]
+### Added
+- Support for [QuattroBox](https://github.com/Batalhoti/QuattroBox) filament changer. QuattroBox can be chosen in install script for new or additional units to add to your printer
+
 ## [2025-06-07]
 ### Fixed
 - `unknown command: Prompt_end` error will no longer show when users try to exit out of Happy Printing popup after AFC_CALIBRATION is done
@@ -788,8 +863,6 @@ gcode:
   - `BT_TOOL_UNLOAD` - This macro will unload a specified box turtle tool.
 
 - Sample configuration files for the most popular boards are located in the `Klipper_cfg_example/AFC` directory.
-
-
 
 
 

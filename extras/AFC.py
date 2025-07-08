@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.14"
+AFC_VERSION="1.0.22"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -86,6 +86,7 @@ class afc:
         self.buffers    = {}
         self.tool_cmds  = {}
         self.led_obj    = {}
+        self.led_state  = True
         self.bypass     = None
         self.bypass_last_state = False
         self.message_queue = []
@@ -111,17 +112,23 @@ class afc:
 
         # Config get section
         self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
+        self.moonraker_connect_to   = config.get("moonraker_timeout", 30)
         self.unit_order_list        = config.get('unit_order_list','')
-        self.VarFile                = config.get('VarFile','../printer_data/config/AFC/')# Path to the variables file for AFC configuration.
+        self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
         self.cfgloc                 = self._remove_after_last(self.VarFile,"/")
-        self.default_material_temps = config.getlists("default_material_temps", None)# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
+        self.default_material_temps = config.getlists("default_material_temps",
+                                                      ("default: 235", "PLA:210", "PETG:235", "ABS:235", "ASA:235"))# Default temperature to set extruder when loading/unloading lanes. Material needs to be either manually set or uses material from spoolman if extruder temp is not set in spoolman.
         self.default_material_temps = list(self.default_material_temps) if self.default_material_temps is not None else None
         self.default_material_type  = config.get("default_material_type", None)     # Default material type to assign to a spool once loaded into a lane
+        self.common_density_values  = config.getlists("common_density_values",
+                                                      ("PLA:1.24", "PETG:1.23", "ABS:1.04", "ASA:1.07"))
+        self.common_density_values  = list(self.common_density_values)
 
         #LED SETTINGS
         self.ind_lights = None
-        # led_name is not used, either use or needs to be removed
+        # led_name is not used, either use or needs to be removed, removing this would break everyones config as well
         self.led_name               = config.get('led_name',None)
+        self.led_off                = "0,0,0,0"
         self.led_fault              = config.get('led_fault','1,0,0,0')             # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_ready              = config.get('led_ready','1,1,1,1')             # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_not_ready          = config.get('led_not_ready','1,1,0,0')         # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness.
@@ -132,6 +139,7 @@ class afc:
         self.led_advancing          = config.get('led_buffer_advancing','0,0,1,0')  # LED color to set when buffer is advancing         (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_trailing           = config.get('led_buffer_trailing','0,1,0,0')   # LED color to set when buffer is trailing          (R,G,B,W) 0 = off, 1 = full brightness.
         self.led_buffer_disabled    = config.get('led_buffer_disable', '0,0,0,0.25')# LED color to set when buffer is disabled          (R,G,B,W) 0 = off, 1 = full brightness.
+        self.led_spool_illum        = config.get('led_spool_illuminate', "1,1,1,1") # LED color to illuminate under spool
 
         # TOOL Cutting Settings
         self.tool                   = ''
@@ -166,7 +174,7 @@ class afc:
         self.max_move_dis           = config.getfloat("max_move_dis", 999999)       # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
         self.n20_break_delay_time   = config.getfloat("n20_break_delay_time", 0.200)# Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
 
-        self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 2) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
+        self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 4) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
         self.max_move_tries         = config.getint("max_move_tries", 20)
 
@@ -186,9 +194,14 @@ class afc:
         self.bypass_pause           = config.getboolean("pause_when_bypass_active", False) # When true AFC pauses print when change tool is called and bypass is loaded
         self.unload_on_runout       = config.getboolean("unload_on_runout", False)  # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool)
         self.short_stats            = config.getboolean("print_short_stats", False) # Set to true to print AFC_STATS in short form instead of wide form, printing short form is better for smaller in width consoles
+        # Setting to True enables espooler assist while printing
+        self.enable_assist          = config.getboolean("enable_assist",        True)
+        # Weight spool has to be below to activate print assist
+        self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
 
         self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False)
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+        self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
@@ -268,6 +281,27 @@ class afc:
         self.gcode.register_mux_command('HUB_LOAD',     "LANE", lane_obj.name, self.cmd_HUB_LOAD,       desc=self.cmd_HUB_LOAD_help)
         self.gcode.register_mux_command('TOOL_LOAD',    "LANE", lane_obj.name, self.cmd_TOOL_LOAD,      desc=self.cmd_TOOL_LOAD_help)
 
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        moonraker_port = ""
+        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
+        
+        try:
+            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
+            if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
+                return False
+            self.spoolman = self.moonraker.get_spoolman_server()
+            self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
+            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+        except Exception as e:
+            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error error: {}\n{}".format(e, traceback.format_exc()))
+            self.spoolman = None                      # set to none if not found
+        return True
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -277,18 +311,6 @@ class afc:
         self.toolhead   = self.printer.lookup_object('toolhead')
         self.idle       = self.printer.lookup_object('idle_timeout')
         self.gcode_move = self.printer.lookup_object('gcode_move')
-
-        moonraker_port = ""
-        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
-        
-        try:
-            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
-            self.spoolman = self.moonraker.get_spoolman_server()
-            self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
-            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
-        except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error error: {}\n{}".format(e, traceback.format_exc()))
-            self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor
         try:
@@ -303,6 +325,8 @@ class afc:
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
         self.gcode.register_command('CHANGE_TOOL',          self.cmd_CHANGE_TOOL,           desc=self.cmd_CHANGE_TOOL_help)
         self.gcode.register_command('SET_AFC_TOOLCHANGES',  self.cmd_SET_AFC_TOOLCHANGES,   desc=self.cmd_SET_AFC_TOOLCHANGES_help)
+        self.gcode.register_command('AFC_CLEAR_MESSAGE',    self.cmd_AFC_CLEAR_MESSAGE,     desc=self.cmd_AFC_CLEAR_MESSAGE_help)
+        self.gcode.register_command('_AFC_TEST_MESSAGES',   self.cmd__AFC_TEST_MESSAGES,    desc=self.cmd__AFC_TEST_MESSAGES_help)
         self.current_state = State.IDLE
 
     def print_version(self, console_only=False):
@@ -340,6 +364,7 @@ class afc:
         self.gcode.run_script_from_command("CLEAR_PAUSE")
         self.number_of_toolchanges = 0
         self.current_toolchange    = -1
+        self.save_vars()
 
     def in_print_reactor_timer(self, eventtime):
         """
@@ -359,7 +384,6 @@ class afc:
             self.logger.info("Total number of toolchanges set to {}".format(self.number_of_toolchanges))
 
         return self.reactor.NEVER
-
 
     def _get_default_material_temps(self, cur_lane):
         """
@@ -385,9 +409,12 @@ class afc:
             temp_value = cur_lane.extruder_temp
             using_min_value = False
         elif self.default_material_temps is not None and cur_lane.material is not None:
+            lane_material = str(cur_lane.material).strip().lower()
             for mat in self.default_material_temps:
                 m = mat.split(":")
-                if m[0] in cur_lane.material:
+                mat_key = m[0].strip().lower()
+                # Use substring match for material name (case-insensitive, ignore whitespace)
+                if mat_key in lane_material:
                     temp_value = m[1]
                     using_min_value = False
                     break
@@ -405,7 +432,7 @@ class afc:
         pheaters = self.printer.lookup_object('heaters')
         wait = False
 
-        # If extruder can extruder and printing return and do not update temperature, don't want to modify extruder temperature during prints
+        # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
         if self.heater.can_extrude and self.function.is_printing():
             return
         target_temp, using_min_value = self._get_default_material_temps(cur_lane)
@@ -666,12 +693,13 @@ class afc:
         """
         return self.resume_z_speed if self.resume_z_speed > 0 else self.speed
 
-    def move_z_pos(self, z_amount, string=""):
+    def move_z_pos(self, z_amount, string="", wait_moves=False):
         """
         Common function helper to move z, also does a check for max z so toolhead does not exceed max height
 
         :param z_amount: amount to add to the base position
         :param string: String to write to log, this can be used
+        :param wait_moves: Set to True to wait on toolhead moves to finish before moving on
 
         :return newpos: Position list with updated z position
         """
@@ -682,6 +710,9 @@ class afc:
         newpos[2] = min(max_z - 1, z_amount)
 
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
+
+        if wait_moves:
+            self.toolhead.wait_moves()
 
         self.function.log_toolhead_pos(f"move_z_pos({string}): ")
 
@@ -804,7 +835,7 @@ class afc:
             name=[]
             for NAME in cur_unit.lanes:
                 cur_lane=self.lanes[NAME]
-                str[cur_unit.name][cur_lane.name]=cur_lane.get_status()
+                str[cur_unit.name][cur_lane.name]=cur_lane.get_status(save_to_file=True)
                 name.append(cur_lane.name)
 
         str["system"]={}
@@ -820,8 +851,12 @@ class afc:
             str["system"]["extruders"][cur_extruder.name]={}
             str["system"]["extruders"][cur_extruder.name]['lane_loaded'] = cur_extruder.lane_loaded
 
-        with open(self.VarFile+ '.unit', 'w') as f:
-            f.write(json.dumps(str, indent=4))
+        try:
+            with open(self.VarFile+ '.unit', 'w') as f:
+                f.write(json.dumps(str, indent=4))
+        except Exception as e:
+            self.logger.error("Error happened when trying to save variables, check AFC.log for error")
+            self.logger.debug(f"Error:{e}\n{traceback.format_exc()}", only_debug=True)
 
     # HUB COMMANDS
     cmd_HUB_LOAD_help = "Load lane into hub"
@@ -991,25 +1026,26 @@ class afc:
         # Check if the bypass filament sensor is triggered; abort loading if filament is already present.
         if self._check_bypass(): return False
 
-        self.logger.info("Loading {}".format(cur_lane.name))
-
-        # Verify that printer is in absolute mode
-        self.function.check_absolute_mode("TOOL_LOAD")
-
         # Lookup extruder and hub objects associated with the lane.
         cur_hub = cur_lane.hub_obj
 
-        cur_extruder = cur_lane.extruder_obj
-        self.current_state = State.LOADING
-        self.current_loading = cur_lane.name
-
-        # Set the lane status to 'loading' and activate the loading LED.
-        cur_lane.status = AFCLaneState.TOOL_LOADING
-        self.save_vars()
-        self.function.afc_led(cur_lane.led_loading, cur_lane.led_index)
-
         # Check if the lane is in a state ready to load and hub is clear.
         if (cur_lane.load_state and not cur_hub.state) or cur_lane.hub == 'direct':
+
+            self.logger.info("Loading {}".format(cur_lane.name))
+
+            # Verify that printer is in absolute mode
+            self.function.check_absolute_mode("TOOL_LOAD")
+
+
+            cur_extruder = cur_lane.extruder_obj
+            self.current_state = State.LOADING
+            self.current_loading = cur_lane.name
+
+            # Set the lane status to 'loading' and activate the loading LED.
+            cur_lane.status = AFCLaneState.TOOL_LOADING
+            self.save_vars()
+            cur_lane.unit_obj.lane_loading( cur_lane )
 
             if self._check_extruder_temp(cur_lane):
                 self.afcDeltaTime.log_with_time("Done heating toolhead")
@@ -1102,9 +1138,14 @@ class afc:
                     if load_checks > self.tool_max_load_checks:
                         msg = ''
                         msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_load_checks)
-                        msg += "Tool may not be loaded"
-                        self.logger.info("<span class=warning--text>{}</span>".format(msg))
-                        break
+                        msg += "Setting and increasing 'tool_max_load_checks' in AFC.cfg may improve loading reliability.\n\n"
+                        msg += "Check that the filament is properly loaded into the toolhead extruder. If filament is loaded\n"
+                        msg += "into toolhead extruders gears, then manually run SET_LANE_LOADED LANE={cur_lane.name} then\n"
+                        msg += "manually extrude filament and clean nozzle."
+                        if self.function.in_print():
+                            msg += '\nOnce issue is resolved click resume to continue printing'
+                        self.error.handle_lane_failure(cur_lane, msg)
+                        return False
                 cur_lane.sync_to_extruder()
             # Update tool and lane status.
             cur_lane.set_loaded()
@@ -1112,7 +1153,7 @@ class afc:
             self.save_vars()
 
             # Activate the tool-loaded LED and handle filament operations if enabled.
-            self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
+            cur_lane.unit_obj.lane_tool_loaded( cur_lane )
             if self.poop:
                 if purge_length is not None:
                     self.gcode.run_script_from_command("%s %s=%s" % (self.poop_cmd, 'PURGE_LENGTH', purge_length))
@@ -1141,7 +1182,7 @@ class afc:
             # Update lane and extruder state for tracking.
             cur_extruder.lane_loaded = cur_lane.name
             self.spool.set_active_spool(cur_lane.spool_id)
-            self.function.afc_led(cur_lane.led_tool_loaded, cur_lane.led_index)
+            cur_lane.unit_obj.lane_tool_loaded( cur_lane )
             self.save_vars()
             self.current_state = State.IDLE
             load_time = self.afcDeltaTime.log_major_delta("{} is now loaded in toolhead".format(cur_lane.name), False)
@@ -1246,7 +1287,8 @@ class afc:
         # Perform Z-hop to avoid collisions during unloading.
         pos = self.gcode_move.last_position
         pos[2] += self.z_hop
-        self.move_z_pos(pos[2], "Tool_Unload quick pull")
+        # toolhead wait is needed here as it will cause TTC for some if wait does not occur
+        self.move_z_pos(pos[2], "Tool_Unload quick pull", wait_moves=True)
 
         # Disable the buffer if it's active.
         cur_lane.disable_buffer()
@@ -1304,9 +1346,18 @@ class afc:
                 if num_tries > self.tool_max_unload_attempts:
                     msg = ''
                     msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
-                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliability"
-                    self.logger.info("<span class=warning--text>{}</span>".format(msg))
-                    break
+                    msg += "Setting and increasing 'tool_max_unload_attempts' in AFC.cfg may improve unloading reliability\n\n"
+                    msg += "Please check to make sure filament is unloaded from the toolhead's extruder. If filament is still\n"
+                    msg += "loaded manually retract back until its free, then run UNSET_LANE_LOADED and then do manual\n"
+                    msg += "moves with BT_LANE_MOVE until filament is retracted behind your hub. Or you can run AFC_RESET\n"
+                    msg += f"and select {cur_lane.name}, then AFC will slowly move lane until hub is no longer triggered.\n"
+                    if self.next_lane_load is not None:
+                        msg += f"\nOnce lane is behind hub and hub is no longer triggered manually load {self.next_lane_load}\n"
+                        msg += f"with {self.lanes[self.next_lane_load].map} macro.\n"
+                        if self.function.in_print():
+                            msg += "Once lane is loaded click resume to continue printing"
+                    self.error.handle_lane_failure(cur_lane, msg)
+                    return False
             cur_lane.sync_to_extruder(False)
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                 self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
@@ -1325,7 +1376,8 @@ class afc:
                         # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                         if self.next_lane_load is not None:
                             message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                            message += "\nOnce lane is loaded click resume to continue printing"
+                            if self.function.in_print():
+                                message += "\nOnce lane is loaded click resume to continue printing"
                     self.error.handle_lane_failure(cur_lane, message)
                     return False
                 cur_lane.sync_to_extruder()
@@ -1354,7 +1406,7 @@ class afc:
 
         self.afcDeltaTime.log_with_time("Long retract done")
 
-        # Clear toolhead's loaded state for easier error handling later.
+        # Clear toolhead's loaded status for easier error handling later.
         cur_lane.set_unloaded()
 
         self.save_vars()
@@ -1373,7 +1425,8 @@ class afc:
                     # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                     if self.next_lane_load is not None:
                         message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                        message += "\nOnce lane is loaded click resume to continue printing"
+                        if self.function.in_print():
+                            message += "\nOnce lane is loaded click resume to continue printing"
 
                 self.error.handle_lane_failure(cur_lane, message)
                 return False
@@ -1405,7 +1458,7 @@ class afc:
 
         # Finalize unloading and reset lane state.
         cur_lane.loaded_to_hub = True
-        self.function.afc_led(cur_lane.led_ready, cur_lane.led_index)
+        cur_lane.unit_obj.lane_tool_unloaded(cur_lane)
         cur_lane.status = AFCLaneState.NONE
 
         if cur_lane.hub == 'direct':
@@ -1530,7 +1583,8 @@ class afc:
                 self.afc_stats.increase_toolcount_change()
             else:
                 # Error happened, reset toolchanges without error count
-                self.afc_stats.reset_toolchange_wo_error()
+                if not self.testing:
+                    self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
             if not self.error_state and self.current_toolchange == -1: #and self.number_of_toolchanges != 0 and self.current_toolchange != self.number_of_toolchanges:
@@ -1539,14 +1593,18 @@ class afc:
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
 
-    def _get_message(self):
+    def _get_message(self, clear=False):
         """
         Helper function to return a message from the error message queue
+
+        :param clear: Set to true to pop the first item out of the list
         : return Dictionary in {"message":"", "type":""} format
         """
         message = {"message":"", "type":""}
         try:
-            message['message'], message["type"] = self.message_queue.pop(0)
+            message['message'], message["type"] = self.message_queue[0]
+            if clear:
+                message['message'], message["type"] = self.message_queue.pop(0)
         except IndexError:
             pass
         return message
@@ -1581,6 +1639,7 @@ class afc:
         str["hubs"] = list(self.hubs.keys())
         str["buffers"] = list(self.buffers.keys())
         str["message"] = self._get_message()
+        str["led_state"] = self.led_state
         return str
 
     def _webhooks_status(self, web_request):
@@ -1612,6 +1671,7 @@ class afc:
         str["system"]["extruders"]              = {}
         str["system"]["hubs"]                   = {}
         str["system"]["buffers"]                = {}
+        str["system"]["led_state"] = self.led_state
 
         for extruder in self.tools.values():
             str["system"]["extruders"][extruder.name] = extruder.get_status()
@@ -1711,6 +1771,7 @@ class afc:
         TURN_OFF_AFC_LED
         ```
         """
+        self.led_state = False
         for led in self.led_obj.values():
             led.turn_off_leds()
 
@@ -1729,6 +1790,7 @@ class afc:
         TURN_ON_AFC_LED
         ```
         """
+        self.led_state = True
         for led in self.led_obj.values():
             led.turn_on_leds()
 
@@ -1776,3 +1838,26 @@ class afc:
         self.afc_stats.last_blade_changed.set_current_time()
         self.afc_stats.cut_total_since_changed.reset_count()
         self.logger.info("Cutter blade stats reset")
+
+    cmd_AFC_CLEAR_MESSAGE_help = "Macro to clear error and warning message from AFC message queue"
+    def cmd_AFC_CLEAR_MESSAGE(self, gcmd):
+        """
+        This macro handles clearing one message at a time for messages that show up mainsail/klipperscreen/fluidd gui's.
+
+        USAGE
+        -----
+        `AFC_CLEAR_MESSAGE`
+
+        Example
+        -----
+        ```
+        AFC_CLEAR_MESSAGE
+        ```
+        """
+        self._get_message(clear=True)
+
+    cmd__AFC_TEST_MESSAGES_help = "Macro to send test messages for testing"
+    def cmd__AFC_TEST_MESSAGES(self, gcmd):
+        self.logger.error("Test Message 1")
+        self.logger.error("Test Message 2")
+        self.logger.error("Test Message 3")

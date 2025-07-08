@@ -10,23 +10,25 @@ export LC_ALL=C
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+source include/constants.sh
+
 # Menu functions
 source include/menus/main_menu.sh
 source include/menus/install_menu.sh
 source include/menus/update_menu.sh
 source include/menus/utilities_menu.sh
 source include/menus/additional_system_menu.sh
+source include/utils.sh
 
 # Install / Update functions
 source include/buffer_configurations.sh
 source include/check_commands.sh
 source include/colors.sh
-source include/constants.sh
 source include/install_functions.sh
 source include/uninstall.sh
 source include/update_commands.sh
 source include/update_functions.sh
-source include/utils.sh
+
 source include/unit_functions.sh
 
 original_args=("$@")
@@ -34,7 +36,7 @@ original_args=("$@")
 main() {
   ###################### Main script logic below ######################
 
-  while getopts "a:k:s:m:n:b:p:y:u:th" arg; do
+  while getopts "a:k:s:m:n:b:p:y:th" arg; do
     case ${arg} in
     a) moonraker_address=${OPTARG} ;;
     k) klipper_dir=${OPTARG} ;;
@@ -52,6 +54,13 @@ main() {
   done
 
   moonraker="${moonraker_address}:${moonraker_port}"
+  moonraker="${moonraker_address}:${moonraker_port}"
+  afc_config_dir="${printer_config_dir}/AFC"
+  afc_file="${afc_config_dir}/AFC.cfg"
+  moonraker_config_file="${printer_config_dir}/moonraker.conf"
+  afc_path="$HOME/AFC-Klipper-Add-On"
+
+
   # Make sure necessary directories exist
   echo "Ensuring we are not running as root.."
   check_root
@@ -64,11 +73,6 @@ main() {
     clone_and_maybe_restart
   fi
   check_existing_install
-  check_version_and_set_force_update
-  #set_install_version_if_missing
-  if [ "$force_update_no_version" == "False" ]; then
-    check_version_and_set_force_update
-  fi
   echo "Starting installation process.."
   sleep 2
   clear

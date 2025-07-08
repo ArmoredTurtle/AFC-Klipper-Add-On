@@ -128,7 +128,7 @@ class AFCSpool:
         if lane is None:
             self.logger.info("No LANE Defined")
             return
-        weight = gcmd.get('WEIGHT', '')
+        weight = gcmd.get_float('WEIGHT', 1000.0)
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
@@ -141,6 +141,17 @@ class AFCSpool:
         """
         This function handles changing the material of a specified lane. It retrieves the lane
         specified by the 'LANE' parameter and sets its material to the value provided by the 'MATERIAL' parameter.
+
+        Values
+        ----
+        MATERIAL - Material type to set to lane. eg. PLA, ASA, ABS, PETG etc.
+
+        Optional Values
+        ----
+        DENSITY - Density value to assign to lane. If this is not provided then a default value will be selected based
+                   of material. Current default values: PLA: 1.24, PETG:1.23, ABS:1.04, ASA:1.07
+        DIAMETER - Diameter of filament, defaults to 1.75
+        EMPTY_SPOOL_WEIGHT - Weight of spool once its empty. Defaults to 190.
 
         Usage
         -----
@@ -156,12 +167,21 @@ class AFCSpool:
         if lane is None:
             self.logger.info("No LANE Defined")
             return
-        material = gcmd.get('MATERIAL', '')
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
         cur_lane = self.afc.lanes[lane]
-        cur_lane.material = material
+        density = gcmd.get_float('DENSITY', None)
+
+        cur_lane.material = gcmd.get('MATERIAL')
+        cur_lane.filament_diameter = gcmd.get('DIAMETER', cur_lane.filament_diameter)
+        cur_lane.empty_spool_weight = gcmd.get('EMPTY_SPOOL_WEIGHT', cur_lane.empty_spool_weight)
+
+        # Setting density if its not none, doing this after setting material as material setter
+        # automatically sets density based on material name
+        if density is not None:
+            cur_lane.filament_density = density
+
         cur_lane.send_lane_data()
         self.afc.save_vars()
 
@@ -208,7 +228,7 @@ class AFCSpool:
             cur_lane = self.afc.lanes[lane]
             self.set_spoolID(cur_lane, SpoolID)
 
-    def _get_filament_values( self, filament, field):
+    def _get_filament_values( self, filament, field, default=None):
         '''
         Helper function for checking if field is set and returns value if it exists,
         otherwise retruns None
@@ -217,7 +237,7 @@ class AFCSpool:
         :param field:    Field name to check for in dictionary
         :return:         Returns value if field exists or None if field does not exist
         '''
-        value = None
+        value = default
         if field in filament:
             value = filament[field]
         return value
@@ -229,10 +249,9 @@ class AFCSpool:
         cur_lane.spool_id = ''
         cur_lane.material = ''
         cur_lane.color = ''
-        cur_lane.weight = ''
+        cur_lane.weight = 0
         cur_lane.extruder_temp = None
         cur_lane.bed_temp = None
-        cur_lane.material = None
 
     def set_spoolID(self, cur_lane, SpoolID, save_vars=True):
         if self.afc.spoolman is not None:
@@ -241,10 +260,13 @@ class AFCSpool:
                     result = self.afc.moonraker.get_spool(SpoolID)
                     cur_lane.spool_id = SpoolID
 
-                    cur_lane.material       = self._get_filament_values(result['filament'], 'material')
-                    cur_lane.extruder_temp  = self._get_filament_values(result['filament'], 'settings_extruder_temp')
-                    cur_lane.bed_temp       = self._get_filament_values(result['filament'], 'settings_bed_temp')
-                    cur_lane.weight         = self._get_filament_values(result, 'remaining_weight')
+                    cur_lane.material           = self._get_filament_values(result['filament'], 'material')
+                    cur_lane.extruder_temp      = self._get_filament_values(result['filament'], 'settings_extruder_temp')
+					cur_lane.bed_temp           = self._get_filament_values(result['filament'], 'settings_bed_temp')
+                    cur_lane.filament_density   = self._get_filament_values(result['filament'], 'density')
+                    cur_lane.filament_diameter  = self._get_filament_values(result['filament'], 'diameter')
+                    cur_lane.empty_spool_weight = self._get_filament_values(result, 'spool_weight', default=190)
+                    cur_lane.weight             = self._get_filament_values(result, 'remaining_weight')
                     # Check to see if filament is defined as multi color and take the first color for now
                     # Once support for multicolor is added this needs to be updated
                     if "multi_color_hexes" in result['filament']:
@@ -306,28 +328,49 @@ class AFCSpool:
     cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
     def cmd_RESET_AFC_MAPPING(self, gcmd):
         """
-        This commands resets all tool lane mapping to the order that is setup in configuration. Useful to put in your PRINT_END macro to reset mapping
+        Resets all tool lane mapping to the order set up in the configuration.
+        Optionally resets runout lanes unless RUNOUT=no is specified.
+
+        Useful to put in your PRINT_END macro to reset mapping
 
         Usage
         -----
-        `RESET_AFC_MAPPING`
+        `RESET_AFC_MAPPING [RUNOUT=yes|no]`
 
         Example
         -----
         ```
-        RESET_AFC_MAPPING
+        RESET_AFC_MAPPING RUNOUT=no
         ```
         """
-        t_index = 0
+
+        # Gathering existing lane mapping and add to list
+        existing_cmds = [lane.map for lane in self.afc.lanes.values()]
+        # Gather manually assigned mappings and add to list
+        manually_assigned = [ lane._map for lane in self.afc.lanes.values()]
+        # Remove manually assigned mappings from auto assigned mappings
+        existing_cmds = list(set(existing_cmds) - set(manually_assigned))
+        # Sort list in numerical order
+        existing_cmds = sorted(existing_cmds, key=lambda x: int("".join([i for i in x if i.isdigit()])))
         for key, unit in self.afc.units.items():
-            for lane in unit.lanes:
-                map_cmd = "T{}".format(t_index)
-                self.afc.tool_cmds[map_cmd] = lane
-                self.afc.lanes[lane].map = map_cmd
-                t_index += 1
+            for lane in unit.lanes.values():
+				# Reassigning manually assigned mapping to lane
+                if lane._map is not None:
+                    map_cmd = lane._map
+                else:
+                    map_cmd = existing_cmds.pop(0)
+
+                self.afc.tool_cmds[map_cmd] = lane.name
+                self.afc.lanes[lane.name].map = map_cmd
+
+        # Resetting runout lanes to None
+        runout_opt = gcmd.get('RUNOUT', 'yes').lower()
+        if runout_opt != 'no':
+            for lane in self.afc.lanes.values():
+                lane.runout_lane = None
 
         self.afc.save_vars()
-        self.logger.info("Tool mappings reset")
+        self.logger.info("Tool mappings reset" + ("" if runout_opt == "no" else " and runout lanes reset"))
 
 def load_config(config):
     return AFCSpool(config)

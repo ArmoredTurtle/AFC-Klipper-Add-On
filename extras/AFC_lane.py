@@ -47,6 +47,7 @@ class AFCLaneState:
     CALIBRATING      = "Calibrating"
 
 class AFCLane:
+    UPDATE_WEIGHT_DELAY = 10.0
     def __init__(self, config):
         self.printer            = config.get_printer()
         self.afc                = self.printer.lookup_object('AFC')
@@ -55,12 +56,12 @@ class AFCLane:
         self.extruder_stepper   = None
         self.logger             = self.afc.logger
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        self.cb_update_weight   = self.reactor.register_timer( self.update_weight_callback )
 
         self.unit_obj           = None
         self.hub_obj            = None
         self.buffer_obj         = None
         self.extruder_obj       = None
-        self.lane_stats         = None
 
         #stored status variables
         self.fullname           = config.get_name()
@@ -70,10 +71,9 @@ class AFCLane:
         self.tool_loaded        = False
         self.loaded_to_hub      = False
         self.spool_id           = None
-        self.material           = None
         self.color              = None
-        self.weight             = None
-        self.material           = None
+        self.weight             = 0
+        self._material          = None
         self.extruder_temp      = None
         self.bed_temp           = None
         self.td1_data           = {}
@@ -85,7 +85,7 @@ class AFCLane:
         self.drive_stepper      = None
         unit                    = config.get('unit')                                    # Unit name(AFC_BoxTurtle/NightOwl/etc) that belongs to this stepper.
         # Overrides buffers set at the unit level
-        self.hub 				= config.get('hub',None)                                # Hub name(AFC_hub) that belongs to this stepper, overrides hub that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
+        self.hub                = config.get('hub',None)                                # Hub name(AFC_hub) that belongs to this stepper, overrides hub that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
         # Overrides buffers set at the unit and extruder level
         self.buffer_name        = config.get("buffer", None)                            # Buffer name(AFC_buffer) that belongs to this stepper, overrides buffer that is set in extruder(AFC_extruder) or unit(AFC_BoxTurtle/NightOwl/etc) sections.
         self.unit               = unit.split(':')[0]
@@ -96,26 +96,30 @@ class AFCLane:
             pass
 
         self.extruder_name      = config.get('extruder', None)                          # Extruder name(AFC_extruder) that belongs to this stepper, overrides extruder that is set in unit(AFC_BoxTurtle/NightOwl/etc) section.
-        self.map                = config.get('cmd','NONE')
-        self.led_index 			= config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
-        self.led_name 			= config.get('led_name',None)
-        self.led_fault 			= config.get('led_fault',None)                          # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.led_ready 			= config.get('led_ready',None)                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.led_not_ready 		= config.get('led_not_ready',None)                      # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.led_loading 		= config.get('led_loading',None)                        # LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.led_prep_loaded 	= config.get('led_loading',None)                        # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.led_unloading 		= config.get('led_unloading',None)                      # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.led_tool_loaded 	= config.get('led_tool_loaded',None)                    # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.map                = config.get('cmd', None)                               # Keeping this in so it does not break others config that may have used this, use map instead
+        # Saving to self._map so that if a user has it defined it will be reset back to this when
+        # the calling RESET_AFC_MAPPING macro.
+        self._map = self.map    = config.get('map', self.map)
+        self.led_index          = config.get('led_index', None)                         # LED index of lane in chain of lane LEDs
+        self.led_fault          = config.get('led_fault',None)                          # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_ready          = config.get('led_ready',None)                          # LED color to set when lane is ready               (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_not_ready      = config.get('led_not_ready',None)                      # LED color to set when lane not ready              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_loading        = config.get('led_loading',None)                        # LED color to set when lane is loading             (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_prep_loaded    = config.get('led_loading',None)                        # LED color to set when lane is loaded              (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_unloading      = config.get('led_unloading',None)                      # LED color to set when lane is unloading           (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_tool_loaded    = config.get('led_tool_loaded',None)                    # LED color to set when lane is loaded into tool    (R,G,B,W) 0 = off, 1 = full brightness. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.led_spool_index    = config.get('led_spool_index', None)                   # LED index to illuminate under spool
+        self.led_spool_illum    = config.get('led_spool_illuminate', None)              # LED color to illuminate under spool
 
-        self.long_moves_speed 	= config.getfloat("long_moves_speed", None)             # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.long_moves_accel 	= config.getfloat("long_moves_accel", None)             # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.short_moves_speed 	= config.getfloat("short_moves_speed", None)            # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.short_moves_accel	= config.getfloat("short_moves_accel", None)            # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
-        self.short_move_dis 	= config.getfloat("short_move_dis", None)               # Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.long_moves_speed   = config.getfloat("long_moves_speed", None)             # Speed in mm/s to move filament when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.long_moves_accel   = config.getfloat("long_moves_accel", None)             # Acceleration in mm/s squared when doing long moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.short_moves_speed  = config.getfloat("short_moves_speed", None)            # Speed in mm/s to move filament when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.short_moves_accel  = config.getfloat("short_moves_accel", None)            # Acceleration in mm/s squared when doing short moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
+        self.short_move_dis     = config.getfloat("short_move_dis", None)               # Move distance in mm for failsafe moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.max_move_dis       = config.getfloat("max_move_dis", None)                 # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
         self.n20_break_delay_time= config.getfloat("n20_break_delay_time", None)        # Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
 
-        self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist
+        self.rev_long_moves_speed_factor = config.getfloat("rev_long_moves_speed_factor", None)     # scalar speed factor when reversing filamentalist
 
         self.dist_hub           = config.getfloat('dist_hub', 60)                       # Bowden distance between Box Turtle extruder and hub
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
@@ -158,11 +162,12 @@ class AFCLane:
         self.inner_diameter     = config.getfloat("spool_inner_diameter", 100)  # Inner diameter in mm
         self.outer_diameter     = config.getfloat("spool_outer_diameter", 200)  # Outer diameter in mm
         self.empty_spool_weight = config.getfloat("empty_spool_weight", 190)    # Empty spool weight in g
-        self.remaining_weight   = config.getfloat("spool_weight", 1000)         # Remaining spool weight in g
         self.max_motor_rpm      = config.getfloat("assist_max_motor_rpm", 500)  # Max motor RPM
         self.rwd_speed_multi    = config.getfloat("rwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.fwd_speed_multi    = config.getfloat("fwd_speed_multiplier", 0.5)  # Multiplier to apply to rpm
         self.diameter_range     = self.outer_diameter - self.inner_diameter     # Range for effective diameter
+        self.past_extruder_position = -1
+        self.save_counter       = -1
 
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
@@ -188,6 +193,30 @@ class AFCLane:
     def __str__(self):
         return self.name
 
+    @property
+    def material(self):
+        """
+        Returns lanes filament material type
+        """
+        return self._material
+
+    @material.setter
+    def material(self, value):
+        """
+        Sets filament material type and sets filament density based off material type.
+        To use custom density, set density after setting material
+        """
+        self._material = value
+        if not value:
+            self.filament_density = 1.24 # Setting to a default value
+            return
+
+        for density in self.afc.common_density_values:
+            v = density.split(":")
+            if v[0] in value:
+                self.filament_density = float(v[1])
+                break
+
     def _handle_ready(self):
         """
         Handles klippy:ready callback and verifies that steppers have units defined in their config
@@ -203,6 +232,18 @@ class AFCLane:
         self.espooler.handle_ready()
         # If user supplied TD-1 ID verify that it exists
 
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        if self.unit_obj.type != "HTLF" or (self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname):
+            values = None
+            if self.afc.moonraker.afc_stats is not None:
+                values = self.afc.moonraker.afc_stats["value"]
+            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
+            self.espooler.handle_moonraker_connect()
 
     def handle_unit_connect(self, unit_obj):
         """
@@ -221,10 +262,6 @@ class AFCLane:
             self.unit_obj.lanes[self.name] = self
             self.afc.lanes[self.name] = self
 
-            values = None
-            if self.afc.moonraker.afc_stats is not None:
-                values = self.afc.moonraker.afc_stats["value"]
-            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
 
         self.hub_obj = self.unit_obj.hub_obj
 
@@ -301,7 +338,6 @@ class AFCLane:
 
         self.get_steppers()
 
-        if self.led_name            is None: self.led_name          = self.unit_obj.led_name
         if self.led_fault           is None: self.led_fault         = self.unit_obj.led_fault
         if self.led_ready           is None: self.led_ready         = self.unit_obj.led_ready
         if self.led_not_ready       is None: self.led_not_ready     = self.unit_obj.led_not_ready
@@ -309,6 +345,7 @@ class AFCLane:
         if self.led_prep_loaded     is None: self.led_prep_loaded   = self.unit_obj.led_prep_loaded
         if self.led_unloading       is None: self.led_unloading     = self.unit_obj.led_unloading
         if self.led_tool_loaded     is None: self.led_tool_loaded   = self.unit_obj.led_tool_loaded
+        if self.led_spool_illum     is None: self.led_spool_illum   = self.unit_obj.led_spool_illum
 
         if self.rev_long_moves_speed_factor is None: self.rev_long_moves_speed_factor  = self.unit_obj.rev_long_moves_speed_factor
         if self.long_moves_speed            is None: self.long_moves_speed  = self.unit_obj.long_moves_speed
@@ -515,7 +552,10 @@ class AFCLane:
             self.prep_state = state
 
             if self.load_state:
-                self.afc.function.afc_led(self.led_ready, self.led_index)
+                self.status = AFCLaneState.LOADED
+                self.unit_obj.lane_loaded(self)
+                self.material = self.afc.default_material_type
+                self.weight = 1000 # Defaulting weight to 1000 upon load
             else:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set and does not equal 'NONE'
@@ -596,9 +636,9 @@ class AFCLane:
                     self.do_enable(False)
                     if self.load_state == True and self.prep_state == True:
                         self.status = AFCLaneState.LOADED
-                        self.afc.function.afc_led(self.afc.led_ready, self.led_index)
+                        self.unit_obj.lane_loaded(self)
                         self.material = self.afc.default_material_type
-                    
+                        self.weight = 1000 # Defaulting weight to 1000 upon load
                     # Check if user wants to get TD data when loading, only happens if hub is clear and toolhead is not
                     # loaded. 
                     # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a 
@@ -626,7 +666,7 @@ class AFCLane:
                     self.loaded_to_hub = False
                     self.td1_data = {}
                     self.afc.spool._clear_values(self)
-                    self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
+                    self.unit_obj.lane_unloaded(self)
                     self.clear_lane_data()
 
         self.prep_active = False
@@ -699,11 +739,11 @@ class AFCLane:
         :param feed_rate: Filament feed rate in mm/s
         :return: Calculated RPM for the assist motor
         """
-        if self.remaining_weight <= self.empty_spool_weight:
-            return 0  # No filament left to assist
+        # Figure in weight of empty spool
+        weight = self.weight + self.empty_spool_weight
 
         # Calculate the effective diameter
-        effective_diameter = self.calculate_effective_diameter(self.remaining_weight)
+        effective_diameter = self.calculate_effective_diameter(weight)
 
         # Calculate RPM
         rpm = (feed_rate * 60) / (math.pi * effective_diameter)
@@ -723,6 +763,53 @@ class AFCLane:
             pwm_value = rpm / (self.max_motor_rpm / (15 + 15 * self.rwd_speed_multi))
         return max(0.0, min(pwm_value, 1.0))  # Clamp the value between 0 and 1
 
+    def enable_weight_timer(self):
+        """
+        Helper function to enable weight callback timer, should be called once a lane is loaded
+        to extruder or extruder is switched for multi-toolhead setups.
+        """
+        self.past_extruder_position = self.afc.function.get_extruder_pos( None, self.past_extruder_position )
+        self.reactor.update_timer( self.cb_update_weight, self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY)
+
+    def disable_weight_timer(self):
+        """
+        Helper function to disable weight callback timer for lane and save variables
+        to file. Should only be called when lane is unloaded from extruder or when
+        swapping extruders for multi-toolhead setups.
+        """
+        self.update_weight_callback( None ) # get final movement before disabling timer
+        self.reactor.update_timer( self.cb_update_weight, self.reactor.NEVER)
+        self.past_extruder_position = -1
+        self.save_counter = -1
+        self.afc.save_vars()
+
+    def update_weight_callback(self, eventtime):
+        """
+        Callback function for updating weight based on how much filament has been extruded
+
+        :param eventtime: Current eventtime for timer callback
+        :return int: Next time to call timer callback. Current time + UPDATE_WEIGHT_DELAY
+        """
+        extruder_pos = self.afc.function.get_extruder_pos( eventtime, self.past_extruder_position )
+        delta_length = extruder_pos - self.past_extruder_position
+
+        if -1 == self.past_extruder_position:
+            self.past_extruder_position = extruder_pos
+
+        self.save_counter += 1
+        if extruder_pos > self.past_extruder_position:
+            self.update_remaining_weight(delta_length)
+            self.past_extruder_position = extruder_pos
+
+            # self.logger.debug(f"{self.name} Weight Timer Callback: New weight {self.weight}")
+
+            # Save vars every 2 minutes
+            if self.save_counter > 120/self.UPDATE_WEIGHT_DELAY:
+                self.afc.save_vars()
+                self.save_counter = 0
+
+        return self.reactor.monotonic() + self.UPDATE_WEIGHT_DELAY
+
     def update_remaining_weight(self, distance_moved):
         """
         Update the remaining filament weight based on the filament distance moved.
@@ -731,10 +818,11 @@ class AFCLane:
         """
         filament_volume_mm3 = math.pi * (self.filament_diameter / 2) ** 2 * distance_moved
         filament_weight_change = filament_volume_mm3 * self.filament_density / 1000  # Convert mm cubed to g
-        self.remaining_weight -= filament_weight_change
+        self.weight -= filament_weight_change
 
-        if self.remaining_weight < self.empty_spool_weight:
-            self.remaining_weight = self.empty_spool_weight  # Ensure weight doesn't drop below empty spool weight
+        # Weight cannot be negative, force back to zero if it's below zero
+        if self.weight < 0:
+            self.weight = 0
 
     def set_loaded(self):
         """
@@ -746,6 +834,8 @@ class AFCLane:
         self.status = AFCLaneState.TOOLED
         self.afc.spool.set_active_spool(self.spool_id)
 
+        self.unit_obj.lane_tool_loaded(self)
+
     def set_unloaded(self):
         """
         Helper function for setting multiple variables when lane is unloaded
@@ -756,6 +846,7 @@ class AFCLane:
         self.afc.current = None
         self.afc.current_loading = None
         self.afc.spool.set_active_spool(None)
+        self.unit_obj.lane_tool_unloaded(self)
 
     def enable_buffer(self):
         """
@@ -765,6 +856,7 @@ class AFCLane:
         if self.buffer_obj is not None:
             self.buffer_obj.enable_buffer()
         self.espooler.enable_timer()
+        self.enable_weight_timer()
 
     def disable_buffer(self):
         """
@@ -774,6 +866,7 @@ class AFCLane:
         if self.buffer_obj is not None:
             self.buffer_obj.disable_buffer()
         self.espooler.disable_timer()
+        self.disable_weight_timer()
 
     def buffer_status(self):
         """
@@ -804,6 +897,69 @@ class AFCLane:
         if self.buffer_obj is not None:
             return self.buffer_obj.trailing_state
         else: return None
+
+
+    def _is_normal_printing_state(self):
+        """
+        Returns True if the lane is in a normal printing state (TOOLED or LOADED).
+        Prevents runout logic from triggering during transitions or maintenance.
+        """
+        return self.status in (AFCLaneState.TOOLED, AFCLaneState.LOADED)
+
+    def handle_toolhead_runout(self, sensor=None):
+        """
+        Handles runout detection at the toolhead sensor.
+        If all upstream sensors (prep, load, hub) still detect filament, this indicates a break or jam at the toolhead.
+        Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
+        :param sensor: Optional name of the triggering sensor for user notification.
+        """
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
+            return
+
+        # Check upstream sensors: prep, load, hub
+        prep_ok = self.prep_state
+        load_ok = self.load_state
+        hub_ok = self.hub_obj.state if self.hub_obj is not None else True
+
+        # If all upstream sensors are still True, this is a break/jam at the toolhead
+        if prep_ok and load_ok and hub_ok:
+            msg = (
+                f"Toolhead runout detected by {sensor} sensor, but upstream sensors still detect filament.\n"
+                "Possible filament break or jam at the toolhead. Please clear the jam and reload filament manually, then resume the print."
+            )
+            self.afc.error.pause_resume.send_pause_command()
+            self.afc.save_pos()
+            self.afc.error.AFC_error(msg)
+        # No else: do not trigger infinite runout or pause runout here
+
+    def handle_hub_runout(self, sensor=None):
+        """
+        Handles runout detection at the hub sensor.
+        If both upstream sensors (prep, load) still detect filament but hub does not, this indicates a break or jam at the hub.
+        Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
+        :param sensor: Optional name of the triggering sensor for user notification.
+        """
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
+            return
+
+        # Check upstream sensors: prep, load
+        prep_ok = self.prep_state
+        load_ok = self.load_state
+        hub_ok = self.hub_obj.state if self.hub_obj is not None else False
+
+        # If both upstream sensors are still True, but hub is not, this is a break/jam at the hub
+        if prep_ok and load_ok and not hub_ok:
+            msg = (
+                f"Hub runout detected by {sensor or 'hub'} sensor, but upstream sensors still detect filament.\n"
+                "Possible filament break or jam at the hub. Please clear the jam and reload filament manually, then resume the print."
+            )
+            self.afc.error.pause_resume.send_pause_command()
+            self.afc.save_pos()
+            self.afc.error.AFC_error(msg)
+        # No else: do not trigger infinite runout or pause runout here
+
 
     def send_lane_data(self):
         if self.afc.lane_data_enabled and "T" in self.map:
@@ -995,7 +1151,7 @@ class AFCLane:
     def cmd_SET_SPEED_MULTIPLIER(self, gcmd):
         """
         Macro call to update fwd_speed_multiplier or rwd_speed_multiplier values without having to set in config and restart klipper. This macro allows adjusting
-        these values while printing. Multiplier values must be between 0.0 - 1.0
+        these values while printing.
 
         Use `FWD` variable to set forward multiplier, use `RWD` to set reverse multiplier
 
@@ -1015,8 +1171,8 @@ class AFCLane:
         old_fwd_value = self.fwd_speed_multi
         old_rwd_value = self.rwd_speed_multi
 
-        self.fwd_speed_multi = gcmd.get_float("FWD", self.fwd_speed_multi, minval=0.0, maxval=1.0)
-        self.rwd_speed_multi = gcmd.get_float("RWD", self.rwd_speed_multi, minval=0.0, maxval=1.0)
+        self.fwd_speed_multi = gcmd.get_float("FWD", self.fwd_speed_multi, minval=0.0)
+        self.rwd_speed_multi = gcmd.get_float("RWD", self.rwd_speed_multi, minval=0.0)
 
         if self.fwd_speed_multi != old_fwd_value:
             self.logger.info("{name} forward speed multiplier set, New: {new}, Old: {old}".format(name=self.name, new=self.fwd_speed_multi, old=old_fwd_value))
@@ -1094,7 +1250,7 @@ class AFCLane:
         """
         self.afc.function.ConfigRewrite(self.fullname, 'dist_hub', self.dist_hub, '')
 
-    def get_status(self, eventtime=None):
+    def get_status(self, eventtime=None, save_to_file=False):
         response = {}
         if not self.connect_done: return response
         response['name'] = self.name
@@ -1110,18 +1266,25 @@ class AFCLane:
         response["tool_loaded"] = self.tool_loaded
         response["loaded_to_hub"] = self.loaded_to_hub
         response["material"]=self.material
-        response["spool_id"]=self.spool_id
+        if save_to_file:
+            response["density"]=self.filament_density
+            response["diameter"]=self.filament_diameter
+            response["empty_spool_weight"]=self.empty_spool_weight
+
+        response["spool_id"]= int(self.spool_id) if self.spool_id else None
         response["color"]=self.get_color()
         response["weight"]=self.weight
         response["extruder_temp"] = self.extruder_temp
         response["runout_lane"]=self.runout_lane
-        filiment_stat=self.afc.function.get_filament_status(self).split(':')
-        response['filament_status'] = filiment_stat[0]
-        response['filament_status_led'] = filiment_stat[1]
+        filament_stat=self.afc.function.get_filament_status(self).split(':')
+        response['filament_status'] = filament_stat[0]
+        response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
         response['td1_data'] = self.td1_data
         response['td1_when_loaded'] = self.td1_when_loaded
         return response
+
+
 
 def load_config_prefix(config):
     return AFCLane(config)
