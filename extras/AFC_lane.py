@@ -962,7 +962,7 @@ class AFCLane:
 
 
     def send_lane_data(self):
-        if self.afc.lane_data_enabled and "T" in self.map:
+        if self.afc.lane_data_enabled and self.map is not None and "T" in self.map:
             scan_time = self.td1_data['scan_time'] if 'scan_time' in self.td1_data else ""
             td        = self.td1_data['td']        if 'td'        in self.td1_data else ""
 
