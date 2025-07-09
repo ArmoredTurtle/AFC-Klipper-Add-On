@@ -72,6 +72,7 @@ class afc:
         self.current_state      = State.INIT
         self.position_saved     = False
         self.spoolman           = None
+        self.moonraker          = None
         self.td1_defined        = False
         self._td1_present       = False
         self.lane_data_enabled  = False
@@ -345,7 +346,7 @@ class afc:
     @property
     def td1_present(self):
         present = self._td1_present
-        if self.printer.state_message == 'Printer is ready':
+        if self.printer.state_message == 'Printer is ready' and self.moonraker is not None:
             if not self.function.is_printing(check_movement=True):
                 present = self.moonraker.check_for_td1()[1]
                 self._td1_present = present
