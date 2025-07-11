@@ -73,7 +73,7 @@ class afcPrep:
         any_td1_error = False
         if self.afc.td1_present:
             self.logger.info("Found TD-1 device connected to printer")
-            any_td1_error = self.afc.function.check_for_td1_error()
+            any_td1_error, _ = self.afc.function.check_for_td1_error()
 
         # look up what current lane should be a call select lane, this is more for units that
         # have selectors to make sure the selector is on the correct lane
@@ -94,7 +94,6 @@ class afcPrep:
                         if lane.load_state and lane.prep_state:
                             return_status, msg = lane.get_td1_data()
                             if not return_status:
-                                self.afc.error.AFC_error(msg, pause=False)
                                 break
                     self.logger.info("Done capturing TD-1 data")
 
