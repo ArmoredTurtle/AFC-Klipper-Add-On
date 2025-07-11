@@ -86,6 +86,7 @@ class AFC_moonraker:
         self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
         self.last_stats_time= None
+        self._lane_data     = False
 
     def _get_results(self, url_string, print_error=True):
         """
@@ -244,11 +245,18 @@ class AFC_moonraker:
         else:
             self.logger.info(f"SpoolID: {id} not found")
         return resp
-    
+
     def check_for_td1(self):
+        """
+        Checks moonrakers server/config endpoint to see if user has `[td1]` and `[lane_data]`
+        specified in their moonraker.conf file.
+
+        :returns bool,bool,bool: True if `[td1] is defined,
+                                 True if a TD-1 device is connected and found,
+                                 True if `[lane_data]` is defined
+        """
         td1 = False
         td1_defined = False
-        lane_data = False
         resp = self._get_results(urljoin(self.local_host, 'server/config'))
         if resp is not None:
             if "td1" in resp['orig']:
@@ -258,10 +266,16 @@ class AFC_moonraker:
                     td1 = True
 
             if "lane_data" in resp['orig']:
-                lane_data = True
-        return td1_defined, td1, lane_data
+                self._lane_data = True
+        return td1_defined, td1, self._lane_data
 
     def get_td1_data(self):
+        """
+        Fetches TD-1 data from moonrakers `machine/td1_data` endpoint
+
+        :returns dict: Returns dictionary of TD-1 devices by serial numbers with their data,
+                       returns None if no TD-1 devices are found
+        """
         url = urljoin(self.local_host, "machine/td1_data")
         req = Request(url=url)
         resp = self._get_results(req)
@@ -270,10 +284,37 @@ class AFC_moonraker:
         else:
             return None
 
+    def reboot_td1(self, serial_number):
+        """
+        Send's TD-1 serial to moonrakers `machine/td1_reboot` endpoint to force restart TD-1
+        device
+
+        :param seriam_number: Serial number of TD-1 device to reboot
+        :return dict: Status of reboot,
+                      "ok"-reboot happened successfully
+                      "serial_error"-serial number was not supplied
+                      "key_error"-serial number supplied is not correct
+        """
+        url = urljoin(self.local_host, "machine/td1_reboot")
+        td1_reboot_payload = {
+            "request_method": "POST",
+            "serial": serial_number
+        }
+        req = Request( url, urlencode(td1_reboot_payload).encode())
+        resp = self._get_results(req)
+        return resp
+
     def send_lane_data(self, data):
-        # TODO: need to add a check to see if a user has lane_data enabled
-        url = urljoin( self.local_host, '/machine/set_lane_data')
-        req = Request( url=url, data=json.dumps(data).encode(),
-                       method="POST", headers={"Content-Type": "application/json"})
-        if self._get_results(req) is None:
-            self.logger.error("Error sending lane data")
+        """
+        Send lane data for moonrakers `machine/set_lane_data` endpoint so that
+        other programs can query moonrakers `machine/lane_data` endpoint to see what lanes
+        are loaded and what their colors are.
+
+        :params data: Data to send to endpoint
+        """
+        if self._lane_data:
+            url = urljoin( self.local_host, '/machine/set_lane_data')
+            req = Request( url=url, data=json.dumps(data).encode(),
+                        method="POST", headers={"Content-Type": "application/json"})
+            if self._get_results(req) is None:
+                self.logger.error("Error sending lane data")

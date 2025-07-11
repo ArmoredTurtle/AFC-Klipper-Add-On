@@ -290,7 +290,7 @@ class afc:
         """
         moonraker_port = ""
         if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
-        
+
         try:
             self.moonraker = AFC_moonraker( moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
@@ -342,7 +342,7 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
-    
+
     @property
     def td1_present(self):
         present = self._td1_present

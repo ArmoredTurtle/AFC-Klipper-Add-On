@@ -62,6 +62,42 @@ class afcPrep:
             if not self.dis_unload_macro:
                 self._rename(self.afc.BASE_UNLOAD_FILAMENT, self.afc.RENAMED_UNLOAD_FILAMENT, self.afc.cmd_TOOL_UNLOAD, self.afc.cmd_TOOL_UNLOAD_help)
 
+    def _td1_prep(self, overrall_status):
+        '''
+        Helper function to perform TD-1 data capture during PREP
+
+        :prep overrall_status: Status of all the lanes, if error occurred during lane prep TD-1 data
+                               will not be captured
+        '''
+        capture_td1_data = self.get_td1_data and self.afc.td1_present
+        any_td1_error = False
+        if self.afc.td1_present:
+            self.logger.info("Found TD-1 device connected to printer")
+            any_td1_error = self.afc.function.check_for_td1_error()
+
+        # look up what current lane should be a call select lane, this is more for units that
+        # have selectors to make sure the selector is on the correct lane
+        current_lane = self.afc.function.get_current_lane_obj()
+        if current_lane is not None:
+            current_lane.unit_obj.select_lane(current_lane)
+            if capture_td1_data:
+                self.logger.info("Cannot capture TD-1 data during PREP since toolhead is loaded")
+        elif capture_td1_data:
+            if not overrall_status:
+                self.logger.info("Cannot capture TD-1 data, not all of PREP succeeded")
+            else:
+                if any_td1_error:
+                    self.logger.error("Error with a TD1 device, not collecting data during prep")
+                else:
+                    self.logger.info("Capturing TD-1 data for all loaded lanes")
+                    for lane in self.afc.lanes.values():
+                        if lane.load_state and lane.prep_state:
+                            return_status, msg = lane.get_td1_data()
+                            if not return_status:
+                                self.afc.error.AFC_error(msg, pause=False)
+                                break
+                    self.logger.info("Done capturing TD-1 data")
+
     def PREP(self, gcmd):
         overrall_status = True
         while self.printer.state_message != 'Printer is ready':
@@ -72,6 +108,7 @@ class afcPrep:
 
         # Try and connect to moonraker
         moonraker_connected = self.afc.handle_moonraker_connect()
+        self.afc.function.handle_prep()
 
         ## load Unit stored variables
         units={}
@@ -179,29 +216,7 @@ class afcPrep:
         except:
             pass
 
-        capture_td1_data = self.get_td1_data and self.afc.td1_present
-        if self.afc.td1_present:
-            self.logger.info("Found TD-1 device connected to printer")
-
-        # look up what current lane should be a call select lane, this is more for units that
-        # have selectors to make sure the selector is on the correct lane
-        current_lane = self.afc.function.get_current_lane_obj()
-        if current_lane is not None:
-            current_lane.unit_obj.select_lane(current_lane)
-            if capture_td1_data:
-                self.logger.info("Cannot capture TD-1 data during PREP since toolhead is loaded")
-        elif capture_td1_data:
-            if not overrall_status:
-                self.logger.info("Cannot capture TD-1 data, not all of PREP succeeded")
-            else:
-                self.logger.info("Capturing TD-1 data for all loaded lanes")
-                for lane in self.afc.lanes.values():
-                    if lane.load_state and lane.prep_state:
-                        return_status, msg = lane.get_td1_data()
-                        if not return_status:
-                            self.afc.error.AFC_error(msg, pause=False)
-                            break
-                self.logger.info("Done capturing TD-1 data")
+        self._td1_prep(overrall_status)
 
         # Restore previous bypass state if virtual bypass is active
         bypass_name = "Bypass"

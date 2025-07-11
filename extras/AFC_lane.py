@@ -355,7 +355,7 @@ class AFCLane:
         if self.short_move_dis              is None: self.short_move_dis    = self.unit_obj.short_move_dis
         if self.max_move_dis                is None: self.max_move_dis      = self.unit_obj.max_move_dis
         if self.td1_when_loaded             is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
-        if self.td1_device_id               is None: self.td1_device_id     = self.unit_obj.td1_device_id  
+        if self.td1_device_id               is None: self.td1_device_id     = self.unit_obj.td1_device_id
 
         # Update boolean and check to make sure a TD1 device is detected
         self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
@@ -391,13 +391,13 @@ class AFCLane:
         if self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname:
             self.drive_stepper      = self.unit_obj.drive_stepper_obj
             self.extruder_stepper   = self.drive_stepper.extruder_stepper
-    
+
     def get_color(self):
         color = self.color
         if "color" in self.td1_data:
             color = f"#{self.td1_data['color']}"
         return color
-    
+
     @contextmanager
     def assist_move(self, speed, rewind, assist_active=True):
         """
@@ -427,7 +427,7 @@ class AFCLane:
                 self.espooler.assist(0)
 
     def move_auto_speed(self, distance):
-        dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(mode=SpeedMode.NONE, 
+        dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(mode=SpeedMode.NONE,
                                                                                        distance=distance)
         self.move(distance, dist_hub_move_speed, dist_hub_move_accel, assist_active)
 
@@ -640,8 +640,8 @@ class AFCLane:
                         self.material = self.afc.default_material_type
                         self.weight = 1000 # Defaulting weight to 1000 upon load
                     # Check if user wants to get TD data when loading, only happens if hub is clear and toolhead is not
-                    # loaded. 
-                    # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a 
+                    # loaded.
+                    # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a
                     # different extruder/hub
                     if self.td1_when_loaded:
                         if not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
@@ -977,7 +977,7 @@ class AFCLane:
                 "lane"          : lane_number
             }}}
             self.afc.moonraker.send_lane_data(lane_data)
-    
+
     def clear_lane_data(self):
         if self.afc.lane_data_enabled and "T" in self.map:
             lane_number = self.map.replace("T", "")
@@ -1011,11 +1011,16 @@ class AFCLane:
             msg = "TD-1 device not detected anymore, please check before continuing to capture TD-1 data"
             self.afc.error.AFC_error(msg, pause=False)
             return False, msg
+
         # If user has specified a specific ID, verify that its connected and found
         if self.td1_device_id:
             valid, msg = self.afc.function.check_for_td1_id(self.td1_device_id)
             if not valid:
                 self.afc.error.AFC_error(msg, pause=False)
+                return False, msg
+        else:
+            error, msg = self.afc.function.check_for_td1_error()
+            if error:
                 return False, msg
 
         if not self.hub_obj.state:
