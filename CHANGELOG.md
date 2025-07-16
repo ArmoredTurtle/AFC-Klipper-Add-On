@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-07-03]
+### Added
+- `deadband` variable to `AFCExtruder` (configurable per extruder, default: 2°C). This sets the temperature deadband for extruder heaters, allowing more flexible temperature control during tool changes.
+- New lane status: `INFINITE_RUNOUT` in `AFCLaneState`. This status is used to indicate a lane that has triggered infinite spool/runout logic.
+- Infinite runout handling: When infinite spool is triggered, the target lane's status is set to `INFINITE_RUNOUT` and the toolchange logic now supports heating the next extruder and waiting for it to reach temperature before resuming.
+
+### Changed
+- Tool change logic (`CHANGE_TOOL`) now detects infinite runout state and, if present, heats the next extruder to the correct temperature (using the new `deadband` value) before proceeding.
+- Refactored extruder heating logic into a new `_heat_next_extruder` helper function, which sets the current extruder to 0°C and heats the next extruder as needed.
+- Improved temperature waiting logic with `_wait_for_temp_within_tolerance`, now supporting a default tolerance of 20°C and using the new `deadband` value for more precise control.
+
+
 ## [2025-06-29]
 ### Added
 - `led_tool_loaded_idle` led status color. This is used when a lane is loaded to a tool but that tool is not active. Primary use, toolchangers.

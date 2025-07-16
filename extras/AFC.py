@@ -1611,8 +1611,20 @@ class afc:
     def CHANGE_TOOL(self, cur_lane, purge_length=None, restore_pos=True):
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
+        infinite_runout = False
 
         self.next_lane_load = cur_lane.name
+        next_extruder = cur_lane.extruder_obj.name
+
+        if cur_lane.status == AFCLaneState.INFINITE_RUNOUT and self.function.get_current_extruder() != next_extruder:
+            infinite_runout = True
+            result = self._heat_next_extruder(wait=False)
+            if not result:
+                self.error.fix("Failed to select or heat next extruder", self.next_lane_load)
+                return
+            cur_lane.status = AFCLaneState.LOADED
+            next_heater = result[0]
+            target_temp = result[1]
 
         # If the requested lane is not the current lane, proceed with the tool change.
         if cur_lane.name != self.current:
@@ -1639,6 +1651,12 @@ class afc:
                         msg = (' UNLOAD ERROR NOT CLEARED')
                         self.error.fix(msg, self.lanes[self.current])  #send to error handling
                         return
+
+            if infinite_runout:
+                infinite_extruder = cur_lane.extruder_obj
+                self.logger.info("Heating and waiting for {} for infinite runout".format(infinite_extruder.name))
+                self._wait_for_temp_within_tolerance(next_heater, target_temp, infinite_extruder.deadband)
+                self.logger.info("{} heated and ready to print".format(infinite_extruder.name))
 
             # Load the new lane and restore the toolhead position if successful.
             if self.TOOL_LOAD(cur_lane, purge_length) and not self.error_state:
@@ -1833,7 +1851,42 @@ class afc:
         should_wait = wait and abs(current_temp - temp) > self.temp_wait_tolerance
         pheaters.set_temperature(heater, temp, should_wait)
 
-    def _wait_for_temp_within_tolerance(self, heater, target_temp, tolerance):
+    def _heat_next_extruder(self, wait=True):
+        """
+        Heats the next extruder if it is not the current extruder.
+        This function checks if the next lane to load is specified and if it is different from the current extruder.
+        If so, it retrieves the extruder object and its heater, then waits for the extruder to reach the desired temperature.
+        Also sets the temperature of the current extruder to 0 to ensure it is not heated while empty.
+        """
+        # Check if the current extruder is loaded with the lane to be unloaded.
+        if self.next_lane_load is not None:
+            next_extruder = self.lanes[self.next_lane_load].extruder_obj
+        else:
+            # Add correct error state if next lane load is None
+            self.error.AFC_error("Next lane load is None, cannot proceed with tool change", pause=self.function.in_print())
+            next_extruder = None
+            return False
+        
+        # get the current extruder from the toolhead and it's current temperature
+        pheaters = self.printer.lookup_object('heaters')
+        extruder = self.toolhead.get_extruder()
+        current_heater = extruder.get_heater()
+        current_temp = current_heater.get_temp(self.reactor.monotonic())
+        next_heater = next_extruder.get_heater()
+        set_temp = current_temp[1]
+        pheaters.set_temperature(next_heater, set_temp, False)
+        self.logger.info("Heating next extruder: {} to {}".format(next_extruder.name, set_temp))
+        pheaters.set_temperature(current_heater, 0, False)  # Always set temp of the extruder than ran out to 0
+        self.logger.info("Setting current extruder {} temperature to 0".format(extruder.name))
+
+        # If the next extruder is specified and it is not the current extruder, heat the next extruder.
+        if wait and (next_extruder is not None and self.function.get_current_extruder() != next_extruder):
+            deadband = next_extruder.deadband
+            self._wait_for_temp_within_tolerance(next_heater, set_temp, deadband)
+
+        return next_heater, set_temp
+
+    def _wait_for_temp_within_tolerance(self, heater, target_temp, tolerance=20):
         """
         Waits until the heater's temperature is within the specified tolerance.
         """

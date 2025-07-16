@@ -43,6 +43,7 @@ class AFCLaneState:
     HUB_LOADING      = "HUB Loading"
     EJECTING         = "Ejecting"
     CALIBRATING      = "Calibrating"
+    INFINITE_RUNOUT  = "Infinite Runout"
 
 class AFCLane:
     UPDATE_WEIGHT_DELAY = 10.0
@@ -468,6 +469,7 @@ class AFCLane:
         self.logger.info("Infinite Spool triggered for {}".format(self.name))
         empty_lane = self.afc.lanes[self.afc.current]
         change_lane = self.afc.lanes[self.runout_lane]
+        change_lane.status = AFCLaneState.INFINITE_RUNOUT
         # Pause printer with manual command
         self.afc.error.pause_resume.send_pause_command()
         # Saving position after printer is paused
