@@ -1614,7 +1614,7 @@ class afc:
         infinite_runout = False
 
         self.next_lane_load = cur_lane.name
-        next_extruder = self.lanes[self.next_lane_load].extruder_obj.name
+        next_extruder = cur_lane.extruder_obj.name
 
         if cur_lane.status == AFCLaneState.INFINITE_RUNOUT and self.function.get_current_extruder() != next_extruder:
             infinite_runout = True
@@ -1870,13 +1870,13 @@ class afc:
         # get the current extruder from the toolhead and it's current temperature
         pheaters = self.printer.lookup_object('heaters')
         extruder = self.toolhead.get_extruder()
-        self.heater = extruder.get_heater()
-        current_temp = self.heater.get_temp(self.reactor.monotonic())
+        current_heater = extruder.get_heater()
+        current_temp = current_heater.get_temp(self.reactor.monotonic())
         next_heater = next_extruder.get_heater()
         set_temp = current_temp[1]
         pheaters.set_temperature(next_heater, set_temp, False)
         self.logger.info("Heating next extruder: {} to {}".format(next_extruder.name, set_temp))
-        pheaters.set_temperature(self.heater, 0, False)  # Always set temp of the extruder than ran out to 0
+        pheaters.set_temperature(current_heater, 0, False)  # Always set temp of the extruder than ran out to 0
         self.logger.info("Setting current extruder {} temperature to 0".format(extruder.name))
 
         # If the next extruder is specified and it is not the current extruder, heat the next extruder.
