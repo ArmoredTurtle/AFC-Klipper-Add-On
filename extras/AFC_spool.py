@@ -217,11 +217,18 @@ class AFCSpool:
             if lane is None:
                 self.logger.info("No LANE Defined")
                 return
-            SpoolID = gcmd.get('SPOOL_ID', '')
+            SpoolID = gcmd.get_int('SPOOL_ID', '')
             if lane not in self.afc.lanes:
                 self.logger.info('{} Unknown'.format(lane))
                 return
+
             cur_lane = self.afc.lanes[lane]
+            # Check if spool id is already assigned to a different lane, don't assign to current lane id
+            # is already assigned
+            if any( SpoolID == lane.spool_id for lane in self.afc.lanes.values()) and cur_lane.spool_id != SpoolID:
+                self.logger.error(f"SpoolId {SpoolID} already assigned to a lane, cannot assign to {lane}.")
+                return
+
             self.set_spoolID(cur_lane, SpoolID)
 
     def _get_filament_values( self, filament, field, default=None):
