@@ -245,6 +245,9 @@ class AFCLane:
             self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
             self.espooler.handle_moonraker_connect()
 
+            # Update boolean and check to make sure a TD1 device is detected
+            self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
+
     def handle_unit_connect(self, unit_obj):
         """
         Callback from <unit_name>:connect to verify units/hub/buffer/extruder object. Errors out if user specified names and they do not exist in their configuration
@@ -357,8 +360,6 @@ class AFCLane:
         if self.td1_when_loaded             is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
         if self.td1_device_id               is None: self.td1_device_id     = self.unit_obj.td1_device_id
 
-        # Update boolean and check to make sure a TD1 device is detected
-        self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
 
         if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
         if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
@@ -1285,8 +1286,9 @@ class AFCLane:
         response['filament_status'] = filament_stat[0]
         response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
-        response['td1_data'] = self.td1_data
-        response['td1_when_loaded'] = self.td1_when_loaded
+        response['td1_td']          = self.td1_data['td'] if "td" in self.td1_data else ''
+        response['td1_color']       = self.td1_data['color'] if "color" in self.td1_data else ''
+        response['td1_scan_time']   = self.td1_data['scan_time'] if "scan_time" in self.td1_data else ''
         return response
 
 
