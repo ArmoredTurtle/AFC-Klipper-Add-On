@@ -476,6 +476,14 @@ class afc:
         try:
             if 'virtual' in self.bypass.name:
                 bypass_state = self.bypass.sensor_enabled
+
+                # Make sure lane is not loaded before enabling virtual bypass, force switch
+                # to disabled if a lane is loaded
+                if bypass_state and self.current is not None:
+                    self.logger.error(f"Cannot set virtual bypass, {self.current} is currently loaded.")
+                    self.bypass.sensor_enabled = False
+                    return False
+
                 # Update filament present to match enable button so it updates in guis
                 self.bypass.filament_present = bypass_state
 
