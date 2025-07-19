@@ -127,7 +127,7 @@ class afcPrep:
                                 cur_lane.weight = 0
 
                     if 'runout_lane' in units[cur_lane.unit][cur_lane.name]: cur_lane.runout_lane = units[cur_lane.unit][cur_lane.name]['runout_lane']
-                    if cur_lane.runout_lane == '' or cur_lane.runout_lane == 'NONE' : cur_lane.runout_lane = None
+                    if cur_lane.runout_lane == '' or cur_lane.runout_lane == 'NONE': cur_lane.runout_lane = None
                     if 'map' in units[cur_lane.unit][cur_lane.name]: cur_lane.map = units[cur_lane.unit][cur_lane.name]['map']
                     if cur_lane.map != None:
                         self.afc.tool_cmds[cur_lane.map] = cur_lane.name
