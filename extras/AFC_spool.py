@@ -299,7 +299,7 @@ class AFCSpool:
             self.logger.info("No LANE Defined")
             return
 
-        runout = gcmd.get('RUNOUT', '')
+        runout = gcmd.get('RUNOUT', 'NONE')
         # Check to make sure runout does not equal lane
         if lane == runout:
             self.logger.error("Lane({}) and runout({}) cannot be the same".format(lane, runout))
@@ -314,7 +314,7 @@ class AFCSpool:
             return
 
         cur_lane = self.afc.lanes[lane]
-        cur_lane.runout_lane = runout
+        cur_lane.runout_lane = None if runout == 'NONE' else runout
         self.afc.save_vars()
 
     cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
