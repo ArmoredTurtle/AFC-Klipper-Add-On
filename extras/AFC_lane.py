@@ -521,7 +521,7 @@ class AFCLane:
             else:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set
-                    if  self.runout_lane is not None:
+                    if self.runout_lane is not None:
                         self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
@@ -602,7 +602,7 @@ class AFCLane:
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
                     # Checking to make sure runout_lane is set
-                    if  self.runout_lane is not None:
+                    if self.runout_lane is not None:
                         self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
