@@ -225,9 +225,11 @@ class AFCSpool:
             cur_lane = self.afc.lanes[lane]
             # Check if spool id is already assigned to a different lane, don't assign to current lane id
             # is already assigned
-            if SpoolID is not '' and any( int(SpoolID) == lane.spool_id for lane in self.afc.lanes.values()) and cur_lane.spool_id != int(SpoolID):
-                self.logger.error(f"SpoolId {SpoolID} already assigned to a lane, cannot assign to {lane}.")
-                return
+            if SpoolID != '':
+                SpoolID = int(SpoolID)
+                if cur_lane.spool_id != SpoolID and any( SpoolID == lane.spool_id for lane in self.afc.lanes.values()):
+                    self.logger.error(f"SpoolId {SpoolID} already assigned to a lane, cannot assign to {lane}.")
+                    return
 
             self.set_spoolID(cur_lane, SpoolID)
 
