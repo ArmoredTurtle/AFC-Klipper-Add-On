@@ -283,11 +283,9 @@ class afc:
         enough time to start before AFC tries to connect. This fixes a race condition that can
         happen between klipper and moonraker when first starting up.
         """
-        moonraker_port = ""
-        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
 
         try:
-            self.moonraker = AFC_moonraker( self.moonraker_host, moonraker_port, self.logger )
+            self.moonraker = AFC_moonraker( self.moonraker_host, self.moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
                 return False
             self.spoolman = self.moonraker.get_spoolman_server()

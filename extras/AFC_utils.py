@@ -79,7 +79,7 @@ class AFC_moonraker:
     def __init__(self, host:str, port:str, logger:object):
         self.port           = port
         self.logger         = logger
-        self.host           = f'{host}{port}'
+        self.host           = f'{host.rstrip("/")}:{port}'
         self.database_url   = urljoin(self.host, "server/database/item")
         self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
