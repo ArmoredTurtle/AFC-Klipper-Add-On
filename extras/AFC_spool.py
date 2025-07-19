@@ -223,7 +223,7 @@ class AFCSpool:
                 return
 
             cur_lane = self.afc.lanes[lane]
-            # Check if spool id is already assigned to a different lane, don't assign to current lane id
+            # Check if spool id is already assigned to a different lane, don't assign to current lane if id
             # is already assigned
             if SpoolID != '':
                 SpoolID = int(SpoolID)
