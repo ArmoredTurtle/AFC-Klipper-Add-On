@@ -76,14 +76,15 @@ class AFC_moonraker:
         AFC logger object to log and print to console
     """
     ERROR_STRING = "Error getting data from moonraker, check AFC.log for more information"
-    def __init__(self, port:str, logger:object):
+    def __init__(self, host:str, port:str, logger:object):
         self.port           = port
         self.logger         = logger
-        self.local_host     = 'http://localhost{port}'.format( port=port )
-        self.database_url   = urljoin(self.local_host, "server/database/item")
+        self.host           = f'{host}{port}'
+        self.database_url   = urljoin(self.host, "server/database/item")
         self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
         self.last_stats_time= None
+        self.logger.debug(f"Moonraker url: {self.host}")
 
     def _get_results(self, url_string, print_error=True):
         """
@@ -127,7 +128,7 @@ class AFC_moonraker:
         """
         self.logger.info(f"Waiting max {timeout}s for moonraker to connect")
         for i in range(0,timeout):
-            resp = self._get_results(urljoin(self.local_host, 'server/info'), print_error=False)
+            resp = self._get_results(urljoin(self.host, 'server/info'), print_error=False)
             if resp is not None:
                 self.logger.debug(f"Connected to moonraker after {i} tries")
                 return True
@@ -143,7 +144,7 @@ class AFC_moonraker:
 
         :returns: Returns string for spoolmans IP, returns None if its not configured
         """
-        resp = self._get_results(urljoin(self.local_host, 'server/config'))
+        resp = self._get_results(urljoin(self.host, 'server/config'))
         # Check to make sure response is valid and spoolman exists in dictionary
         if resp is not None and 'orig' in resp and 'spoolman' in resp['orig']:
             return resp['orig']['spoolman']['server']     # check for spoolman and grab url
@@ -160,7 +161,7 @@ class AFC_moonraker:
                  Returns zero if not found in metadata.
         """
         change_count = 0
-        resp = self._get_results(urljoin(self.local_host,
+        resp = self._get_results(urljoin(self.host,
                                     'server/files/metadata?filename={}'.format(quote(filename))))
         if resp is not None and 'filament_change_count' in resp:
             change_count =  resp['filament_change_count']
@@ -233,7 +234,7 @@ class AFC_moonraker:
             "request_method": "GET",
             "path": f"/v1/spool/{id}"
         }
-        spool_url = urljoin(self.local_host, 'server/spoolman/proxy')
+        spool_url = urljoin(self.host, 'server/spoolman/proxy')
         req = Request( spool_url, urlencode(request_payload).encode() )
 
         resp = self._get_results(req)

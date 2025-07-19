@@ -108,7 +108,8 @@ class afc:
         self.extrude_factor     = 1.
 
         # Config get section
-        self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
+        self.moonraker_port         = config.get("moonraker_port", 7125)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
+        self.moonraker_host         = config.get("moonraker_host", "http://localhost")
         self.moonraker_connect_to   = config.get("moonraker_timeout", 30)
         self.unit_order_list        = config.get('unit_order_list','')
         self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
@@ -286,7 +287,7 @@ class afc:
         if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
 
         try:
-            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
+            self.moonraker = AFC_moonraker( self.moonraker_host, moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
                 return False
             self.spoolman = self.moonraker.get_spoolman_server()
