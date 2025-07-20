@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.22"
+AFC_VERSION="1.0.25"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -476,6 +476,14 @@ class afc:
         try:
             if 'virtual' in self.bypass.name:
                 bypass_state = self.bypass.sensor_enabled
+
+                # Make sure lane is not loaded before enabling virtual bypass, force switch
+                # to disabled if a lane is loaded
+                if bypass_state and self.current is not None:
+                    self.logger.error(f"Cannot set virtual bypass, {self.current} is currently loaded.")
+                    self.bypass.sensor_enabled = False
+                    return False
+
                 # Update filament present to match enable button so it updates in guis
                 self.bypass.filament_present = bypass_state
 

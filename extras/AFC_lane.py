@@ -936,6 +936,18 @@ class AFCLane:
             self.afc.error.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)
             return
 
+        # Do not set lane as loaded if virtual bypass or normal bypass is enabled/triggered
+        if self.afc.bypass.sensor_enabled:
+            disable_msg = ""
+            msg = f"Cannot set {self.name} as loaded, "
+
+            if 'virtual' in self.afc.bypass.name:
+                msg += "virtual "
+                disable_msg = " and disable"
+            msg += f"bypass is enabled.\nPlease unload{disable_msg} before trying to set lanes as loaded."
+            self.logger.error(msg)
+            return
+
         self.afc.function.unset_lane_loaded()
 
         self.set_loaded()
