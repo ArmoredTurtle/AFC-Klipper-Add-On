@@ -3,7 +3,7 @@
 # Copyright (C) 2025 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+from configfile import error
 
 class AFCButton:
     """
@@ -12,12 +12,12 @@ class AFCButton:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.reactor = self.printer.get_reactor()
 
-        self.print_stats = self.printer.lookup_object('print_stats')
         self.afc = self.printer.lookup_object('AFC')
         self.lane_id = config.get_name().split()[-1]
-        self.lane_number = config.getint('lane_number')
+        self.lane_obj = None
         self.long_press_duration = config.getfloat('long_press_duration', 1.2)
         pin_name = config.get('pin')
 
@@ -29,6 +29,15 @@ class AFCButton:
         buttons.register_buttons([pin_name], self._button_callback)
 
         self.afc.logger.info(f"AFC_button for {self.lane_id} initialized on pin: {pin_name}")
+    
+    def _handle_ready(self):
+        """
+        Handle ready callback check to make sure lane is found within AFC lanes, if lanes 
+        is not found and error is raised.
+        """
+        self.lane_obj = self.afc.lanes.get(self.lane_id)
+        if not self.lane_obj:
+            raise error(f"Lane {self.lane_id} is not defined/found in your configuration file. Please defined lane or verify lane name is correct.")
 
     def _button_callback(self, eventtime, state):
         """
@@ -58,28 +67,28 @@ class AFCButton:
         if held_time < 0.05:
             return
 
-        cur_lane = self.afc.function.get_current_lane()
+        cur_lane = self.afc.function.get_current_lane_obj()
 
         # Long Press
         if held_time >= self.long_press_duration:
             self.afc.logger.info(f"{self.lane_id}: Long press detected.")
-            if cur_lane == self.lane_id:
+            if cur_lane is not None and cur_lane.name == self.lane_id:
                 self.afc.logger.info(f"Unloading {self.lane_id} before ejecting.")
-                if self.afc.TOOL_UNLOAD():
-                    self.gcode.run_script_from_command("LANE_UNLOAD LANE={}".format(self.lane_id))
+                if self.afc.TOOL_UNLOAD(self.lane_obj):
+                    self.afc.LANE_UNLOAD(self.lane_obj)
             else:
                 # If another lane is active, just eject this one
                 self.afc.logger.info(f"Ejecting {self.lane_id}.")
-                self.gcode.run_script_from_command("LANE_UNLOAD LANE={}".format(self.lane_id))
+                self.afc.LANE_UNLOAD(self.lane_obj)
         # Short Press
         else:
             self.afc.logger.info(f"{self.lane_id}: Short press detected.")
-            if cur_lane == self.lane_id:
+            if cur_lane is not None and cur_lane.name == self.lane_id:
                 self.afc.logger.info(f"Unloading tool from {self.lane_id}.")
-                self.afc.TOOL_UNLOAD()
+                self.afc.TOOL_UNLOAD( cur_lane )
             else:
                 self.afc.logger.info(f"Loading tool to {self.lane_id}.")
-                self.gcode.run_script_from_command("CHANGE_TOOL LANE={}".format(self.lane_id))
+                self.afc.CHANGE_TOOL(self.lane_obj)
 
 
 def load_config_prefix(config):
