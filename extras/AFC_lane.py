@@ -71,7 +71,7 @@ class AFCLane:
         self.weight             = 0
         self._material          = None
         self.extruder_temp      = None
-        self.runout_lane        = 'NONE'
+        self.runout_lane        = None
         self.status             = AFCLaneState.NONE
         self.multi_hubs_found   = False
         self.drive_stepper      = None
@@ -520,8 +520,8 @@ class AFCLane:
                 self.weight = 1000 # Defaulting weight to 1000 upon load
             else:
                 if self.unit_obj.check_runout(self):
-                    # Checking to make sure runout_lane is set and does not equal 'NONE'
-                    if  self.runout_lane != 'NONE':
+                    # Checking to make sure runout_lane is set
+                    if self.runout_lane is not None:
                         self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
@@ -601,8 +601,8 @@ class AFCLane:
                         self.weight = 1000 # Defaulting weight to 1000 upon load
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
-                    # Checking to make sure runout_lane is set and does not equal 'NONE'
-                    if  self.runout_lane != 'NONE':
+                    # Checking to make sure runout_lane is set
+                    if self.runout_lane is not None:
                         self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
