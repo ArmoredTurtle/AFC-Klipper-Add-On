@@ -1329,7 +1329,7 @@ class afc:
         if cur_extruder.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
             cur_lane.unsync_to_extruder()
-            while not cur_lane.get_trailing():
+            while not cur_lane.get_trailing() and self.tool_max_unload_attempts > 0:
                 # attempt to return buffer to trailing pin
                 cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
                 num_tries += 1

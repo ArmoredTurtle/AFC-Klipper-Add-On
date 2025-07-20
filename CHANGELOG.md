@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Software defined physical buttons are now available and supported. See documentation for more information on how to set them up.
 - New command `SET_NEXT_SPOOL_ID` to be used with a QR scanner tool or macro that automatically sets the id of the next spool loaded.
+- Support setting tool_max_unload_attempts to zero to bypass buffer unloading checks
 
 ## [2025-07-19]
 ### Fixes
