@@ -29,10 +29,10 @@ class AFCButton:
         buttons.register_buttons([pin_name], self._button_callback)
 
         self.afc.logger.info(f"AFC_button for {self.lane_id} initialized on pin: {pin_name}")
-    
+
     def _handle_ready(self):
         """
-        Handle ready callback check to make sure lane is found within AFC lanes, if lanes 
+        Handle ready callback check to make sure lane is found within AFC lanes, if lanes
         is not found and error is raised.
         """
         self.lane_obj = self.afc.lanes.get(self.lane_id)
