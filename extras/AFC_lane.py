@@ -597,8 +597,7 @@ class AFCLane:
                     if self.load_state == True and self.prep_state == True:
                         self.status = AFCLaneState.LOADED
                         self.unit_obj.lane_loaded(self)
-                        self.material = self.afc.default_material_type
-                        self.weight = 1000 # Defaulting weight to 1000 upon load
+                        self.afc.spool._set_values(self)
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
                     # Checking to make sure runout_lane is set

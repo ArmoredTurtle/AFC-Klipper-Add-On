@@ -10,6 +10,9 @@ class AFCSpool:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
+        # Temporary status variables
+        self.next_spool_id      = ''
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -26,6 +29,7 @@ class AFCSpool:
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
 
         self.gcode.register_command("RESET_AFC_MAPPING", self.cmd_RESET_AFC_MAPPING, desc=self.cmd_RESET_AFC_MAPPING_help)
+        self.gcode.register_command("SET_NEXT_SPOOL_ID", self.cmd_SET_NEXT_SPOOL_ID, desc=self.cmd_SET_NEXT_SPOOL_ID_help)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -247,6 +251,19 @@ class AFCSpool:
             value = filament[field]
         return value
 
+    def _set_values(self, cur_lane):
+        """
+        Helper function for setting lane spool values
+        """
+        # set defaults if there's no spool id, or the spoolman lookup fails
+        cur_lane.material = self.afc.default_material_type
+        cur_lane.weight = 1000 # Defaulting weight to 1000 upon load
+
+        if self.afc.spoolman is not None and self.next_spool_id != '':
+            spool_id = self.next_spool_id
+            self.next_spool_id = ''
+            self.set_spoolID(cur_lane, spool_id)
+
     def _clear_values(self, cur_lane):
         """
         Helper function for clearing out lane spool values
@@ -372,6 +389,40 @@ class AFCSpool:
 
         self.afc.save_vars()
         self.logger.info("Tool mappings reset" + ("" if runout_opt == "no" else " and runout lanes reset"))
+
+    cmd_SET_NEXT_SPOOL_ID_help = "Set the spool id to be loaded next into AFC"
+    def cmd_SET_NEXT_SPOOL_ID(self, gcmd):
+        """
+        Sets the spool ID to be loaded next into the AFC.
+
+        This can be used in a scanning macro to prepare the AFC for the next spool to be loaded.
+
+        Omit the SPOOL_ID parameter to clear the next spool ID.
+
+        Usage
+        -----
+        `SET_NEXT_SPOOL_ID SPOOL_ID=<spool_id>`
+
+        Example
+        -----
+        ```
+        SET_NEXT_SPOOL_ID SPOOL_ID=12345
+        ```
+        """
+        SpoolID = gcmd.get('SPOOL_ID', '')
+        previous_id = self.next_spool_id
+        if SpoolID != '':
+            try:
+                self.next_spool_id = str(int(SpoolID)) # make sure spool ID will round trip later
+            except ValueError:
+                self.logger.error("Invalid spool ID: {}".format(SpoolID))
+                self.next_spool_id = ''
+        else:
+            self.next_spool_id = ''
+        if previous_id:
+            self.logger.info(f"Spool ID '{previous_id}' being overwritten for next load: '{self.next_spool_id}'")
+        else:
+            self.logger.info(f"Spool ID set for next load: '{self.next_spool_id}'")
 
 def load_config(config):
     return AFCSpool(config)
