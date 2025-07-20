@@ -5,9 +5,9 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 
-class AFCExtras:
+class AFCButton:
     """
-    This class is used for extra functionality that doesn't fit into the main AFC logic.
+    This class is used for lane based button controls.
     """
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -28,7 +28,7 @@ class AFCExtras:
         buttons = self.printer.load_object(config, 'buttons')
         buttons.register_buttons([pin_name], self._button_callback)
 
-        self.afc.logger.info(f"AFC_extras for {self.lane_id} initialized on pin: {pin_name}")
+        self.afc.logger.info(f"AFC_button for {self.lane_id} initialized on pin: {pin_name}")
 
     def _button_callback(self, eventtime, state):
         """
@@ -83,4 +83,4 @@ class AFCExtras:
 
 
 def load_config_prefix(config):
-    return AFCExtras(config)
+    return AFCButton(config)
