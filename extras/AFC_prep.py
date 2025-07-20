@@ -107,7 +107,6 @@ class afcPrep:
 
         # Try and connect to moonraker
         moonraker_connected = self.afc.handle_moonraker_connect()
-        self.afc.function.handle_prep()
 
         ## load Unit stored variables
         units={}
@@ -133,9 +132,6 @@ class afcPrep:
         for lane in self.afc.lanes.keys():
             cur_lane = self.afc.lanes[lane]
 
-            # If moonraker is connected gather all stats
-            if moonraker_connected:
-                cur_lane.handle_moonraker_connect()
 
             cur_lane.unit_obj = self.afc.units[cur_lane.unit]
             if cur_lane.name not in cur_lane.unit_obj.lanes: cur_lane.unit_obj.lanes.append(cur_lane.name)    #add lanes to units list

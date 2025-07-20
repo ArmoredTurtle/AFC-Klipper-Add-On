@@ -34,6 +34,7 @@ class afcFunction:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
+        self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.auto_var_file = None
         self.errorLog = {}
         self.pause    = False
@@ -69,7 +70,7 @@ class afcFunction:
         """
         self.afc.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'HUB', hub_obj.name, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
 
-    def handle_prep(self):
+    def handle_moonraker_connect(self):
         """
         Registers macros commands after moonrakers connection has been established so that endpoint can be queried successfully
         to check if TD1 is defined in users moonrakers.conf file.

@@ -56,6 +56,7 @@ class AFCLane:
         self.extruder_stepper   = None
         self.logger             = self.afc.logger
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.cb_update_weight   = self.reactor.register_timer( self.update_weight_callback )
 
         self.unit_obj           = None

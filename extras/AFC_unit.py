@@ -19,6 +19,7 @@ class afcUnit:
         self.printer        = config.get_printer()
         self.gcode          = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.afc            = self.printer.lookup_object('AFC')
         self.logger         = self.afc.logger
 
@@ -136,6 +137,8 @@ class afcUnit:
         self.gcode.register_mux_command('UNIT_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_CALIBRATION, desc=self.cmd_UNIT_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_LANE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_LANE_CALIBRATION, desc=self.cmd_UNIT_LANE_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
+
+    def handle_moonraker_connect(self):
         if self.afc.td1_defined:
             self.gcode.register_mux_command('UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_UNIT_TD_ONE_CALIBRATION_help)
 

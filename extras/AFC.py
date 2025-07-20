@@ -297,6 +297,8 @@ class afc:
             self.spoolman = self.moonraker.get_spoolman_server()
             self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+
+            self.printer.send_event("afc:moonraker_connect")
         except Exception as e:
             self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error error: {}\n{}".format(e, traceback.format_exc()))
             self.spoolman = None                      # set to none if not found
