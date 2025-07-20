@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-07-19]
+### Fixes
+- Error with infinite spool where klipper would crash if runout was set to `None` instead of `"NONE"`
+- Added a check when enabling virtual bypass to make sure a lane is not loaded when enabling.
+- Issue where localhost and http were hardcoded, allows user to specify custom url. Fixes issue 484.
+- Updated code to inform users when trying to assign spoolman ID to a lane and that same spool ID is already assigned to another lane.
+
 ## [2025-07-06]
 ### Fixes
 - Race condition between klipper and moonraker when trying to get stats from moonraker database
