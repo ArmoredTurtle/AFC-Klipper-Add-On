@@ -37,7 +37,7 @@ class AFCButton:
         """
         self.lane_obj = self.afc.lanes.get(self.lane_id)
         if not self.lane_obj:
-            raise error(f"Lane {self.lane_id} is not defined/found in your configuration file. Please defined lane or verify lane name is correct.")
+            raise error(f"Lane {self.lane_id} is not defined/found in your configuration file. Please define lane or verify lane name is correct.")
 
     def _button_callback(self, eventtime, state):
         """
@@ -85,7 +85,7 @@ class AFCButton:
             self.afc.logger.info(f"{self.lane_id}: Short press detected.")
             if cur_lane is not None and cur_lane.name == self.lane_id:
                 self.afc.logger.info(f"Unloading tool from {self.lane_id}.")
-                self.afc.TOOL_UNLOAD( cur_lane )
+                self.afc.TOOL_UNLOAD(cur_lane)
             else:
                 self.afc.logger.info(f"Loading tool to {self.lane_id}.")
                 self.afc.CHANGE_TOOL(self.lane_obj)
