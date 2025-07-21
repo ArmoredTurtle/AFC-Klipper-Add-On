@@ -76,35 +76,66 @@ class AFC_moonraker:
         AFC logger object to log and print to console
     """
     ERROR_STRING = "Error getting data from moonraker, check AFC.log for more information"
-    def __init__(self, port:str, logger:object):
+    def __init__(self, host:str, port:str, logger:object):
         self.port           = port
         self.logger         = logger
-        self.local_host     = 'http://localhost{port}'.format( port=port )
-        self.database_url   = urljoin(self.local_host, "server/database/item")
+        self.host           = f'{host.rstrip("/")}:{port}'
+        self.database_url   = urljoin(self.host, "server/database/item")
         self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
         self.last_stats_time= None
+        self.logger.debug(f"Moonraker url: {self.host}")
 
-    def _get_results(self, url_string):
+    def _get_results(self, url_string, print_error=True):
         """
         Helper function to get results, check for errors and return data if successful
 
         :param url_string: URL encoded string to fetch/post data to moonraker
+        :param print_error: Set to True for error to be displayed in console/mainsail panel, setting
+                            to False will still write error to log via debug message
 
-        :returns: Returns result dictionary if data is valid , returns None if and error occurred
+        :returns: Returns result dictionary if data is valid, returns None if and error occurred
         """
         data = None
+        # Only print error to console when set, else still print errors bug with debug
+        # logger so that messages are still written to log for debugging purposes
+        if print_error:
+            logger = self.logger.error
+        else:
+            logger = self.logger.debug
+
         try:
             resp = urlopen(url_string)
             if resp.status >= 200 and resp.status <= 300:
                 data = json.load(resp)
             else:
-                self.logger.error(self.ERROR_STRING)
-                self.logger.debug(f"Response: {resp.status} Reason: {resp.reason}")
+                logger(self.ERROR_STRING)
+                logger(f"Response: {resp.status} Reason: {resp.reason}")
         except:
-            self.logger.error(self.ERROR_STRING, traceback=traceback.format_exc())
+            logger(self.ERROR_STRING, traceback=traceback.format_exc())
             data = None
         return data['result'] if data is not None else data
+
+    def wait_for_moonraker(self, toolhead, timeout:int=30):
+        """
+        Function to wait for moonraker to start, times out after passed in timeout value
+
+        :param toolhead: Toolhead object so that non blocking waits can happen
+        :param timeout: Timeout out trying after this many seconds
+
+        :return: Returns True if connected to moonraker and a timeout did no occur, returns False if
+                 not connected after waiting max timeout value
+        """
+        self.logger.info(f"Waiting max {timeout}s for moonraker to connect")
+        for i in range(0,timeout):
+            resp = self._get_results(urljoin(self.host, 'server/info'), print_error=False)
+            if resp is not None:
+                self.logger.debug(f"Connected to moonraker after {i} tries")
+                return True
+            else:
+                toolhead.dwell(1)
+        self.logger.info(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
+        return False
 
     def get_spoolman_server(self)->str:
         """
@@ -113,7 +144,7 @@ class AFC_moonraker:
 
         :returns: Returns string for spoolmans IP, returns None if its not configured
         """
-        resp = self._get_results(urljoin(self.local_host, 'server/config'))
+        resp = self._get_results(urljoin(self.host, 'server/config'))
         # Check to make sure response is valid and spoolman exists in dictionary
         if resp is not None and 'orig' in resp and 'spoolman' in resp['orig']:
             return resp['orig']['spoolman']['server']     # check for spoolman and grab url
@@ -130,7 +161,7 @@ class AFC_moonraker:
                  Returns zero if not found in metadata.
         """
         change_count = 0
-        resp = self._get_results(urljoin(self.local_host,
+        resp = self._get_results(urljoin(self.host,
                                     'server/files/metadata?filename={}'.format(quote(filename))))
         if resp is not None and 'filament_change_count' in resp:
             change_count =  resp['filament_change_count']
@@ -203,7 +234,7 @@ class AFC_moonraker:
             "request_method": "GET",
             "path": f"/v1/spool/{id}"
         }
-        spool_url = urljoin(self.local_host, 'server/spoolman/proxy')
+        spool_url = urljoin(self.host, 'server/spoolman/proxy')
         req = Request( spool_url, urlencode(request_payload).encode() )
 
         resp = self._get_results(req)

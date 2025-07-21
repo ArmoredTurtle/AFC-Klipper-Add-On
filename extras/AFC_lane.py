@@ -72,7 +72,7 @@ class AFCLane:
         self.weight             = 0
         self._material          = None
         self.extruder_temp      = None
-        self.runout_lane        = 'NONE'
+        self.runout_lane        = None
         self.status             = AFCLaneState.NONE
         self.multi_hubs_found   = False
         self.drive_stepper      = None
@@ -225,6 +225,19 @@ class AFCLane:
                 raise error(error_string)
         self.espooler.handle_ready()
 
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        if self.unit_obj.type != "HTLF" or (self.unit_obj.type == "HTLF" and "AFC_lane" in self.fullname):
+            values = None
+            if self.afc.moonraker.afc_stats is not None:
+                values = self.afc.moonraker.afc_stats["value"]
+            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
+            self.espooler.handle_moonraker_connect()
+
     def handle_unit_connect(self, unit_obj):
         """
         Callback from <unit_name>:connect to verify units/hub/buffer/extruder object. Errors out if user specified names and they do not exist in their configuration
@@ -242,10 +255,6 @@ class AFCLane:
             self.unit_obj.lanes[self.name] = self
             self.afc.lanes[self.name] = self
 
-            values = None
-            if self.afc.moonraker.afc_stats is not None:
-                values = self.afc.moonraker.afc_stats["value"]
-            self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
 
         self.hub_obj = self.unit_obj.hub_obj
 
@@ -522,8 +531,8 @@ class AFCLane:
                 self.weight = 1000 # Defaulting weight to 1000 upon load
             else:
                 if self.unit_obj.check_runout(self):
-                    # Checking to make sure runout_lane is set and does not equal 'NONE'
-                    if  self.runout_lane != 'NONE':
+                    # Checking to make sure runout_lane is set
+                    if self.runout_lane is not None:
                         self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
@@ -599,12 +608,11 @@ class AFCLane:
                     if self.load_state == True and self.prep_state == True:
                         self.status = AFCLaneState.LOADED
                         self.unit_obj.lane_loaded(self)
-                        self.material = self.afc.default_material_type
-                        self.weight = 1000 # Defaulting weight to 1000 upon load
+                        self.afc.spool._set_values(self)
 
                 elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
-                    # Checking to make sure runout_lane is set and does not equal 'NONE'
-                    if  self.runout_lane != 'NONE':
+                    # Checking to make sure runout_lane is set
+                    if self.runout_lane is not None:
                         self._perform_infinite_runout()
                     else:
                         self._perform_pause_runout()
@@ -859,6 +867,69 @@ class AFCLane:
             self.afc.toolhead.set_extruder( self.extruder_obj.toolhead_extruder, 0.)
             self.printer.send_event("extruder:activate_extruder")
 
+
+    def _is_normal_printing_state(self):
+        """
+        Returns True if the lane is in a normal printing state (TOOLED or LOADED).
+        Prevents runout logic from triggering during transitions or maintenance.
+        """
+        return self.status in (AFCLaneState.TOOLED, AFCLaneState.LOADED)
+
+    def handle_toolhead_runout(self, sensor=None):
+        """
+        Handles runout detection at the toolhead sensor.
+        If all upstream sensors (prep, load, hub) still detect filament, this indicates a break or jam at the toolhead.
+        Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
+        :param sensor: Optional name of the triggering sensor for user notification.
+        """
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
+            return
+
+        # Check upstream sensors: prep, load, hub
+        prep_ok = self.prep_state
+        load_ok = self.load_state
+        hub_ok = self.hub_obj.state if self.hub_obj is not None else True
+
+        # If all upstream sensors are still True, this is a break/jam at the toolhead
+        if prep_ok and load_ok and hub_ok:
+            msg = (
+                f"Toolhead runout detected by {sensor} sensor, but upstream sensors still detect filament.\n"
+                "Possible filament break or jam at the toolhead. Please clear the jam and reload filament manually, then resume the print."
+            )
+            self.afc.error.pause_resume.send_pause_command()
+            self.afc.save_pos()
+            self.afc.error.AFC_error(msg)
+        # No else: do not trigger infinite runout or pause runout here
+
+    def handle_hub_runout(self, sensor=None):
+        """
+        Handles runout detection at the hub sensor.
+        If both upstream sensors (prep, load) still detect filament but hub does not, this indicates a break or jam at the hub.
+        Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
+        :param sensor: Optional name of the triggering sensor for user notification.
+        """
+        # Only trigger runout logic if in a normal printing state AND printer is actively printing
+        if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
+            return
+
+        # Check upstream sensors: prep, load
+        prep_ok = self.prep_state
+        load_ok = self.load_state
+        hub_ok = self.hub_obj.state if self.hub_obj is not None else False
+
+        # If both upstream sensors are still True, but hub is not, this is a break/jam at the hub
+        if prep_ok and load_ok and not hub_ok:
+            msg = (
+                f"Hub runout detected by {sensor or 'hub'} sensor, but upstream sensors still detect filament.\n"
+                "Possible filament break or jam at the hub. Please clear the jam and reload filament manually, then resume the print."
+            )
+            self.afc.error.pause_resume.send_pause_command()
+            self.afc.save_pos()
+            self.afc.error.AFC_error(msg)
+        # No else: do not trigger infinite runout or pause runout here
+
+
     cmd_SET_LANE_LOADED_help = "Sets current lane as loaded to toolhead, useful when manually loading lanes during prints if AFC detects an error when trying to unload/load a lane"
     cmd_SET_LANE_LOAD_options = {"LANE": {"type": "string", "default": "lane1"}}
     def cmd_SET_LANE_LOADED(self, gcmd):
@@ -883,6 +954,18 @@ class AFCLane:
         """
         if not self.load_state:
             self.afc.error.AFC_error("Lane:{} is not loaded, cannot set loaded to toolhead for this lane.".format(self.name), pause=False)
+            return
+
+        # Do not set lane as loaded if virtual bypass or normal bypass is enabled/triggered
+        if self.afc.bypass.sensor_enabled:
+            disable_msg = ""
+            msg = f"Cannot set {self.name} as loaded, "
+
+            if 'virtual' in self.afc.bypass.name:
+                msg += "virtual "
+                disable_msg = " and disable"
+            msg += f"bypass is enabled.\nPlease unload{disable_msg} before trying to set lanes as loaded."
+            self.logger.error(msg)
             return
 
         self.afc.function.unset_lane_loaded()
@@ -1072,6 +1155,8 @@ class AFCLane:
         response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
         return response
+
+
 
 def load_config_prefix(config):
     return AFCLane(config)
