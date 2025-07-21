@@ -53,12 +53,15 @@ class afcPrep:
         self._rename_macros()
         self.afc.print_version(console_only=True)
 
+        # Try and connect to moonraker
+        moonraker_connected = self.afc.handle_moonraker_connect()
+
         ## load Unit stored variables
         units={}
         if os.path.exists('{}.unit'.format(self.afc.VarFile)) and os.stat('{}.unit'.format(self.afc.VarFile)).st_size > 0:
             units=json.load(open('{}.unit'.format(self.afc.VarFile)))
         else:
-            error_string = 'Error: {}.unit file not found. Please check the path in the'.format(self.afc.VarFile)
+            error_string = 'Error: {}.unit file not found. Please check the path in the '.format(self.afc.VarFile)
             error_string += 'AFC.cfg file and make sure the file and path exists.'
             self.afc.error.AFC_error(error_string, False)
 
@@ -76,6 +79,11 @@ class afcPrep:
 
         for lane in self.afc.lanes.keys():
             cur_lane = self.afc.lanes[lane]
+
+            # If moonraker is connected gather all stats
+            if moonraker_connected:
+                cur_lane.handle_moonraker_connect()
+
             cur_lane.unit_obj = self.afc.units[cur_lane.unit]
             if cur_lane.name not in cur_lane.unit_obj.lanes: cur_lane.unit_obj.lanes.append(cur_lane.name)    #add lanes to units list
             # If units section exists in vars file add currently stored data to AFC.units array
@@ -105,7 +113,7 @@ class afcPrep:
                                 cur_lane.weight = 0
 
                     if 'runout_lane' in units[cur_lane.unit][cur_lane.name]: cur_lane.runout_lane = units[cur_lane.unit][cur_lane.name]['runout_lane']
-                    if cur_lane.runout_lane == '': cur_lane.runout_lane='NONE'
+                    if cur_lane.runout_lane == '' or cur_lane.runout_lane == 'NONE': cur_lane.runout_lane = None
                     if 'map' in units[cur_lane.unit][cur_lane.name]: cur_lane.map = units[cur_lane.unit][cur_lane.name]['map']
                     if cur_lane.map != None:
                         self.afc.tool_cmds[cur_lane.map] = cur_lane.name

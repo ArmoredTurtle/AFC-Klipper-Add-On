@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-07-20]
+### Added
+- Software defined physical buttons are now available and supported. See documentation for more information on how to set them up.
+- New command `SET_NEXT_SPOOL_ID` to be used with a QR scanner tool or macro that automatically sets the id of the next spool loaded.
+- Support setting tool_max_unload_attempts to zero to bypass buffer unloading checks
+
+## [2025-07-19]
+### Fixes
+- Error with infinite spool where klipper would crash if runout was set to `None` instead of `"NONE"`
+- Added a check when enabling virtual bypass to make sure a lane is not loaded when enabling.
+- Issue where localhost and http were hardcoded, allows user to specify custom url. Fixes issue 484.
+- Updated code to inform users when trying to assign spoolman ID to a lane and that same spool ID is already assigned to another lane.
+
+## [2025-07-06]
+### Fixes
+- Race condition between klipper and moonraker when trying to get stats from moonraker database
+
 ## [2025-07-03]
 ### Added
 - `deadband` variable to `AFCExtruder` (configurable per extruder, default: 2°C). This sets the temperature deadband for extruder heaters, allowing more flexible temperature control during tool changes.
@@ -16,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored extruder heating logic into a new `_heat_next_extruder` helper function, which sets the current extruder to 0°C and heats the next extruder as needed.
 - Improved temperature waiting logic with `_wait_for_temp_within_tolerance`, now supporting a default tolerance of 20°C and using the new `deadband` value for more precise control.
 
+## [2025-06-30]
+### Fixes
+- Issue #476 where turn off led macro didn't turn off LEDs while printing
+- TTC's that some users were having that was induced by commit `1201bcc`
 
 ## [2025-06-29]
 ### Added
@@ -32,6 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The load sequence for the command `TOOL_LOAD` is now pulled out to it's own function for more flexiblility
 - The unload sequence for the command `TOOL_UNLOAD` is now pulled out to it's own function for more flexibility
 - The status of a tool loaded lane that is not the current extruder will now be set to `led_tool_loaded_idle` for a more clear led status.
+
+### Fixed
+- Inconsistencies in lane/extruder state after tool changes or buffer operations.
+- Errors when buffer or stepper objects were missing.
+
+## [2025-06-28]
+### Updated
+- The `install-afc.sh` script will now display the version when an update is completed.
 
 ## [2025-06-26]
 ### Added
@@ -56,6 +85,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Inconsistencies in lane/extruder state after tool changes or buffer operations.
 - Errors when buffer or stepper objects were missing.
+
+## [2025-06-23]
+### Added
+- Runout/break/jam detection for hub and toolhead sensors:
+- If the toolhead or hub sensor detects runout but upstream sensors still detect filament, the print is paused and the user is notified of a possible break/jam (no eject or endless spool mode is attempted).
+- Runout/pause logic only triggers during normal printing states, preventing false positives during lane load/unload or filament swaps.
+- `handle_toolhead_runout` and `handle_hub_runout` methods added to `AFCLane` for special handling of break/jam scenarios at the toolhead and hub.
+- Hub sensor callback now calls `handle_hub_runout` on all associated lanes when runout is detected.
+
+### Changed
+- Enhanced runout logic in `AFC_lane.py`, `AFC_extruder.py`, and `AFC_hub.py` to support multi-sensor and break/jam detection.
+
+### Fixed
+- Addresses issue [#389](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/389) and [#387](https://github.com/ArmoredTurtle/AFC-Klipper-Add-On/issues/387)
+- Added cutting direction check to _MOVE_TO_CUTTER_PIN. This prevents crashes when using front/back cutting motion.
+
+## [2025-06-21]
+### Fixed
+- Ensure `default_material_temps` name matching in temperature selection logic is case-insensitive.
+
+## [2025-06-19]
+## Updated
+- The `afc-debug.sh` script will now also include the `moonraker.conf` file if it is present.
+
+### Added
+- Added an option to disable skew_correction for kinematic moves.
+- AFC now errors out when using buffer as toolhead sensor and it fails to decompress when loading/unloading.
 
 ## [2025-06-18]
 ## Updated
@@ -875,8 +931,6 @@ gcode:
   - `BT_TOOL_UNLOAD` - This macro will unload a specified box turtle tool.
 
 - Sample configuration files for the most popular boards are located in the `Klipper_cfg_example/AFC` directory.
-
-
 
 
 
