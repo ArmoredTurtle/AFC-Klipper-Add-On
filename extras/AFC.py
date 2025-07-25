@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.22"
+AFC_VERSION="1.0.26"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -108,7 +108,9 @@ class afc:
         self.extrude_factor     = 1.
 
         # Config get section
-        self.moonraker_port         = config.get("moonraker_port", None)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
+        self.moonraker_port         = config.get("moonraker_port", 7125)             # Port to connect to when interacting with moonraker. Used when there are multiple moonraker/klipper instances on a single host
+        self.moonraker_host         = config.get("moonraker_host", "http://localhost")
+        self.moonraker_connect_to   = config.get("moonraker_timeout", 30)
         self.unit_order_list        = config.get('unit_order_list','')
         self.VarFile                = config.get('VarFile','../printer_data/config/AFC/AFC.var')# Path to the variables file for AFC configuration.
         self.cfgloc                 = self._remove_after_last(self.VarFile,"/")
@@ -170,7 +172,7 @@ class afc:
         self.max_move_dis           = config.getfloat("max_move_dis", 999999)       # Maximum distance to move filament. AFC breaks filament moves over this number into multiple moves. Useful to lower this number if running into timer too close errors when doing long filament moves.
         self.n20_break_delay_time   = config.getfloat("n20_break_delay_time", 0.200)# Time to wait between breaking n20 motors(nSleep/FWD/RWD all 1) and then releasing the break to allow coasting.
 
-        self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 2) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
+        self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 4) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
 
         self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
@@ -195,6 +197,7 @@ class afc:
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+        self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
         self._update_trsync(config)
@@ -274,6 +277,24 @@ class afc:
         self.gcode.register_mux_command('HUB_LOAD',     "LANE", lane_obj.name, self.cmd_HUB_LOAD,       desc=self.cmd_HUB_LOAD_help)
         self.gcode.register_mux_command('TOOL_LOAD',    "LANE", lane_obj.name, self.cmd_TOOL_LOAD,      desc=self.cmd_TOOL_LOAD_help)
 
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+
+        try:
+            self.moonraker = AFC_moonraker( self.moonraker_host, self.moonraker_port, self.logger )
+            if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
+                return False
+            self.spoolman = self.moonraker.get_spoolman_server()
+            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+        except Exception as e:
+            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
+            self.spoolman = None                      # set to none if not found
+        return True
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -283,17 +304,6 @@ class afc:
         self.toolhead   = self.printer.lookup_object('toolhead')
         self.idle       = self.printer.lookup_object('idle_timeout')
         self.gcode_move = self.printer.lookup_object('gcode_move')
-
-        moonraker_port = ""
-        if self.moonraker_port is not None: moonraker_port = ":{}".format(self.moonraker_port)
-
-        try:
-            self.moonraker = AFC_moonraker( moonraker_port, self.logger )
-            self.spoolman = self.moonraker.get_spoolman_server()
-            self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
-        except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
-            self.spoolman = None                      # set to none if not found
 
         # Check if hardware bypass is configured, if not create a virtual bypass sensor
         try:
@@ -382,9 +392,12 @@ class afc:
             temp_value = cur_lane.extruder_temp
             using_min_value = False
         elif self.default_material_temps is not None and cur_lane.material is not None:
+            lane_material = str(cur_lane.material).strip().lower()
             for mat in self.default_material_temps:
                 m = mat.split(":")
-                if m[0] in cur_lane.material:
+                mat_key = m[0].strip().lower()
+                # Use substring match for material name (case-insensitive, ignore whitespace)
+                if mat_key in lane_material:
                     temp_value = m[1]
                     using_min_value = False
                     break
@@ -402,7 +415,7 @@ class afc:
         pheaters = self.printer.lookup_object('heaters')
         wait = False
 
-        # If extruder can extruder and printing return and do not update temperature, don't want to modify extruder temperature during prints
+        # If extruder can extrude and printing return and do not update temperature, don't want to modify extruder temperature during prints
         if self.heater.can_extrude and self.function.is_printing():
             return
         target_temp, using_min_value = self._get_default_material_temps(cur_lane)
@@ -463,6 +476,14 @@ class afc:
         try:
             if 'virtual' in self.bypass.name:
                 bypass_state = self.bypass.sensor_enabled
+
+                # Make sure lane is not loaded before enabling virtual bypass, force switch
+                # to disabled if a lane is loaded
+                if bypass_state and self.current is not None:
+                    self.logger.error(f"Cannot set virtual bypass, {self.current} is currently loaded.")
+                    self.bypass.sensor_enabled = False
+                    return False
+
                 # Update filament present to match enable button so it updates in guis
                 self.bypass.filament_present = bypass_state
 
@@ -663,12 +684,13 @@ class afc:
         """
         return self.resume_z_speed if self.resume_z_speed > 0 else self.speed
 
-    def move_z_pos(self, z_amount, string=""):
+    def move_z_pos(self, z_amount, string="", wait_moves=False):
         """
         Common function helper to move z, also does a check for max z so toolhead does not exceed max height
 
         :param z_amount: amount to add to the base position
         :param string: String to write to log, this can be used
+        :param wait_moves: Set to True to wait on toolhead moves to finish before moving on
 
         :return newpos: Position list with updated z position
         """
@@ -679,6 +701,9 @@ class afc:
         newpos[2] = min(max_z - 1, z_amount)
 
         self.gcode_move.move_with_transform(newpos, self._get_resume_speedz())
+
+        if wait_moves:
+            self.toolhead.wait_moves()
 
         self.function.log_toolhead_pos(f"move_z_pos({string}): ")
 
@@ -1104,9 +1129,14 @@ class afc:
                     if load_checks > self.tool_max_load_checks:
                         msg = ''
                         msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_load_checks)
-                        msg += "Tool may not be loaded"
-                        self.logger.info("<span class=warning--text>{}</span>".format(msg))
-                        break
+                        msg += "Setting and increasing 'tool_max_load_checks' in AFC.cfg may improve loading reliability.\n\n"
+                        msg += "Check that the filament is properly loaded into the toolhead extruder. If filament is loaded\n"
+                        msg += "into toolhead extruders gears, then manually run SET_LANE_LOADED LANE={cur_lane.name} then\n"
+                        msg += "manually extrude filament and clean nozzle."
+                        if self.function.in_print():
+                            msg += '\nOnce issue is resolved click resume to continue printing'
+                        self.error.handle_lane_failure(cur_lane, msg)
+                        return False
                 cur_lane.sync_to_extruder()
             # Update tool and lane status.
             cur_lane.set_loaded()
@@ -1248,7 +1278,8 @@ class afc:
         # Perform Z-hop to avoid collisions during unloading.
         pos = self.gcode_move.last_position
         pos[2] += self.z_hop
-        self.move_z_pos(pos[2], "Tool_Unload quick pull")
+        # toolhead wait is needed here as it will cause TTC for some if wait does not occur
+        self.move_z_pos(pos[2], "Tool_Unload quick pull", wait_moves=True)
 
         # Disable the buffer if it's active.
         cur_lane.disable_buffer()
@@ -1298,7 +1329,7 @@ class afc:
         if cur_extruder.tool_start == "buffer":
             # if ramming is enabled, AFC will retract to collapse buffer before unloading
             cur_lane.unsync_to_extruder()
-            while not cur_lane.get_trailing():
+            while not cur_lane.get_trailing() and self.tool_max_unload_attempts > 0:
                 # attempt to return buffer to trailing pin
                 cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
                 num_tries += 1
@@ -1306,9 +1337,18 @@ class afc:
                 if num_tries > self.tool_max_unload_attempts:
                     msg = ''
                     msg += "Buffer did not become compressed after {} short moves.\n".format(self.tool_max_unload_attempts)
-                    msg += "Increasing 'tool_max_unload_attempts' may improve loading reliability"
-                    self.logger.info("<span class=warning--text>{}</span>".format(msg))
-                    break
+                    msg += "Setting and increasing 'tool_max_unload_attempts' in AFC.cfg may improve unloading reliability\n\n"
+                    msg += "Please check to make sure filament is unloaded from the toolhead's extruder. If filament is still\n"
+                    msg += "loaded manually retract back until its free, then run UNSET_LANE_LOADED and then do manual\n"
+                    msg += "moves with BT_LANE_MOVE until filament is retracted behind your hub. Or you can run AFC_RESET\n"
+                    msg += f"and select {cur_lane.name}, then AFC will slowly move lane until hub is no longer triggered.\n"
+                    if self.next_lane_load is not None:
+                        msg += f"\nOnce lane is behind hub and hub is no longer triggered manually load {self.next_lane_load}\n"
+                        msg += f"with {self.lanes[self.next_lane_load].map} macro.\n"
+                        if self.function.in_print():
+                            msg += "Once lane is loaded click resume to continue printing"
+                    self.error.handle_lane_failure(cur_lane, msg)
+                    return False
             cur_lane.sync_to_extruder(False)
             with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
                 self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
@@ -1327,7 +1367,8 @@ class afc:
                         # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                         if self.next_lane_load is not None:
                             message += "\nThen manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                            message += "\nOnce lane is loaded click resume to continue printing"
+                            if self.function.in_print():
+                                message += "\nOnce lane is loaded click resume to continue printing"
                     self.error.handle_lane_failure(cur_lane, message)
                     return False
                 cur_lane.sync_to_extruder()
@@ -1356,7 +1397,7 @@ class afc:
 
         self.afcDeltaTime.log_with_time("Long retract done")
 
-        # Clear toolhead's loaded state for easier error handling later.
+        # Clear toolhead's loaded status for easier error handling later.
         cur_lane.set_unloaded()
 
         self.save_vars()
@@ -1375,7 +1416,8 @@ class afc:
                     # Check to make sure next_lane_loaded is not None before adding instructions on how to manually load next lane
                     if self.next_lane_load is not None:
                         message += "\nOnce hub is clear, manually load {} with {} macro".format(self.next_lane_load, self.lanes[self.next_lane_load].map)
-                        message += "\nOnce lane is loaded click resume to continue printing"
+                        if self.function.in_print():
+                            message += "\nOnce lane is loaded click resume to continue printing"
 
                 self.error.handle_lane_failure(cur_lane, message)
                 return False
@@ -1532,7 +1574,8 @@ class afc:
                 self.afc_stats.increase_toolcount_change()
             else:
                 # Error happened, reset toolchanges without error count
-                self.afc_stats.reset_toolchange_wo_error()
+                if not self.testing:
+                    self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
             if not self.error_state and self.current_toolchange == -1:

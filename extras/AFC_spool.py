@@ -10,6 +10,9 @@ class AFCSpool:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
+        # Temporary status variables
+        self.next_spool_id      = ''
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -26,6 +29,7 @@ class AFCSpool:
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
 
         self.gcode.register_command("RESET_AFC_MAPPING", self.cmd_RESET_AFC_MAPPING, desc=self.cmd_RESET_AFC_MAPPING_help)
+        self.gcode.register_command("SET_NEXT_SPOOL_ID", self.cmd_SET_NEXT_SPOOL_ID, desc=self.cmd_SET_NEXT_SPOOL_ID_help)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -221,7 +225,16 @@ class AFCSpool:
             if lane not in self.afc.lanes:
                 self.logger.info('{} Unknown'.format(lane))
                 return
+
             cur_lane = self.afc.lanes[lane]
+            # Check if spool id is already assigned to a different lane, don't assign to current lane if id
+            # is already assigned
+            if SpoolID != '':
+                SpoolID = int(SpoolID)
+                if cur_lane.spool_id != SpoolID and any( SpoolID == lane.spool_id for lane in self.afc.lanes.values()):
+                    self.logger.error(f"SpoolId {SpoolID} already assigned to a lane, cannot assign to {lane}.")
+                    return
+
             self.set_spoolID(cur_lane, SpoolID)
 
     def _get_filament_values( self, filament, field, default=None):
@@ -237,6 +250,19 @@ class AFCSpool:
         if field in filament:
             value = filament[field]
         return value
+
+    def _set_values(self, cur_lane):
+        """
+        Helper function for setting lane spool values
+        """
+        # set defaults if there's no spool id, or the spoolman lookup fails
+        cur_lane.material = self.afc.default_material_type
+        cur_lane.weight = 1000 # Defaulting weight to 1000 upon load
+
+        if self.afc.spoolman is not None and self.next_spool_id != '':
+            spool_id = self.next_spool_id
+            self.next_spool_id = ''
+            self.set_spoolID(cur_lane, spool_id)
 
     def _clear_values(self, cur_lane):
         """
@@ -299,7 +325,7 @@ class AFCSpool:
             self.logger.info("No LANE Defined")
             return
 
-        runout = gcmd.get('RUNOUT', '')
+        runout = gcmd.get('RUNOUT', 'NONE')
         # Check to make sure runout does not equal lane
         if lane == runout:
             self.logger.error("Lane({}) and runout({}) cannot be the same".format(lane, runout))
@@ -314,7 +340,7 @@ class AFCSpool:
             return
 
         cur_lane = self.afc.lanes[lane]
-        cur_lane.runout_lane = runout
+        cur_lane.runout_lane = None if runout == 'NONE' else runout
         self.afc.save_vars()
 
     cmd_RESET_AFC_MAPPING_help = "Resets all lane mapping in AFC"
@@ -335,13 +361,25 @@ class AFCSpool:
         RESET_AFC_MAPPING RUNOUT=no
         ```
         """
-        t_index = 0
+
+        # Gathering existing lane mapping and add to list
+        existing_cmds = [lane.map for lane in self.afc.lanes.values()]
+        # Gather manually assigned mappings and add to list
+        manually_assigned = [ lane._map for lane in self.afc.lanes.values()]
+        # Remove manually assigned mappings from auto assigned mappings
+        existing_cmds = list(set(existing_cmds) - set(manually_assigned))
+        # Sort list in numerical order
+        existing_cmds = sorted(existing_cmds, key=lambda x: int("".join([i for i in x if i.isdigit()])))
         for key, unit in self.afc.units.items():
-            for lane in unit.lanes:
-                map_cmd = "T{}".format(t_index)
-                self.afc.tool_cmds[map_cmd] = lane
-                self.afc.lanes[lane].map = map_cmd
-                t_index += 1
+            for lane in unit.lanes.values():
+				# Reassigning manually assigned mapping to lane
+                if lane._map is not None:
+                    map_cmd = lane._map
+                else:
+                    map_cmd = existing_cmds.pop(0)
+
+                self.afc.tool_cmds[map_cmd] = lane.name
+                self.afc.lanes[lane.name].map = map_cmd
 
         # Resetting runout lanes to None
         runout_opt = gcmd.get('RUNOUT', 'yes').lower()
@@ -351,6 +389,40 @@ class AFCSpool:
 
         self.afc.save_vars()
         self.logger.info("Tool mappings reset" + ("" if runout_opt == "no" else " and runout lanes reset"))
+
+    cmd_SET_NEXT_SPOOL_ID_help = "Set the spool id to be loaded next into AFC"
+    def cmd_SET_NEXT_SPOOL_ID(self, gcmd):
+        """
+        Sets the spool ID to be loaded next into the AFC.
+
+        This can be used in a scanning macro to prepare the AFC for the next spool to be loaded.
+
+        Omit the SPOOL_ID parameter to clear the next spool ID.
+
+        Usage
+        -----
+        `SET_NEXT_SPOOL_ID SPOOL_ID=<spool_id>`
+
+        Example
+        -----
+        ```
+        SET_NEXT_SPOOL_ID SPOOL_ID=12345
+        ```
+        """
+        SpoolID = gcmd.get('SPOOL_ID', '')
+        previous_id = self.next_spool_id
+        if SpoolID != '':
+            try:
+                self.next_spool_id = str(int(SpoolID)) # make sure spool ID will round trip later
+            except ValueError:
+                self.logger.error("Invalid spool ID: {}".format(SpoolID))
+                self.next_spool_id = ''
+        else:
+            self.next_spool_id = ''
+        if previous_id:
+            self.logger.info(f"Spool ID '{previous_id}' being overwritten for next load: '{self.next_spool_id}'")
+        else:
+            self.logger.info(f"Spool ID set for next load: '{self.next_spool_id}'")
 
 def load_config(config):
     return AFCSpool(config)

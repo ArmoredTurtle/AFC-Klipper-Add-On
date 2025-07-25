@@ -113,13 +113,10 @@ class AFCEspoolerStats:
         Espooler object to easily get access to logger and moonraker objects
     """
     def __init__(self, espooler_name:str, espooler_obj:object):
-        afc_stats = espooler_obj.afc.moonraker.get_afc_stats()
-        if afc_stats is not None:
-            values = afc_stats["value"]
-        else:
-            values = None
-        self._n20_runtime_fwd   = AFCStats_var(espooler_name, "n20_runtime_fwd", values, espooler_obj.afc.moonraker)
-        self._n20_runtime_rwd   = AFCStats_var(espooler_name, "n20_runtime_rwd", values, espooler_obj.afc.moonraker)
+        self.espooler_name = espooler_name
+        self.espooler_obj = espooler_obj
+        self._n20_runtime_fwd   = 0
+        self._n20_runtime_rwd   = 0
         self._fwd_updated       = False
         self._rwd_updated       = False
         self._direction         = None
@@ -127,6 +124,22 @@ class AFCEspoolerStats:
         self._direction_end     = None
         self._delta             = None
         self.logger = espooler_obj.logger
+
+    def handle_moonraker_stats(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        afc_stats = self.espooler_obj.afc.moonraker.get_afc_stats()
+        if afc_stats is not None:
+            values = afc_stats["value"]
+        else:
+            values = None
+
+        self._n20_runtime_fwd   = AFCStats_var(self.espooler_name, "n20_runtime_fwd", values, self.espooler_obj.afc.moonraker)
+        self._n20_runtime_rwd   = AFCStats_var(self.espooler_name, "n20_runtime_rwd", values, self.espooler_obj.afc.moonraker)
+
 
     def _convert_value(self, value:int) -> tuple[int, str]:
         """
@@ -463,6 +476,14 @@ class Espooler:
         if self.enable_assist_weight    is None: self.enable_assist_weight  = lane_obj.unit_obj.enable_assist_weight
         if self.debug                   is None: self.debug                 = lane_obj.unit_obj.debug
         if self.enable_kick_start       is None: self.enable_kick_start     = lane_obj.unit_obj.enable_kick_start
+
+    def handle_moonraker_connect(self):
+        """
+        Function that should be called at the beginning of PREP so that moonraker has
+        enough time to start before AFC tries to connect. This fixes a race condition that can
+        happen between klipper and moonraker when first starting up.
+        """
+        self.stats.handle_moonraker_stats()
 
     def timer_stats_callback(self, eventtime):
         """

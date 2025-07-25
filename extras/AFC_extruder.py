@@ -79,14 +79,41 @@ class AFCExtruder:
         self.reactor = self.afc.reactor
         self.afc.tools[self.name] = self
 
+    def _handle_toolhead_sensor_runout(self, state, sensor_name):
+        """
+        Handles runout detection at the toolhead sensors (tool_start or tool_end).
+        Notifies the currently loaded lane if filament is missing at the toolhead sensor.
+        :param state: Boolean indicating sensor state (True = filament present, False = runout)
+        :param sensor_name: Name of the triggering sensor ("tool_start" or "tool_end")
+        """
+        # Notify the currently loaded lane if filament is missing at toolhead
+        if not state and self.lane_loaded and self.lane_loaded in self.lanes:
+            lane = self.lanes[self.lane_loaded]
+            if hasattr(lane, "handle_toolhead_runout"):
+                lane.handle_toolhead_runout(sensor=sensor_name)
+
     def tool_start_callback(self, eventtime, state):
+        """
+        Callback for the tool_start (pre-extruder) filament sensor.
+        Updates the sensor state and triggers runout handling if filament is missing.
+        :param eventtime: Event time from the button press
+        :param state: Boolean indicating sensor state (True = filament present, False = runout)
+        """
         self.tool_start_state = state
+        self._handle_toolhead_sensor_runout(state, "tool_start")
 
     def buffer_trailing_callback(self, eventtime, state):
         self.buffer_trailing = state
 
     def tool_end_callback(self, eventtime, state):
+        """
+        Callback for the tool_end (post-extruder) filament sensor.
+        Updates the sensor state and triggers runout handling if filament is missing.
+        :param eventtime: Event time from the button press
+        :param state: Boolean indicating sensor state (True = filament present, False = runout)
+        """
         self.tool_end_state = state
+        self._handle_toolhead_sensor_runout(state, "tool_end")
 
     def _update_tool_stn(self, length):
         """

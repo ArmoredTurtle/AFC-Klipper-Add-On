@@ -36,6 +36,14 @@ function copy_config() {
   cp -R ${afc_path}/config/* "${afc_config_dir}"
 }
 
+get_git_version() {
+  cd "$afc_path"
+	git_hash=$(git -C . rev-parse --short HEAD)
+	afc_py_version=$(grep "AFC_VERSION=" "${afc_path}/extras/AFC.py" | cut -d '=' -f2 | tr -d ' "')
+	afc_version="${afc_py_version}-${git_hash}"
+	cd - > /dev/null
+}
+
 clone_and_maybe_restart() {
   if [[ ! -d "${afc_path}/.git" ]]; then
     echo "→ Cloning ${branch} from ${gitrepo} into ${afc_path}…"
