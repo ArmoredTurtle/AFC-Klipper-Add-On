@@ -33,8 +33,8 @@ function show_help() {
 
 function copy_config() {
   mkdir -p "${afc_config_dir}"
-  cp -R ${afc_path}/config/AFC.cfg "${afc_config_dir}/"
-  cp -R ${afc_path}/config/AFC_Macro_Vars.cfg "${afc_config_dir}/"
+  cp ${afc_path}/config/AFC.cfg "${afc_config_dir}/"
+  cp ${afc_path}/config/AFC_Macro_Vars.cfg "${afc_config_dir}/"
   mkdir -p "${afc_config_dir}/mcu"
   cp -R ${afc_path}/config/macros "${afc_config_dir}/"
 }
