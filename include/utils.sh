@@ -34,6 +34,7 @@ function show_help() {
 function copy_config() {
   mkdir -p "${afc_config_dir}"
   cp -R ${afc_path}/config/* "${afc_config_dir}"
+  rm -rf ${afc_config_dir}/mcu/*.cfg
 }
 
 get_git_version() {
