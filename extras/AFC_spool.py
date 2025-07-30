@@ -64,7 +64,10 @@ class AFCSpool:
         if lane is None:
             self.logger.info("No LANE Defined")
             return
+
         map_cmd = gcmd.get('MAP', None)
+        map_cmd = map_cmd.upper()
+
         lane_switch=self.afc.tool_cmds[map_cmd]
         self.logger.debug("lane to switch is {}".format(lane_switch))
         if lane not in self.afc.lanes:
