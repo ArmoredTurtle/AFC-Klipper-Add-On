@@ -77,19 +77,19 @@ class AFCSpool:
             self.logger.error("Invalid map command: {}".format(map_cmd))
             return
 
-        lane_switch=self.afc.tool_cmds[map_cmd]
+        lane_switch = self.afc.tool_cmds[map_cmd]
         self.logger.debug("lane to switch is {}".format(lane_switch))
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
         cur_lane = self.afc.lanes[lane]
         self.afc.tool_cmds[map_cmd]=lane
-        map_switch=cur_lane.map
-        cur_lane.map=map_cmd
+        map_switch = cur_lane.map
+        cur_lane.map = map_cmd
 
         sw_lane = self.afc.lanes[lane_switch]
-        self.afc.tool_cmds[map_switch]=lane_switch
-        sw_lane.map=map_switch
+        self.afc.tool_cmds[map_switch] = lane_switch
+        sw_lane.map = map_switch
         self.afc.save_vars()
 
     cmd_SET_COLOR_help = "Set filaments color for a lane"
