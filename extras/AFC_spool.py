@@ -62,10 +62,15 @@ class AFCSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane is None:
-            self.logger.info("No LANE Defined")
+            self.logger.info("No LANE parameter provided, please specify a valid LANE parameter.")
             return
 
         map_cmd = gcmd.get('MAP', None)
+
+        if map_cmd is None:
+            self.logger.info("No MAP parameter provided, please specify a valid MAP parameter.")
+            return
+
         map_cmd = map_cmd.upper()
 
         if map_cmd not in self.afc.tool_cmds:
