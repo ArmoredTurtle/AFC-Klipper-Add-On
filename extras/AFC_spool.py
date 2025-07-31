@@ -68,6 +68,10 @@ class AFCSpool:
         map_cmd = gcmd.get('MAP', None)
         map_cmd = map_cmd.upper()
 
+        if map_cmd not in self.afc.tool_cmds:
+            self.logger.error("Invalid map command: {}".format(map_cmd))
+            return
+
         lane_switch=self.afc.tool_cmds[map_cmd]
         self.logger.debug("lane to switch is {}".format(lane_switch))
         if lane not in self.afc.lanes:
