@@ -713,17 +713,17 @@ class afcFunction:
                 self.afc.logger.info('Running {} iterations for all loaded lanes'.format(iterations))
                 for _ in range(iterations):
                     for lane_obj in loaded_lanes:
-                        self.afc.logger.info('Loading lane: {}'.format(lane))
+                        self.afc.logger.info('Loading lane: {}'.format(lane_obj))
                         if self.afc.CHANGE_TOOL(lane_obj):
-                            self.afc.logger.info("Lane {} loaded successfully".format(lane))
+                            self.afc.logger.info("Lane {} loaded successfully".format(lane_obj))
                         else:
-                            self.afc.logger.error("Failed to load lane {}".format(lane))
+                            self.afc.logger.error("Failed to load lane {}".format(lane_obj))
                             break
                         self.afc.gcode.run_script_from_command('M83')
                         self.afc.gcode.run_script_from_command('G92 E0')
-                        self.afc.logger.info("Extruding 5mm for lane {}".format(lane))
+                        self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
                         self.afc.gcode.run_script_from_command("G1 E5 F100")
-                        self.logger.info("Unloading lane {}".format(lane))
+                        self.logger.info("Unloading lane {}".format(lane_obj))
 
         prompt.p_end()
 
