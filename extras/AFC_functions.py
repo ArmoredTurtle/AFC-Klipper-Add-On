@@ -719,14 +719,14 @@ class afcFunction:
                         if self.afc.CHANGE_TOOL(lane_obj):
                             self.afc.gcode.run_script_from_command('M83')
                             self.afc.gcode.run_script_from_command('G92 E0')
-                            self.afc.logger.info("Extruding 5mm for lane {}").format(lane)
+                            self.afc.logger.info("Extruding 5mm for lane {}".format(lane))
                             if self.afc.gcode.run_script_from_command("G1 E5 F100"):
-                                self.logger.info("Unloading lane {}").format(lane)
+                                self.logger.info("Unloading lane {}".format(lane))
                             else:
-                                self.afc.logger.error("Error extruding for lane {}, skipping unload").format(lane)
+                                self.afc.logger.error("Error extruding for lane {}, skipping unload".format(lane))
                                 break
                         else:
-                            self.afc.logger.error("Error loading lane {}.").format(lane)
+                            self.afc.logger.error("Error loading lane {}.".format(lane))
                             break
 
         prompt.p_end()
