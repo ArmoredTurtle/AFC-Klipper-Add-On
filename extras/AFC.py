@@ -1716,6 +1716,7 @@ class afc:
                     self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
+            self.next_lane_load = None
             if not self.error_state and self.current_toolchange == -1:
                 self.current_toolchange += 1
 
