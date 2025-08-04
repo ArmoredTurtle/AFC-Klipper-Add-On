@@ -692,21 +692,16 @@ class afcFunction:
                 self.afc.logger.info('Running {} iterations for lane: {}'.format(iterations, lane))
                 for _ in range(iterations):
                     self.afc.logger.info('Loading lane: {}'.format(lane))
-                    if self.afc.CHANGE_TOOL(lane_obj):
-                        self.afc.logger.info("Lane {} loaded successfully".format(lane))
-                    else:
-                        self.afc.logger.error("Failed to load lane {}".format(lane))
-                        break
+                    self.afc.CHANGE_TOOL(lane_obj)
+                    self.afc.logger.info("Lane {} loaded successfully".format(lane))
                     self.afc.gcode.run_script_from_command('M83')
                     self.afc.gcode.run_script_from_command('G92 E0')
                     self.afc.logger.info("Extruding 5mm for lane {}".format(lane))
                     self.afc.gcode.run_script_from_command("G1 E5 F200")
                     self.logger.info("Unloading lane {}".format(lane))
-                    if self.afc.TOOL_UNLOAD(lane_obj):
-                        self.afc.logger.info("Lane {} unloaded successfully".format(lane))
-                    else:
-                        self.afc.logger.error("Failed to unload lane {}".format(lane))
-                        break
+                    self.afc.TOOL_UNLOAD(lane_obj)
+                    self.afc.logger.info("Lane {} unloaded successfully".format(lane))
+
 
             else:
                 loaded_lanes = [item for key, item in self.afc.lanes.items() if item.load_state]
@@ -715,11 +710,9 @@ class afcFunction:
                     random.shuffle(loaded_lanes)
                     for lane_obj in loaded_lanes:
                         self.afc.logger.info('Loading lane: {}'.format(lane_obj))
-                        if self.afc.CHANGE_TOOL(lane_obj):
-                            self.afc.logger.info("Lane {} loaded successfully".format(lane_obj))
-                        else:
-                            self.afc.logger.error("Failed to load lane {}".format(lane_obj))
-                            break
+                        self.afc.CHANGE_TOOL(lane_obj)
+                        self.afc.logger.info("Lane {} loaded successfully".format(lane_obj))
+                        self.afc.logger.error("Failed to load lane {}".format(lane_obj))
                         self.afc.gcode.run_script_from_command('M83')
                         self.afc.gcode.run_script_from_command('G92 E0')
                         self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
