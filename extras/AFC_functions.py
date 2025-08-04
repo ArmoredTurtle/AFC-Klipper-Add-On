@@ -724,6 +724,11 @@ class afcFunction:
                         self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
                         self.afc.gcode.run_script_from_command("G1 E5 F100")
                         self.logger.info("Unloading lane {}".format(lane_obj))
+                    if i == iterations - 1 :
+                        self.afc.logger.info(
+                            "Finished testing with {} iterations for all loaded lanes".format(iterations)
+                        )
+                        self.afc.TOOl_UNLOAD(lane_obj)
 
         prompt.p_end()
 
