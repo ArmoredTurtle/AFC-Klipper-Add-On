@@ -651,7 +651,8 @@ class afcFunction:
         buttons = []
         lane = gcmd.get('LANE', None)
         title = 'Iteration Count'
-        text = 'How many iterations would you like to run?'
+        text = ('How many iterations would you like to run?'
+                ' Note: This will run # of iterations * each lane selected.')
         iteration_max = 5
         for iteration in range(1, iteration_max + 1):
             button_label = "{}".format(iteration)
