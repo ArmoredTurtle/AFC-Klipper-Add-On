@@ -710,9 +710,9 @@ class afcFunction:
 
             else:
                 loaded_lanes = [item for key, item in self.afc.lanes.items() if item.load_state]
-                random.shuffle(loaded_lanes)
                 self.afc.logger.info('Running {} iterations for all loaded lanes'.format(iterations))
-                for _ in range(iterations):
+                for i in range(iterations):
+                    random.shuffle(loaded_lanes)
                     for lane_obj in loaded_lanes:
                         self.afc.logger.info('Loading lane: {}'.format(lane_obj))
                         if self.afc.CHANGE_TOOL(lane_obj):
@@ -725,11 +725,11 @@ class afcFunction:
                         self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
                         self.afc.gcode.run_script_from_command("G1 E5 F100")
                         self.logger.info("Unloading lane {}".format(lane_obj))
-                    if i == iterations - 1 :
+                    if i == iterations - 1:
                         self.afc.logger.info(
                             "Finished testing with {} iterations for all loaded lanes".format(iterations)
                         )
-                        self.afc.TOOl_UNLOAD(lane_obj)
+                        self.afc.TOOL_UNLOAD(lane_obj)
 
         prompt.p_end()
 
