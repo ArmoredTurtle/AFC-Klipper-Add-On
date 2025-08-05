@@ -43,10 +43,12 @@ remove_velocity() {
   local files config_file
   files=$(grep -rlP '^\[AFC_buffer ' "${afc_config_dir}"/*.cfg)
   for config_file in $files; do
-    section=$(grep -oP '^\[AFC_buffer \K[^\]]+' "$config_file")
+  section=$(grep -oP '^\[AFC_buffer \K[^\]]+' "$config_file")
+  if grep -qP "^\s*velocity\s*" "$config_file"; then
     crudini --del "$config_file" "AFC_buffer $section" velocity
     export update_message+="""
 Removed deprecated velocity setting from $config_file.
     """
-  done
+  fi
+done
 }
