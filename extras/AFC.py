@@ -1488,7 +1488,6 @@ class afc:
         CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100
         ```
         """
-        self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
@@ -1530,6 +1529,7 @@ class afc:
         self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]], purge_length)
 
     def CHANGE_TOOL(self, cur_lane, purge_length=None, restore_pos=True):
+        self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
