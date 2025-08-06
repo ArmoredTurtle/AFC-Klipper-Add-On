@@ -36,6 +36,8 @@ class AFCExtruder:
         self.buffer_name                = config.get('buffer', None)                                                    # Buffer to use for extruder, this variable can be overridden per lane
         self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
         self.deadband                   = config.getfloat("deadband", 2)                                                # Deadband for extruder heater, default is 2 degrees Celsius
+        self.tool                       = config.get('tool', None)
+        self.tool_obj                   = None
 
         self.lane_loaded                = None
         self.lanes                      = {}
@@ -48,14 +50,14 @@ class AFCExtruder:
                 self.tool_start_state = False
                 buttons.register_buttons([self.tool_start], self.tool_start_callback)
                 if self.enable_sensors_in_gui:
-                    self.tool_start_filament_switch_name = "filament_switch_sensor {}".format("tool_start")
+                    self.tool_start_filament_switch_name = "filament_switch_sensor {}".format(f"{self.name}_tool_start")
                     self.fila_tool_start = add_filament_switch(self.tool_start_filament_switch_name, self.tool_start, self.printer )
 
         self.tool_end_state = False
         if self.tool_end is not None:
             buttons.register_buttons([self.tool_end], self.tool_end_callback)
             if self.enable_sensors_in_gui:
-                self.tool_end_state_filament_switch_name = "filament_switch_sensor {}".format("tool_end")
+                self.tool_end_state_filament_switch_name = "filament_switch_sensor {}".format(f"{self.name}_tool_end")
                 self.fila_avd = add_filament_switch(self.tool_end_state_filament_switch_name, self.tool_end, self.printer )
 
         self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
@@ -86,6 +88,12 @@ class AFCExtruder:
             self.toolhead_extruder = self.printer.lookup_object(self.name)
         except:
             raise error("[{}] not found in config file".format(self.name))
+        
+        try:
+            if self.tool:
+                self.tool_obj = self.printer.lookup_object(self.tool)
+        except:
+            raise error(f'[{self.tool}] not found in config file for {self.name}')
 
     def _handle_toolhead_sensor_runout(self, state, sensor_name):
         """

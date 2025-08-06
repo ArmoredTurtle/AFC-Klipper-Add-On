@@ -85,6 +85,7 @@ class AFC_HTLF(afcBoxTurtle):
         if not self.prep_homed:
             self.return_to_home( prep = True)
         status = super().system_Test( cur_lane, delay, assignTcmd, enable_movement)
+        self.return_to_home()
 
         return self.prep_homed and status
 
