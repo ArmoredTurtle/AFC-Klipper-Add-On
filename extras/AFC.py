@@ -1057,7 +1057,7 @@ class afc:
             cur_hub = cur_lane.hub_obj
 
             # Check if the lane is in a state ready to load and hub is clear.
-            if (cur_lane.load_state and not cur_hub.state) or cur_lane.hub == 'direct':
+            if cur_lane.load_state and (not cur_hub.state or cur_lane.hub == 'direct'):
 
                 self.logger.info("Loading {}".format(cur_lane.name))
 
@@ -1122,7 +1122,7 @@ class afc:
 
             else:
                 # Handle errors if the hub is not clear or the lane is not ready for loading.
-                if cur_hub.state:
+                if cur_hub is not None and cur_hub.state:
                     message = 'Hub not clear when trying to load.\nPlease check that hub does not contain broken filament and is clear'
                     if self.function.in_print():
                         message += '\nOnce issue is resolved please manually load {} with {} macro and click resume to continue printing.'.format(cur_lane.name, cur_lane.map)
@@ -1707,8 +1707,6 @@ class afc:
                 total_time = self.afcDeltaTime.log_total_time("Total change time:")
                 self.afc_stats.average_toolchange_time.average_time(total_time)
                 self.in_toolchange = False
-                # Setting next lane load as none since toolchange was successful
-                self.next_lane_load = None
                 self.afc_stats.increase_toolcount_change()
             else:
                 # Error happened, reset toolchanges without error count
@@ -1716,10 +1714,10 @@ class afc:
                     self.afc_stats.reset_toolchange_wo_error()
         else:
             self.logger.info("{} already loaded".format(cur_lane.name))
-            self.next_lane_load = None
             if not self.error_state and self.current_toolchange == -1:
                 self.current_toolchange += 1
 
+        self.next_lane_load = None
         self.function.log_toolhead_pos("Final Change Tool: Error State: {}, Is Paused {}, Position_saved {}, in toolchange: {}, POS: ".format(
                 self.error_state, self.function.is_paused(), self.position_saved, self.in_toolchange ))
 
