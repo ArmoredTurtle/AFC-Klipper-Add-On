@@ -35,7 +35,7 @@ class afcFunction:
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
         self.reactor = self.printer.get_reactor()
-        self.activate_extruder_cb = self.reactor.register_timer( self._handle_activate_extruder )
+        # self.activate_extruder_cb = self.reactor.register_timer( self._handle_activate_extruder )
         self.auto_var_file = None
         self.errorLog = {}
         self.pause    = False
@@ -416,12 +416,9 @@ class afcFunction:
 
         This will also be tied to a callback once multiple extruders are implemented
         """
-        self.reactor.update_timer( self.activate_extruder_cb, self.reactor.monotonic() + 0.5)
-
-    def _handle_activate_extruder(self, eventtime):
         # Wait until printer is not moving so klipper does not crash
-        if self.is_moving():
-            return self.reactor.monotonic() + 0.5
+        # if self.is_moving():
+        #     return self.reactor.monotonic() + 0.5
 
         cur_lane_loaded = self.get_current_lane_obj()
         self.logger.debug("Activating extruder lane: {}".format(cur_lane_loaded.name if cur_lane_loaded else "None"))
@@ -444,7 +441,7 @@ class afcFunction:
         # Exit early if lane is None
         if cur_lane_loaded is None:
             self.afc.spool.set_active_spool('')
-            return self.reactor.NEVER
+            return
 
         # Switch spoolman ID
         self.afc.spool.set_active_spool(cur_lane_loaded.spool_id)
@@ -460,7 +457,7 @@ class afcFunction:
         # Enable buffer
         cur_lane_loaded.enable_buffer()
         cur_lane_loaded.unit_obj.select_lane( cur_lane_loaded )
-        return self.reactor.NEVER
+        return
 
     def unset_lane_loaded(self):
         """

@@ -171,8 +171,8 @@ class afcUnit:
         text = 'Select to calibrate the distance from extruder to hub or bowden length'
         # Selection buttons
         buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
-        direct_hubs = not any( 'direct' in lane.hub for lane in self.afc.lanes.values())
-        lanes_loaded = any( lane.load_state and 'direct' not in lane.hub for lane in self.afc.lanes.values())
+        direct_hubs = any( lane.is_direct_hub() for lane in self.afc.lanes.values())
+        lanes_loaded = any( lane.load_state and not lane.is_direct_hub() for lane in self.afc.lanes.values())
         if not direct_hubs or lanes_loaded:
             buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
         # Button back to previous step
@@ -209,7 +209,7 @@ class afcUnit:
             if cur_lane.load_state:
                 button_label = "{}".format(lane)
                 # Do a bowden length calibration for direct hubs, dist_hub length gets set properly this way
-                if 'direct' in cur_lane.hub:
+                if cur_lane.is_direct_hub():
                     button_command = "CALIBRATE_AFC BOWDEN={}".format(lane)
                 else:
                     button_command = "CALIBRATE_AFC LANE={}".format(lane)
@@ -264,7 +264,7 @@ class afcUnit:
 
         for index, lane in enumerate(self.lanes):
             cur_lane = self.lanes[lane]
-            if cur_lane.load_state and 'direct' not in cur_lane.hub:
+            if cur_lane.load_state and not cur_lane.is_direct_hub():
                 # Create a button for each lane
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC BOWDEN={}".format(lane)

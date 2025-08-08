@@ -95,8 +95,8 @@ class AFC_logger:
         :param message: Error message to print to console and log
         :param traceback: Trackback to log to AFC.log file
         """
+        stack_name = f"{stack_name}: " if stack_name else ""
         for line in message.lstrip().rstrip().split("\n"):
-            stack_name = f"{stack_name}: " if stack_name else ""
             self.logger.error( self._format(f"ERROR: {stack_name}{line}") )
         self.send_callback( "!! {}".format(message) )
 

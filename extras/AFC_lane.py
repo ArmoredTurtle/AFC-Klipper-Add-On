@@ -258,7 +258,7 @@ class AFCLane:
 
         self.hub_obj = self.unit_obj.hub_obj
 
-        if self.hub != 'direct':
+        if not self.is_direct_hub():
             if self.hub is not None:
                 try:
                     self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
@@ -423,6 +423,11 @@ class AFCLane:
         else:
             return self.dist_hub_move_speed, self.dist_hub_move_accel
 
+    def is_direct_hub(self):
+        return 'direct' in self.hub
+    
+    def select_lane(self):
+        self.unit_obj.select_lane( self )
 
     def move(self, distance, speed, accel, assist_active=False):
         """
@@ -521,14 +526,17 @@ class AFCLane:
 
     def load_callback(self, eventtime, state):
         self.load_state = state
-        if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
+        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.unit_obj.type == "HTLF":
             self.prep_state = state
 
             if self.load_state:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
-                self.material = self.afc.default_material_type
-                self.weight = 1000 # Defaulting weight to 1000 upon load
+                self.afc.spool._set_values(self)
+                if self.hub == 'direct_load':
+                    self.afc.afcDeltaTime.set_start_time()
+                    self.afc.TOOL_LOAD(self)
+                    self.material = self.afc.default_material_type
             else:
                 if self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set
@@ -554,7 +562,7 @@ class AFCLane:
         if self.prep_active:
             return
 
-        if self.printer.state_message == 'Printer is ready' and self.hub =='direct' and not self.afc.function.is_homed():
+        if self.printer.state_message == 'Printer is ready' and self.is_direct_hub() and not self.afc.function.is_homed():
             self.afc.error.AFC_error("Please home printer before directly loading to toolhead", False)
             return False
 
@@ -592,8 +600,8 @@ class AFCLane:
                     self.status = AFCLaneState.NONE
 
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
-                    #   This is only really a issue when using direct and still using load sensor
-                    if self.hub == 'direct' and self.prep_state:
+                    #   This is only really a issue when using direct_load and still using load sensor
+                    if self.hub == 'direct_load' and self.prep_state:
                         self.afc.afcDeltaTime.set_start_time()
                         self.afc.TOOL_LOAD(self)
                         self.material = self.afc.default_material_type
