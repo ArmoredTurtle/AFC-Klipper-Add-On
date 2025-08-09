@@ -424,7 +424,7 @@ class AFCLane:
             return self.dist_hub_move_speed, self.dist_hub_move_accel
 
     def is_direct_hub(self):
-        return 'direct' in self.hub
+        return self.hub and 'direct' in self.hub
     
     def select_lane(self):
         self.unit_obj.select_lane( self )
@@ -575,6 +575,7 @@ class AFCLane:
             if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != AFCLaneState.TOOL_UNLOADING:
                 # Only try to load when load state trigger is false
                 if self.prep_state == True and self.load_state == False:
+                    self.logger.debug(f"Prep: callback triggered {self.name}")
                     x = 0
                     # Checking to make sure last time prep switch was activated was less than 1 second, returning to keep is printing message from spamming
                     # the console since it takes klipper some time to transition to idle when idle_resume=printing
@@ -598,17 +599,20 @@ class AFCLane:
                             self.status = AFCLaneState.NONE
                             break
                     self.status = AFCLaneState.NONE
+                    self.logger.debug(f"Prep: Load Done-{self.name}")
 
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
                     #   This is only really a issue when using direct_load and still using load sensor
                     if self.hub == 'direct_load' and self.prep_state:
+                        self.logger.debug(f"Prep: direct load logic-{self.name}-{self.hub}")
                         self.afc.afcDeltaTime.set_start_time()
                         self.afc.TOOL_LOAD(self)
-                        self.material = self.afc.default_material_type
+                        self.afc.spool._set_values(self)
+                        self.logger.debug(f"Prep: direct load logic done-{self.name}-{self.hub}")
                         break
 
                     # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
-                    if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state:
+                    if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state and not self.is_direct_hub():
                         self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
                         self.loaded_to_hub = True
 
