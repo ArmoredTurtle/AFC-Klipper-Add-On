@@ -709,7 +709,7 @@ class afcFunction:
                         self.afc.logger.info("Lane {} unloaded successfully".format(lane))
                     else:
                         self.afc.logger.error("Failed to unload lane {}".format(lane))
-                        break
+                        return
 
 
             else:
@@ -724,7 +724,7 @@ class afcFunction:
                             self.afc.logger.info("Lane {} loaded successfully".format(lane_obj))
                         else:
                             self.afc.logger.error("Failed to load lane {}".format(lane_obj))
-                            break
+                            return
                         self.afc.gcode.run_script_from_command('M83')
                         self.afc.gcode.run_script_from_command('G92 E0')
                         self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
