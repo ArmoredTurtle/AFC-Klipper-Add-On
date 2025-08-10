@@ -702,7 +702,8 @@ class afcFunction:
                     self.afc.gcode.run_script_from_command('M83')
                     self.afc.gcode.run_script_from_command('G92 E0')
                     self.afc.logger.info("Extruding 5mm for lane {}".format(lane))
-                    self.afc.gcode.run_script_from_command("G1 E5 F200")
+                    self.afc.gcode.run_script_from_command('G1 E5 F100')
+                    self.afc.gcode.run_script_from_command('M82')
                     self.logger.info("Unloading lane {}".format(lane))
                     self.afc.TOOL_UNLOAD(lane_obj)
                     if not self.afc.error_state:
@@ -728,7 +729,8 @@ class afcFunction:
                         self.afc.gcode.run_script_from_command('M83')
                         self.afc.gcode.run_script_from_command('G92 E0')
                         self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
-                        self.afc.gcode.run_script_from_command("G1 E5 F100")
+                        self.afc.gcode.run_script_from_command('G1 E5 F100')
+                        self.afc.gcode.run_script_from_command('M82')
                         self.logger.info("Unloading lane {}".format(lane_obj))
                     if i == iterations - 1:
                         self.afc.logger.info(
