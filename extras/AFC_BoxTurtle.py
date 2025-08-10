@@ -188,6 +188,13 @@ class afcBoxTurtle(afcUnit):
                     "'{}' is not a valid length. Please check your setup and re-run calibration.".format(bowden_dist),
                     pause=False)
                 return False, "Invalid bowden length", bowden_dist
+
+            if unload_new < 0:
+                self.afc.error.AFC_error(
+                    "'{}' is not a valid unload length. Please check your setup and re-run calibration.".format(unload_new),
+                    pause=False)
+                return False, "Invalid unload bowden length", unload_new
+
             self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_bowden_length", bowden_dist, cal_msg)
             self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_unload_bowden_length", unload_new, unload_cal_msg)
             cur_lane.loaded_to_hub  = True
