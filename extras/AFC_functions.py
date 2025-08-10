@@ -631,7 +631,7 @@ class afcFunction:
                 ' Lanes must be loaded before running tests.')
 
         for index, (key, item) in enumerate(self.afc.lanes.items()):
-            if item.load_state:
+            if item.load_state and item.prep_state:
                 button_label = '{}'.format(key)
                 button_command = 'TEST_LANE_ITERATIONS LANE={}'.format(key)
                 button_style = "primary" if index % 2 == 0 else "secondary"
