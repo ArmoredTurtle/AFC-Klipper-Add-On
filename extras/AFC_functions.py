@@ -714,7 +714,7 @@ class afcFunction:
 
 
             else:
-                loaded_lanes = [item for key, item in self.afc.lanes.items() if item.load_state]
+                loaded_lanes = [item for key, item in self.afc.lanes.items() if item.load_state and item.prep_state]
                 self.afc.logger.info('Running {} iterations for all loaded lanes'.format(iterations))
                 for i in range(iterations):
                     random.shuffle(loaded_lanes)
