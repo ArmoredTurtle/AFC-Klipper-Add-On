@@ -597,6 +597,21 @@ class afcFunction:
                     self.config.access_tracking[(name.lower(), option.lower())] = 1
             self.printer.load_object(self.config, name)
 
+    def _safe_extrude(self, amount_mm, feedrate=100):
+        """
+        Helper function to safely extrude a given amount of filament, checking if the lane is loaded and
+        if the toolhead is in absolute mode.
+
+        :param amount_mm: Amount of filament to extrude in mm
+        :param feedrate: Feedrate for extrusion in mm/min
+        """
+        self.afc.gcode.run_script_from_command("M400")  # Finish queued moves
+        self.afc.gcode.run_script_from_command("M83")  # Relative extrusion mode
+        self.afc.gcode.run_script_from_command("G92 E0")  # Zero extruder
+        self.afc.logger.info(f"Extruding {amount_mm}mm")
+        self.afc.gcode.run_script_from_command(f"G1 E{amount_mm} F{feedrate}")
+        self.afc.gcode.run_script_from_command("M82")
+
     cmd_AFC_TEST_LANES_help = 'Run load/unload tests on specified lanes'
     def cmd_AFC_TEST_LANES(self, gcmd):
         """
@@ -651,9 +666,9 @@ class afcFunction:
         buttons = []
         lane = gcmd.get('LANE', None)
         title = 'Iteration Count'
-        text = ('How many iterations would you like to run?'
-                '\n'
-                'Note: This will run # of iterations * each lane selected.')
+        text = ('How many iterations would you like to run?\n'
+                'Note: This will run # of iterations * each lane selected.\n'
+                'Please let all iterations run to completion before using any commands.')
         iteration_max = 5
         for iteration in range(1, iteration_max + 1):
             button_label = "{}".format(iteration)
@@ -678,16 +693,17 @@ class afcFunction:
         TEST_LANE LANE=lane1 ITERATION=3
         TEST_LANE LANE=all ITERATION=5
         ```
-
         """
 
         iterations = gcmd.get_int('ITERATION', 1)
         lane = gcmd.get('LANE', None)
 
         prompt = AFCprompt(gcmd, self.logger)
+        prompt.p_end()
 
         if lane is not None:
-            self.logger.info('Starting test for lane: {}'.format(lane))
+            self.afc.gcode.run_script_from_command('AFC_PARK')
+            self.logger.info('Starting test for lane(s): {}'.format(lane))
             lane_obj = self.afc.lanes.get(lane)
             if lane != 'all':
                 self.afc.logger.info('Running {} iterations for lane: {}'.format(iterations, lane))
@@ -699,11 +715,7 @@ class afcFunction:
                     else:
                         self.afc.logger.error("Failed to load lane {}".format(lane))
                         break
-                    self.afc.gcode.run_script_from_command('M83')
-                    self.afc.gcode.run_script_from_command('G92 E0')
-                    self.afc.logger.info("Extruding 5mm for lane {}".format(lane))
-                    self.afc.gcode.run_script_from_command('G1 E5 F100')
-                    self.afc.gcode.run_script_from_command('M82')
+                    self._safe_extrude(self.afc.test_extrude_amt)
                     self.logger.info("Unloading lane {}".format(lane))
                     self.afc.TOOL_UNLOAD(lane_obj)
                     if not self.afc.error_state:
@@ -726,11 +738,7 @@ class afcFunction:
                         else:
                             self.afc.logger.error("Failed to load lane {}".format(lane_obj))
                             return
-                        self.afc.gcode.run_script_from_command('M83')
-                        self.afc.gcode.run_script_from_command('G92 E0')
-                        self.afc.logger.info("Extruding 5mm for lane {}".format(lane_obj))
-                        self.afc.gcode.run_script_from_command('G1 E5 F100')
-                        self.afc.gcode.run_script_from_command('M82')
+                        self._safe_extrude(self.afc.test_extrude_amt)
                         self.logger.info("Unloading lane {}".format(lane_obj))
                     if i == iterations - 1:
                         self.afc.logger.info(
