@@ -714,6 +714,7 @@ class afcFunction:
                         self.afc.logger.info("Lane {} loaded successfully".format(lane))
                     else:
                         self.afc.logger.error("Failed to load lane {}".format(lane))
+                        self.afc.error.reset_failure()
                         break
                     self._safe_extrude(self.afc.test_extrude_amt)
                     self.logger.info("Unloading lane {}".format(lane))
@@ -722,6 +723,7 @@ class afcFunction:
                         self.afc.logger.info("Lane {} unloaded successfully".format(lane))
                     else:
                         self.afc.logger.error("Failed to unload lane {}".format(lane))
+                        self.afc.error.reset_failure()
                         return
 
 
@@ -737,6 +739,7 @@ class afcFunction:
                             self.afc.logger.info("Lane {} loaded successfully".format(lane_obj))
                         else:
                             self.afc.logger.error("Failed to load lane {}".format(lane_obj))
+                            self.afc.error.reset_failure()
                             return
                         self._safe_extrude(self.afc.test_extrude_amt)
                         self.logger.info("Unloading lane {}".format(lane_obj))
@@ -745,7 +748,6 @@ class afcFunction:
                             "Finished testing with {} iterations for all loaded lanes".format(iterations)
                         )
                         self.afc.TOOL_UNLOAD(lane_obj)
-
         prompt.p_end()
 
 
