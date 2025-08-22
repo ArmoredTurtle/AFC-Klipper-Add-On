@@ -9,8 +9,6 @@ import traceback
 import json
 import logging
 
-from .buttons import PrinterButtons
-
 from datetime import datetime
 from urllib.request import (
     Request,

@@ -899,7 +899,6 @@ class AFCLane:
         Otherwise, triggers normal runout handling logic. Only triggers during normal printing states and when printing.
         :param sensor: Optional name of the triggering sensor for user notification.
         """
-        self.logger.info(f"{sensor} toolhead runout")
         # Only trigger runout logic if in a normal printing state AND printer is actively printing
         if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
             return
@@ -909,7 +908,6 @@ class AFCLane:
         load_ok = self.load_state
         hub_ok = self.hub_obj.state if self.hub_obj is not None else True
 
-        self.logger.info(f"{sensor} toolhead runout after printing check")
         # If all upstream sensors are still True, this is a break/jam at the toolhead
         if prep_ok and load_ok and hub_ok:
             msg = (
@@ -930,7 +928,6 @@ class AFCLane:
         """
         # Only trigger runout logic if in a normal printing state AND printer is actively printing
         if not (self._is_normal_printing_state() and self.afc.function.is_printing()):
-            self.afc.logger.info(f"Runout early return {self._is_normal_printing_state()} {self.afc.function.is_printing()}")
             return
 
         # Check upstream sensors: prep, load

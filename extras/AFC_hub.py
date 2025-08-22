@@ -70,7 +70,6 @@ class afc_hub:
         return self.name
 
     def handle_runout(self, eventtime):
-        self.afc.logger.info(f"{self.name} Runout")
         # Only trigger runout for the currently loaded lane (in the toolhead) if it belongs to this hub
         current_lane_name = getattr(self.afc, 'current', None)
         if current_lane_name and current_lane_name in self.lanes:

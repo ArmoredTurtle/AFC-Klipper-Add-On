@@ -92,7 +92,6 @@ class AFCExtruder:
         if not state and self.lane_loaded and self.lane_loaded in self.lanes:
             lane = self.lanes[self.lane_loaded]
             if hasattr(lane, "handle_toolhead_runout"):
-                self.logger.info(f"{sensor_name} runout")
                 lane.handle_toolhead_runout(sensor=sensor_name)
     
     def handle_start_runout( self, eventtime):
