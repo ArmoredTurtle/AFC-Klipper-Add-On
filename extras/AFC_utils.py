@@ -8,6 +8,7 @@
 import traceback
 import json
 import logging
+import inspect
 
 from datetime import datetime
 from urllib.request import (
@@ -95,12 +96,17 @@ class DebounceButton:
     def __init__(self, config, filament_sensor):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
+        sig = inspect.signature(filament_sensor.runout_helper.note_filament_present)
         # Saving reference to normal function
         self._old_note_filament_present = filament_sensor.runout_helper.note_filament_present
         # Setting action callback to normal filament sensor not filament present
         self.button_action = self._old_note_filament_present
         # Overriding filament sensor filament present to button handler in this class 
-        filament_sensor.runout_helper.note_filament_present = self.button_handler
+        # Checking parameter length since kalico's note_filament_present function is different
+        if len(sig.parameters) > 2:
+            filament_sensor.runout_helper.note_filament_present = self.button_handler
+        else:
+            filament_sensor.runout_helper.note_filament_present = self._button_handler
         self.debounce_delay = config.getfloat('debounce_delay', 0., minval=0.)
         self.logical_state = None
         self.physical_state = None
