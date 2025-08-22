@@ -657,8 +657,7 @@ class AFCLane:
         :param update_current: Sets current to specified print current when True
         """
         if self.drive_stepper is not None:
-            self.drive_stepper.sync_to_extruder(self.extruder_name)
-            if update_current: self.drive_stepper.set_print_current()
+            self.drive_stepper.sync_to_extruder(update_current, extruder_name=self.extruder_name)
 
     def unsync_to_extruder(self, update_current=True):
         """
@@ -667,8 +666,7 @@ class AFCLane:
         :param update_current: Sets current to specified load current when True
         """
         if self.drive_stepper is not None:
-            self.drive_stepper.unsync_to_extruder(None)
-            if update_current: self.drive_stepper.set_load_current()
+            self.drive_stepper.unsync_to_extruder(update_current)
 
     def _set_current(self, current):
         return
@@ -1166,6 +1164,8 @@ class AFCLane:
         response['filament_status'] = filament_stat[0]
         response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
+        if hasattr(self, "extruder_stepper"):
+            response['extruder_status'] = self.extruder_stepper.get_status(eventtime)
         return response
 
 

@@ -417,8 +417,10 @@ class afcFunction:
         This will also be tied to a callback once multiple extruders are implemented
         """
         # Wait until printer is not moving so klipper does not crash
-        # if self.is_moving():
-        #     return self.reactor.monotonic() + 0.5
+        # self.reactor.update_timer( self.activate_extruder_cb, self.reactor.monotonic() + 5 )
+        self._handle_activate_extruder(0)
+    
+    def _handle_activate_extruder(self, eventtime):
 
         cur_lane_loaded = self.get_current_lane_obj()
         self.logger.debug("Activating extruder lane: {}".format(cur_lane_loaded.name if cur_lane_loaded else "None"))
@@ -429,6 +431,7 @@ class afcFunction:
                 obj.do_enable(False)
                 obj.disable_buffer()
                 obj.unit_obj.return_to_home()
+                obj.unsync_to_extruder()
                 if obj.prep_state and obj.load_state:
                     if obj.tool_loaded:
                         # If tool is loaded, set led to tool loaded color
@@ -456,8 +459,10 @@ class afcFunction:
         cur_lane_loaded.do_enable(True)
         # Enable buffer
         cur_lane_loaded.enable_buffer()
+        cur_lane_loaded.sync_to_extruder()
         cur_lane_loaded.unit_obj.select_lane( cur_lane_loaded )
-        return
+        self.logger.debug("Activate extruder done")
+        # return self.reactor.NEVER
 
     def unset_lane_loaded(self):
         """

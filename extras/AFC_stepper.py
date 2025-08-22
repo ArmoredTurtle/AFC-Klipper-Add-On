@@ -137,13 +137,16 @@ class AFCExtruderStepper(AFCLane):
         else:
             self.next_cmd_time = print_time
 
-    def sync_to_extruder(self, update_current=True):
+    def sync_to_extruder(self, update_current=True, extruder_name=None):
         """
         Helper function to sync lane to extruder and set print current if specified.
 
         :param update_current: Sets current to specified print current when True
         """
-        self.extruder_stepper.sync_to_extruder(self.extruder_name)
+        if extruder_name is None:
+            extruder_name = self.extruder_name
+
+        self.extruder_stepper.sync_to_extruder(extruder_name)
         if update_current: self.set_print_current()
 
     def unsync_to_extruder(self, update_current=True):

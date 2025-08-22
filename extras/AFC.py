@@ -451,7 +451,7 @@ class afc:
         # Check if the current temp is below the set temp, if it is heat to set temp
         if current_temp[0] < (self.heater.target_temp-self.temp_wait_tolerance):
             wait = False
-            pheaters.set_temperature(extruder.get_heater(), current_temp[0], wait=wait)
+            pheaters.set_temperature(extruder.get_heater(), current_temp[0])
             self.logger.info('Current temp {:.1f} is below set temp {}'.format(current_temp[0], target_temp))
 
         # Check to make sure temp is with +/- self.temp_wait_tolerance of target temp, not setting if temp is over target temp and using min_extrude_temp value
@@ -459,7 +459,10 @@ class afc:
             wait = False if self.heater.target_temp >= (target_temp+self.temp_wait_tolerance) else True
 
             self.logger.info('Setting extruder temperature to {} {}'.format(target_temp, "and waiting for extruder to reach temperature" if wait else ""))
-            pheaters.set_temperature(extruder.get_heater(), target_temp, wait=wait)
+            pheaters.set_temperature(extruder.get_heater(), target_temp)
+        
+        if wait:
+            self._wait_for_temp_within_tolerance(self.heater, target_temp, self.temp_wait_tolerance*2)
 
         return wait
 
@@ -1337,6 +1340,9 @@ class afc:
         # toolhead wait is needed here as it will cause TTC for some if wait does not occur
         self.move_z_pos(pos[2], "Tool_Unload quick pull", wait_moves=True)
 
+        # TO->T1
+        # next_lane_load = lane1
+
         # Check if the current extruder is loaded with the lane to be unloaded.
         # if self.next_lane_load is not None:
         #     next_extruder = self.lanes[self.next_lane_load].extruder_obj.name
@@ -1350,11 +1356,11 @@ class afc:
 
             # Lookup the current extruder and lane objects based on the next lane to load.
             # This is necessary to ensure the correct extruder and lane are used for unloading.
-            # cur_extruder = cur_lane.extruder_obj
-            # if cur_extruder.lane_loaded is not None:
-            #     cur_lane = self.lanes[cur_extruder.lane_loaded]
-            # else:
-            #     cur_lane = None
+            cur_extruder = cur_lane.extruder_obj
+            if cur_extruder.lane_loaded is not None:
+                cur_lane = self.lanes[cur_extruder.lane_loaded]
+            else:
+                cur_lane = None
 
         # Default to true
         unload_toolhead = True
@@ -1757,7 +1763,7 @@ class afc:
         cur_lane.activate_toolhead_extruder()
         # Need to call again since KTC activate callback happens before switching to new extruder
         # Take double call out once transitioned away from KTC
-        self.function.handle_activate_extruder()
+        self.function._handle_activate_extruder(0)
         
         self.afcDeltaTime.log_with_time("Tool swap done")
         self.current_state = State.IDLE
@@ -1874,6 +1880,8 @@ class afc:
         This function sets the temperature of the specified extruder and waits for it to reach the target temperature.
         Supports T (tool), S (temp), and D (deadband).
         """
+
+        # TODO: this currently does not work correctly when lanes are remapped and KTC calls M109
         toolnum  = gcmd.get_int('T', None, minval=0)
         temp     = gcmd.get_float('S', 0.0)
         deadband = gcmd.get_float('D', None)
@@ -1906,6 +1914,7 @@ class afc:
         current_temp = heater.get_temp(self.reactor.monotonic())[0]
         should_wait = wait and abs(current_temp - temp) > self.temp_wait_tolerance
         pheaters.set_temperature(heater, temp, should_wait)
+        self.logger.debug("Done setting temp")
 
     def _heat_next_extruder(self, wait=True):
         """
