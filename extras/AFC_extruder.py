@@ -95,7 +95,16 @@ class AFCExtruder:
                 lane.handle_toolhead_runout(sensor=sensor_name)
     
     def handle_start_runout( self, eventtime):
-        self.logger.info("Start callback")
+        """
+        Callback function for tool start runout, this is different than `tool_start_callback` function as this function
+        can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
         self._handle_toolhead_sensor_runout(self.fila_tool_start.runout_helper.filament_present, "tool_start")
         self.fila_tool_start.runout_helper.min_event_systime = self.reactor.monotonic() + self.fila_tool_start.runout_helper.event_delay
 
@@ -112,7 +121,16 @@ class AFCExtruder:
         self.buffer_trailing = state
 
     def handle_end_runout( self, eventtime):
-        self.logger.info("Start callback")
+        """
+        Callback function for tool end runout, this is different than `tool_end_callback` function as this function
+        can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
         self._handle_toolhead_sensor_runout(self.fila_tool_end.runout_helper.filament_present, "tool_end")
         self.fila_tool_end.runout_helper.min_event_systime = self.reactor.monotonic() + self.fila_tool_end.runout_helper.event_delay
 

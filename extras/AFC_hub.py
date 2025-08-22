@@ -4,7 +4,6 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import traceback
-import logging
 
 from configparser import Error as error
 
@@ -70,6 +69,16 @@ class afc_hub:
         return self.name
 
     def handle_runout(self, eventtime):
+        """
+        Callback function for hub runout, this is different than `switch_pin_callback` function as this function
+        can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
         # Only trigger runout for the currently loaded lane (in the toolhead) if it belongs to this hub
         current_lane_name = getattr(self.afc, 'current', None)
         if current_lane_name and current_lane_name in self.lanes:

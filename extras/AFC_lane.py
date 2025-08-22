@@ -167,7 +167,7 @@ class AFCLane:
                                                                             show_sensor, enable_runout=self.enable_runout,
                                                                             debounce_delay=self.debounce_delay )
             self.prep_debounce_button.button_action = self.handle_prep_runout
-            self.prep_debounce_button.debounce_delay = 0
+            self.prep_debounce_button.debounce_delay = 0 # Delay will be set once klipper is ready
 
         if self.load is not None:
             show_sensor = True
@@ -177,7 +177,7 @@ class AFCLane:
                                                                             show_sensor, enable_runout=self.enable_runout,
                                                                             debounce_delay=self.debounce_delay )
             self.load_debounce_button.button_action = self.handle_load_runout
-            self.load_debounce_button.debounce_delay = 0
+            self.load_debounce_button.debounce_delay = 0 # Delay will be set once klipper is ready
 
         self.connect_done = False
         self.prep_active = False
@@ -533,6 +533,17 @@ class AFCLane:
             self.prep_state = state
 
     def handle_load_runout(self, eventtime, load_state):
+        """
+        Callback function for load switch runout/loading for HTLF, this is different than `load_callback` 
+        function as this function can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
+        # Call filament sensor callback so that state is registered
         try:
             self.load_debounce_button._old_note_filament_present(load_state)
         except:
@@ -545,6 +556,7 @@ class AFCLane:
                 self.material = self.afc.default_material_type
                 self.weight = 1000 # Defaulting weight to 1000 upon load
             else:
+                # Don't run if user disabled sensor in gui
                 if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
                     self.logger.warning("Load runout has been detected, but pause and runout detection has been disabled")
                 elif self.unit_obj.check_runout(self):
@@ -634,6 +646,16 @@ class AFCLane:
         self.afc.save_vars()
 
     def handle_prep_runout(self, eventtime, prep_state):
+        """
+        Callback function for prep switch runout, this is different than `prep_callback` 
+        function as this function can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
         # Call filament sensor callback so that state is registered
         try:
             self.prep_debounce_button._old_note_filament_present(prep_state)
@@ -642,6 +664,7 @@ class AFCLane:
 
         if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != AFCLaneState.TOOL_UNLOADING:
             if prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
+                # Don't run if user disabled sensor in gui
                 if not self.fila_prep.runout_helper.sensor_enabled:
                     self.logger.warning("Prep runout has been detected, but pause and runout detection has been disabled")
                 # Checking to make sure runout_lane is set

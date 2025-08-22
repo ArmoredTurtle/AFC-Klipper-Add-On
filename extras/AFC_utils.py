@@ -7,7 +7,6 @@
 # File is used to hold common functions that can be called from anywhere and don't belong to a class
 import traceback
 import json
-import logging
 import inspect
 
 from datetime import datetime
@@ -60,9 +59,7 @@ def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, run
     fila.runout_helper.runout_pause = False                 # AFC will deal with pause
 
     filament_switch_config.set( new_switch_name, 'debounce_delay', debounce_delay)
-    # If buttons does not have register debounce then add debounce button, mainly for older klipper and kalico
-    # if not hasattr(PrinterButtons, "register_debounce_button"):
-    #     logging.info("Buttons does not have register_debounce_button") #TODO: remove before merge into dev
+    # Using our own DebounceButton so that callback functions can be overridden to work correctly
     debounce_button = DebounceButton(cfg_wrap, fila)
 
     if runout_callback:
@@ -116,7 +113,6 @@ class DebounceButton:
         self._button_handler(self.reactor.monotonic(), state)
 
     def _button_handler(self, eventtime, state):
-        logging.info(f"Debounce button handler called, Time {eventtime}, State {state}")
         self.physical_state = state
         self.latest_eventtime = eventtime
         # if there would be no state transition, ignore the event:
@@ -124,6 +120,7 @@ class DebounceButton:
             return
         trigger_time = eventtime + self.debounce_delay
         self.reactor.register_callback(self._debounce_event, trigger_time)
+
     def _debounce_event(self, eventtime):
         # if there would be no state transition, ignore the event:
         if self.logical_state == self.physical_state:
@@ -133,7 +130,6 @@ class DebounceButton:
             return
         # enact state transition and trigger action
         self.logical_state = self.physical_state
-        logging.info(f"Debounce button event called, Time {eventtime}, state {self.logical_state}")
         # Kalico is different from klipper and eventtime is not passed in
         try:
             self.button_action(self.logical_state)
