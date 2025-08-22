@@ -170,26 +170,27 @@ class afcBoxTurtle(afcUnit):
             else:
                 bowden_dist = bow_pos - cur_lane.short_move_dis
 
-            # Checking if user has set a custom unload length and adding the delta to the new
-            # calibrated bowden distance
-            if cur_lane.hub_obj.afc_unload_bowden_length != cur_lane.hub_obj.afc_bowden_length:
-                unload_delta = cur_lane.hub_obj.afc_unload_bowden_length - cur_lane.hub_obj.afc_bowden_length
-                unload_new = bowden_dist + unload_delta
-            else:
-                unload_new = bowden_dist
+            unload_dist = bowden_dist
 
             cal_msg = '\n afc_bowden_length: New: {} Old: {}'.format(bowden_dist, cur_lane.hub_obj.afc_bowden_length)
-            unload_cal_msg = '\n afc_unload_bowden_length: New: {} Old: {}'.format(unload_new, cur_lane.hub_obj.afc_unload_bowden_length)
+            unload_cal_msg = '\n afc_unload_bowden_length: New: {} Old: {}'.format(unload_dist, cur_lane.hub_obj.afc_unload_bowden_length)
             cur_lane.hub_obj.afc_bowden_length = bowden_dist
-            cur_lane.hub_obj.afc_unload_bowden_length = unload_new
+            cur_lane.hub_obj.afc_unload_bowden_length = unload_dist
 
             if bowden_dist < 0:
                 self.afc.error.AFC_error(
                     "'{}' is not a valid length. Please check your setup and re-run calibration.".format(bowden_dist),
                     pause=False)
                 return False, "Invalid bowden length", bowden_dist
+
+            if unload_dist < 0:
+                self.afc.error.AFC_error(
+                    "'{}' is not a valid unload length. Please check your setup and re-run calibration.".format(unload_dist),
+                    pause=False)
+                return False, "Invalid unload bowden length", unload_dist
+
             self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_bowden_length", bowden_dist, cal_msg)
-            self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_unload_bowden_length", unload_new, unload_cal_msg)
+            self.afc.function.ConfigRewrite(cur_hub.fullname, "afc_unload_bowden_length", unload_dist, unload_cal_msg)
             cur_lane.loaded_to_hub  = True
             cur_lane.do_enable(False)
             self.afc.save_vars()

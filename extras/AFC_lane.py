@@ -1133,6 +1133,7 @@ class AFCLane:
         response['filament_status'] = filament_stat[0]
         response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
+        response['dist_hub'] = self.dist_hub
         return response
 
 
