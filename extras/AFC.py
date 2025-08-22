@@ -121,10 +121,11 @@ class afc:
         self.common_density_values  = config.getlists("common_density_values",
                                                       ("PLA:1.24", "PETG:1.23", "ABS:1.04", "ASA:1.07"))
         self.common_density_values  = list(self.common_density_values)
+        self.test_extrude_amt       = config.get('test_extrude_amt', 10)
 
         #LED SETTINGS
         self.ind_lights = None
-        # led_name is not used, either use or needs to be removed, removing this would break everyones config as well
+        # led_name is not used, either use or needs to be removed, removing this would break everyone's config as well
         self.led_name               = config.get('led_name',None)
         self.led_off                = "0,0,0,0"
         self.led_fault              = config.get('led_fault','1,0,0,0')             # LED color to set when faults occur in lane        (R,G,B,W) 0 = off, 1 = full brightness.
@@ -1488,7 +1489,6 @@ class afc:
         CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100
         ```
         """
-        self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
@@ -1530,6 +1530,7 @@ class afc:
         self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]], purge_length)
 
     def CHANGE_TOOL(self, cur_lane, purge_length=None, restore_pos=True):
+        self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
