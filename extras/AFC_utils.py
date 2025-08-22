@@ -34,7 +34,6 @@ def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, run
     """
     import configparser
     import configfile
-    from . import filament_switch_sensor
     new_switch_name = f"filament_switch_sensor {switch_name}"
     ppins = printer.lookup_object('pins')
     ppins.allow_multi_use_pin(switch_pin.strip("!^"))
@@ -47,13 +46,13 @@ def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, run
     cfg_wrap = configfile.ConfigWrapper( printer, filament_switch_config, {}, new_switch_name)
 
     fila = printer.load_object(cfg_wrap, new_switch_name)
-    
+
     # Commence the hacky stuff for delayed runout
     if not show_sensor:
         # Removing normal switch name from object and adding name with underscore if user does not want
         # sensor showing up in gui. Doing this suppressed the sensor from showing up in gui  since the
         # name is not exactly "filament_switch_sensor"
-        printer.objects["_" + new_switch_name] = printer.objects.pop(new_switch_name)        
+        printer.objects["_" + new_switch_name] = printer.objects.pop(new_switch_name)
 
     fila.runout_helper.sensor_enabled = enable_runout
     fila.runout_helper.runout_pause = False                 # AFC will deal with pause
@@ -70,7 +69,7 @@ def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, run
 
     if enable_runout:
         return fila, debounce_button
-    
+
     return fila
 
 def check_and_return( value_str:str, data_values:dict ) -> str:
@@ -98,7 +97,7 @@ class DebounceButton:
         self._old_note_filament_present = filament_sensor.runout_helper.note_filament_present
         # Setting action callback to normal filament sensor not filament present
         self.button_action = self._old_note_filament_present
-        # Overriding filament sensor filament present to button handler in this class 
+        # Overriding filament sensor filament present to button handler in this class
         # Checking parameter length since kalico's note_filament_present function is different
         if len(sig.parameters) > 2:
             filament_sensor.runout_helper.note_filament_present = self.button_handler
@@ -108,7 +107,7 @@ class DebounceButton:
         self.logical_state = None
         self.physical_state = None
         self.latest_eventtime = None
-    
+
     def button_handler(self, state):
         self._button_handler(self.reactor.monotonic(), state)
 

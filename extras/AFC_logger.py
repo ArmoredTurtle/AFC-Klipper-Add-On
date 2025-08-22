@@ -72,11 +72,11 @@ class AFC_logger:
             for line in message.lstrip().split("\n"):
                 self.logger.info(self._format(line))
         self.send_callback(message)
-    
+
     def warning(self, message):
         for line in message.lstrip().rstrip().split("\n"):
             self.logger.debug(self._format("WARNING: {}".format(line)))
-        
+
         self.send_callback(f"<span class=warning--text>WARNING: {message}</span>")
 
         self.afc.message_queue.append((message, "warning"))

@@ -534,11 +534,11 @@ class AFCLane:
 
     def handle_load_runout(self, eventtime, load_state):
         """
-        Callback function for load switch runout/loading for HTLF, this is different than `load_callback` 
+        Callback function for load switch runout/loading for HTLF, this is different than `load_callback`
         function as this function can be delayed and is called from filament_switch_sensor class when it detects a runout event.
 
         Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
-        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
         updated then future switch changes will not be detected.
 
         :param eventtime: Event time from the button press
@@ -647,11 +647,11 @@ class AFCLane:
 
     def handle_prep_runout(self, eventtime, prep_state):
         """
-        Callback function for prep switch runout, this is different than `prep_callback` 
+        Callback function for prep switch runout, this is different than `prep_callback`
         function as this function can be delayed and is called from filament_switch_sensor class when it detects a runout event.
 
         Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
-        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
         updated then future switch changes will not be detected.
 
         :param eventtime: Event time from the button press

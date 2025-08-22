@@ -74,7 +74,7 @@ class afc_hub:
         can be delayed and is called from filament_switch_sensor class when it detects a runout event.
 
         Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
-        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get 
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
         updated then future switch changes will not be detected.
 
         :param eventtime: Event time from the button press
