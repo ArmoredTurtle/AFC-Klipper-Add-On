@@ -687,10 +687,12 @@ class afcFunction:
         -----
         `TEST_LANE LANE=<lane_name> ITERATION=<number_of_iterations>`
 
-        Examples
+        Example
         -----
         ```
         TEST_LANE LANE=lane1 ITERATION=3
+        ```
+        ```
         TEST_LANE LANE=all ITERATION=5
         ```
         """
