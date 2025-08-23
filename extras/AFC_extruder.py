@@ -20,6 +20,7 @@ class AFCExtruder:
         self.afc        = self.printer.lookup_object('AFC')
         self.gcode      = self.printer.lookup_object('gcode')
         self.logger     = self.afc.logger
+        self.reactor    = None
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
         self.fullname                   = config.get_name()
