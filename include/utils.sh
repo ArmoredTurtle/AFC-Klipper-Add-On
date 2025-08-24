@@ -196,3 +196,22 @@ start_service() {
     sudo service "${service_name}" start
   fi
 }
+
+del_var_file() {
+  local confirm
+  # Function to remove the user's AFC.var.unit file in a simple fashion.
+  echo "This is generally a troubleshooting step and should not be needed during normal operation."
+  read -p "Do you want to proceed? (y/n): " confirm
+  confirm="${confirm,,}"
+  if [[ "$confirm" != "y" ]]; then
+    unit_message="Operation cancelled by user.\n"
+  else
+    if [ -f "${afc_config_dir}/AFC.var.unit" ]; then
+      rm "${afc_config_dir}/AFC.var.unit"
+      unit_message="Removed old AFC.var.unit file.\n"
+    else
+      unit_message="No AFC.var.unit file found to remove.\n"
+    fi
+  fi
+  export unit_message
+}

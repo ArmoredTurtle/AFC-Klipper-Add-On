@@ -252,8 +252,8 @@ class afc:
         if update_trsync:
             try:
                 import mcu
-                trsync_value = config.getfloat("trsync_timeout", 0.05)              # Timeout value to update in klipper mcu. Klippers default value is 0.025
-                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5) # Single timeout value to update in klipper mcu. Klippers default value is 0.250
+                trsync_value = config.getfloat("trsync_timeout", 0.05)              # Timeout value to update in klipper mcu. Klipper's default value is 0.025
+                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5) # Single timeout value to update in klipper mcu. Klipper's default value is 0.250
                 self.logger.info("Applying TRSYNC update")
 
                 # Making sure value exists as kalico(danger klipper) does not have TRSYNC_TIMEOUT value
@@ -382,7 +382,7 @@ class afc:
         in AFC.cfg and sees if a temperature exists for filament material.
 
         :param cur_lane: Current lane object
-        :return truple : float for temperature to heat extruder to,
+        :return tuple : float for temperature to heat extruder to,
                          bool True if user is using min_extruder_temp value
         """
         try:

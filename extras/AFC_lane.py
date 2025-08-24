@@ -450,7 +450,7 @@ class AFCLane:
 
     def move_advanced(self, distance, speed_mode: SpeedMode, assist_active: AssistActive = AssistActive.NO):
         """
-        Wrapper for move function and isused to compute several arguments
+        Wrapper for move function and is used to compute several arguments
         to move the lane accordingly.
         Parameters:
         distance (float): The distance to move.

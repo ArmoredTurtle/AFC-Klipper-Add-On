@@ -16,7 +16,7 @@ class AFCStats_var:
     increment, reset, set time and average time for time values. This class also
     has the ability to update moonrakers database with value.
 
-    Upon initializing this class, value is retrevied from dictionary if it exists
+    Upon initializing this class, value is retrieved from dictionary if it exists
     and sets internal value to this, or zero if it does not exist.
 
     Parameters
@@ -210,7 +210,7 @@ class AFCStats:
 
     def reset_toolchange_wo_error(self):
         """
-        Helper function for reseting number of toolchanges without errors and
+        Helper function for resetting number of toolchanges without errors and
         sets last error date/time as current
         """
         self.tc_without_error.reset_count()

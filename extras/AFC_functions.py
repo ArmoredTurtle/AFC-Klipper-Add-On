@@ -424,7 +424,7 @@ class afcFunction:
 
     def log_toolhead_pos(self, move_pre=""):
         """
-        Helper function for printing postion data to log
+        Helper function for printing position data to log
 
         :param move_pre: String that get appended before the position data
         """
@@ -480,7 +480,7 @@ class afcFunction:
     def gcode_get_value( self, gcmd, get_attr, variable, variable_name, section_name, key_name=None, cast_to_bool=False ):
         """
         Helper type function to get values for macros. This function will also use passed in variable
-        as defualt value. If user passed in a new value for variable_name, then config file is updated
+        as default value. If user passed in a new value for variable_name, then config file is updated
         with new value. Do not call this function if a macro variable is required.
 
         :param gcmd: Klipper gcode command
@@ -1053,7 +1053,7 @@ class afcFunction:
         buttons = []
         footer = []
         title = 'AFC Calibration Failed'
-        text = 'Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run colibration.'.format(cali)
+        text = 'Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run calibration.'.format(cali)
         buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
         footer.append(('EXIT', 'prompt_end', 'info'))
 
