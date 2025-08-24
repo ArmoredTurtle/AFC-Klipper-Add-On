@@ -553,8 +553,7 @@ class AFCLane:
             if load_state:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
-                self.material = self.afc.default_material_type
-                self.weight = 1000 # Defaulting weight to 1000 upon load
+                self.afc.spool._set_values(self)
             else:
                 # Don't run if user disabled sensor in gui
                 if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
@@ -695,8 +694,7 @@ class AFCLane:
         :param update_current: Sets current to specified print current when True
         """
         if self.drive_stepper is not None:
-            self.drive_stepper.sync_to_extruder(self.extruder_name)
-            if update_current: self.drive_stepper.set_print_current()
+            self.drive_stepper.sync_to_extruder(update_current, extruder_name=self.extruder_name)
 
     def unsync_to_extruder(self, update_current=True):
         """
@@ -705,8 +703,7 @@ class AFCLane:
         :param update_current: Sets current to specified load current when True
         """
         if self.drive_stepper is not None:
-            self.drive_stepper.unsync_to_extruder(None)
-            if update_current: self.drive_stepper.set_load_current()
+            self.drive_stepper.unsync_to_extruder(update_current)
 
     def _set_current(self, current):
         return
