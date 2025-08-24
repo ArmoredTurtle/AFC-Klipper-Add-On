@@ -47,10 +47,8 @@ class AFC_HTLF(afcBoxTurtle):
         buttons = self.printer.load_object(config, "buttons")
         buttons.register_buttons([self.home_pin], self.home_callback)
 
-        if self.enable_sensors_in_gui:
-            if self.home_pin is not None:
-                self.home_filament_switch_name = "filament_switch_sensor {}_home_pin".format(self.name)
-                self.home_sensor = add_filament_switch(self.home_filament_switch_name, self.home_pin, self.printer )
+        if self.home_pin is not None:
+            self.home_sensor = add_filament_switch(f"{self.name}_home_pin", self.home_pin, self.printer, self.enable_sensors_in_gui )
 
     def handle_connect(self):
         """

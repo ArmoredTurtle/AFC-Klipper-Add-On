@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a new command to test lane loading and unloading in an automated and random fashion (`AFC_TEST_LANES`). Please
   see the documentation for more information on how to use this command and it's various options.
+- Option to delay/debounce switches. Debounce delay is defaulted to zero but can be updated globally by adding `debounce_delay: <delay_value>`
+  to AFC config section. Or this value can be added per AFC_extruder, AFC_hub, AFC_stepper/AFC_lane configs. Runout can be also disabled by
+  turning off filament switch in gui, if PREP sensor is disabled this will also disable infinite spool rollover. When klipper is restarted
+  all switches will be enabled again.
 
 ## [2025-08-17]
 ### Added
@@ -29,7 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2025-07-27]
 ### Updated
 - The `install-afc.sh` script will now only copy relevant MCU files when installing a new unit. 
-
 
 ## [2025-07-20]
 ### Added

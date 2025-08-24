@@ -196,6 +196,9 @@ class afc:
         self.enable_assist          = config.getboolean("enable_assist",        True)
         # Weight spool has to be below to activate print assist
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
+        self.enable_hub_runout      = config.getboolean("enable_hub_runout",    True)
+        self.enable_tool_runout     = config.getboolean("enable_tool_runout",   True)
+        self.debounce_delay         = config.getfloat("debounce_delay",         0.)
 
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
         self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
@@ -310,10 +313,10 @@ class afc:
         try:
             self.bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
         except:
-            self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
+            self.bypass = add_filament_switch("virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
 
         if self.show_quiet_mode:
-            self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
+            self.quiet_switch = add_filament_switch("quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # Register G-Code commands for macros we don't want to show up in mainsail/fluidd
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)

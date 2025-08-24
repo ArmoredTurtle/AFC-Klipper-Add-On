@@ -4,11 +4,6 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-try:
-    from .. import APP_NAME
-except:
-    APP_NAME = "Klipper"
-
 import logging
 import re
 import os
@@ -18,16 +13,19 @@ from webhooks import GCodeHelper
 
 class AFC_QueueListener(QueueListener):
     def __init__(self, filename):
-        if APP_NAME == "Kalico":
+        try:
+            # Kalico needs an extra parameter passed in for log rollover
             super().__init__(filename, False)
-        else:
+        except:
             super().__init__(filename)
 
         logging.handlers.TimedRotatingFileHandler.__init__(
             self, filename, when="S", interval=60 * 60 * 24, backupCount=5
         )
 
-        logging.handlers.TimedRotatingFileHandler.doRollover(self)
+        # Commenting out log rollover for now as it causes more of a hassle when getting users logs
+        # and causes information to disappear if a user restart alot
+        # logging.handlers.TimedRotatingFileHandler.doRollover(self)
 
 class AFC_logger:
     def __init__(self, printer, afc_obj):
@@ -75,6 +73,14 @@ class AFC_logger:
                 self.logger.info(self._format(line))
         self.send_callback(message)
 
+    def warning(self, message):
+        for line in message.lstrip().rstrip().split("\n"):
+            self.logger.debug(self._format("WARNING: {}".format(line)))
+
+        self.send_callback(f"<span class=warning--text>WARNING: {message}</span>")
+
+        self.afc.message_queue.append((message, "warning"))
+
     def debug(self, message, only_debug=False, traceback=None):
         for line in message.lstrip().rstrip().split("\n"):
             self.logger.debug(self._format("DEBUG: {}".format(line)))
@@ -85,7 +91,6 @@ class AFC_logger:
         if traceback is not None:
             for line in traceback.lstrip().rstrip().split("\n"):
                 self.logger.debug( self._format("DEBUG: {}".format(line)))
-
 
     def error(self, message, traceback=None, stack_name=""):
         """
