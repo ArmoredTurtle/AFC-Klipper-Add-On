@@ -252,7 +252,7 @@ class AFCSpool:
     def _get_filament_values( self, filament, field, default=None):
         '''
         Helper function for checking if field is set and returns value if it exists,
-        otherwise retruns None
+        otherwise returns None
 
         :param filament: Dictionary for filament values
         :param field:    Field name to check for in dictionary

@@ -123,7 +123,7 @@ class afcBoxTurtle(afcUnit):
                                                              cur_lane.short_move_dis, 0, cur_lane.dist_hub + 200, "Moving to hub")
 
         if not success:
-            # if movement does not suceed fault and return values to calibration macro
+            # if movement does not succeed fault and return values to calibration macro
             msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
             return False, msg, hub_pos
 
@@ -229,7 +229,7 @@ class afcBoxTurtle(afcUnit):
         return True, msg, tuned_hub_pos
 
     def move_until_state(self, cur_lane, state, move_dis, tolerance, short_move, pos=0, fault_dis=250, checkpoint=None):
-        # moves filament until specified sensor, returns values for further czlibration
+        # moves filament until specified sensor, returns values for further calibration
         while not state():
             cur_lane.move(move_dis, cur_lane.short_moves_speed, cur_lane.short_moves_accel)
             pos += move_dis

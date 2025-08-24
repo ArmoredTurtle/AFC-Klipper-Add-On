@@ -49,7 +49,7 @@ class afc_hub:
 
         self.config_bowden_length   = self.afc_bowden_length                        # Used by SET_BOWDEN_LENGTH macro
         self.config_unload_bowden_length = self.afc_unload_bowden_length
-        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui",    self.afc.enable_sensors_in_gui) # Set to True to show hub sensor switche as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui",    self.afc.enable_sensors_in_gui) # Set to True to show hub sensor switches as filament sensor in mainsail/fluidd gui, overrides value set in AFC.cfg
         self.debounce_delay         = config.getfloat("debounce_delay",             self.afc.debounce_delay)
         self.enable_runout          = config.getboolean("enable_hub_runout",        self.afc.enable_hub_runout)
 

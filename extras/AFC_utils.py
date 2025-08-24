@@ -215,7 +215,7 @@ class AFC_moonraker:
         Queries moonraker to see if spoolman is configured, returns True when
         spoolman is configured
 
-        :returns: Returns string for spoolmans IP, returns None if its not configured
+        :returns: Returns string for Spoolman IP, returns None if it is not configured
         """
         resp = self._get_results(urljoin(self.host, 'server/config'))
         # Check to make sure response is valid and spoolman exists in dictionary

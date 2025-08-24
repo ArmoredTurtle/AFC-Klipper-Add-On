@@ -180,7 +180,7 @@ class AFCExtruderStepper(AFCLane):
         """
         Helper function for updating steppers rotation distance
 
-        :param multipler: Multipler to set rotation distance. Rotation distance is updated by taking
+        :param multiplier: Multiplier to set rotation distance. Rotation distance is updated by taking
                           base rotation distance and dividing by multiplier.
         """
         self.extruder_stepper.stepper.set_rotation_distance( self.base_rotation_dist / multiplier )
