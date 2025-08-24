@@ -53,10 +53,9 @@ class AFCExtruder:
         self.tool_end_state = False
         if self.tool_end is not None:
             buttons.register_buttons([self.tool_end], self.tool_end_callback)
-            if self.enable_sensors_in_gui:
-                self.fila_tool_end, self.debounce_button_end = add_filament_switch("tool_end", self.tool_end, self.printer,
-                                                                                   self.enable_sensors_in_gui, self.handle_end_runout, self.enable_runout,
-                                                                                   self.debounce_delay )
+            self.fila_tool_end, self.debounce_button_end = add_filament_switch("tool_end", self.tool_end, self.printer,
+                                                                                self.enable_sensors_in_gui, self.handle_end_runout, self.enable_runout,
+                                                                                self.debounce_delay )
 
         self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
 
