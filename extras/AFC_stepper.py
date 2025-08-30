@@ -36,7 +36,8 @@ class AFCExtruderStepper(AFCLane):
         # Current to use while printing, set to a lower current to reduce stepper heat when printing.
         # Defaults to global_print_current, if not specified current is not changed.
         self.tmc_print_current = config.getfloat("print_current", self.afc.global_print_current)
-        self._get_tmc_values( config )
+        if self.tmc_print_current is not None:
+            self._get_tmc_values( config )
 
         # Get and save base rotation dist
         self.base_rotation_dist = self.extruder_stepper.stepper.get_rotation_distance()[0]
@@ -48,7 +49,9 @@ class AFCExtruderStepper(AFCLane):
         try:
             self.tmc_driver = next(config.getsection(s) for s in config.fileconfig.sections() if 'tmc' in s and config.get_name() in s)
         except:
-            raise self.gcode.error("Count not find TMC for stepper {}".format(self.name))
+            msg = f"Could not find TMC for stepper {self.name},"
+            msg += "\nplease add TMC section or disable 'print_current' from config file's"
+            raise self.gcode.error(msg)
 
         self.tmc_load_current = self.tmc_driver.getfloat('run_current')
 
