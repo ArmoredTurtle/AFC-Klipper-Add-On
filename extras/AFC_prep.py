@@ -73,7 +73,17 @@ class afcPrep:
         ## load Unit stored variables
         units={}
         if os.path.exists('{}.unit'.format(self.afc.VarFile)) and os.stat('{}.unit'.format(self.afc.VarFile)).st_size > 0:
-            units=json.load(open('{}.unit'.format(self.afc.VarFile)))
+            try:
+                units=json.load(open('{}.unit'.format(self.afc.VarFile)))
+            except json.JSONDecodeError as e:
+                # Displaying error for user to fix, do not want to continue just in case
+                # there is actual data in this file as we do not want to overwrite and put
+                # users boxturtles into a weird state if prep continues.
+                self.afc.error.AFC_error(f"Error when trying to open and decode {self.afc.VarFile}.unit file.\n" + \
+                                          "Please fix file or delete if file is empty, then restart klipper.", False)
+                self.logger.error("", traceback=f"{e}")
+                return
+
         else:
             error_string = 'Error: {}.unit file not found. Please check the path in the '.format(self.afc.VarFile)
             error_string += 'AFC.cfg file and make sure the file and path exists.'
