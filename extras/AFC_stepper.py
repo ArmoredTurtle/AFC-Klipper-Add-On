@@ -22,15 +22,27 @@ class AFCExtruderStepper(AFCLane):
         super().__init__(config)
 
         self.extruder_stepper   = extruder.ExtruderStepper(config)
+        
+        # Check for Klipper new motion queuing update
+        try:
+            self.motion_queuing = self.printer.load_object(config, "motion_queuing")
+        except error:
+            self.motion_queuing = None
 
-        self.motion_queue = None
         self.next_cmd_time = 0.
+        
         ffi_main, ffi_lib = chelper.get_ffi()
-        self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
-        self.trapq_append = ffi_lib.trapq_append
-        self.trapq_finalize_moves = ffi_lib.trapq_finalize_moves
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
+
+        if self.motion_queuing is not None:
+            self.trapq          = self.motion_queuing.allocate_trapq()
+            self.trapq_append   = self.motion_queuing.lookup_trapq_append()
+        else:
+            self.trapq                  = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
+            self.trapq_append           = ffi_lib.trapq_append
+            self.trapq_finalize_moves   = ffi_lib.trapq_finalize_moves
+        
         self.assist_activate=False
 
         # Current to use while printing, set to a lower current to reduce stepper heat when printing.
@@ -68,25 +80,31 @@ class AFCExtruderStepper(AFCLane):
 
 
         with self.assist_move(speed, distance < 0, assist_active):
+            # Code based off force_move.py manual_move function
             toolhead = self.printer.lookup_object('toolhead')
             toolhead.flush_step_generation()
-            prev_sk = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
-            prev_trapq = self.extruder_stepper.stepper.set_trapq(self.trapq)
+            prev_sk     = self.extruder_stepper.stepper.set_stepper_kinematics(self.stepper_kinematics)
+            prev_trapq  = self.extruder_stepper.stepper.set_trapq(self.trapq)
             self.extruder_stepper.stepper.set_position((0., 0., 0.))
             axis_r, accel_t, cruise_t, cruise_v = calc_move_time(distance, speed, accel)
             print_time = toolhead.get_last_move_time()
             self.trapq_append(self.trapq, print_time, accel_t, cruise_t, accel_t,
                               0., 0., 0., axis_r, 0., 0., 0., cruise_v, accel)
             print_time = print_time + accel_t + cruise_t + accel_t
-            self.extruder_stepper.stepper.generate_steps(print_time)
-            self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
-                                      print_time + 99999.9)
-            self.extruder_stepper.stepper.set_trapq(prev_trapq)
-            self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
+
+            if self.motion_queuing is None:
+                self.extruder_stepper.stepper.generate_steps(print_time) # old
+                self.trapq_finalize_moves(self.trapq, print_time + 99999.9, #old
+                                        print_time + 99999.9) #old
+
             toolhead.note_mcu_movequeue_activity(print_time)
             toolhead.dwell(accel_t + cruise_t + accel_t)
             toolhead.flush_step_generation()
-            toolhead.wait_moves()
+            self.extruder_stepper.stepper.set_trapq(prev_trapq)
+            self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
+            if self.motion_queuing is not None:
+                self.motion_queuing.wipe_trapq(self.trapq)
+            toolhead.wait_moves() # keep for both maybe...
 
     def move(self, distance, speed, accel, assist_active=False):
         """
