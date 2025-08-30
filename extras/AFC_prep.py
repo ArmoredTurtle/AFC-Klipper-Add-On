@@ -81,6 +81,7 @@ class afcPrep:
                 # users boxturtles into a weird state if prep continues.
                 self.afc.error.AFC_error(f"Error when trying to open and decode {self.afc.VarFile}.unit file.\n" + \
                                           "Please fix file or delete if file is empty, then restart klipper.", False)
+                self.logger.error("", traceback=f"{e}")
                 return
 
         else:
