@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Catch for JSON decode error when trying to read and load AFC.var.unit file
 
+### Fixes
+- Issue where TMC section search would error out if not defined. Search is now gated behind user enabling print_current variable. If a user is using a different driver, like a4988 for example, AFC will not error out as long as print_current variable is not defined.
+
 ## [2025-08-24]
 ### Added
 - You can now use the `install-afc.sh` script to delete the `AFC.var.unit` file if necessary. This option is located under
