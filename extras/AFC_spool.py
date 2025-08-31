@@ -62,22 +62,34 @@ class AFCSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane is None:
-            self.logger.info("No LANE Defined")
+            self.logger.info("No LANE parameter provided, please specify a valid LANE parameter.")
             return
+
         map_cmd = gcmd.get('MAP', None)
-        lane_switch=self.afc.tool_cmds[map_cmd]
+
+        if map_cmd is None:
+            self.logger.info("No MAP parameter provided, please specify a valid MAP parameter.")
+            return
+
+        map_cmd = map_cmd.upper()
+
+        if map_cmd not in self.afc.tool_cmds:
+            self.logger.error("Invalid map command: {}".format(map_cmd))
+            return
+
+        lane_switch = self.afc.tool_cmds[map_cmd]
         self.logger.debug("lane to switch is {}".format(lane_switch))
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
         cur_lane = self.afc.lanes[lane]
         self.afc.tool_cmds[map_cmd]=lane
-        map_switch=cur_lane.map
-        cur_lane.map=map_cmd
+        map_switch = cur_lane.map
+        cur_lane.map = map_cmd
 
         sw_lane = self.afc.lanes[lane_switch]
-        self.afc.tool_cmds[map_switch]=lane_switch
-        sw_lane.map=map_switch
+        self.afc.tool_cmds[map_switch] = lane_switch
+        sw_lane.map = map_switch
         self.afc.save_vars()
 
     cmd_SET_COLOR_help = "Set filaments color for a lane"
@@ -240,7 +252,7 @@ class AFCSpool:
     def _get_filament_values( self, filament, field, default=None):
         '''
         Helper function for checking if field is set and returns value if it exists,
-        otherwise retruns None
+        otherwise returns None
 
         :param filament: Dictionary for filament values
         :param field:    Field name to check for in dictionary

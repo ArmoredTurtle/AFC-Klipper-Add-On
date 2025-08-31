@@ -7,6 +7,7 @@
 # File is used to hold common functions that can be called from anywhere and don't belong to a class
 import traceback
 import json
+import inspect
 
 from datetime import datetime
 from urllib.request import (
@@ -21,7 +22,7 @@ from urllib.parse import (
 
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
 
-def add_filament_switch( switch_name, switch_pin, printer ):
+def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, runout_callback = None, enable_runout=False, debounce_delay=0. ):
     """
     Helper function to register pins as filament switch sensor so it will show up in web guis
 
@@ -33,18 +34,41 @@ def add_filament_switch( switch_name, switch_pin, printer ):
     """
     import configparser
     import configfile
+    new_switch_name = f"filament_switch_sensor {switch_name}"
     ppins = printer.lookup_object('pins')
     ppins.allow_multi_use_pin(switch_pin.strip("!^"))
     filament_switch_config = configparser.RawConfigParser()
-    filament_switch_config.add_section( switch_name )
-    filament_switch_config.set( switch_name, 'switch_pin', switch_pin)
-    filament_switch_config.set( switch_name, 'pause_on_runout', 'False')
+    filament_switch_config.add_section( new_switch_name )
+    filament_switch_config.set( new_switch_name, 'switch_pin', switch_pin)
+    filament_switch_config.set( new_switch_name, 'pause_on_runout', 'False')
+    filament_switch_config.set( new_switch_name, 'debounce_delay', 0.0)
 
-    cfg_wrap = configfile.ConfigWrapper( printer, filament_switch_config, {}, switch_name)
+    cfg_wrap = configfile.ConfigWrapper( printer, filament_switch_config, {}, new_switch_name)
 
-    fila = printer.load_object(cfg_wrap, switch_name)
-    fila.runout_helper.sensor_enabled = False
-    fila.runout_helper.runout_pause = False
+    fila = printer.load_object(cfg_wrap, new_switch_name)
+
+    # Commence the hacky stuff for delayed runout
+    if not show_sensor:
+        # Removing normal switch name from object and adding name with underscore if user does not want
+        # sensor showing up in gui. Doing this suppressed the sensor from showing up in gui  since the
+        # name is not exactly "filament_switch_sensor"
+        printer.objects["_" + new_switch_name] = printer.objects.pop(new_switch_name)
+
+    fila.runout_helper.sensor_enabled = enable_runout
+    fila.runout_helper.runout_pause = False                 # AFC will deal with pause
+
+    filament_switch_config.set( new_switch_name, 'debounce_delay', debounce_delay)
+    # Using our own DebounceButton so that callback functions can be overridden to work correctly
+    debounce_button = DebounceButton(cfg_wrap, fila)
+
+    if runout_callback:
+        #fila.runout_helper.event_delay = 0.0                # Setting event delay to zero or total delay will be event_delay + debounce_delay
+        fila.runout_helper.insert_gcode = None
+        fila.runout_helper.runout_gcode = 1
+        fila.runout_helper._runout_event_handler = runout_callback # Overriding filament event handler with AFC handler
+
+    if enable_runout:
+        return fila, debounce_button
 
     return fila
 
@@ -62,6 +86,55 @@ def check_and_return( value_str:str, data_values:dict ) -> str:
         value = data_values[value_str]
 
     return value
+
+# Copied from klipper for kalico and older klipper support
+class DebounceButton:
+    def __init__(self, config, filament_sensor):
+        self.printer = config.get_printer()
+        self.reactor = self.printer.get_reactor()
+        sig = inspect.signature(filament_sensor.runout_helper.note_filament_present)
+        # Saving reference to normal function
+        self._old_note_filament_present = filament_sensor.runout_helper.note_filament_present
+        # Setting action callback to normal filament sensor not filament present
+        self.button_action = self._old_note_filament_present
+        # Overriding filament sensor filament present to button handler in this class
+        # Checking parameter length since kalico's note_filament_present function is different
+        if len(sig.parameters) > 2:
+            filament_sensor.runout_helper.note_filament_present = self.button_handler
+        else:
+            filament_sensor.runout_helper.note_filament_present = self._button_handler
+        self.debounce_delay = config.getfloat('debounce_delay', 0., minval=0.)
+        self.logical_state = None
+        self.physical_state = None
+        self.latest_eventtime = None
+
+    def button_handler(self, state):
+        self._button_handler(self.reactor.monotonic(), state)
+
+    def _button_handler(self, eventtime, state):
+        self.physical_state = state
+        self.latest_eventtime = eventtime
+        # if there would be no state transition, ignore the event:
+        if self.logical_state == self.physical_state:
+            return
+        trigger_time = eventtime + self.debounce_delay
+        self.reactor.register_callback(self._debounce_event, trigger_time)
+
+    def _debounce_event(self, eventtime):
+        # if there would be no state transition, ignore the event:
+        if self.logical_state == self.physical_state:
+            return
+        # if there were more recent events, they supersede this one:
+        if (eventtime - self.debounce_delay) < self.latest_eventtime:
+            return
+        # enact state transition and trigger action
+        self.logical_state = self.physical_state
+        # Kalico is different from klipper and eventtime is not passed in
+        try:
+            self.button_action(self.logical_state)
+        except:
+            self.button_action(eventtime, self.logical_state)
+
 
 class AFC_moonraker:
     """
@@ -142,7 +215,7 @@ class AFC_moonraker:
         Queries moonraker to see if spoolman is configured, returns True when
         spoolman is configured
 
-        :returns: Returns string for spoolmans IP, returns None if its not configured
+        :returns: Returns string for Spoolman IP, returns None if it is not configured
         """
         resp = self._get_results(urljoin(self.host, 'server/config'))
         # Check to make sure response is valid and spoolman exists in dictionary

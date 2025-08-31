@@ -336,7 +336,7 @@ class afcUnit:
 
     def return_to_home(self ):
         """
-        Funtion to home unit if unit has homing sensor
+        Function to home unit if unit has homing sensor
         """
         return
 
