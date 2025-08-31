@@ -48,6 +48,7 @@ class AFCExtruderStepper(AFCLane):
         # Current to use while printing, set to a lower current to reduce stepper heat when printing.
         # Defaults to global_print_current, if not specified current is not changed.
         self.tmc_print_current = config.getfloat("print_current", self.afc.global_print_current)
+        self.tmc_load_current = None
         if self.tmc_print_current is not None:
             self._get_tmc_values( config )
 
@@ -185,7 +186,7 @@ class AFCExtruderStepper(AFCLane):
 
         :param current: Sets TMC current to specified value
         """
-        if self.tmc_print_current is not None:
+        if self.tmc_print_current is not None and current is not None:
             self.gcode.run_script_from_command("SET_TMC_CURRENT STEPPER='{}' CURRENT={}".format(self.name, current))
 
     def set_load_current(self):
