@@ -20,6 +20,7 @@ class AFCExtruder:
         self.afc        = self.printer.lookup_object('AFC')
         self.gcode      = self.printer.lookup_object('gcode')
         self.logger     = self.afc.logger
+        self.reactor    = None
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
         self.fullname                   = config.get_name()
@@ -28,11 +29,13 @@ class AFCExtruder:
         self.tool_end                   = config.get('pin_tool_end', None)                                              # Pin for sensor after(post) extruder gears (optional)
         self.tool_stn                   = config.getfloat("tool_stn", 72)                                               # Distance in mm from the toolhead sensor to the tip of the nozzle in mm, if `tool_end` is defined then distance is from this sensor
         self.tool_stn_unload            = config.getfloat("tool_stn_unload", 100)                                       # Distance to move in mm while unloading toolhead
-        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)                              # Extra distance to move in mm once pre/post sensors are clear. Useful for when only using post sensor, so this distance can be the amout to move to clear extruder gears
+        self.tool_sensor_after_extruder = config.getfloat("tool_sensor_after_extruder", 0)                              # Extra distance to move in mm once the pre- / post-sensors are clear. Useful for when only using post sensor, so this distance can be the amount to move to clear extruder gears
         self.tool_unload_speed          = config.getfloat("tool_unload_speed", 25)                                      # Unload speed in mm/s when unloading toolhead. Default is 25mm/s.
         self.tool_load_speed            = config.getfloat("tool_load_speed", 25)                                        # Load speed in mm/s when loading toolhead. Default is 25mm/s.
         self.buffer_name                = config.get('buffer', None)                                                    # Buffer to use for extruder, this variable can be overridden per lane
-        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui)    # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_sensors_in_gui      = config.getboolean("enable_sensors_in_gui",    self.afc.enable_sensors_in_gui) # Set to True toolhead sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_runout              = config.getboolean("enable_tool_runout",       self.afc.enable_tool_runout)
+        self.debounce_delay             = config.getfloat("debounce_delay",             self.afc.debounce_delay)
 
         self.lane_loaded                = None
         self.lanes                      = {}
@@ -42,18 +45,17 @@ class AFCExtruder:
             if self.tool_start == "buffer":
                 self.logger.info("Setting up as buffer")
             else:
-                self.tool_start_state = False
                 buttons.register_buttons([self.tool_start], self.tool_start_callback)
-                if self.enable_sensors_in_gui:
-                    self.tool_start_filament_switch_name = "filament_switch_sensor {}".format("tool_start")
-                    self.fila_tool_start = add_filament_switch(self.tool_start_filament_switch_name, self.tool_start, self.printer )
+                self.fila_tool_start, self.debounce_button_start = add_filament_switch("tool_start", self.tool_start, self.printer,
+                                                                                        self.enable_sensors_in_gui, self.handle_start_runout, self.enable_runout,
+                                                                                        self.debounce_delay )
 
         self.tool_end_state = False
         if self.tool_end is not None:
             buttons.register_buttons([self.tool_end], self.tool_end_callback)
-            if self.enable_sensors_in_gui:
-                self.tool_end_state_filament_switch_name = "filament_switch_sensor {}".format("tool_end")
-                self.fila_avd = add_filament_switch(self.tool_end_state_filament_switch_name, self.tool_end, self.printer )
+            self.fila_tool_end, self.debounce_button_end = add_filament_switch("tool_end", self.tool_end, self.printer,
+                                                                                self.enable_sensors_in_gui, self.handle_end_runout, self.enable_runout,
+                                                                                self.debounce_delay )
 
         self.common_save_msg = "\nRun SAVE_EXTRUDER_VALUES EXTRUDER={} once done to update values in config".format(self.name)
 
@@ -92,6 +94,20 @@ class AFCExtruder:
             if hasattr(lane, "handle_toolhead_runout"):
                 lane.handle_toolhead_runout(sensor=sensor_name)
 
+    def handle_start_runout( self, eventtime):
+        """
+        Callback function for tool start runout, this is different than `tool_start_callback` function as this function
+        can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
+        self._handle_toolhead_sensor_runout(self.fila_tool_start.runout_helper.filament_present, "tool_start")
+        self.fila_tool_start.runout_helper.min_event_systime = self.reactor.monotonic() + self.fila_tool_start.runout_helper.event_delay
+
     def tool_start_callback(self, eventtime, state):
         """
         Callback for the tool_start (pre-extruder) filament sensor.
@@ -100,10 +116,23 @@ class AFCExtruder:
         :param state: Boolean indicating sensor state (True = filament present, False = runout)
         """
         self.tool_start_state = state
-        self._handle_toolhead_sensor_runout(state, "tool_start")
 
     def buffer_trailing_callback(self, eventtime, state):
         self.buffer_trailing = state
+
+    def handle_end_runout( self, eventtime):
+        """
+        Callback function for tool end runout, this is different than `tool_end_callback` function as this function
+        can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
+        self._handle_toolhead_sensor_runout(self.fila_tool_end.runout_helper.filament_present, "tool_end")
+        self.fila_tool_end.runout_helper.min_event_systime = self.reactor.monotonic() + self.fila_tool_end.runout_helper.event_delay
 
     def tool_end_callback(self, eventtime, state):
         """
@@ -113,7 +142,6 @@ class AFCExtruder:
         :param state: Boolean indicating sensor state (True = filament present, False = runout)
         """
         self.tool_end_state = state
-        self._handle_toolhead_sensor_runout(state, "tool_end")
 
     def _update_tool_stn(self, length):
         """

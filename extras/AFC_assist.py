@@ -3,6 +3,10 @@
 # Copyright (C) 2024 Armored Turtle
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+
+# ensure compatibility with python 3.8
+from __future__ import annotations
+
 import math
 import traceback
 
@@ -636,7 +640,7 @@ class Espooler:
 
     def break_espooler(self):
         """
-        Helper function to "brake" n20 motors to hopefully help with keeping down backfeeding into MCU board
+        Helper function to "brake" n20 motors to hopefully help with keeping down back-feeding into MCU board
         """
         print_time = self.afc.toolhead.get_last_move_time()
         if self.afc_motor_enb is not None:

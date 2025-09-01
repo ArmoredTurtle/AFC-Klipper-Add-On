@@ -126,7 +126,9 @@ class AFCLane:
         self.park_dist          = config.getfloat('park_dist', 10)                      # Currently unused
 
         self.load_to_hub        = config.getboolean("load_to_hub", self.afc.load_to_hub) # Fast loads filament to hub when inserted, set to False to disable. Setting here overrides global setting in AFC.cfg
-        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui", self.afc.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.enable_sensors_in_gui  = config.getboolean("enable_sensors_in_gui",    self.afc.enable_sensors_in_gui) # Set to True to show prep and load sensors switches as filament sensors in mainsail/fluidd gui, overrides value set in AFC.cfg
+        self.debounce_delay         = config.getfloat("debounce_delay",             self.afc.debounce_delay)
+        self.enable_runout          = config.getboolean("enable_hub_runout",        self.afc.enable_hub_runout)
         self.sensor_to_show         = config.get("sensor_to_show", None)                # Set to prep to only show prep sensor, set to load to only show load sensor. Do not add if you want both prep and load sensors to show in web gui
 
         self.assisted_unload    = config.getboolean("assisted_unload", None) # If True, the unload retract is assisted to prevent loose windings, especially on full spools. This can prevent loops from slipping off the spool. Setting value here overrides values set in unit(AFC_BoxTurtle/NightOwl/etc) section
@@ -173,14 +175,26 @@ class AFCLane:
         # Defaulting to false so that extruder motors to not move until PREP has been called
         self._afc_prep_done = False
 
-        if self.enable_sensors_in_gui:
-            if self.prep is not None and (self.sensor_to_show is None or self.sensor_to_show == 'prep'):
-                self.prep_filament_switch_name = "filament_switch_sensor {}_prep".format(self.name)
-                self.fila_prep = add_filament_switch(self.prep_filament_switch_name, self.prep, self.printer )
+        if self.prep is not None:
+            show_sensor = True
+            if not self.enable_sensors_in_gui or (self.sensor_to_show is not None and 'prep' not in self.sensor_to_show):
+                show_sensor = False
+            self.fila_prep, self.prep_debounce_button = add_filament_switch(f"{self.name}_prep", self.prep, self.printer,
+                                                                            show_sensor, enable_runout=self.enable_runout,
+                                                                            debounce_delay=self.debounce_delay )
+            self.prep_debounce_button.button_action = self.handle_prep_runout
+            self.prep_debounce_button.debounce_delay = 0 # Delay will be set once klipper is ready
 
-            if self.load is not None and (self.sensor_to_show is None or self.sensor_to_show == 'load'):
-                self.load_filament_switch_name = "filament_switch_sensor {}_load".format(self.name)
-                self.fila_load = add_filament_switch(self.load_filament_switch_name, self.load, self.printer )
+        if self.load is not None:
+            show_sensor = True
+            if not self.enable_sensors_in_gui or (self.sensor_to_show is not None and 'load' not in self.sensor_to_show):
+                show_sensor = False
+            self.fila_load, self.load_debounce_button = add_filament_switch(f"{self.name}_load", self.load, self.printer,
+                                                                            show_sensor, enable_runout=self.enable_runout,
+                                                                            debounce_delay=self.debounce_delay )
+            self.load_debounce_button.button_action = self.handle_load_runout
+            self.load_debounce_button.debounce_delay = 0 # Delay will be set once klipper is ready
+
         self.connect_done = False
         self.prep_active = False
         self.last_prep_time = 0
@@ -232,6 +246,12 @@ class AFCLane:
                 raise error(error_string)
         self.espooler.handle_ready()
         # If user supplied TD-1 ID verify that it exists
+
+        # Setting debounce delay after ready so that callback does not get triggered when initially loading
+        if hasattr(self, "prep_debounce_button"):
+            self.prep_debounce_button.debounce_delay = self.debounce_delay
+        if hasattr(self, "load_debounce_button"):
+            self.load_debounce_button.debounce_delay = self.debounce_delay
 
     def handle_moonraker_connect(self):
         """
@@ -453,7 +473,6 @@ class AFCLane:
             else:
                 return self.dist_hub_move_speed, self.dist_hub_move_accel
 
-
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -471,7 +490,7 @@ class AFCLane:
 
     def move_advanced(self, distance, speed_mode: SpeedMode, assist_active: AssistActive = AssistActive.NO):
         """
-        Wrapper for move function and issued to compute several arguments
+        Wrapper for move function and is used to compute several arguments
         to move the lane accordingly.
         Parameters:
         distance (float): The distance to move.
@@ -553,13 +572,33 @@ class AFCLane:
         if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
             self.prep_state = state
 
-            if self.load_state:
+    def handle_load_runout(self, eventtime, load_state):
+        """
+        Callback function for load switch runout/loading for HTLF, this is different than `load_callback`
+        function as this function can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
+        # Call filament sensor callback so that state is registered
+        try:
+            self.load_debounce_button._old_note_filament_present(load_state)
+        except:
+            self.load_debounce_button._old_note_filament_present(eventtime, load_state)
+
+        if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
+            if load_state:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
-                self.material = self.afc.default_material_type
-                self.weight = 1000 # Defaulting weight to 1000 upon load
+                self.afc.spool._set_values(self)
             else:
-                if self.unit_obj.check_runout(self):
+                # Don't run if user disabled sensor in gui
+                if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
+                    self.logger.warning("Load runout has been detected, but pause and runout detection has been disabled")
+                elif self.unit_obj.check_runout(self):
                     # Checking to make sure runout_lane is set
                     if self.runout_lane is not None:
                         self._perform_infinite_runout()
@@ -573,7 +612,6 @@ class AFCLane:
                     self.afc.spool._clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
                     self.clear_lane_data()
-
         self.afc.save_vars()
 
     def prep_callback(self, eventtime, state):
@@ -639,39 +677,62 @@ class AFCLane:
                     if self.load_state == True and self.prep_state == True:
                         self.status = AFCLaneState.LOADED
                         self.unit_obj.lane_loaded(self)
-                        self.material = self.afc.default_material_type
-                        self.weight = 1000 # Defaulting weight to 1000 upon load
+                        self.afc.spool._set_values(self)
                     # Check if user wants to get TD data when loading, only happens if hub is clear and toolhead is not
                     # loaded.
                     # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a
                     # different extruder/hub
+					# TODO: add this to HTLF as well
                     if self.td1_when_loaded:
                         if not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
                             self.get_td1_data()
                         else:
                             self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
 
-                elif self.prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
-                    # Checking to make sure runout_lane is set
-                    if self.runout_lane is not None:
-                        self._perform_infinite_runout()
-                    else:
-                        self._perform_pause_runout()
-
                 elif self.prep_state == True and self.load_state == True and not self.afc.function.is_printing():
                     message = 'Cannot load {} load sensor is triggered.'.format(self.name)
                     message += '\n    Make sure filament is not stuck in load sensor or check to make sure load sensor is not stuck triggered.'
                     message += '\n    Once cleared try loading again'
                     self.afc.error.AFC_error(message, pause=False)
+        self.prep_active = False
+        self.afc.save_vars()
+
+    def handle_prep_runout(self, eventtime, prep_state):
+        """
+        Callback function for prep switch runout, this is different than `prep_callback`
+        function as this function can be delayed and is called from filament_switch_sensor class when it detects a runout event.
+
+        Before exiting `min_event_systime` is updated as this mimics how its done in `_exec_gcode` function in RunoutHelper class
+        as AFC overrides `_runout_event_handler` function with this function callback. If `min_event_systime` does not get
+        updated then future switch changes will not be detected.
+
+        :param eventtime: Event time from the button press
+        """
+        # Call filament sensor callback so that state is registered
+        try:
+            self.prep_debounce_button._old_note_filament_present(prep_state)
+        except:
+            self.prep_debounce_button._old_note_filament_present(eventtime, prep_state)
+
+        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != AFCLaneState.TOOL_UNLOADING:
+            if prep_state == False and self.name == self.afc.current and self.afc.function.is_printing() and self.load_state and self.status != AFCLaneState.EJECTING:
+                # Don't run if user disabled sensor in gui
+                if not self.fila_prep.runout_helper.sensor_enabled:
+                    self.logger.warning("Prep runout has been detected, but pause and runout detection has been disabled")
+                # Checking to make sure runout_lane is set
+                elif self.runout_lane is not None:
+                    self._perform_infinite_runout()
                 else:
-                    self.status = AFCLaneState.NONE
-                    self.loaded_to_hub = False
+                    self._perform_pause_runout()
+            elif not prep_state:
+                # Filament is unloaded
+                self.status = AFCLaneState.NONE
+                self.loaded_to_hub = False
                     self.td1_data = {}
-                    self.afc.spool._clear_values(self)
-                    self.unit_obj.lane_unloaded(self)
+                self.afc.spool._clear_values(self)
+                self.unit_obj.lane_unloaded(self)
                     self.clear_lane_data()
 
-        self.prep_active = False
         self.afc.save_vars()
 
     def do_enable(self, enable):
@@ -688,8 +749,7 @@ class AFCLane:
         :param update_current: Sets current to specified print current when True
         """
         if self.drive_stepper is not None:
-            self.drive_stepper.sync_to_extruder(self.extruder_name)
-            if update_current: self.drive_stepper.set_print_current()
+            self.drive_stepper.sync_to_extruder(update_current, extruder_name=self.extruder_name)
 
     def unsync_to_extruder(self, update_current=True):
         """
@@ -698,8 +758,7 @@ class AFCLane:
         :param update_current: Sets current to specified load current when True
         """
         if self.drive_stepper is not None:
-            self.drive_stepper.unsync_to_extruder(None)
-            if update_current: self.drive_stepper.set_load_current()
+            self.drive_stepper.unsync_to_extruder(update_current)
 
     def _set_current(self, current):
         return
@@ -1299,6 +1358,7 @@ class AFCLane:
         response['filament_status'] = filament_stat[0]
         response['filament_status_led'] = filament_stat[1]
         response['status'] = self.status
+        response['dist_hub'] = self.dist_hub
         response['td1_td']          = self.td1_data['td'] if "td" in self.td1_data else ''
         response['td1_color']       = self.td1_data['color'] if "color" in self.td1_data else ''
         response['td1_scan_time']   = self.td1_data['scan_time'] if "scan_time" in self.td1_data else ''

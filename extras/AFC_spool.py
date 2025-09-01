@@ -10,6 +10,9 @@ class AFCSpool:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
 
+        # Temporary status variables
+        self.next_spool_id      = ''
+
     def handle_connect(self):
         """
         Handle the connection event.
@@ -26,6 +29,7 @@ class AFCSpool:
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
 
         self.gcode.register_command("RESET_AFC_MAPPING", self.cmd_RESET_AFC_MAPPING, desc=self.cmd_RESET_AFC_MAPPING_help)
+        self.gcode.register_command("SET_NEXT_SPOOL_ID", self.cmd_SET_NEXT_SPOOL_ID, desc=self.cmd_SET_NEXT_SPOOL_ID_help)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -58,23 +62,35 @@ class AFCSpool:
         """
         lane = gcmd.get('LANE', None)
         if lane is None:
-            self.logger.info("No LANE Defined")
+            self.logger.info("No LANE parameter provided, please specify a valid LANE parameter.")
             return
+
         map_cmd = gcmd.get('MAP', None)
-        lane_switch=self.afc.tool_cmds[map_cmd]
+
+        if map_cmd is None:
+            self.logger.info("No MAP parameter provided, please specify a valid MAP parameter.")
+            return
+
+        map_cmd = map_cmd.upper()
+
+        if map_cmd not in self.afc.tool_cmds:
+            self.logger.error("Invalid map command: {}".format(map_cmd))
+            return
+
+        lane_switch = self.afc.tool_cmds[map_cmd]
         self.logger.debug("lane to switch is {}".format(lane_switch))
         if lane not in self.afc.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
         cur_lane = self.afc.lanes[lane]
         self.afc.tool_cmds[map_cmd]=lane
-        map_switch=cur_lane.map
-        cur_lane.map=map_cmd
+        map_switch = cur_lane.map
+        cur_lane.map = map_cmd
         cur_lane.send_lane_data()
 
         sw_lane = self.afc.lanes[lane_switch]
-        self.afc.tool_cmds[map_switch]=lane_switch
-        sw_lane.map=map_switch
+        self.afc.tool_cmds[map_switch] = lane_switch
+        sw_lane.map = map_switch
         sw_lane.send_lane_data()
         self.afc.save_vars()
 
@@ -240,7 +256,7 @@ class AFCSpool:
     def _get_filament_values( self, filament, field, default=None):
         '''
         Helper function for checking if field is set and returns value if it exists,
-        otherwise retruns None
+        otherwise returns None
 
         :param filament: Dictionary for filament values
         :param field:    Field name to check for in dictionary
@@ -250,6 +266,19 @@ class AFCSpool:
         if field in filament:
             value = filament[field]
         return value
+
+    def _set_values(self, cur_lane):
+        """
+        Helper function for setting lane spool values
+        """
+        # set defaults if there's no spool id, or the spoolman lookup fails
+        cur_lane.material = self.afc.default_material_type
+        cur_lane.weight = 1000 # Defaulting weight to 1000 upon load
+
+        if self.afc.spoolman is not None and self.next_spool_id != '':
+            spool_id = self.next_spool_id
+            self.next_spool_id = ''
+            self.set_spoolID(cur_lane, spool_id)
 
     def _clear_values(self, cur_lane):
         """
@@ -380,6 +409,40 @@ class AFCSpool:
 
         self.afc.save_vars()
         self.logger.info("Tool mappings reset" + ("" if runout_opt == "no" else " and runout lanes reset"))
+
+    cmd_SET_NEXT_SPOOL_ID_help = "Set the spool id to be loaded next into AFC"
+    def cmd_SET_NEXT_SPOOL_ID(self, gcmd):
+        """
+        Sets the spool ID to be loaded next into the AFC.
+
+        This can be used in a scanning macro to prepare the AFC for the next spool to be loaded.
+
+        Omit the SPOOL_ID parameter to clear the next spool ID.
+
+        Usage
+        -----
+        `SET_NEXT_SPOOL_ID SPOOL_ID=<spool_id>`
+
+        Example
+        -----
+        ```
+        SET_NEXT_SPOOL_ID SPOOL_ID=12345
+        ```
+        """
+        SpoolID = gcmd.get('SPOOL_ID', '')
+        previous_id = self.next_spool_id
+        if SpoolID != '':
+            try:
+                self.next_spool_id = str(int(SpoolID)) # make sure spool ID will round trip later
+            except ValueError:
+                self.logger.error("Invalid spool ID: {}".format(SpoolID))
+                self.next_spool_id = ''
+        else:
+            self.next_spool_id = ''
+        if previous_id:
+            self.logger.info(f"Spool ID '{previous_id}' being overwritten for next load: '{self.next_spool_id}'")
+        else:
+            self.logger.info(f"Spool ID set for next load: '{self.next_spool_id}'")
 
 def load_config(config):
     return AFCSpool(config)
