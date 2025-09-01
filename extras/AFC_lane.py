@@ -728,10 +728,10 @@ class AFCLane:
                 # Filament is unloaded
                 self.status = AFCLaneState.NONE
                 self.loaded_to_hub = False
-                    self.td1_data = {}
+                self.td1_data = {}
                 self.afc.spool._clear_values(self)
                 self.unit_obj.lane_unloaded(self)
-                    self.clear_lane_data()
+                self.clear_lane_data()
 
         self.afc.save_vars()
 
@@ -1357,8 +1357,8 @@ class AFCLane:
         filament_stat=self.afc.function.get_filament_status(self).split(':')
         response['filament_status'] = filament_stat[0]
         response['filament_status_led'] = filament_stat[1]
-        response['status'] = self.status
-        response['dist_hub'] = self.dist_hub
+        response['status']          = self.status
+        response['dist_hub']        = self.dist_hub
         response['td1_td']          = self.td1_data['td'] if "td" in self.td1_data else ''
         response['td1_color']       = self.td1_data['color'] if "color" in self.td1_data else ''
         response['td1_scan_time']   = self.td1_data['scan_time'] if "scan_time" in self.td1_data else ''
