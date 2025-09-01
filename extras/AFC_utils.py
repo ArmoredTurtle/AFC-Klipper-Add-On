@@ -99,7 +99,8 @@ class DebounceButton:
         self.button_action = self._old_note_filament_present
         # Overriding filament sensor filament present to button handler in this class
         # Checking parameter length since kalico's note_filament_present function is different
-        if len(sig.parameters) > 2:
+        # and also checking for older klipper versions before hash 272e8155
+        if len(sig.parameters) > 2 or len(sig.parameters) == 1:
             filament_sensor.runout_helper.note_filament_present = self.button_handler
         else:
             filament_sensor.runout_helper.note_filament_present = self._button_handler
