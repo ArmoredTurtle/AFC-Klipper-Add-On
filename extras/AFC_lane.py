@@ -1393,9 +1393,13 @@ class AFCLane:
         response['filament_status_led'] = filament_stat[1]
         response['status']          = self.status
         response['dist_hub']        = self.dist_hub
-        response['td1_td']          = self.td1_data['td'] if "td" in self.td1_data else ''
-        response['td1_color']       = self.td1_data['color'] if "color" in self.td1_data else ''
-        response['td1_scan_time']   = self.td1_data['scan_time'] if "scan_time" in self.td1_data else ''
+
+        if save_to_file:
+            response['td1_data']        = self.td1_data
+        else:
+            response['td1_td']          = self.td1_data['td'] if "td" in self.td1_data else ''
+            response['td1_color']       = self.td1_data['color'] if "color" in self.td1_data else ''
+            response['td1_scan_time']   = self.td1_data['scan_time'] if "scan_time" in self.td1_data else ''
         return response
 
 
