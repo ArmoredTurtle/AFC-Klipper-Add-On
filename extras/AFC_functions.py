@@ -1293,7 +1293,6 @@ class afcFunction:
         index = 0
         title = 'Capture TD-1 Data'
         text  = ('Select a loaded lane to capture TD-1 data, or select ALL. ')
-        # TODO: add error here if TD1 does not exist
 
         # Create buttons for each lane and group every 4 lanes together
         for lane in self.afc.lanes.values():

@@ -185,8 +185,6 @@ class afcPrep:
                     # Commenting out until there is better handling of this variable as it could cause someone to not be able to load their lane if klipper crashes
                     # if 'status' in units[cur_lane.unit][cur_lane.name]: cur_lane.status = units[cur_lane.unit][cur_lane.name]['status']
 
-                    # TODO: Load previous TD1 data
-
         for unit in self.afc.units.keys():
             try: cur_unit = self.afc.units[unit]
             except:

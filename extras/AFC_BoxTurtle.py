@@ -253,9 +253,9 @@ class afcBoxTurtle(afcUnit):
 
         cur_lane.move(bow_pos * -1, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
 
-        while( cur_hub.state ):
-            # TODO: Add timeout logic here
-            cur_lane.move(cur_lane.short_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+        # Reset to hub
+        self.calc_position(cur_lane, lambda: cur_lane.hub_obj.state, 0,
+                           cur_lane.short_move_dis, tol, 200, checkpoint)
 
         cur_lane.move(cur_hub.hub_clear_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
 
