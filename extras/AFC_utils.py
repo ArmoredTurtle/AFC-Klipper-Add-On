@@ -387,7 +387,7 @@ class AFC_moonraker:
         :params data: Data to send to endpoint
         """
         if self._lane_data:
-            url = urljoin( self.host, '/machine/set_lane_data')
+            url = urljoin( self.host, 'machine/set_lane_data')
             req = Request( url=url, data=json.dumps(data).encode(),
                         method="POST", headers={"Content-Type": "application/json"})
             if self._get_results(req) is None:

@@ -1067,7 +1067,7 @@ class AFCLane:
         """
         Clears lane data that is currently stored at moonrakers `machine/set_lane_data` endpoint
         """
-        if self.afc.lane_data_enabled and "T" in self.map:
+        if self.afc.lane_data_enabled and self.map is not None and "T" in self.map:
             lane_number = self.map.replace("T", "")
             lane_data = {"data": { self.name : {
                 "color"         :  "",

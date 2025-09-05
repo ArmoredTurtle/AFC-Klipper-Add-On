@@ -431,7 +431,7 @@ class afcUnit:
         self._print_function_not_defined(self.calibrate_bowden.__name__)
 
     def calibrate_td1(self, cur_lane, dis, tol):
-        self._print_function_not_defined(self.calibrate_bowden.__name__)
+        self._print_function_not_defined(self.calibrate_td1.__name__)
 
     def calibrate_hub(self, cur_lane, tol):
         self._print_function_not_defined(self.calibrate_hub.__name__)
