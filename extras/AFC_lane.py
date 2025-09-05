@@ -415,6 +415,12 @@ class AFCLane:
             self.extruder_stepper   = self.drive_stepper.extruder_stepper
 
     def get_color(self):
+        """
+        Helper function for returning current color
+
+        :return str: If TD-1 device is present, returns scanned color. If its not present, returns
+                     manually entered or color from spoolman
+        """
         color = self.color
         if "color" in self.td1_data:
             color = f"#{self.td1_data['color']}"
@@ -449,6 +455,11 @@ class AFCLane:
                 self.espooler.assist(0)
 
     def move_auto_speed(self, distance):
+        """
+        Helper function for determining speed and accel from passed in distance
+
+        :param distance: Distance to move filament
+        """
         dist_hub_move_speed, dist_hub_move_accel, assist_active = self.get_speed_accel(mode=SpeedMode.NONE,
                                                                                        distance=distance)
         self.move(distance, dist_hub_move_speed, dist_hub_move_accel, assist_active)
@@ -567,6 +578,18 @@ class AFCLane:
         self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
         self.afc.error.AFC_error(msg)
 
+    def _prep_capture_td1(self):
+        """
+        Common function to grab TD1 data once user inserts filament into a lane. Only happens if user has specified
+        this by setting `capture_td1_when_loaded: True` and if hub is clear and toolhead is not loaded.
+        """
+        if self.td1_when_loaded:
+            if not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
+                self.get_td1_data()
+            else:
+                self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
+
+
     def load_callback(self, eventtime, state):
         self.load_state = state
         if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
@@ -590,10 +613,12 @@ class AFCLane:
             self.load_debounce_button._old_note_filament_present(eventtime, load_state)
 
         if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
-            if load_state:
+            if load_state and not self.tool_loaded:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
                 self.afc.spool._set_values(self)
+                # Check if user wants to get TD1 data when loading
+                self._prep_capture_td1()
             else:
                 # Don't run if user disabled sensor in gui
                 if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
@@ -605,6 +630,7 @@ class AFCLane:
                     else:
                         self._perform_pause_runout()
                 elif self.status != "calibrating":
+                    self.tool_loaded = False
                     self.afc.function.afc_led(self.led_not_ready, self.led_index)
                     self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
@@ -678,16 +704,10 @@ class AFCLane:
                         self.status = AFCLaneState.LOADED
                         self.unit_obj.lane_loaded(self)
                         self.afc.spool._set_values(self)
-                    # Check if user wants to get TD data when loading, only happens if hub is clear and toolhead is not
-                    # loaded.
-                    # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a
-                    # different extruder/hub
-					# TODO: add this to HTLF as well
-                    if self.td1_when_loaded:
-                        if not self.hub_obj.state and self.afc.function.get_current_lane_obj() is None:
-                            self.get_td1_data()
-                        else:
-                            self.logger.info(f"Cannot get TD-1 data for {self.name}, either toolhead is loaded or hub shows filament in path")
+                        # Check if user wants to get TD1 data when loading
+                        # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a
+                        # different extruder/hub
+                        self._prep_capture_td1()
 
                 elif self.prep_state == True and self.load_state == True and not self.afc.function.is_printing():
                     message = 'Cannot load {} load sensor is triggered.'.format(self.name)
@@ -726,6 +746,7 @@ class AFCLane:
                     self._perform_pause_runout()
             elif not prep_state:
                 # Filament is unloaded
+                self.tool_loaded = False
                 self.status = AFCLaneState.NONE
                 self.loaded_to_hub = False
                 self.td1_data = {}
@@ -1023,6 +1044,9 @@ class AFCLane:
 
 
     def send_lane_data(self):
+        """
+        Sends lane data to moonrakers `machine/set_lane_data` endpoint
+        """
         if self.afc.lane_data_enabled and self.map is not None and "T" in self.map:
             scan_time = self.td1_data['scan_time'] if 'scan_time' in self.td1_data else ""
             td        = self.td1_data['td']        if 'td'        in self.td1_data else ""
@@ -1040,6 +1064,9 @@ class AFCLane:
             self.afc.moonraker.send_lane_data(lane_data)
 
     def clear_lane_data(self):
+        """
+        Clears lane data that is currently stored at moonrakers `machine/set_lane_data` endpoint
+        """
         if self.afc.lane_data_enabled and "T" in self.map:
             lane_number = self.map.replace("T", "")
             lane_data = {"data": { self.name : {
@@ -1054,6 +1081,10 @@ class AFCLane:
             self.afc.moonraker.send_lane_data(lane_data)
 
     def get_td1_data(self):
+        """
+        Captures TD1 data for lane. Has error checking to verify that lane is loaded, hub is not blocked 
+        and that TD1 device is still detected before trying to capture data.
+        """
         max_move_tries = 0
         status = True
         msg = ""

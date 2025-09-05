@@ -52,7 +52,7 @@ class afcFunction:
         self.register_commands(self.show_macros, 'AFC_TEST_LANES', self.cmd_AFC_TEST_LANES,
                                self.cmd_AFC_TEST_LANES_help)
         # Always adding this so it will show up as a button in guis
-        self.register_commands(self.show_macros, 'GET_TD_ONE_DATA', self.cmd_GET_TD_ONE_DATA,   self.cmd_GET_TD_ONE_DATA_help)
+        self.register_commands(self.show_macros, 'AFC_GET_TD_ONE_DATA', self.cmd_AFC_GET_TD_ONE_DATA,   self.cmd_AFC_GET_TD_ONE_DATA_help)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -490,13 +490,13 @@ class afcFunction:
 
     def check_for_td1_error(self, serial_number=None, print_error=True):
         '''
-        Function checks to if all or specific TD-1 devices found have any reported errors
+        Function checks to see if all or specific TD-1 devices found have any reported errors
 
         If specific serial number is provided, this function will only check that specific number for an error
 
         :param serial_number: Specific serial number to check for error
         :param print_error: Prints error message to logger if set to True
-        :return bool,str: Returns truple of True/False, error message if error occurred
+        :return bool,str: Returns tuple of True/False, error message if error occurred
         '''
         error_occurred = False
         error_message = ""
@@ -1012,6 +1012,7 @@ class afcFunction:
             if set_tool_start_back_to_none:
                 cur_lane.extruder_obj.tool_start = None
 
+        # Calibration for TD1 bowden length
         if td1 is not None:
             td1_lane = self.afc.lanes[td1]
             if td1_lane.hub_obj.state:
@@ -1269,8 +1270,8 @@ class afcFunction:
 
         self.afc.gcode.respond_info('{} reset to hub, take necessary action'.format(lane))
 
-    cmd_GET_TD_ONE_DATA_help = "Display's prompt to easily get TD1 data for lanes"
-    def cmd_GET_TD_ONE_DATA(self, gcmd):
+    cmd_AFC_GET_TD_ONE_DATA_help = "Display's prompt to easily get TD1 data for lanes"
+    def cmd_AFC_GET_TD_ONE_DATA(self, gcmd):
         """
         This macro displays a prompt to select which lane or all lanes to gather TD-1 data from.
 
@@ -1278,12 +1279,12 @@ class afcFunction:
 
         Usage
         -----
-        `GET_TD_ONE_DATA`
+        `AFC_GET_TD_ONE_DATA`
 
         Example
         -----
         ```
-        GET_TD_ONE_DATA
+        AFC_GET_TD_ONE_DATA
         ```
         """
         prompt = AFCprompt(gcmd, self.logger)

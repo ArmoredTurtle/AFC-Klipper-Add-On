@@ -139,8 +139,12 @@ class afcUnit:
         self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
 
     def handle_moonraker_connect(self):
+        """
+        Registers macros commands after moonrakers connection has been established so that endpoint can be queried successfully
+        to check if TD1 is defined in users moonrakers.conf file.
+        """
         if self.afc.td1_defined:
-            self.gcode.register_mux_command('UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_UNIT_TD_ONE_CALIBRATION_help)
+            self.gcode.register_mux_command('AFC_UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_AFC_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_AFC_UNIT_TD_ONE_CALIBRATION_help)
 
     def get_status(self, eventtime=None):
         response = {}
@@ -179,8 +183,11 @@ class afcUnit:
         # Selection buttons
         buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
         buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
+
+        # Add button for TD-1 calibration if user has one connected and defined
         if self.afc.td1_defined:
-            buttons.append(("Calibrate TD-1 Length", "UNIT_TD_ONE_CALIBRATION UNIT={}".format(self.name), "primary"))
+            buttons.append(("Calibrate TD-1 Length", "AFC_UNIT_TD_ONE_CALIBRATION UNIT={}".format(self.name), "primary"))
+
         # Button back to previous step
         back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
 
@@ -292,20 +299,20 @@ class afcUnit:
         prompt.create_custom_p(title, text, None,
                                True, buttons, back)
 
-    cmd_UNIT_TD_ONE_CALIBRATION_help = 'open prompt to calibrate the td1_bowden_length from a lane in the unit'
-    def cmd_UNIT_TD_ONE_CALIBRATION(self, gcmd):
+    cmd_AFC_UNIT_TD_ONE_CALIBRATION_help = 'open prompt to calibrate the td1_bowden_length from a lane in the unit'
+    def cmd_AFC_UNIT_TD_ONE_CALIBRATION(self, gcmd):
         """
         Open a prompt to calibrate the Bowden length to a TD1 device for a specific lane in the selected unit. Provides buttons
         for each lane, with a note to only calibrate one lane per unit.
 
         Usage
         -----
-        `UNIT_TD_ONE_CALIBRATION UNIT=<unit>`
+        `AFC_UNIT_TD_ONE_CALIBRATION UNIT=<unit>`
 
         Example
         -----
         ```
-        UNIT_TD_ONE_CALIBRATION UNIT=Turtle_1
+        AFC_UNIT_TD_ONE_CALIBRATION UNIT=Turtle_1
         ```
         """
         prompt = AFCprompt(gcmd, self.logger)
@@ -439,11 +446,19 @@ class afcUnit:
     def calibrate_lane(self, cur_lane, tol):
         self._print_function_not_defined(self.calibrate_lane.__name__)
 
-    def cmd_TEST_TD(self, gcmd):
-        lane = gcmd.get("LANE")
-        self.get_td1_data( self.lanes[lane] )
-
     def get_td1_data(self, cur_lane, compare_time):
+        """
+        Queries moonrakers endpoint to get td1 data and check to see if data is valid and time
+        in data is greater than passed in time as this is how determination is made that filament
+        made it TD1 device. Once filament is detected and valued, information is save to passed in lane.
+
+        :param cur_lane: Current lane to apply TD1 data to, also check's to see if lane has a specific TD1 ID
+                         assigned to the lane.
+        :param compare_time: Time to compare returned data to, which helps verify that the data is valid and
+                             filament has reached TD1 device
+
+        :return boolean: True once filament is detected in TD1 device
+        """
         td1_data = self.afc.moonraker.get_td1_data()
         t_delta = timedelta(seconds = 10)
         valid_data = False
@@ -454,9 +469,9 @@ class afcUnit:
 
             if cur_lane.td1_device_id is not None:
                 if cur_lane.td1_device_id in td1_data:
-                    data = td1_data[cur_lane.td1_device_id ]
+                    data = td1_data[cur_lane.td1_device_id]
                 else:
-                    self.afc.error.AFC_error(f"TD-1 Device ID ({cur_lane.td1_device_id}) supplied but ID not found.", pause=False)
+                    self.afc.error.AFC_error(f"TD-1 Device ID ({cur_lane.td1_device_id}) supplied, but ID not found.", pause=False)
                     return False
 
             if data["scan_time"] is None:

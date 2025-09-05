@@ -8,8 +8,6 @@ import traceback
 from configparser import Error as error
 from datetime import datetime
 
-
-
 try: from extras.AFC_utils import ERROR_STR
 except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
 
@@ -206,6 +204,16 @@ class afcBoxTurtle(afcUnit):
             return False, "CALIBRATE_AFC is not currently supported without tool start sensor", 0
 
     def calibrate_td1(self, cur_lane, dis, tol):
+        """
+        Calibration function for automatically determining td1_bowden_length
+
+        :param cur_lane: Lane to use for calibration
+        :param dis: Distance step to move when calibrating
+        :param tol: Tolerance for fine adjustments during calibration, only used when moving filament to hub
+
+        :return success,message,length: Returns tuple, when successful returns True,message, and length of bowden to TD1
+                                        When error occurs, returns False,message, and length of current bowden before error occurred
+        """
         bow_pos = 0
         cur_hub = cur_lane.hub_obj
 
@@ -233,7 +241,7 @@ class afcBoxTurtle(afcUnit):
             if bow_pos > cur_hub.afc_bowden_length:
                 # fault if move to TD1 is not detected
                 msg = 'TD-1 failed to detect filament after moving {}mm'.format(bow_pos)
-                return False, msg, bow_pos # TODO: is return the right thing to do here.....
+                return False, msg, bow_pos
 
             compare_time = datetime.now()
             bow_pos += dis

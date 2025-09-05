@@ -106,7 +106,7 @@ class afcPrep:
         self.afc.print_version(console_only=True)
 
         # Try and connect to moonraker
-        moonraker_connected = self.afc.handle_moonraker_connect()
+        self.afc.handle_moonraker_connect()
 
         ## load Unit stored variables
         units={}

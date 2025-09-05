@@ -179,7 +179,6 @@ class afc:
 
         self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 4) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
-        self.max_move_tries         = config.getint("max_move_tries", 20)
 
         self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
 
@@ -304,9 +303,8 @@ class afc:
 
             self.printer.send_event("afc:moonraker_connect")
         except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error error: {}\n{}".format(e, traceback.format_exc()))
+            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error\nError: {}\n{}".format(e, traceback.format_exc()))
             self.spoolman = None                      # set to none if not found
-        return True
 
     def handle_connect(self):
         """

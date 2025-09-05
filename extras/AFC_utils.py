@@ -210,7 +210,7 @@ class AFC_moonraker:
                 return True
             else:
                 toolhead.dwell(1)
-        self.logger.info(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
+        self.logger.warning(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
         return False
 
     def get_spoolman_server(self)->str:
@@ -363,7 +363,7 @@ class AFC_moonraker:
         Send's TD-1 serial to moonrakers `machine/td1_reboot` endpoint to force restart TD-1
         device
 
-        :param seriam_number: Serial number of TD-1 device to reboot
+        :param serial_number: Serial number of TD-1 device to reboot
         :return dict: Status of reboot,
                       "ok"-reboot happened successfully
                       "serial_error"-serial number was not supplied
@@ -380,7 +380,7 @@ class AFC_moonraker:
 
     def send_lane_data(self, data):
         """
-        Send lane data for moonrakers `machine/set_lane_data` endpoint so that
+        Send lane data to moonrakers `machine/set_lane_data` endpoint so that
         other programs can query moonrakers `machine/lane_data` endpoint to see what lanes
         are loaded and what their colors are.
 
@@ -391,4 +391,4 @@ class AFC_moonraker:
             req = Request( url=url, data=json.dumps(data).encode(),
                         method="POST", headers={"Content-Type": "application/json"})
             if self._get_results(req) is None:
-                self.logger.error("Error sending lane data")
+                self.logger.error("Error sending lane data, check AFC.log for more information")
