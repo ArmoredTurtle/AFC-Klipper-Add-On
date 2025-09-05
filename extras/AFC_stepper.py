@@ -17,6 +17,8 @@ except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".f
 try: from extras.AFC_lane import AFCLane
 except: raise error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
 
+LARGE_TIME_OFFSET = 99999.9
+
 class AFCExtruderStepper(AFCLane):
     def __init__(self, config):
         super().__init__(config)
@@ -26,7 +28,7 @@ class AFCExtruderStepper(AFCLane):
         # Check for Klipper new motion queuing update
         try:
             self.motion_queuing = self.printer.load_object(config, "motion_queuing")
-        except error:
+        except Exception:
             self.motion_queuing = None
 
         self.next_cmd_time = 0.
@@ -95,8 +97,8 @@ class AFCExtruderStepper(AFCLane):
 
             if self.motion_queuing is None:
                 self.extruder_stepper.stepper.generate_steps(print_time)
-                self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
-                                        print_time + 99999.9)
+                self.trapq_finalize_moves(self.trapq, print_time + LARGE_TIME_OFFSET,
+                                        print_time + LARGE_TIME_OFFSET)
                 toolhead.note_mcu_movequeue_activity(print_time)
             else:
                 self.motion_queuing.note_mcu_movequeue_activity(print_time)
