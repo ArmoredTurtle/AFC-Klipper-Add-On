@@ -1082,7 +1082,7 @@ class AFCLane:
 
     def get_td1_data(self):
         """
-        Captures TD1 data for lane. Has error checking to verify that lane is loaded, hub is not blocked 
+        Captures TD1 data for lane. Has error checking to verify that lane is loaded, hub is not blocked
         and that TD1 device is still detected before trying to capture data.
         """
         max_move_tries = 0
