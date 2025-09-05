@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Check to verify that pin_tool_start/end is not set to `Unknown`, throws error if pins are set to `Unknown`.
 ### Fixes
-- Issue with compatibility issue with klipper after version v0.13.0-190-g5eb07966
+- Compatibility issue with klipper after version v0.13.0-190-g5eb07966
 
 ## [2025-09-01]
 ### Fixes
