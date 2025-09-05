@@ -22,7 +22,7 @@ class AFCExtruderStepper(AFCLane):
         super().__init__(config)
 
         self.extruder_stepper   = extruder.ExtruderStepper(config)
-        
+
         # Check for Klipper new motion queuing update
         try:
             self.motion_queuing = self.printer.load_object(config, "motion_queuing")
@@ -30,7 +30,7 @@ class AFCExtruderStepper(AFCLane):
             self.motion_queuing = None
 
         self.next_cmd_time = 0.
-        
+
         ffi_main, ffi_lib = chelper.get_ffi()
         self.stepper_kinematics = ffi_main.gc(
             ffi_lib.cartesian_stepper_alloc(b'x'), ffi_lib.free)
@@ -42,7 +42,7 @@ class AFCExtruderStepper(AFCLane):
             self.trapq                  = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
             self.trapq_append           = ffi_lib.trapq_append
             self.trapq_finalize_moves   = ffi_lib.trapq_finalize_moves
-        
+
         self.assist_activate=False
 
         # Current to use while printing, set to a lower current to reduce stepper heat when printing.
