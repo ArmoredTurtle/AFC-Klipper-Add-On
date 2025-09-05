@@ -1025,7 +1025,7 @@ class afcFunction:
             if not checked:
                 fail_string = f"{td1} failed to calibrate bowden length {msg}"
                 self.afc.error.AFC_error(fail_string, pause=False)
-                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='TD-1 Calibration Failed' FAIL={td1} DISTANCE={pos} msg='{fail_string}' RESET=0")
+                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='TD-1 Calibration Failed' FAIL={td1} DISTANCE={pos} msg='{fail_string}' RESET=1")
                 return
             else:
                 calibrated.append(f"'TD1_Bowden_length: {td1}'")
@@ -1351,7 +1351,7 @@ class afcFunction:
                 if cur_lane.load_state and cur_lane.prep_state:
                     success, msg = cur_lane.get_td1_data()
                     if not success:
-                        self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=0 msg='{msg}' RESET=0")
+                        self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=25 msg='{msg}' RESET=1")
                         return
 
             lanes_captured = "'TD-1 Data captured for all lanes'"
@@ -1362,7 +1362,7 @@ class afcFunction:
                 success, msg = cur_lane.get_td1_data()
                 if not success:
                     msg = msg.replace("\n", " ")
-                    self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=0 msg='{msg}' RESET=0")
+                    self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=25 msg='{msg}' RESET=1")
                     return
                 lanes_captured = f"'TD-1 Data captured for {cur_lane.name}'"
             else:

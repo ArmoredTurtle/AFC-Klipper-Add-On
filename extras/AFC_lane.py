@@ -1124,6 +1124,7 @@ class AFCLane:
                     fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
                     fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
                     self.afc.error.AFC_error(fail_message, pause=False)
+                    self.do_enable(False)
                     return False, fail_message
 
                 if max_move_tries == 0:
@@ -1150,6 +1151,7 @@ class AFCLane:
                     fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
                     fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
                     self.afc.error.AFC_error(fail_message, pause=False)
+                    self.do_enable(False)
                     return False, fail_message
 
                 self.move_auto_speed(self.short_move_dis * -1)

@@ -234,6 +234,7 @@ class afcBoxTurtle(afcUnit):
         if not success:
             # if movement does not succeed fault and return values to calibration macro
             msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
+            cur_lane.do_enable(False)
             return False, msg, hub_pos
 
         compare_time = datetime.now()
@@ -241,6 +242,7 @@ class afcBoxTurtle(afcUnit):
             if bow_pos > cur_hub.afc_bowden_length:
                 # fault if move to TD1 is not detected
                 msg = 'TD-1 failed to detect filament after moving {}mm'.format(bow_pos)
+                cur_lane.do_enable(False)
                 return False, msg, bow_pos
 
             compare_time = datetime.now()
@@ -261,6 +263,7 @@ class afcBoxTurtle(afcUnit):
         cur_hub.td1_bowden_length = bow_pos
         self.afc.function.ConfigRewrite(cur_hub.fullname, "td1_bowden_length", bow_pos, cal_msg)
 
+        cur_lane.do_enable(False)
         self.afc.save_vars()
         # self.logger.info(f"td1_bowden_length: {bow_pos}")
         return True, "td1_bowden_length calibration successful", bow_pos
