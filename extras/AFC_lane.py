@@ -1144,12 +1144,14 @@ class AFCLane:
                 status = False
 
             self.move_auto_speed(self.hub_obj.td1_bowden_length * -1)
+            if success:
+                self.send_lane_data()
 
             max_move_tries = 0
             while( self.hub_obj.state ):
                 if max_move_tries >= self.afc.max_move_tries:
-                    fail_message = f"Failed to trigger hub {self.hub_obj.name} for {self.name}\n"
-                    fail_message += "Cannot capture TD-1 data, verify that hub switch is properly working before continuing"
+                    fail_message = f"Failed to un-trigger hub {self.hub_obj.name} for {self.name}\n"
+                    fail_message += "Verify that hub switch is properly working before continuing"
                     self.afc.error.AFC_error(fail_message, pause=False)
                     self.do_enable(False)
                     return False, fail_message
@@ -1159,7 +1161,6 @@ class AFCLane:
 
             self.move_auto_speed(self.hub_obj.hub_clear_move_dis * -1)
             self.do_enable(False)
-            self.send_lane_data()
 
         else:
             msg = "Cannot gather TD-1 data, hub sensor not clear. Please clear hub and try again."
