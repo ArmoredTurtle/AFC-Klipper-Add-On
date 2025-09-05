@@ -1350,7 +1350,7 @@ class afcFunction:
                 if cur_lane.load_state and cur_lane.prep_state:
                     success, msg = cur_lane.get_td1_data()
                     if not success:
-                        self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=25 msg='{msg}' RESET=1")
+                        self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=0 msg='{msg}' RESET=0")
                         return
 
             lanes_captured = "'TD-1 Data captured for all lanes'"
@@ -1361,7 +1361,7 @@ class afcFunction:
                 success, msg = cur_lane.get_td1_data()
                 if not success:
                     msg = msg.replace("\n", " ")
-                    self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=25 msg='{msg}' RESET=1")
+                    self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=0 msg='{msg}' RESET=0")
                     return
                 lanes_captured = f"'TD-1 Data captured for {cur_lane.name}'"
             else:
