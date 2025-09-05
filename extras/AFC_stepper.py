@@ -94,18 +94,20 @@ class AFCExtruderStepper(AFCLane):
             print_time = print_time + accel_t + cruise_t + accel_t
 
             if self.motion_queuing is None:
-                self.extruder_stepper.stepper.generate_steps(print_time) # old
-                self.trapq_finalize_moves(self.trapq, print_time + 99999.9, #old
-                                        print_time + 99999.9) #old
+                self.extruder_stepper.stepper.generate_steps(print_time)
+                self.trapq_finalize_moves(self.trapq, print_time + 99999.9,
+                                        print_time + 99999.9)
+                toolhead.note_mcu_movequeue_activity(print_time)
+            else:
+                self.motion_queuing.note_mcu_movequeue_activity(print_time)
 
-            toolhead.note_mcu_movequeue_activity(print_time)
             toolhead.dwell(accel_t + cruise_t + accel_t)
             toolhead.flush_step_generation()
             self.extruder_stepper.stepper.set_trapq(prev_trapq)
             self.extruder_stepper.stepper.set_stepper_kinematics(prev_sk)
             if self.motion_queuing is not None:
                 self.motion_queuing.wipe_trapq(self.trapq)
-            toolhead.wait_moves() # keep for both maybe...
+            toolhead.wait_moves()
 
     def move(self, distance, speed, accel, assist_active=False):
         """
