@@ -79,8 +79,8 @@ class afcFunction:
         to check if TD1 is defined in users moonrakers.conf file.
         """
         if self.afc.td1_defined:
-            self.afc.gcode.register_command('GET_TD_ONE_LANE_DATA', self.cmd_GET_TD_ONE_LANE_DATA,  desc=self.cmd_GET_TD_ONE_LANE_DATA_help)
-            self.afc.gcode.register_command('AFC_RESET_TD1',        self.cmd_AFC_RESET_TD1,         desc=self.cmd_AFC_RESET_TD1_help)
+            self.afc.gcode.register_command('AFC_GET_TD_ONE_LANE_DATA', self.cmd_AFC_GET_TD_ONE_LANE_DATA,  desc=self.cmd_AFC_GET_TD_ONE_LANE_DATA_help)
+            self.afc.gcode.register_command('AFC_RESET_TD1',            self.cmd_AFC_RESET_TD1,             desc=self.cmd_AFC_RESET_TD1_help)
 
     def handle_connect(self):
         """
@@ -1298,7 +1298,7 @@ class afcFunction:
         for lane in self.afc.lanes.values():
             if lane.load_state:
                 button_label = "{}".format(lane)
-                button_command = "GET_TD_ONE_LANE_DATA LANE={}".format(lane)
+                button_command = "AFC_GET_TD_ONE_LANE_DATA LANE={}".format(lane)
                 button_style = "primary" if index % 2 == 0 else "secondary"
                 group_buttons.append((button_label, button_command, button_style))
 
@@ -1313,7 +1313,7 @@ class afcFunction:
 
         total_buttons = sum(len(group) for group in buttons)
         if total_buttons > 1:
-            all_lanes = [('All lanes', 'GET_TD_ONE_LANE_DATA LANE=all', "default")]
+            all_lanes = [('All lanes', 'AFC_GET_TD_ONE_LANE_DATA LANE=all', "default")]
         else:
             all_lanes = None
         if total_buttons == 0:
@@ -1322,20 +1322,20 @@ class afcFunction:
         prompt.create_custom_p(title, text, all_lanes,
                                True, buttons, None)
 
-    cmd_GET_TD_ONE_LANE_DATA_help = "Captures TD-1 for specified LANE"
-    def cmd_GET_TD_ONE_LANE_DATA(self, gcmd):
+    cmd_AFC_GET_TD_ONE_LANE_DATA_help = "Captures TD-1 for specified LANE"
+    def cmd_AFC_GET_TD_ONE_LANE_DATA(self, gcmd):
         """
         This macro gets TD-1 data for the specified lane by moving filament the calibrated TD-1 length.
         Calibrating TD-1 bowden length with AFC_CALIBRATION should be ran first before calling this macro.
 
         Usage
         -----
-        `GET_TD_ONE_LANE_DATA LANE=<lane>`
+        `AFC_GET_TD_ONE_LANE_DATA LANE=<lane>`
 
         Example
         -----
         ```
-        GET_TD_ONE_LANE_DATA LANE=lane1
+        AFC_GET_TD_ONE_LANE_DATA LANE=lane1
         ```
 
         NO_DOC: True
@@ -1374,7 +1374,7 @@ class afcFunction:
     cmd_AFC_RESET_TD1_help = "Sends reboot command to specified TD-1 device"
     def cmd_AFC_RESET_TD1(self, gcmd):
         """
-        This macro calls moonrakers api endpoint to reset specified TD-1 device by supplied serial number
+        This macro calls moonrakers api endpoint to reset specified TD-1 device by supplied serial number.
 
         Usage
         -----
