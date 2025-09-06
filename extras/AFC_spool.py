@@ -86,10 +86,12 @@ class AFCSpool:
         self.afc.tool_cmds[map_cmd]=lane
         map_switch = cur_lane.map
         cur_lane.map = map_cmd
+        cur_lane.send_lane_data()
 
         sw_lane = self.afc.lanes[lane_switch]
         self.afc.tool_cmds[map_switch] = lane_switch
         sw_lane.map = map_switch
+        sw_lane.send_lane_data()
         self.afc.save_vars()
 
     cmd_SET_COLOR_help = "Set filaments color for a lane"
@@ -119,6 +121,7 @@ class AFCSpool:
             return
         cur_lane = self.afc.lanes[lane]
         cur_lane.color = '#{}'.format(color.replace('#',''))
+        cur_lane.send_lane_data()
         self.afc.save_vars()
 
     cmd_SET_WEIGHT_help = "Sets filaments weight for a lane"
@@ -195,6 +198,7 @@ class AFCSpool:
         if density is not None:
             cur_lane.filament_density = density
 
+        cur_lane.send_lane_data()
         self.afc.save_vars()
 
     def set_active_spool(self, ID):
@@ -285,6 +289,7 @@ class AFCSpool:
         cur_lane.color = ''
         cur_lane.weight = 0
         cur_lane.extruder_temp = None
+        cur_lane.bed_temp = None
 
     def set_spoolID(self, cur_lane, SpoolID, save_vars=True):
         if self.afc.spoolman is not None:
@@ -295,6 +300,7 @@ class AFCSpool:
 
                     cur_lane.material           = self._get_filament_values(result['filament'], 'material')
                     cur_lane.extruder_temp      = self._get_filament_values(result['filament'], 'settings_extruder_temp')
+                    cur_lane.bed_temp           = self._get_filament_values(result['filament'], 'settings_bed_temp')
                     cur_lane.filament_density   = self._get_filament_values(result['filament'], 'density')
                     cur_lane.filament_diameter  = self._get_filament_values(result['filament'], 'diameter')
                     cur_lane.empty_spool_weight = self._get_filament_values(result, 'spool_weight', default=190)
@@ -305,6 +311,8 @@ class AFCSpool:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'multi_color_hexes').split(",")[0])
                     else:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'color_hex'))
+
+                    cur_lane.send_lane_data()
 
                 except Exception as e:
                     self.afc.error.AFC_error("Error when trying to get Spoolman data for ID:{}, Error: {}".format(SpoolID, e), False)
