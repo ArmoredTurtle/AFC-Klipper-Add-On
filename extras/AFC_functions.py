@@ -1150,7 +1150,9 @@ class afcFunction:
 
         if long_dis is not None:
             try:
-                long_dis = abs(float(long_dis))
+                long_dis = float(long_dis)
+                if long_dis <= 0:
+                    raise ValueError("DISTANCE must be a positive number.")
             except (ValueError, TypeError):
                 prompt.p_end()
                 self.afc.error.AFC_error("DISTANCE must be a valid number.", pause=False)
