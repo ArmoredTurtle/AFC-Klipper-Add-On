@@ -1137,14 +1137,28 @@ class afcFunction:
         prompt = AFCprompt(gcmd, self.logger)
         lane = gcmd.get('LANE', None)
         long_dis = gcmd.get('DISTANCE', None)
-        cur_lane = self.afc.lanes[lane]
-        CUR_HUB = cur_lane.hub_obj
-        short_move = cur_lane.short_move_dis * 2
 
-        if lane is not None and lane not in self.afc.lanes:
+        if not lane:
+            prompt.p_end()
+            self.afc.error.AFC_error("No lane selected to reset, please provide a lane to reset.", pause=False)
+            return
+
+        if lane not in self.afc.lanes:
             prompt.p_end()
             self.afc.error.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
             return
+
+        if long_dis is not None:
+            try:
+                long_dis = abs(float(long_dis))
+            except (ValueError, TypeError):
+                prompt.p_end()
+                self.afc.error.AFC_error("DISTANCE must be a positive number.", pause=False)
+                return
+
+        cur_lane = self.afc.lanes[lane]
+        CUR_HUB = cur_lane.hub_obj
+        short_move = cur_lane.short_move_dis * 2
 
         if not CUR_HUB.state:
             prompt.p_end()
