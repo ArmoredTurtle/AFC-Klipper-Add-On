@@ -907,8 +907,9 @@ class afcFunction:
             self.logger.info('Tool must be unloaded to calibrate system')
             return
 
-        calibrated = []
-        checked    = False
+        calibrated  = []
+        checked     = False
+        title       = "AFC Calibration"
 
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.afc.lanes:
@@ -1014,25 +1015,26 @@ class afcFunction:
 
         # Calibration for TD1 bowden length
         if td1 is not None:
+            title = "TD-1 Calibration"
             td1_lane = self.afc.lanes[td1]
             if td1_lane.hub_obj.state:
                 msg = f"{td1_lane.hub_obj.name} hub is triggered, make sure hub is clear before trying to calibrate TD-1 bowden length"
                 self.afc.error.AFC_error(msg, pause=False)
-                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='TD-1 Calibration Failed' FAIL={td1} DISTANCE=0 msg='{msg}' RESET=0")
+                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='{title} Failed' FAIL={td1} DISTANCE=0 msg='{msg}' RESET=0")
                 return
 
             checked, msg, pos = td1_lane.unit_obj.calibrate_td1( td1_lane, dis, tol)
             if not checked:
                 fail_string = f"{td1} failed to calibrate bowden length {msg}"
                 self.afc.error.AFC_error(fail_string, pause=False)
-                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='TD-1 Calibration Failed' FAIL={td1} DISTANCE={pos} msg='{fail_string}' RESET=1")
+                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='{title} Failed' FAIL={td1} DISTANCE={pos} msg='{fail_string}' RESET=1")
                 return
             else:
                 calibrated.append(f"'TD1_Bowden_length: {td1}'")
 
         if checked:
             lanes_calibrated = ','.join(calibrated)
-            self.afc.gcode.run_script_from_command(f"AFC_CALI_COMP TITLE='TD-1 Calibration Completed' CALI={lanes_calibrated}")
+            self.afc.gcode.run_script_from_command(f"AFC_CALI_COMP TITLE='{title} Completed' CALI={lanes_calibrated}")
 
     cmd_AFC_CALI_COMP_help = 'Opens prompt after calibration is complete'
     def cmd_AFC_CALI_COMP(self, gcmd):
