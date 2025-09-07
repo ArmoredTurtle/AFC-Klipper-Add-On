@@ -1153,7 +1153,7 @@ class afcFunction:
                 long_dis = abs(float(long_dis))
             except (ValueError, TypeError):
                 prompt.p_end()
-                self.afc.error.AFC_error("DISTANCE must be a positive number.", pause=False)
+                self.afc.error.AFC_error("DISTANCE must be a valid number.", pause=False)
                 return
 
         cur_lane = self.afc.lanes[lane]
