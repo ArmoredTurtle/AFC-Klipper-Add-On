@@ -635,9 +635,9 @@ class AFCLane:
                     self.status = AFCLaneState.NONE
                     self.loaded_to_hub = False
                     self.td1_data = {}
-                    self.afc.spool._clear_values(self)
+                    self.afc.spool.clear_values(self)
                     self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
-                    self.clear_lane_data()
+
         self.afc.save_vars()
 
     def prep_callback(self, eventtime, state):
@@ -750,9 +750,8 @@ class AFCLane:
                 self.status = AFCLaneState.NONE
                 self.loaded_to_hub = False
                 self.td1_data = {}
-                self.afc.spool._clear_values(self)
+                self.afc.spool.clear_values(self)
                 self.unit_obj.lane_unloaded(self)
-                self.clear_lane_data()
 
         self.afc.save_vars()
 

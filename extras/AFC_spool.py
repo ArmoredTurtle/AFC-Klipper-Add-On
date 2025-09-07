@@ -280,7 +280,7 @@ class AFCSpool:
             self.next_spool_id = ''
             self.set_spoolID(cur_lane, spool_id)
 
-    def _clear_values(self, cur_lane):
+    def clear_values(self, cur_lane):
         """
         Helper function for clearing out lane spool values
         """
@@ -290,6 +290,7 @@ class AFCSpool:
         cur_lane.weight = 0
         cur_lane.extruder_temp = None
         cur_lane.bed_temp = None
+        cur_lane.clear_lane_data()
 
     def set_spoolID(self, cur_lane, SpoolID, save_vars=True):
         if self.afc.spoolman is not None:
@@ -317,11 +318,11 @@ class AFCSpool:
                 except Exception as e:
                     self.afc.error.AFC_error("Error when trying to get Spoolman data for ID:{}, Error: {}".format(SpoolID, e), False)
             else:
-                self._clear_values(cur_lane)
+                self.clear_values(cur_lane)
         else:
             # Clears out values if users are not using spoolman, this is to cover this function being called from LANE UNLOAD and clearing out
             # Manually entered information
-            self._clear_values(cur_lane)
+            self.clear_values(cur_lane)
         if save_vars: self.afc.save_vars()
 
     cmd_SET_RUNOUT_help = "Set runout lane"
