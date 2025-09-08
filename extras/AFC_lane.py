@@ -135,10 +135,6 @@ class AFCLane:
         self.td1_when_loaded    = config.getboolean("capture_td1_when_loaded", None)
         self.td1_device_id      = config.get("td1_device_id", None)
 
-        # If td1_when_loaded is defined, check to make sure [td1] is setup in moonraker config
-        # TODO figure out a different solution for this
-        # if self.td1_when_loaded is not None:
-        #     self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
 
         self.printer.register_event_handler("AFC_unit_{}:connect".format(self.unit),self.handle_unit_connect)
 
@@ -245,7 +241,6 @@ class AFCLane:
             if led is None:
                 raise error(error_string)
         self.espooler.handle_ready()
-        # If user supplied TD-1 ID verify that it exists
 
         # Setting debounce delay after ready so that callback does not get triggered when initially loading
         if hasattr(self, "prep_debounce_button"):
@@ -380,7 +375,6 @@ class AFCLane:
         if self.max_move_dis                is None: self.max_move_dis      = self.unit_obj.max_move_dis
         if self.td1_when_loaded             is None: self.td1_when_loaded   = self.unit_obj.td1_when_loaded
         if self.td1_device_id               is None: self.td1_device_id     = self.unit_obj.td1_device_id
-
 
         if self.rev_long_moves_speed_factor < 0.5: self.rev_long_moves_speed_factor = 0.5
         if self.rev_long_moves_speed_factor > 1.2: self.rev_long_moves_speed_factor = 1.2
