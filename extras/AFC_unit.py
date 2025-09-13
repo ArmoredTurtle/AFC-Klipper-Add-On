@@ -140,7 +140,7 @@ class afcUnit:
     def handle_moonraker_connect(self):
         """
         Registers macros commands after moonrakers connection has been established so that endpoint can be queried successfully
-        to check if TD1 is defined in users moonrakers.conf file.
+        to check if TD-1 is defined in users moonrakers.conf file.
         """
         if self.afc.td1_defined:
             self.gcode.register_mux_command('AFC_UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_AFC_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_AFC_UNIT_TD_ONE_CALIBRATION_help)
@@ -301,7 +301,7 @@ class afcUnit:
     cmd_AFC_UNIT_TD_ONE_CALIBRATION_help = 'open prompt to calibrate the td1_bowden_length from a lane in the unit'
     def cmd_AFC_UNIT_TD_ONE_CALIBRATION(self, gcmd):
         """
-        Open a prompt to calibrate the Bowden length to a TD1 device for a specific lane in the selected unit. Provides buttons
+        Open a prompt to calibrate the Bowden length to a TD-1 device for a specific lane in the selected unit. Provides buttons
         for each lane, with a note to only calibrate one lane per unit.
 
         Usage
@@ -449,14 +449,14 @@ class afcUnit:
         """
         Queries moonrakers endpoint to get td1 data and check to see if data is valid and time
         in data is greater than passed in time as this is how determination is made that filament
-        made it TD1 device. Once filament is detected and valued, information is save to passed in lane.
+        made it TD-1 device. Once filament is detected and valued, information is save to passed in lane.
 
-        :param cur_lane: Current lane to apply TD1 data to, also check's to see if lane has a specific TD1 ID
+        :param cur_lane: Current lane to apply TD-1 data to, also check's to see if lane has a specific TD-1 ID
                          assigned to the lane.
         :param compare_time: Time to compare returned data to, which helps verify that the data is valid and
-                             filament has reached TD1 device
+                             filament has reached TD-1 device
 
-        :return boolean: True once filament is detected in TD1 device
+        :return boolean: True once filament is detected in TD-1 device
         """
         td1_data = self.afc.moonraker.get_td1_data()
         t_delta = timedelta(seconds = 10)

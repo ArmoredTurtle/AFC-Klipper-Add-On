@@ -261,7 +261,7 @@ class AFCLane:
             self.lane_load_count = AFCStats_var(self.name, "load_count", values, self.afc.moonraker)
             self.espooler.handle_moonraker_connect()
 
-            # Update boolean and check to make sure a TD1 device is detected
+            # Update boolean and check to make sure a TD-1 device is detected
             self.td1_when_loaded = self.td1_when_loaded and self.afc.td1_defined
 
     def handle_unit_connect(self, unit_obj):
@@ -574,7 +574,7 @@ class AFCLane:
 
     def _prep_capture_td1(self):
         """
-        Common function to grab TD1 data once user inserts filament into a lane. Only happens if user has specified
+        Common function to grab TD-1 data once user inserts filament into a lane. Only happens if user has specified
         this by setting `capture_td1_when_loaded: True` and if hub is clear and toolhead is not loaded.
         """
         if self.td1_when_loaded:
@@ -611,7 +611,7 @@ class AFCLane:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
                 self.afc.spool._set_values(self)
-                # Check if user wants to get TD1 data when loading
+                # Check if user wants to get TD-1 data when loading
                 self._prep_capture_td1()
             else:
                 # Don't run if user disabled sensor in gui
@@ -698,7 +698,7 @@ class AFCLane:
                         self.status = AFCLaneState.LOADED
                         self.unit_obj.lane_loaded(self)
                         self.afc.spool._set_values(self)
-                        # Check if user wants to get TD1 data when loading
+                        # Check if user wants to get TD-1 data when loading
                         # TODO: When implementing multi-extruder this could still happen if a lane is loaded for a
                         # different extruder/hub
                         self._prep_capture_td1()
@@ -1075,8 +1075,8 @@ class AFCLane:
 
     def get_td1_data(self):
         """
-        Captures TD1 data for lane. Has error checking to verify that lane is loaded, hub is not blocked
-        and that TD1 device is still detected before trying to capture data.
+        Captures TD-1 data for lane. Has error checking to verify that lane is loaded, hub is not blocked
+        and that TD-1 device is still detected before trying to capture data.
         """
         max_move_tries = 0
         status = True

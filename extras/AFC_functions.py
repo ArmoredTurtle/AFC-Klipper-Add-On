@@ -76,7 +76,7 @@ class afcFunction:
     def handle_moonraker_connect(self):
         """
         Registers macros commands after moonrakers connection has been established so that endpoint can be queried successfully
-        to check if TD1 is defined in users moonrakers.conf file.
+        to check if TD-1 is defined in users moonrakers.conf file.
         """
         if self.afc.td1_defined:
             self.afc.gcode.register_command('AFC_GET_TD_ONE_LANE_DATA', self.cmd_AFC_GET_TD_ONE_LANE_DATA,  desc=self.cmd_AFC_GET_TD_ONE_LANE_DATA_help)
@@ -504,7 +504,7 @@ class afcFunction:
         for serial in td1_data:
             if "error" in td1_data[serial]:
                 if serial_number is None or serial == serial_number:
-                    error_message = f"Error with TD-1 Serial: {serial}, please fix error with TD1 and run 'AFC_RESET_TD1 SERIAL={serial}' macro.\n"
+                    error_message = f"Error with TD-1 Serial: {serial}, please fix error with TD-1 and run 'AFC_RESET_TD1 SERIAL={serial}' macro.\n"
                     error_message += "Some errors can occur when first booting machine and filament is in TD-1 device\n"
                     error_message += f"Reported Error: {td1_data[serial]['error']}"
                     error_occurred = True
@@ -1013,7 +1013,7 @@ class afcFunction:
             if set_tool_start_back_to_none:
                 cur_lane.extruder_obj.tool_start = None
 
-        # Calibration for TD1 bowden length
+        # Calibration for TD-1 bowden length
         if td1 is not None:
             title = "TD-1 Calibration"
             td1_lane = self.afc.lanes[td1]
@@ -1288,7 +1288,7 @@ class afcFunction:
 
         self.afc.gcode.respond_info('{} reset to hub, take necessary action'.format(lane))
 
-    cmd_AFC_GET_TD_ONE_DATA_help = "Display's prompt to easily get TD1 data for lanes"
+    cmd_AFC_GET_TD_ONE_DATA_help = "Display's prompt to easily get TD-1 data for lanes"
     def cmd_AFC_GET_TD_ONE_DATA(self, gcmd):
         """
         This macro displays a prompt to select which lane or all lanes to gather TD-1 data from.

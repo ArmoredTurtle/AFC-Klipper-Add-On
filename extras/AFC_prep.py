@@ -87,7 +87,7 @@ class afcPrep:
                 self.logger.info("Cannot capture TD-1 data, not all of PREP succeeded")
             else:
                 if any_td1_error:
-                    self.logger.error("Error with a TD1 device, not collecting data during prep")
+                    self.logger.error("Error with a TD-1 device, not collecting data during prep")
                 else:
                     self.logger.info("Capturing TD-1 data for all loaded lanes")
                     for lane in self.afc.lanes.values():

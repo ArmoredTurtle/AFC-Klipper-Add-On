@@ -211,7 +211,7 @@ class afcBoxTurtle(afcUnit):
         :param dis: Distance step to move when calibrating
         :param tol: Tolerance for fine adjustments during calibration, only used when moving filament to hub
 
-        :return success,message,length: Returns tuple, when successful returns True,message, and length of bowden to TD1
+        :return success,message,length: Returns tuple, when successful returns True,message, and length of bowden to TD-1
                                         When error occurs, returns False,message, and length of current bowden before error occurred
         """
         bow_pos = 0
@@ -240,7 +240,7 @@ class afcBoxTurtle(afcUnit):
         compare_time = datetime.now()
         while not self.get_td1_data(cur_lane, compare_time):
             if bow_pos > cur_hub.afc_bowden_length:
-                # fault if move to TD1 is not detected
+                # fault if move to TD-1 is not detected
                 msg = 'TD-1 failed to detect filament after moving {}mm'.format(bow_pos)
                 cur_lane.do_enable(False)
                 return False, msg, bow_pos
