@@ -502,7 +502,8 @@ class afcFunction:
         error_message = ""
         td1_data = self.afc.moonraker.get_td1_data()
         for serial in td1_data:
-            if "error" in td1_data[serial]:
+            error = td1_data[serial].get("error")
+            if error is not None:
                 if serial_number is None or serial == serial_number:
                     error_message = f"Error with TD-1 Serial: {serial}, please fix error with TD-1 and run 'AFC_RESET_TD1 SERIAL={serial}' macro.\n"
                     error_message += "Some errors can occur when first booting machine and filament is in TD-1 device\n"
@@ -1415,7 +1416,8 @@ class afcFunction:
                 while True:
                     data = self.afc.moonraker.get_td1_data()
                     if data is not None and serial_number in data:
-                        if "error" in data[serial_number]:
+                        error = data[serial_number].get("error")
+                        if error is not None:
                             self.logger.error(f"Error still not fixed\nReported error: {data[serial_number]['error']}")
                             break
                         else:
