@@ -222,10 +222,7 @@ class afcFunction:
             if self.afc.auto_home:
                 self.afc.gcode.run_script_from_command("G28")
                 self.afc.toolhead.wait_moves()
-                if self.afc.auto_level:
-                    if not self.afc.auto_level_macro:
-                        self.afc.error.AFC_error("Auto level is enabled but no auto level macro defined", False, level=2)
-                        return False
+                if self.afc.auto_level_macro is not None:
                     if self.check_macro_present(self.afc.auto_level_macro):
                         self.afc.gcode.run_script_from_command(self.afc.auto_level_macro)
                         self.afc.toolhead.wait_moves()
