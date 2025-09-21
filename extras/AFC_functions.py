@@ -227,6 +227,7 @@ class afcFunction:
                         auto_level_macro = self.afc.auto_level_macro
                     else:
                         self.afc.error.AFC_error("Auto level is enabled but no auto level macro defined", False, level=2)
+                        return False
                     if self.check_macro_present(auto_level_macro):
                         self.afc.gcode.run_script_from_command(auto_level_macro)
                         self.afc.toolhead.wait_moves()
