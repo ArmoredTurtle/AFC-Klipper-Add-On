@@ -161,9 +161,8 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
-        self.auto_home              = config.getboolean("auto_home", False)          # Flag indicating if homing needs to be done if printer is not already homed
-        self.auto_level             = config.getboolean("auto_level", False)        # Flag indicating if bed leveling should be done when auto_home is true
-        self.auto_level_macro       = config.get("auto_level_macro", None)          # Macro to use when doing auto leveling, only used if auto_level is True
+        self.auto_home              = config.getboolean("auto_home", False)         # Flag indicating if homing needs to be done if printer is not already homed
+        self.auto_level_macro       = config.get("auto_level_macro", None)          # Set name for macro to run for auto bed leveling before tool change if auto_home is True and printer is not already homed
         self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
