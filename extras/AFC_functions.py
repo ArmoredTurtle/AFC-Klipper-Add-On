@@ -223,13 +223,11 @@ class afcFunction:
                 self.afc.gcode.run_script_from_command("G28")
                 self.afc.toolhead.wait_moves()
                 if self.afc.auto_level:
-                    if self.afc.auto_level_macro is not None:
-                        auto_level_macro = self.afc.auto_level_macro
-                    else:
+                    if not self.afc.auto_level_macro:
                         self.afc.error.AFC_error("Auto level is enabled but no auto level macro defined", False, level=2)
                         return False
-                    if self.check_macro_present(auto_level_macro):
-                        self.afc.gcode.run_script_from_command(auto_level_macro)
+                    if self.check_macro_present(self.afc.auto_level_macro):
+                        self.afc.gcode.run_script_from_command(self.afc.auto_level_macro)
                         self.afc.toolhead.wait_moves()
                     else:
                         self.afc.error.AFC_error("Auto level macro defined, but not found in printer configuration.", False, level=2)
