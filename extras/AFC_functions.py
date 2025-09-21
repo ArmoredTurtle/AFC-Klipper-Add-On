@@ -228,7 +228,7 @@ class afcFunction:
                     else:
                         self.afc.error.AFC_error("Auto level is enabled but no auto level macro defined", False, level=2)
                     if self.check_macro_present(auto_level_macro):
-                        self.afc.gcode_run_script_from_command(auto_level_macro)
+                        self.afc.gcode.run_script_from_command(auto_level_macro)
                         self.afc.toolhead.wait_moves()
                     else:
                         self.afc.error.AFC_error("Auto level macro defined, but not found in printer configuration.", False, level=2)
