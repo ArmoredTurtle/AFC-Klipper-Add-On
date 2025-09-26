@@ -1040,37 +1040,45 @@ class AFCLane:
         """
         Sends lane data to moonrakers `machine/set_lane_data` endpoint
         """
-        if self.afc.lane_data_enabled and self.map is not None and "T" in self.map:
+        if self.map is not None and "T" in self.map:
             scan_time = self.td1_data['scan_time'] if 'scan_time' in self.td1_data else ""
             td        = self.td1_data['td']        if 'td'        in self.td1_data else ""
 
             lane_number = self.map.replace("T", "")
-            lane_data = {"data": { self.name : {
-                "color"         : self.get_color(),
-                "material"      : self.material,
-                "bed_temp"      : self.bed_temp,
-                "nozzle_temp"   : self.extruder_temp,
-                "scan_time"     : scan_time,
-                "td"            : td,
-                "lane"          : lane_number
-            }}}
+            lane_data = {
+                "namespace": "lane_data",
+                "key": self.name,
+                "value": {
+                    "color"         : self.get_color(),
+                    "material"      : self.material,
+                    "bed_temp"      : self.bed_temp,
+                    "nozzle_temp"   : self.extruder_temp,
+                    "scan_time"     : scan_time,
+                    "td"            : td,
+                    "lane"          : lane_number
+                }
+            }
             self.afc.moonraker.send_lane_data(lane_data)
 
     def clear_lane_data(self):
         """
         Clears lane data that is currently stored at moonrakers `machine/set_lane_data` endpoint
         """
-        if self.afc.lane_data_enabled and self.map is not None and "T" in self.map:
+        if self.map is not None and "T" in self.map:
             lane_number = self.map.replace("T", "")
-            lane_data = {"data": { self.name : {
-                "color"         :  "",
-                "material"      : "",
-                "bed_temp"      : "",
-                "nozzle_temp"   : "",
-                "scan_time"     : "",
-                "td"            : "",
-                "lane"          : lane_number
-            }}}
+            lane_data = {
+                "namespace": "lane_data",
+                "key": self.name,
+                "value": {
+                    "color"         :  "",
+                    "material"      : "",
+                    "bed_temp"      : "",
+                    "nozzle_temp"   : "",
+                    "scan_time"     : "",
+                    "td"            : "",
+                    "lane"          : lane_number
+                }
+            }
             self.afc.moonraker.send_lane_data(lane_data)
 
     def get_td1_data(self):

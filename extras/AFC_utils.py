@@ -21,6 +21,10 @@ from urllib.parse import (
     quote
 )
 
+from urllib.error import (
+    HTTPError
+)
+
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
 
 def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, runout_callback = None, enable_runout=False, debounce_delay=0. ):
@@ -346,12 +350,12 @@ class AFC_moonraker:
 
     def get_td1_data(self):
         """
-        Fetches TD-1 data from moonrakers `machine/td1_data` endpoint
+        Fetches TD-1 data from moonrakers `machine/td1/data` endpoint
 
         :returns dict: Returns dictionary of TD-1 devices by serial numbers with their data,
                        returns None if no TD-1 devices are found
         """
-        url = urljoin(self.host, "machine/td1_data")
+        url = urljoin(self.host, "machine/td1/data")
         req = Request(url=url)
         resp = self._get_results(req)
         if resp is not None and "devices" in resp:
@@ -361,7 +365,7 @@ class AFC_moonraker:
 
     def reboot_td1(self, serial_number):
         """
-        Send's TD-1 serial to moonrakers `machine/td1_reboot` endpoint to force restart TD-1
+        Send's TD-1 serial to moonrakers `machine/td1/reboot` endpoint to force restart TD-1
         device
 
         :param serial_number: Serial number of TD-1 device to reboot
@@ -370,7 +374,7 @@ class AFC_moonraker:
                       "serial_error"-serial number was not supplied
                       "key_error"-serial number supplied is not correct
         """
-        url = urljoin(self.host, "machine/td1_reboot")
+        url = urljoin(self.host, "machine/td1/reboot")
         td1_reboot_payload = {
             "request_method": "POST",
             "serial": serial_number
@@ -387,9 +391,34 @@ class AFC_moonraker:
 
         :params data: Data to send to endpoint
         """
-        if self._lane_data:
-            url = urljoin( self.host, 'machine/set_lane_data')
-            req = Request( url=url, data=json.dumps(data).encode(),
+
+        # TODO: keeping lane data commented out just incase moonraker wants to add
+        # back lane_data module
+        # if self._lane_data:
+        # url = urljoin( self.host, 'machine/set_lane_data')
+        try:
+            req = Request( url=self.database_url, data=json.dumps(data).encode(),
                         method="POST", headers={"Content-Type": "application/json"})
             if self._get_results(req) is None:
                 self.logger.error("Error sending lane data, check AFC.log for more information")
+        except HTTPError as e:
+            self.logger.error("Error occurred when trying to send lane data to moonraker database,"+
+                              "\nplease check AFC.log for more information.")
+            self.logger.debug(f"{e}")
+
+    def delete_lane_data(self):
+        resp = self._get_results(urljoin(self.database_url, f"?namespace=lane_data"), print_error=False)
+        if resp is not None:
+            value = resp.get("value")
+            try:
+                for key in value.keys():
+                    payload = {
+                        "request_method": "DELETE",
+                        "namespace":"lane_data",
+                        "key": key
+                    }
+                    req = Request( self.database_url, urlencode(payload).encode(), method="DELETE")
+                    f = urlopen(req)
+            except HTTPError as e:
+                self.logger.debug("Error occurred when trying to delete lane data")
+                self.logger.debug(f"{e}")

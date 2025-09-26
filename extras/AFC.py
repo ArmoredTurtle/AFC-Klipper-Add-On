@@ -298,6 +298,7 @@ class afc:
             self.moonraker = AFC_moonraker( self.moonraker_host, self.moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
                 return False
+            self.moonraker.delete_lane_data()
             self.spoolman = self.moonraker.get_spoolman_server()
             self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
