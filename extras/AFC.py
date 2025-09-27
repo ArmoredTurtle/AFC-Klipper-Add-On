@@ -207,6 +207,7 @@ class afc:
 
         self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False)
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+        self.log_frame_data         = config.getboolean('log_frame_data', True)
         self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )

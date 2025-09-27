@@ -68,11 +68,11 @@ class AFC_logger:
     def _remove_tags(self, message):
         return re.sub("<.*?>", "", message)
 
-    def _format(self, message, code:CodeType=None):
+    def _format(self, message, code: CodeType = None):
         frame_data = ""
         if code is not None:
             file_name = os.path.basename(code.co_filename)
-            if self.afc.log_frame_data:
+            if getattr(self.afc, "log_frame_data", True):
                 frame_data = "{:<{pad}}".format(f"[{file_name}:{code.co_name}():{code.co_firstlineno}] ",
                                                 pad=self.adaptive_padding)
             self.adaptive_padding = max(len(frame_data), self.adaptive_padding)
