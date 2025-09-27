@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 # File is used to hold common functions that can be called from anywhere and don't belong to a class
+
 import traceback
 import json
 import inspect
@@ -18,6 +19,10 @@ from urllib.parse import (
     urlencode,
     urljoin,
     quote
+)
+
+from urllib.error import (
+    HTTPError
 )
 
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
@@ -71,6 +76,7 @@ def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, run
         return fila, debounce_button
 
     return fila
+
 
 def check_and_return( value_str:str, data_values:dict ) -> str:
     """
@@ -158,6 +164,7 @@ class AFC_moonraker:
         self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
         self.last_stats_time= None
+        self._lane_data     = False
         self.logger.debug(f"Moonraker url: {self.host}")
 
     def _get_results(self, url_string, print_error=True):
@@ -208,7 +215,7 @@ class AFC_moonraker:
                 return True
             else:
                 toolhead.dwell(1)
-        self.logger.info(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
+        self.logger.warning(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
         return False
 
     def get_spoolman_server(self)->str:
@@ -317,3 +324,107 @@ class AFC_moonraker:
         else:
             self.logger.info(f"SpoolID: {id} not found")
         return resp
+
+    def check_for_td1(self):
+        """
+        Checks moonrakers server/config endpoint to see if user has `[td1]` and `[lane_data]`
+        specified in their moonraker.conf file.
+
+        :returns bool,bool,bool: True if `[td1] is defined,
+                                 True if a TD-1 device is connected and found,
+                                 True if `[lane_data]` is defined
+        """
+        td1 = False
+        td1_defined = False
+        resp = self._get_results(urljoin(self.host, 'server/config'))
+        if resp is not None:
+            if "td1" in resp['orig']:
+                td1_defined = True
+                td1_data = self.get_td1_data()
+                if td1_data is not None and len(td1_data) > 0:
+                    td1 = True
+
+            if "lane_data" in resp['orig']:
+                self._lane_data = True
+        return td1_defined, td1, self._lane_data
+
+    def get_td1_data(self):
+        """
+        Fetches TD-1 data from moonrakers `machine/td1/data` endpoint
+
+        :returns dict: Returns dictionary of TD-1 devices by serial numbers with their data,
+                       returns None if no TD-1 devices are found
+        """
+        url = urljoin(self.host, "machine/td1/data")
+        req = Request(url=url)
+        resp = self._get_results(req)
+        if resp is not None and "devices" in resp:
+            return resp["devices"]
+        else:
+            return None
+
+    def reboot_td1(self, serial_number):
+        """
+        Send's TD-1 serial to moonrakers `machine/td1/reboot` endpoint to force restart TD-1
+        device
+
+        :param serial_number: Serial number of TD-1 device to reboot
+        :return dict: Status of reboot,
+                      "ok"-reboot happened successfully
+                      "serial_error"-serial number was not supplied
+                      "key_error"-serial number supplied is not correct
+        """
+        url = urljoin(self.host, "machine/td1/reboot")
+        td1_reboot_payload = {
+            "request_method": "POST",
+            "serial": serial_number
+        }
+        req = Request( url, urlencode(td1_reboot_payload).encode())
+        resp = self._get_results(req)
+        return resp
+
+    def send_lane_data(self, data):
+        """
+        Send lane data to moonrakers `machine/set_lane_data` endpoint so that
+        other programs can query moonrakers `machine/lane_data` endpoint to see what lanes
+        are loaded and what their colors are.
+
+        :params data: Data to send to endpoint
+        """
+        # TODO: keeping lane data commented out just incase moonraker wants to add
+        # back lane_data module
+        # if self._lane_data:
+        # url = urljoin( self.host, 'machine/set_lane_data')
+        try:
+            req = Request( url=self.database_url, data=json.dumps(data).encode(),
+                        method="POST", headers={"Content-Type": "application/json"})
+            if self._get_results(req) is None:
+                self.logger.error("Error sending lane data, check AFC.log for more information")
+        except HTTPError as e:
+            self.logger.error("Error occurred when trying to send lane data to moonraker database,"+
+                              "\nplease check AFC.log for more information.")
+            self.logger.debug(f"{e}")
+
+    def delete_lane_data(self):
+        """
+        Function recursively delete's lane_data namespace from moonrakers database.
+
+        Purpose would be to remove data upon boot just incase someone when from a 8 lane
+        system to a 4 lane system, removing and then readding will make sure database has
+        current up to date data.
+        """
+        resp = self._get_results(urljoin(self.database_url, "?namespace=lane_data"), print_error=False)
+        if resp is not None:
+            value = resp.get("value")
+            try:
+                for key in value.keys():
+                    payload = {
+                        "request_method": "DELETE",
+                        "namespace":"lane_data",
+                        "key": key
+                    }
+                    req = Request( self.database_url, urlencode(payload).encode(), method="DELETE")
+                    urlopen(req)
+            except HTTPError as e:
+                self.logger.debug("Error occurred when trying to delete lane data")
+                self.logger.debug(f"{e}")

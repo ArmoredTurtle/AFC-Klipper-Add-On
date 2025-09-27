@@ -14,6 +14,7 @@ class afcPrep:
         self.delay              = config.getfloat('delay_time', 0.1, minval=0.0)                # Time to delay when moving extruders and spoolers during PREP routine
         self.enable             = config.getboolean("enable", False)                            # Set True to disable PREP checks
         self.dis_unload_macro   = config.getboolean("disable_unload_filament_remapping", False) # Set to True to disable remapping UNLOAD_FILAMENT macro to TOOL_UNLOAD macro
+        self.get_td1_data       = config.getboolean("capture_td1_data", False)                  # Set to True to capture TD-1 data for all lanes during prep
 
         # Flag to set once resume rename as occurred for the first time
         self.rename_occurred = False
@@ -61,14 +62,51 @@ class afcPrep:
             if not self.dis_unload_macro:
                 self._rename(self.afc.BASE_UNLOAD_FILAMENT, self.afc.RENAMED_UNLOAD_FILAMENT, self.afc.cmd_TOOL_UNLOAD, self.afc.cmd_TOOL_UNLOAD_help)
 
+    def _td1_prep(self, overrall_status):
+        '''
+        Helper function to perform TD-1 data capture during PREP
+
+        :prep overrall_status: Status of all the lanes, if error occurred during lane prep TD-1 data
+                               will not be captured
+        '''
+        capture_td1_data = self.get_td1_data and self.afc.td1_present
+        any_td1_error = False
+        if self.afc.td1_present:
+            self.logger.info("Found TD-1 device connected to printer")
+            any_td1_error, _ = self.afc.function.check_for_td1_error()
+
+        # look up what current lane should be a call select lane, this is more for units that
+        # have selectors to make sure the selector is on the correct lane
+        current_lane = self.afc.function.get_current_lane_obj()
+        if current_lane is not None:
+            current_lane.unit_obj.select_lane(current_lane)
+            if capture_td1_data:
+                self.logger.info("Cannot capture TD-1 data during PREP since toolhead is loaded")
+        elif capture_td1_data:
+            if not overrall_status:
+                self.logger.info("Cannot capture TD-1 data, not all of PREP succeeded")
+            else:
+                if any_td1_error:
+                    self.logger.error("Error with a TD-1 device, not collecting data during prep")
+                else:
+                    self.logger.info("Capturing TD-1 data for all loaded lanes")
+                    for lane in self.afc.lanes.values():
+                        if lane.load_state and lane.prep_state:
+                            return_status, msg = lane.get_td1_data()
+                            if not return_status:
+                                break
+                    self.logger.info("Done capturing TD-1 data")
+
     def PREP(self, gcmd):
+        overrall_status = True
         while self.printer.state_message != 'Printer is ready':
             self.afc.reactor.pause(self.afc.reactor.monotonic() + 1)
+
         self._rename_macros()
         self.afc.print_version(console_only=True)
 
         # Try and connect to moonraker
-        moonraker_connected = self.afc.handle_moonraker_connect()
+        self.afc.handle_moonraker_connect()
 
         ## load Unit stored variables
         units={}
@@ -104,9 +142,6 @@ class afcPrep:
         for lane in self.afc.lanes.keys():
             cur_lane = self.afc.lanes[lane]
 
-            # If moonraker is connected gather all stats
-            if moonraker_connected:
-                cur_lane.handle_moonraker_connect()
 
             cur_lane.unit_obj = self.afc.units[cur_lane.unit]
             if cur_lane.name not in cur_lane.unit_obj.lanes: cur_lane.unit_obj.lanes.append(cur_lane.name)    #add lanes to units list
@@ -146,6 +181,7 @@ class afcPrep:
                     # Check for loaded_to_hub as this is how its being saved version > 1030
                     if 'loaded_to_hub' in units[cur_lane.unit][cur_lane.name]: cur_lane.loaded_to_hub = units[cur_lane.unit][cur_lane.name]['loaded_to_hub']
                     if 'tool_loaded' in units[cur_lane.unit][cur_lane.name]: cur_lane.tool_loaded = units[cur_lane.unit][cur_lane.name]['tool_loaded']
+                    if 'td1_data' in units[cur_lane.unit][cur_lane.name]: cur_lane.td1_data = units[cur_lane.unit][cur_lane.name]['td1_data']
                     # Commenting out until there is better handling of this variable as it could cause someone to not be able to load their lane if klipper crashes
                     # if 'status' in units[cur_lane.unit][cur_lane.name]: cur_lane.status = units[cur_lane.unit][cur_lane.name]['status']
 
@@ -176,12 +212,14 @@ class afcPrep:
                 self.logger.raw(cur_unit.logo)
             else:
                 self.logger.raw(cur_unit.logo_error)
+            overrall_status = overrall_status and LaneCheck
         try:
             if self.afc._get_bypass_state():
                 self.logger.info("Filament loaded in bypass, toolchanges deactivated")
         except:
             pass
 
+        self._td1_prep(overrall_status)
         # look up what current lane should be a call select lane, this is more for units that
         # have selectors to make sure the selector is on the correct lane
         current_lane = self.afc.function.get_current_lane_obj()
