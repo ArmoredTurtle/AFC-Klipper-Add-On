@@ -298,6 +298,9 @@ class afc:
             self.moonraker = AFC_moonraker( self.moonraker_host, self.moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
                 return False
+
+            # Remove current lane_data from database before pushing data back up so that
+            # stale lane data is not in database
             self.moonraker.delete_lane_data()
             self.spoolman = self.moonraker.get_spoolman_server()
             self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()

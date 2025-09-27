@@ -391,7 +391,6 @@ class AFC_moonraker:
 
         :params data: Data to send to endpoint
         """
-
         # TODO: keeping lane data commented out just incase moonraker wants to add
         # back lane_data module
         # if self._lane_data:
@@ -407,7 +406,14 @@ class AFC_moonraker:
             self.logger.debug(f"{e}")
 
     def delete_lane_data(self):
-        resp = self._get_results(urljoin(self.database_url, f"?namespace=lane_data"), print_error=False)
+        """
+        Function recursively delete's lane_data namespace from moonrakers database.
+
+        Purpose would be to remove data upon boot just incase someone when from a 8 lane
+        system to a 4 lane system, removing and then readding will make sure database has
+        current up to date data.
+        """
+        resp = self._get_results(urljoin(self.database_url, "?namespace=lane_data"), print_error=False)
         if resp is not None:
             value = resp.get("value")
             try:
@@ -418,7 +424,7 @@ class AFC_moonraker:
                         "key": key
                     }
                     req = Request( self.database_url, urlencode(payload).encode(), method="DELETE")
-                    f = urlopen(req)
+                    urlopen(req)
             except HTTPError as e:
                 self.logger.debug("Error occurred when trying to delete lane data")
                 self.logger.debug(f"{e}")
