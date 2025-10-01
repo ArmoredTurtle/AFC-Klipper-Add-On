@@ -1377,11 +1377,26 @@ class afc:
                     self.error.handle_lane_failure(cur_lane, msg)
                     return False
             cur_lane.sync_to_extruder(False)
-            with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
+            # we only need to do this if we need to move off the extruder gears
+            if cur_extruder.tool_stn_unload > 0:
+                with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
+                    self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
 
             self.function.log_toolhead_pos("Buffer move after ")
         else:
+
+            if cur_extruder.tool_stn_unload == 0:
+                cur_lane.unsync_to_extruder()
+                while cur_lane.get_toolhead_pre_sensor_state():
+                    # attempt to move filament back from sensor without moving extruder
+                    cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
+                    num_tries += 1
+                    if num_tries > self.tool_max_unload_attempts:
+                        # note that this will break out of the loop and immediately fall into the error
+                        # condition of the next loop for messaging to the user
+                        break
+                    self.reactor.pause(self.reactor.monotonic() + 0.1)
+
             while cur_lane.get_toolhead_pre_sensor_state() or cur_extruder.tool_end_state:
                 num_tries += 1
                 if num_tries > self.tool_max_unload_attempts:
