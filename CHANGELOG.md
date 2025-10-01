@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-09-30]
+### Added
+- Allow `tool_stn_unload` to be `0` for toolheads with cutter above extruder.
+
 ## [2025-09-26]
 ### Added
 - Support to move filament to TD-1 device that is inline with PTFE tube to gather TD and color
