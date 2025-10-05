@@ -214,11 +214,13 @@ class afcFunction:
             macro_name: Name of macro to check for
 
         Returns:
-             boolean: True if macro is present
+            boolean: True if macro is present
         """
         try:
-            self.printer.lookup_object(macro_name)
-            return True
+            existing_macros = getattr(self.afc.gcode, "ready_gcode_handlers", {})
+            if macro_name in existing_macros:
+                return True
+            return False
         except Exception:
             return False
 
