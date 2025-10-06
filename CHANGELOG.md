@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-10-05]
+### Added
+- Added Blurolls AFC-X mcu board. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
+
 ## [2025-09-05]
 ### Added
 - Check to verify that pin_tool_start/end is not set to `Unknown`, throws error if pins are set to `Unknown`.
