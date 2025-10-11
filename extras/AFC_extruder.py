@@ -169,13 +169,13 @@ class AFCExtruder:
 
         :param length: Length to set to tool_stn_unload parameter
         """
-        if length > 0:
+        if length >= 0:
             msg = "tool_stn_unload updated old: {}, new: {}".format(self.tool_stn_unload, length)
             msg += self.common_save_msg
             self.tool_stn_unload = length
             self.logger.info(msg)
         else:
-            self.logger.error("tool_stn_unload length should be greater than zero")
+            self.logger.error("tool_stn_unload length should be greater than or equal to zero")
 
     def _update_tool_after_extr(self, length):
         """
@@ -207,7 +207,8 @@ class AFCExtruder:
         `tool_stn length` is the length from the sensor before extruder gears (tool_start) to nozzle. If sensor after extruder gears(tool_end)
         is set then the value if from tool_end sensor.
 
-        `tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore.
+        `tool_stn_unload` length is the length to unload so that filament is not in extruder gears anymore. Set this value to `0` if you
+        have a cutter above the extruder gears.
 
         `tool_sensor_after_extruder` length is mainly used for those that have a filament sensor after extruder gears, target this
         length to retract filament enough so that it's not in the extruder gears anymore.  <nl>
