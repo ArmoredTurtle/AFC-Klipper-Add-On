@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-10-05]
 ### Added
-- Added Blurolls AFC-X mcu board. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
+- Created a new folder for community-contributed mods and configurations at ``/community_mods/``
+- Added Blurolls AFC-X mcu board with a path of ``/community_mods/mcu/AFC-X.cfg``. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
 
 ## [2025-09-05]
 ### Added
