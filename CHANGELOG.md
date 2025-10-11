@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created a new folder for community-contributed mods and configurations at ``/community_mods/``
 - Added Blurolls AFC-X mcu board with a path of ``/community_mods/mcu/AFC-X.cfg``. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
 
+## [2025-09-26]
+### Added
+- Support to move filament to TD-1 device that is inline with PTFE tube to gather TD and color
+
+## [2025-09-27]
+### Fixes
+- Logging the same information multiple times to AFC.log file
+
+## [2025-09-07]
+### Added
+- Support to push lane information to moonrakers `machine/lane_data` endpoint so that third-parties can pull this information easily(eg. orcaslicer)
+
+### Fixes
+- The `AFC_LANE_RESET` macro will properly check for input instead of crashing Klipper.
+### Added
+- Added ability to auto level when `auto_level_macro` is defined with a valid leveling macro.
+
 ## [2025-09-05]
 ### Added
 - Check to verify that pin_tool_start/end is not set to `Unknown`, throws error if pins are set to `Unknown`.
