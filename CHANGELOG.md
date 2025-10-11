@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-10-10]
+### Added
+- Created a new folder for community-contributed mods and configurations at ``/community_mods/``
+- Added Blurolls AFC-X mcu board with a path of ``/community_mods/mcu/AFC-X.cfg``. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
+
 ## [2025-09-30]
 ### Added
 - Allow `tool_stn_unload` to be `0` for toolheads with cutter above extruder.
