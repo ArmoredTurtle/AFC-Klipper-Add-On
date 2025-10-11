@@ -207,6 +207,24 @@ class afcFunction:
             self.logger.info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[cur_lane.name], tool_macro=cur_lane.map), )
         self.afc.save_vars()
 
+    def check_macro_present(self, macro_name):
+        """
+        Helper function to check if a macro is present in the printer config
+        Args:
+            macro_name: Name of macro to check for
+
+        Returns:
+            boolean: True if macro is present
+        """
+        try:
+            existing_macros = getattr(self.afc.gcode, "ready_gcode_handlers", {})
+            if macro_name in existing_macros:
+                return True
+            return False
+        except Exception:
+            return False
+
+
     def check_homed(self):
         """
         Helper function to determine if printer is currently homed, if not, then apply G28
@@ -217,6 +235,13 @@ class afcFunction:
             if self.afc.auto_home:
                 self.afc.gcode.run_script_from_command("G28")
                 self.afc.toolhead.wait_moves()
+                if self.afc.auto_level_macro is not None:
+                    if self.check_macro_present(self.afc.auto_level_macro):
+                        self.afc.gcode.run_script_from_command(self.afc.auto_level_macro)
+                        self.afc.toolhead.wait_moves()
+                    else:
+                        self.afc.error.AFC_error("Auto level macro defined, but not found in printer configuration.", False, level=2)
+                        return False
                 return True
             else:
                 self.afc.error.AFC_error("Please home printer before doing a tool load", False, level=2)

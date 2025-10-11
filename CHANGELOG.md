@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixes
 - The `AFC_LANE_RESET` macro will properly check for input instead of crashing Klipper.
+### Added
+- Added ability to auto level when `auto_level_macro` is defined with a valid leveling macro.
 
 ## [2025-09-05]
 ### Added
