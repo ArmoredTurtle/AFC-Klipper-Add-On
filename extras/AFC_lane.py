@@ -1049,7 +1049,7 @@ class AFCLane:
                 "namespace": "lane_data",
                 "key": self.name,
                 "value": {
-                    "color"         : self.get_color(),
+                    "color"         : self.color,
                     "material"      : self.material,
                     "bed_temp"      : self.bed_temp,
                     "nozzle_temp"   : self.extruder_temp,
@@ -1385,7 +1385,7 @@ class AFCLane:
             response["empty_spool_weight"]=self.empty_spool_weight
 
         response["spool_id"]= int(self.spool_id) if self.spool_id else None
-        response["color"]=self.get_color()
+        response["color"]=self.color
         response["weight"]=self.weight
         response["extruder_temp"] = self.extruder_temp
         response["runout_lane"]=self.runout_lane
