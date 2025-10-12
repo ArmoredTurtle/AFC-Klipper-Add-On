@@ -1652,7 +1652,7 @@ class afc:
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
-        str["current_toolchange"]       = self.current_toolchange
+        str["current_toolchange"]       = self.current_toolchange if self.current_toolchange >= 0 else 0
         str["number_of_toolchanges"]    = self.number_of_toolchanges
         str['spoolman']                 = self.spoolman
         str["td1_present"]              = self.td1_present

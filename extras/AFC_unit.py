@@ -476,7 +476,16 @@ class afcUnit:
             if data["scan_time"] is None:
                 return False
 
-            scan_time = datetime.fromisoformat( data["scan_time"][:-1]+"+00:00" ).astimezone()
+            if data["scan_time"].endswith("+00:00Z"):
+                scan_time = data["scan_time"][:-1]
+            else:
+                scan_time = data["scan_time"][:-1]+"+00:00"
+            try:
+                scan_time = datetime.fromisoformat( scan_time ).astimezone()
+            except (AttributeError, ValueError) as e:
+                self.afc.logger.error("Error trying to format TD-1 scan time, check AFC.log for more information", f"{e}")
+                return False
+
 
             if scan_time > compare_time.astimezone():
                 valid_data = True
