@@ -830,7 +830,7 @@ class afcFunction:
         prompt.p_end()
 
 
-    cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
+    cmd_AFC_CALIBRATION_help = 'Open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
         """
         Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
