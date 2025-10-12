@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-10-12]
+### Fixes
+- Capitalized AFC_CALIBRATION help text
+- Removing returning TD-1 color as color in api endpoint, TD-1 color is still returned in td1_color variable per lane
+- Current toolchange will return zero if current toolchange is below zero(starts at -1 when first starting a print)
+- Added additional logic when parsing TD-1 scan_time to work with updated format in moonraker
+
 ## [2025-10-10]
 ### Added
 - Created a new folder for community-contributed mods and configurations at ``/community_mods/``
