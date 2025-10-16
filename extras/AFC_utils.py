@@ -98,11 +98,7 @@ class DebounceButton:
     def __init__(self, config, filament_sensor):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
-        self.afc = self.printer.lookup_object('AFC')
-        self.logger = self.afc.logger
         sig = inspect.signature(filament_sensor.runout_helper.note_filament_present)
-        self.logger.debug("DebounceButton init called")
-        self.logger.debug(f"note_filament_present parameters: {sig.parameters}")
         # Saving reference to normal function
         self._old_note_filament_present = filament_sensor.runout_helper.note_filament_present
         # Setting action callback to normal filament sensor not filament present
