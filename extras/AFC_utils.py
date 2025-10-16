@@ -98,7 +98,11 @@ class DebounceButton:
     def __init__(self, config, filament_sensor):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
+        self.afc = self.printer.lookup_object('AFC')
+        self.logger = self.afc.logger
         sig = inspect.signature(filament_sensor.runout_helper.note_filament_present)
+        self.logger.debug("DebounceButton init called")
+        self.logger.debug(f"note_filament_present parameters: {sig.parameters}")
         # Saving reference to normal function
         self._old_note_filament_present = filament_sensor.runout_helper.note_filament_present
         # Setting action callback to normal filament sensor not filament present
@@ -106,7 +110,12 @@ class DebounceButton:
         # Overriding filament sensor filament present to button handler in this class
         # Checking parameter length since kalico's note_filament_present function is different
         # and also checking for older klipper versions before hash 272e8155
-        if len(sig.parameters) > 2 or len(sig.parameters) == 1:
+        expected_params = ['eventtime', 'is_filament_present', 'force', 'immediate']
+        param_keys = list(sig.parameters.keys())
+        if param_keys == expected_params:
+            # Exact match for the expected signature
+            filament_sensor.runout_helper.note_filament_present = self._button_handler
+        elif len(sig.parameters) > 2 or len(sig.parameters) == 1:
             filament_sensor.runout_helper.note_filament_present = self.button_handler
         else:
             filament_sensor.runout_helper.note_filament_present = self._button_handler
