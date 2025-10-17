@@ -143,7 +143,7 @@ class DebounceButton:
         self.logical_state = self.physical_state
         # Kalico is different from klipper and eventtime is not passed in
         try:
-            self.button_action(self.logical_state)
+            self.button_action(is_filament_present=self.logical_state)
         except:
             self.button_action(eventtime, self.logical_state)
 

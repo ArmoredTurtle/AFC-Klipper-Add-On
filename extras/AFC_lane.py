@@ -602,7 +602,7 @@ class AFCLane:
         """
         # Call filament sensor callback so that state is registered
         try:
-            self.load_debounce_button._old_note_filament_present(load_state)
+            self.load_debounce_button._old_note_filament_present(is_filament_present=load_state)
         except:
             self.load_debounce_button._old_note_filament_present(eventtime, load_state)
 
@@ -724,7 +724,7 @@ class AFCLane:
         """
         # Call filament sensor callback so that state is registered
         try:
-            self.prep_debounce_button._old_note_filament_present(prep_state)
+            self.prep_debounce_button._old_note_filament_present(is_filament_present=prep_state)
         except:
             self.prep_debounce_button._old_note_filament_present(eventtime, prep_state)
 
