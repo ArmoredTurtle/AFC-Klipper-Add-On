@@ -106,7 +106,12 @@ class DebounceButton:
         # Overriding filament sensor filament present to button handler in this class
         # Checking parameter length since kalico's note_filament_present function is different
         # and also checking for older klipper versions before hash 272e8155
-        if len(sig.parameters) > 2 or len(sig.parameters) == 1:
+        expected_params = ['eventtime', 'is_filament_present', 'force', 'immediate']
+        param_keys = list(sig.parameters.keys())
+        if param_keys == expected_params:
+            # Exact match for the expected signature
+            filament_sensor.runout_helper.note_filament_present = self._button_handler
+        elif len(sig.parameters) > 2 or len(sig.parameters) == 1:
             filament_sensor.runout_helper.note_filament_present = self.button_handler
         else:
             filament_sensor.runout_helper.note_filament_present = self._button_handler
@@ -138,7 +143,7 @@ class DebounceButton:
         self.logical_state = self.physical_state
         # Kalico is different from klipper and eventtime is not passed in
         try:
-            self.button_action(self.logical_state)
+            self.button_action(is_filament_present=self.logical_state)
         except:
             self.button_action(eventtime, self.logical_state)
 
