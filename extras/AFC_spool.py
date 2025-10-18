@@ -317,8 +317,6 @@ class AFCSpool:
                         if (
                             cur_lane.weight is None or
                             cur_lane.weight <= 0
-                            #     or
-                            # (cur_lane.empty_spool_weight is not None and cur_lane.empty_spool_weight - cur_lane.weight <= 0)
                         ):
                             self.afc.error.AFC_error("Invalid weight for spoolID: {}. Please check remaining weight before assigning.".format(SpoolID), False)
                             self.clear_values(cur_lane)
