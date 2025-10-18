@@ -640,7 +640,7 @@ class Espooler:
 
     def break_espooler(self):
         """
-        Helper function to "brake" n20 motors to hopefully help with keeping down backfeeding into MCU board
+        Helper function to "brake" n20 motors to hopefully help with keeping down back-feeding into MCU board
         """
         print_time = self.afc.toolhead.get_last_move_time()
         if self.afc_motor_enb is not None:
@@ -800,7 +800,7 @@ class Espooler:
         Example
         -----
         ```
-        `SET_ESPOOLER_VALUES LANE=lane1 DEBUG=1 ENABLE_ASSIST=1`
+        SET_ESPOOLER_VALUES LANE=lane1 DEBUG=1 ENABLE_ASSIST=1
         ```
         """
         self.n20_break_delay_time                   = self.function.gcode_get_value(gcmd, "get_float", self.n20_break_delay_time,

@@ -5,6 +5,97 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-10-16]
+### Fixes
+- Fixed issue with debounce logic on latest version of Kalico.
+
+## [2025-10-12]
+### Fixes
+- Capitalized AFC_CALIBRATION help text
+- Removing returning TD-1 color as color in api endpoint, TD-1 color is still returned in td1_color variable per lane
+- Current toolchange will return zero if current toolchange is below zero(starts at -1 when first starting a print)
+- Added additional logic when parsing TD-1 scan_time to work with updated format in moonraker
+
+## [2025-10-10]
+### Added
+- Created a new folder for community-contributed mods and configurations at ``/community_mods/``
+- Added Blurolls AFC-X mcu board with a path of ``/community_mods/mcu/AFC-X.cfg``. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
+
+## [2025-09-30]
+### Added
+- Allow `tool_stn_unload` to be `0` for toolheads with cutter above extruder.
+
+## [2025-09-26]
+### Added
+- Support to move filament to TD-1 device that is inline with PTFE tube to gather TD and color
+
+## [2025-09-27]
+### Fixes
+- Logging the same information multiple times to AFC.log file
+
+## [2025-09-07]
+### Added
+- Support to push lane information to moonrakers `machine/lane_data` endpoint so that third-parties can pull this information easily(eg. orcaslicer)
+
+### Fixes
+- The `AFC_LANE_RESET` macro will properly check for input instead of crashing Klipper.
+### Added
+- Added ability to auto level when `auto_level_macro` is defined with a valid leveling macro.
+
+## [2025-09-05]
+### Added
+- Check to verify that pin_tool_start/end is not set to `Unknown`, throws error if pins are set to `Unknown`.
+### Fixes
+- Compatibility issue with klipper after version v0.13.0-190-g5eb07966
+
+## [2025-09-01]
+### Fixes
+- Issue with older klipper version before debounce button was added
+
+## [2025-08-30]
+### Added
+- Catch for JSON decode error when trying to read and load AFC.var.unit file
+
+### Fixes
+- Issue where TMC section search would error out if not defined. Search is now gated behind user enabling print_current variable. If a user is using a different driver, like a4988 for example, AFC will not error out as long as print_current variable is not defined.
+
+## [2025-08-24]
+### Added
+- You can now use the `install-afc.sh` script to delete the `AFC.var.unit` file if necessary. This option is located under
+  the `Utilities` menu.
+
+### Fixed
+- Issue where HTLF unit would not select lane and sync with extruder when running prep
+
+## [2025-08-22]
+### Added
+- Added a new command to test lane loading and unloading in an automated and random fashion (`AFC_TEST_LANES`). Please
+  see the documentation for more information on how to use this command and it's various options.
+- Option to delay/debounce switches. Debounce delay is defaulted to zero but can be updated globally by adding `debounce_delay: <delay_value>`
+  to AFC config section. Or this value can be added per AFC_extruder, AFC_hub, AFC_stepper/AFC_lane configs. Runout can be also disabled by
+  turning off filament switch in gui, if PREP sensor is disabled this will also disable infinite spool rollover. When klipper is restarted
+  all switches will be enabled again.
+
+## [2025-08-17]
+### Added
+- Servo option to brush macro.
+
+## [2025-08-10]
+### Fixed
+- A negative `afc_unload_bowden_length` is no longer able to be set by the calibration routine. 
+
+## [2025-08-06]
+### Fixed
+- The `install-afc.sh` script will no longer tell you it removed the `velocity` setting if it didn't exist.
+
+## [2025-07-30]
+### Fixed
+- Updated the `SET_MAP` command to correctly handle `MAP` parameters in either upper or lower case text. 
+
+## [2025-07-27]
+### Updated
+- The `install-afc.sh` script will now only copy relevant MCU files when installing a new unit. 
+
 ## [2025-07-20]
 ### Added
 - Software defined physical buttons are now available and supported. See documentation for more information on how to set them up.

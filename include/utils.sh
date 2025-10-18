@@ -33,7 +33,10 @@ function show_help() {
 
 function copy_config() {
   mkdir -p "${afc_config_dir}"
-  cp -R ${afc_path}/config/* "${afc_config_dir}"
+  cp ${afc_path}/config/AFC.cfg "${afc_config_dir}/"
+  cp ${afc_path}/config/AFC_Macro_Vars.cfg "${afc_config_dir}/"
+  mkdir -p "${afc_config_dir}/mcu"
+  cp -R ${afc_path}/config/macros "${afc_config_dir}/"
 }
 
 get_git_version() {
@@ -192,4 +195,23 @@ start_service() {
   else
     sudo service "${service_name}" start
   fi
+}
+
+del_var_file() {
+  local confirm
+  # Function to remove the user's AFC.var.unit file in a simple fashion.
+  echo "This is generally a troubleshooting step and should not be needed during normal operation."
+  read -p "Do you want to proceed? (y/n): " confirm
+  confirm="${confirm,,}"
+  if [[ "$confirm" != "y" ]]; then
+    unit_message="Operation cancelled by user.\n"
+  else
+    if [ -f "${afc_config_dir}/AFC.var.unit" ]; then
+      rm "${afc_config_dir}/AFC.var.unit"
+      unit_message="Removed old AFC.var.unit file.\n"
+    else
+      unit_message="No AFC.var.unit file found to remove.\n"
+    fi
+  fi
+  export unit_message
 }

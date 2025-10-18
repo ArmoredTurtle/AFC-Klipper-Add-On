@@ -230,7 +230,7 @@ class afcError:
             # Verify that printer is in absolute mode
             self.afc.function.check_absolute_mode("AFC_PAUSE")
             move_z_pos = self.afc.last_gcode_position[2] + self.afc.z_hop
-            # Check to see if current position is less than saved postion plus z-hop
+            # Check to see if current position is less than saved position plus z-hop
             if self.afc.gcode_move.last_position[2] <= move_z_pos:
                 # Move Z up by z-hop value
                 self.afc.move_z_pos(move_z_pos, "AFC_PAUSE")
