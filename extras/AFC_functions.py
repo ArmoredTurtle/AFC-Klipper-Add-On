@@ -339,6 +339,12 @@ class afcFunction:
             curr_lane_obj = self.afc.lanes[curr_lane]
         return curr_lane_obj
 
+    def get_current_extruder_obj(self):
+        extruder_name = self.get_current_extruder()
+        if extruder_name:
+            return self.afc.tools[extruder_name]
+        return None
+
     def get_current_extruder(self):
         """
         Helper function to lookup current extruder object loaded into active toolhead
