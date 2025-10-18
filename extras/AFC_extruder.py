@@ -54,8 +54,7 @@ class AFCExtruder:
                 self.logger.info("Setting up as buffer")
             else:
                 buttons.register_buttons([self.tool_start], self.tool_start_callback)
-                    self.tool_start_filament_switch_name = "filament_switch_sensor {}".format("tool_start")
-                self.fila_tool_start, self.debounce_button_start = add_filament_switch("tool_start", self.tool_start, self.printer,
+                self.fila_tool_start, self.debounce_button_start = add_filament_switch(f"{self.name}_tool_start", self.tool_start, self.printer,
                                                                                         self.enable_sensors_in_gui, self.handle_start_runout, self.enable_runout,
                                                                                         self.debounce_delay )
 
@@ -65,8 +64,7 @@ class AFCExtruder:
                 raise error(f"Unknown is not valid for pin_tool_end in [{self.fullname}] config.")
 
             buttons.register_buttons([self.tool_end], self.tool_end_callback)
-                self.tool_end_state_filament_switch_name = "filament_switch_sensor {}".format("tool_end")
-            self.fila_tool_end, self.debounce_button_end = add_filament_switch("tool_end", self.tool_end, self.printer,
+            self.fila_tool_end, self.debounce_button_end = add_filament_switch(f"{self.name}_tool_end", self.tool_end, self.printer,
                                                                                 self.enable_sensors_in_gui, self.handle_end_runout, self.enable_runout,
                                                                                 self.debounce_delay )
 
