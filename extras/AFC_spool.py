@@ -25,6 +25,8 @@ class AFCSpool:
         self.gcode      = self.afc.gcode
         self.logger     = self.afc.logger
 
+        self.disable_weight_check = self.afc.disable_weight_check
+
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
 
@@ -306,7 +308,20 @@ class AFCSpool:
                     cur_lane.filament_diameter  = self._get_filament_values(result['filament'], 'diameter')
                     cur_lane.empty_spool_weight = self._get_filament_values(result, 'spool_weight', default=190)
                     cur_lane.weight             = self._get_filament_values(result, 'remaining_weight')
-                    # Check to see if filament is defined as multi color and take the first color for now
+
+                    weight_check = self.disable_weight_check
+
+                    if not weight_check:
+                        if (
+                            cur_lane.weight is None or
+                            cur_lane.weight <= 0 or
+                            (cur_lane.empty_spool_weight is not None and cur_lane.empty_spool_weight - cur_lane.weight <= 0)
+                        ):
+                            self.afc.error.AFC_error("Invalid weight for spoolID: {}. Please check remaining weight before assigning.".format(SpoolID), False)
+                            self.clear_values(cur_lane)
+                            return
+
+                    # Check to see if filament is defined as multi-color and take the first color for now
                     # Once support for multicolor is added this needs to be updated
                     if "multi_color_hexes" in result['filament']:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'multi_color_hexes').split(",")[0])
@@ -393,7 +408,7 @@ class AFCSpool:
         existing_cmds = sorted(existing_cmds, key=lambda x: int("".join([i for i in x if i.isdigit()])))
         for key, unit in self.afc.units.items():
             for lane in unit.lanes.values():
-				# Reassigning manually assigned mapping to lane
+                # Reassigning manually assigned mapping to lane
                 if lane._map is not None:
                     map_cmd = lane._map
                 else:

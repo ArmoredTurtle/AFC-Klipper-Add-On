@@ -127,6 +127,7 @@ class afc:
         self.common_density_values  = list(self.common_density_values)
         self.test_extrude_amt       = config.get('test_extrude_amt', 10)
 
+        self.disable_weight_check   = config.getboolean("disable_weight_check", False) # Set to True to disable weight check when loading filament into lane/toolhead
         #LED SETTINGS
         self.ind_lights = None
         # led_name is not used, either use or needs to be removed, removing this would break everyone's config as well
