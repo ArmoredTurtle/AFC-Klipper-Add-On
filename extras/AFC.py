@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.26"
+AFC_VERSION="1.0.32"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -67,14 +67,18 @@ class afc:
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
-        self.current_loading= None
-        self.next_lane_load = None
-        self.error_state    = False
-        self.current_state  = State.INIT
-        self.position_saved = False
-        self.spoolman       = None
-        self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
-        self.in_print_timer = None
+        self.current_loading    = None
+        self.next_lane_load     = None
+        self.error_state        = False
+        self.current_state      = State.INIT
+        self.position_saved     = False
+        self.spoolman           = None
+        self.moonraker          = None
+        self.td1_defined        = False
+        self._td1_present       = False
+        self.lane_data_enabled  = False
+        self.prep_done          = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
+        self.in_print_timer     = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -122,12 +126,13 @@ class afc:
         self.common_density_values  = config.getlists("common_density_values",
                                                       ("PLA:1.24", "PETG:1.23", "ABS:1.04", "ASA:1.07"))
         self.common_density_values  = list(self.common_density_values)
+        self.test_extrude_amt       = config.get('test_extrude_amt', 10)
         self.temp_wait_tolerance    = config.getfloat("temp_wait_tolerance", 5.0)         # Temperature tolerance in degrees Celsius for wait commands like M109
 
         #LED SETTINGS
         # All variables use: (R,G,B,W) 0 = off, 1 = full brightness.
         self.ind_lights = None
-        # led_name is not used, either use or needs to be removed, removing this would break everyones config as well
+        # led_name is not used, either use or needs to be removed, removing this would break everyone's config as well
         self.led_name               = config.get('led_name',None)
         self.led_off                = "0,0,0,0"
         self.led_fault              = config.get('led_fault','1,0,0,0')                # LED color to set when faults occur in lane
@@ -167,7 +172,8 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
-        self.auto_home              = config.getboolean("auto_home", False)          # Flag indicating if homing needs to be done if printer is not already homed
+        self.auto_home              = config.getboolean("auto_home", False)         # Flag indicating if homing needs to be done if printer is not already homed
+        self.auto_level_macro       = config.get("auto_level_macro", None)          # Set name for macro to run for auto bed leveling before tool change if auto_home is True and printer is not already homed
         self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
@@ -181,6 +187,7 @@ class afc:
 
         self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 4) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
+        self.max_move_tries         = config.getint("max_move_tries", 20)
 
         self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
 
@@ -203,8 +210,13 @@ class afc:
         self.enable_assist          = config.getboolean("enable_assist",        True)
         # Weight spool has to be below to activate print assist
         self.enable_assist_weight   = config.getfloat("enable_assist_weight",   500.0)
+        self.enable_hub_runout      = config.getboolean("enable_hub_runout",    True)
+        self.enable_tool_runout     = config.getboolean("enable_tool_runout",   True)
+        self.debounce_delay         = config.getfloat("debounce_delay",         0.)
 
+        self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False)
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+        self.log_frame_data         = config.getboolean('log_frame_data', True)
         self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
@@ -264,8 +276,8 @@ class afc:
         if update_trsync:
             try:
                 import mcu
-                trsync_value = config.getfloat("trsync_timeout", 0.05)              # Timeout value to update in klipper mcu. Klippers default value is 0.025
-                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5) # Single timeout value to update in klipper mcu. Klippers default value is 0.250
+                trsync_value = config.getfloat("trsync_timeout", 0.05)              # Timeout value to update in klipper mcu. Klipper's default value is 0.025
+                trsync_single_value = config.getfloat("trsync_single_timeout", 0.5) # Single timeout value to update in klipper mcu. Klipper's default value is 0.250
                 self.logger.info("Applying TRSYNC update")
 
                 # Making sure value exists as kalico(danger klipper) does not have TRSYNC_TIMEOUT value
@@ -304,12 +316,18 @@ class afc:
             self.moonraker = AFC_moonraker( self.moonraker_host, self.moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
                 return False
+
+            # Remove current lane_data from database before pushing data back up so that
+            # stale lane data is not in database
+            self.moonraker.delete_lane_data()
             self.spoolman = self.moonraker.get_spoolman_server()
+            self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+
+            self.printer.send_event("afc:moonraker_connect")
         except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
+            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error\nError: {}\n{}".format(e, traceback.format_exc()))
             self.spoolman = None                      # set to none if not found
-        return True
 
     def handle_connect(self):
         """
@@ -325,10 +343,10 @@ class afc:
         try:
             self.bypass = self.printer.lookup_object('filament_switch_sensor bypass').runout_helper
         except:
-            self.bypass = add_filament_switch("filament_switch_sensor virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
+            self.bypass = add_filament_switch("virtual_bypass", "afc_virtual_bypass:virtual_bypass", self.printer ).runout_helper
 
         if self.show_quiet_mode:
-            self.quiet_switch = add_filament_switch("filament_switch_sensor quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
+            self.quiet_switch = add_filament_switch("quiet_mode", "afc_quiet_mode:afc_quiet_mode", self.printer ).runout_helper
 
         # Register G-Code commands for macros we don't want to show up in mainsail/fluidd
         self.gcode.register_command('TOOL_UNLOAD',          self.cmd_TOOL_UNLOAD,           desc=self.cmd_TOOL_UNLOAD_help)
@@ -359,6 +377,16 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
+
+    @property
+    def td1_present(self):
+        present = self._td1_present
+        if self.printer.state_message == 'Printer is ready' and self.moonraker is not None:
+            if not self.function.is_printing(check_movement=True):
+                present = self.moonraker.check_for_td1()[1]
+                self._td1_present = present
+
+        return present
 
     def _reset_file_callback(self):
         """
@@ -403,7 +431,7 @@ class afc:
         in AFC.cfg and sees if a temperature exists for filament material.
 
         :param cur_lane: Current lane object
-        :return truple : float for temperature to heat extruder to,
+        :return tuple : float for temperature to heat extruder to,
                          bool True if user is using min_extruder_temp value
         """
         try:
@@ -1466,11 +1494,26 @@ class afc:
                         self.error.handle_lane_failure(cur_lane, msg)
                         return False
                 cur_lane.sync_to_extruder(False)
-                with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                    self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
+                # we only need to do this if we need to move off the extruder gears
+                if cur_extruder.tool_stn_unload > 0:
+                    with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
+                        self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
 
                 self.function.log_toolhead_pos("Buffer move after ")
             else:
+
+                if cur_extruder.tool_stn_unload == 0:
+                    cur_lane.unsync_to_extruder()
+                    while cur_lane.get_toolhead_pre_sensor_state():
+                        # attempt to move filament back from sensor without moving extruder
+                        cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
+                        num_tries += 1
+                        if num_tries > self.tool_max_unload_attempts:
+                            # note that this will break out of the loop and immediately fall into the error
+                            # condition of the next loop for messaging to the user
+                            break
+                        self.reactor.pause(self.reactor.monotonic() + 0.1)
+
                 while cur_lane.get_toolhead_pre_sensor_state() or cur_extruder.tool_end_state:
                     num_tries += 1
                     if num_tries > self.tool_max_unload_attempts:
@@ -1609,7 +1652,6 @@ class afc:
         CHANGE_TOOL LANE=lane1 PURGE_LENGTH=100
         ```
         """
-        self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
 
@@ -1651,6 +1693,7 @@ class afc:
         self.CHANGE_TOOL(self.lanes[self.tool_cmds[Tcmd]], purge_length)
 
     def CHANGE_TOOL(self, cur_lane, purge_length=None, restore_pos=True):
+        self.afcDeltaTime.set_start_time()
         # Check if the bypass filament sensor detects filament; if so, abort the tool change.
         if self._check_bypass(unload=False): return
         infinite_runout = False
@@ -1783,9 +1826,11 @@ class afc:
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
-        str["current_toolchange"]       = self.current_toolchange
+        str["current_toolchange"]       = self.current_toolchange if self.current_toolchange >= 0 else 0
         str["number_of_toolchanges"]    = self.number_of_toolchanges
         str['spoolman']                 = self.spoolman
+        str["td1_present"]              = self.td1_present
+        str["lane_data_enabled"]        = self.lane_data_enabled
         str['error_state']              = self.error_state
         str["bypass_state"]             = bool(self._get_bypass_state())
         str["quiet_mode"]               = bool(self._get_quiet_mode())
@@ -1827,6 +1872,8 @@ class afc:
         str["system"]['num_lanes']              = numoflanes
         str["system"]['num_extruders']          = len(self.tools)
         str["system"]['spoolman']               = self.spoolman
+        str["system"]["td1_present"]            = self.td1_present
+        str["system"]["lane_data_enabled"]      = self.lane_data_enabled
         str["system"]["current_toolchange"]     = self.current_toolchange
         str["system"]["number_of_toolchanges"]  = self.number_of_toolchanges
         str["system"]["extruders"]              = {}

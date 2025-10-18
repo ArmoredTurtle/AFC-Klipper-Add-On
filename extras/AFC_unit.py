@@ -6,6 +6,7 @@
 import traceback
 
 from configfile import error
+from datetime import datetime, timedelta
 
 try: from extras.AFC_utils import ERROR_STR
 except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
@@ -18,6 +19,7 @@ class afcUnit:
         self.printer        = config.get_printer()
         self.gcode          = self.printer.lookup_object('gcode')
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
+        self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.afc            = self.printer.lookup_object('AFC')
         self.logger         = self.afc.logger
 
@@ -90,6 +92,10 @@ class afcUnit:
         # When True AFC will unload lane and then pause when runout is triggered and spool to swap to is not set(infinite spool). Setting value here overrides values set in AFC.cfg file
         self.unload_on_runout   = config.getboolean("unload_on_runout", self.afc.unload_on_runout)
 
+        # TD-1 variables
+        self.td1_when_loaded    = config.getboolean("capture_td1_when_loaded", self.afc.td1_when_loaded)
+        self.td1_device_id      = config.get("td1_device_id", None)
+
     def __str__(self):
         return self.name
 
@@ -135,6 +141,14 @@ class afcUnit:
         self.gcode.register_mux_command('UNIT_LANE_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_LANE_CALIBRATION, desc=self.cmd_UNIT_LANE_CALIBRATION_help)
         self.gcode.register_mux_command('UNIT_BOW_CALIBRATION', "UNIT", self.name, self.cmd_UNIT_BOW_CALIBRATION, desc=self.cmd_UNIT_BOW_CALIBRATION_help)
 
+    def handle_moonraker_connect(self):
+        """
+        Registers macros commands after moonrakers connection has been established so that endpoint can be queried successfully
+        to check if TD-1 is defined in users moonrakers.conf file.
+        """
+        if self.afc.td1_defined:
+            self.gcode.register_mux_command('AFC_UNIT_TD_ONE_CALIBRATION', "UNIT", self.name, self.cmd_AFC_UNIT_TD_ONE_CALIBRATION, desc=self.cmd_AFC_UNIT_TD_ONE_CALIBRATION_help)
+
     def get_status(self, eventtime=None):
         response = {}
         response['lanes'] = [lane.name for lane in self.lanes.values()]
@@ -172,6 +186,11 @@ class afcUnit:
         # Selection buttons
         buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
         buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
+
+        # Add button for TD-1 calibration if user has one connected and defined
+        if self.afc.td1_defined:
+            buttons.append(("Calibrate TD-1 Length", "AFC_UNIT_TD_ONE_CALIBRATION UNIT={}".format(self.name), "primary"))
+
         # Button back to previous step
         back = [('Back to unit selection', 'AFC_CALIBRATION', 'info')]
 
@@ -196,14 +215,14 @@ class afcUnit:
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
+        index = 0
         title = '{} Lane Calibration'.format(self.name)
         text  = ('Select a loaded lane from {} to calibrate length from extruder to hub. '
                  'Config option: dist_hub').format(self.name)
 
         # Create buttons for each lane and group every 4 lanes together
-        for index, lane in enumerate(self.lanes):
-            cur_lane = self.lanes[lane]
-            if cur_lane.load_state:
+        for lane in self.lanes.values():
+            if lane.load_state:
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC LANE={}".format(lane)
                 button_style = "primary" if index % 2 == 0 else "secondary"
@@ -213,6 +232,7 @@ class afcUnit:
                 if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
                     buttons.append(list(group_buttons))
                     group_buttons = []
+                index += 1
 
         if group_buttons:
             buttons.append(list(group_buttons))
@@ -239,25 +259,25 @@ class afcUnit:
 
         Usage
         -----
-        `UNIT_CALIBRATION UNIT=<unit>`
+        `UNIT_BOW_CALIBRATION UNIT=<unit>`
 
         Example
         -----
         ```
-        UNIT_CALIBRATION UNIT=Turtle_1
+        UNIT_BOW_CALIBRATION UNIT=Turtle_1
         ```
         """
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         group_buttons = []
+        index = 0
         title = 'Bowden Calibration {}'.format(self.name)
         text = ('Select a loaded lane from {} to measure Bowden length. '
-                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT. '
+                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT/hub.'
                 'Config option: afc_bowden_length').format(self.name)
 
-        for index, lane in enumerate(self.lanes):
-            cur_lane = self.lanes[lane]
-            if cur_lane.load_state:
+        for lane in self.lanes.values():
+            if lane.load_state:
                 # Create a button for each lane
                 button_label = "{}".format(lane)
                 button_command = "CALIBRATE_AFC BOWDEN={}".format(lane)
@@ -268,6 +288,59 @@ class afcUnit:
                 if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
                     buttons.append(list(group_buttons))
                     group_buttons = []
+                index += 1
+
+        if group_buttons:
+            buttons.append(list(group_buttons))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons == 0:
+            text = 'No lanes are loaded, please load before calibration'
+
+        back = [('Back', 'UNIT_CALIBRATION UNIT={}'.format(self.name), 'info')]
+
+        prompt.create_custom_p(title, text, None,
+                               True, buttons, back)
+
+    cmd_AFC_UNIT_TD_ONE_CALIBRATION_help = 'open prompt to calibrate the td1_bowden_length from a lane in the unit'
+    def cmd_AFC_UNIT_TD_ONE_CALIBRATION(self, gcmd):
+        """
+        Open a prompt to calibrate the Bowden length to a TD-1 device for a specific lane in the selected unit. Provides buttons
+        for each lane, with a note to only calibrate one lane per unit.
+
+        Usage
+        -----
+        `AFC_UNIT_TD_ONE_CALIBRATION UNIT=<unit>`
+
+        Example
+        -----
+        ```
+        AFC_UNIT_TD_ONE_CALIBRATION UNIT=Turtle_1
+        ```
+        """
+        prompt = AFCprompt(gcmd, self.logger)
+        buttons = []
+        group_buttons = []
+        index = 0
+        title = 'TD-1 Bowden Calibration {}'.format(self.name)
+        text = ('Select a loaded lane from {} to measure Bowden length to your TD-1 Device. '
+                'ONLY CALIBRATE BOWDEN USING 1 LANE PER UNIT/hub. '
+                'WARNING: This could take some time to complete. '
+                'Config option: td1_bowden_length').format(self.name)
+
+        for lane in self.lanes.values():
+            if lane.load_state:
+                # Create a button for each lane
+                button_label = "{}".format(lane)
+                button_command = "CALIBRATE_AFC TD1={} DISTANCE=50".format(lane)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                group_buttons.append((button_label, button_command, button_style))
+
+                # Add group to buttons list after every 4 lanes
+                if (index + 1) % 2 == 0 or index == len(self.lanes) - 1:
+                    buttons.append(list(group_buttons))
+                    group_buttons = []
+                index += 1
 
         if group_buttons:
             buttons.append(list(group_buttons))
@@ -340,7 +413,7 @@ class afcUnit:
 
     def return_to_home(self):
         """
-        Funtion to home unit if unit has homing sensor
+        Function to home unit if unit has homing sensor
         """
         return
 
@@ -361,6 +434,9 @@ class afcUnit:
     def calibrate_bowden(self, cur_lane, dis, tol):
         self._print_function_not_defined(self.calibrate_bowden.__name__)
 
+    def calibrate_td1(self, cur_lane, dis, tol):
+        self._print_function_not_defined(self.calibrate_td1.__name__)
+
     def calibrate_hub(self, cur_lane, tol):
         self._print_function_not_defined(self.calibrate_hub.__name__)
 
@@ -372,3 +448,57 @@ class afcUnit:
 
     def calibrate_lane(self, cur_lane, tol):
         self._print_function_not_defined(self.calibrate_lane.__name__)
+
+    def get_td1_data(self, cur_lane, compare_time):
+        """
+        Queries moonrakers endpoint to get td1 data and check to see if data is valid and time
+        in data is greater than passed in time as this is how determination is made that filament
+        made it TD-1 device. Once filament is detected and valued, information is save to passed in lane.
+
+        :param cur_lane: Current lane to apply TD-1 data to, also check's to see if lane has a specific TD-1 ID
+                         assigned to the lane.
+        :param compare_time: Time to compare returned data to, which helps verify that the data is valid and
+                             filament has reached TD-1 device
+
+        :return boolean: True once filament is detected in TD-1 device
+        """
+        td1_data = self.afc.moonraker.get_td1_data()
+        t_delta = timedelta(seconds = 10)
+        valid_data = False
+
+        if len(td1_data) > 0:
+            self.logger.debug(f"Data: {td1_data}, Compare_time: {compare_time}")
+            data = list(td1_data.values())[0]
+
+            if cur_lane.td1_device_id is not None:
+                if cur_lane.td1_device_id in td1_data:
+                    data = td1_data[cur_lane.td1_device_id]
+                else:
+                    self.afc.error.AFC_error(f"TD-1 Device ID ({cur_lane.td1_device_id}) supplied, but ID not found.", pause=False)
+                    return False
+
+            if data["scan_time"] is None:
+                return False
+
+            if data["scan_time"].endswith("+00:00Z"):
+                scan_time = data["scan_time"][:-1]
+            else:
+                scan_time = data["scan_time"][:-1]+"+00:00"
+            try:
+                scan_time = datetime.fromisoformat( scan_time ).astimezone()
+            except (AttributeError, ValueError) as e:
+                self.afc.logger.error("Error trying to format TD-1 scan time, check AFC.log for more information", f"{e}")
+                return False
+
+
+            if scan_time > compare_time.astimezone():
+                valid_data = True
+            elif ( compare_time.astimezone() - scan_time ) < t_delta:
+                valid_data = True
+
+            if valid_data and data['td'] is not None and data['color'] is not None:
+                cur_lane.td1_data = data
+                self.logger.info(f"{cur_lane.name} TD-1 data captured")
+                self.afc.save_vars()
+                return True
+        return False

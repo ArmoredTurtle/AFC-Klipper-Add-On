@@ -5,8 +5,10 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 # File is used to hold common functions that can be called from anywhere and don't belong to a class
+
 import traceback
 import json
+import inspect
 
 from datetime import datetime
 from urllib.request import (
@@ -19,9 +21,13 @@ from urllib.parse import (
     quote
 )
 
+from urllib.error import (
+    HTTPError
+)
+
 ERROR_STR = "Error trying to import {import_lib}, please rerun install-afc.sh script in your AFC-Klipper-Add-On directory then restart klipper\n\n{trace}"
 
-def add_filament_switch( switch_name, switch_pin, printer ):
+def add_filament_switch( switch_name, switch_pin, printer, show_sensor=True, runout_callback = None, enable_runout=False, debounce_delay=0. ):
     """
     Helper function to register pins as filament switch sensor so it will show up in web guis
 
@@ -33,20 +39,44 @@ def add_filament_switch( switch_name, switch_pin, printer ):
     """
     import configparser
     import configfile
+    new_switch_name = f"filament_switch_sensor {switch_name}"
     ppins = printer.lookup_object('pins')
     ppins.allow_multi_use_pin(switch_pin.strip("!^"))
     filament_switch_config = configparser.RawConfigParser()
-    filament_switch_config.add_section( switch_name )
-    filament_switch_config.set( switch_name, 'switch_pin', switch_pin)
-    filament_switch_config.set( switch_name, 'pause_on_runout', 'False')
+    filament_switch_config.add_section( new_switch_name )
+    filament_switch_config.set( new_switch_name, 'switch_pin', switch_pin)
+    filament_switch_config.set( new_switch_name, 'pause_on_runout', 'False')
+    filament_switch_config.set( new_switch_name, 'debounce_delay', 0.0)
 
-    cfg_wrap = configfile.ConfigWrapper( printer, filament_switch_config, {}, switch_name)
+    cfg_wrap = configfile.ConfigWrapper( printer, filament_switch_config, {}, new_switch_name)
 
-    fila = printer.load_object(cfg_wrap, switch_name)
-    fila.runout_helper.sensor_enabled = False
-    fila.runout_helper.runout_pause = False
+    fila = printer.load_object(cfg_wrap, new_switch_name)
+
+    # Commence the hacky stuff for delayed runout
+    if not show_sensor:
+        # Removing normal switch name from object and adding name with underscore if user does not want
+        # sensor showing up in gui. Doing this suppressed the sensor from showing up in gui  since the
+        # name is not exactly "filament_switch_sensor"
+        printer.objects["_" + new_switch_name] = printer.objects.pop(new_switch_name)
+
+    fila.runout_helper.sensor_enabled = enable_runout
+    fila.runout_helper.runout_pause = False                 # AFC will deal with pause
+
+    filament_switch_config.set( new_switch_name, 'debounce_delay', debounce_delay)
+    # Using our own DebounceButton so that callback functions can be overridden to work correctly
+    debounce_button = DebounceButton(cfg_wrap, fila)
+
+    if runout_callback:
+        #fila.runout_helper.event_delay = 0.0                # Setting event delay to zero or total delay will be event_delay + debounce_delay
+        fila.runout_helper.insert_gcode = None
+        fila.runout_helper.runout_gcode = 1
+        fila.runout_helper._runout_event_handler = runout_callback # Overriding filament event handler with AFC handler
+
+    if enable_runout:
+        return fila, debounce_button
 
     return fila
+
 
 def check_and_return( value_str:str, data_values:dict ) -> str:
     """
@@ -62,6 +92,61 @@ def check_and_return( value_str:str, data_values:dict ) -> str:
         value = data_values[value_str]
 
     return value
+
+# Copied from klipper for kalico and older klipper support
+class DebounceButton:
+    def __init__(self, config, filament_sensor):
+        self.printer = config.get_printer()
+        self.reactor = self.printer.get_reactor()
+        sig = inspect.signature(filament_sensor.runout_helper.note_filament_present)
+        # Saving reference to normal function
+        self._old_note_filament_present = filament_sensor.runout_helper.note_filament_present
+        # Setting action callback to normal filament sensor not filament present
+        self.button_action = self._old_note_filament_present
+        # Overriding filament sensor filament present to button handler in this class
+        # Checking parameter length since kalico's note_filament_present function is different
+        # and also checking for older klipper versions before hash 272e8155
+        expected_params = ['eventtime', 'is_filament_present', 'force', 'immediate']
+        param_keys = list(sig.parameters.keys())
+        if param_keys == expected_params:
+            # Exact match for the expected signature
+            filament_sensor.runout_helper.note_filament_present = self._button_handler
+        elif len(sig.parameters) > 2 or len(sig.parameters) == 1:
+            filament_sensor.runout_helper.note_filament_present = self.button_handler
+        else:
+            filament_sensor.runout_helper.note_filament_present = self._button_handler
+        self.debounce_delay = config.getfloat('debounce_delay', 0., minval=0.)
+        self.logical_state = None
+        self.physical_state = None
+        self.latest_eventtime = None
+
+    def button_handler(self, state):
+        self._button_handler(self.reactor.monotonic(), state)
+
+    def _button_handler(self, eventtime, state):
+        self.physical_state = state
+        self.latest_eventtime = eventtime
+        # if there would be no state transition, ignore the event:
+        if self.logical_state == self.physical_state:
+            return
+        trigger_time = eventtime + self.debounce_delay
+        self.reactor.register_callback(self._debounce_event, trigger_time)
+
+    def _debounce_event(self, eventtime):
+        # if there would be no state transition, ignore the event:
+        if self.logical_state == self.physical_state:
+            return
+        # if there were more recent events, they supersede this one:
+        if (eventtime - self.debounce_delay) < self.latest_eventtime:
+            return
+        # enact state transition and trigger action
+        self.logical_state = self.physical_state
+        # Kalico is different from klipper and eventtime is not passed in
+        try:
+            self.button_action(is_filament_present=self.logical_state)
+        except:
+            self.button_action(eventtime, self.logical_state)
+
 
 class AFC_moonraker:
     """
@@ -84,6 +169,7 @@ class AFC_moonraker:
         self.afc_stats_key  = "afc_stats"
         self.afc_stats      = None
         self.last_stats_time= None
+        self._lane_data     = False
         self.logger.debug(f"Moonraker url: {self.host}")
 
     def _get_results(self, url_string, print_error=True):
@@ -134,7 +220,7 @@ class AFC_moonraker:
                 return True
             else:
                 toolhead.dwell(1)
-        self.logger.info(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
+        self.logger.warning(f"Failed to connect to moonraker after {timeout} seconds, check AFC.log for more information")
         return False
 
     def get_spoolman_server(self)->str:
@@ -142,7 +228,7 @@ class AFC_moonraker:
         Queries moonraker to see if spoolman is configured, returns True when
         spoolman is configured
 
-        :returns: Returns string for spoolmans IP, returns None if its not configured
+        :returns: Returns string for Spoolman IP, returns None if it is not configured
         """
         resp = self._get_results(urljoin(self.host, 'server/config'))
         # Check to make sure response is valid and spoolman exists in dictionary
@@ -243,3 +329,107 @@ class AFC_moonraker:
         else:
             self.logger.info(f"SpoolID: {id} not found")
         return resp
+
+    def check_for_td1(self):
+        """
+        Checks moonrakers server/config endpoint to see if user has `[td1]` and `[lane_data]`
+        specified in their moonraker.conf file.
+
+        :returns bool,bool,bool: True if `[td1] is defined,
+                                 True if a TD-1 device is connected and found,
+                                 True if `[lane_data]` is defined
+        """
+        td1 = False
+        td1_defined = False
+        resp = self._get_results(urljoin(self.host, 'server/config'))
+        if resp is not None:
+            if "td1" in resp['orig']:
+                td1_defined = True
+                td1_data = self.get_td1_data()
+                if td1_data is not None and len(td1_data) > 0:
+                    td1 = True
+
+            if "lane_data" in resp['orig']:
+                self._lane_data = True
+        return td1_defined, td1, self._lane_data
+
+    def get_td1_data(self):
+        """
+        Fetches TD-1 data from moonrakers `machine/td1/data` endpoint
+
+        :returns dict: Returns dictionary of TD-1 devices by serial numbers with their data,
+                       returns None if no TD-1 devices are found
+        """
+        url = urljoin(self.host, "machine/td1/data")
+        req = Request(url=url)
+        resp = self._get_results(req)
+        if resp is not None and "devices" in resp:
+            return resp["devices"]
+        else:
+            return None
+
+    def reboot_td1(self, serial_number):
+        """
+        Send's TD-1 serial to moonrakers `machine/td1/reboot` endpoint to force restart TD-1
+        device
+
+        :param serial_number: Serial number of TD-1 device to reboot
+        :return dict: Status of reboot,
+                      "ok"-reboot happened successfully
+                      "serial_error"-serial number was not supplied
+                      "key_error"-serial number supplied is not correct
+        """
+        url = urljoin(self.host, "machine/td1/reboot")
+        td1_reboot_payload = {
+            "request_method": "POST",
+            "serial": serial_number
+        }
+        req = Request( url, urlencode(td1_reboot_payload).encode())
+        resp = self._get_results(req)
+        return resp
+
+    def send_lane_data(self, data):
+        """
+        Send lane data to moonrakers `machine/set_lane_data` endpoint so that
+        other programs can query moonrakers `machine/lane_data` endpoint to see what lanes
+        are loaded and what their colors are.
+
+        :params data: Data to send to endpoint
+        """
+        # TODO: keeping lane data commented out just incase moonraker wants to add
+        # back lane_data module
+        # if self._lane_data:
+        # url = urljoin( self.host, 'machine/set_lane_data')
+        try:
+            req = Request( url=self.database_url, data=json.dumps(data).encode(),
+                        method="POST", headers={"Content-Type": "application/json"})
+            if self._get_results(req) is None:
+                self.logger.error("Error sending lane data, check AFC.log for more information")
+        except HTTPError as e:
+            self.logger.error("Error occurred when trying to send lane data to moonraker database,"+
+                              "\nplease check AFC.log for more information.")
+            self.logger.debug(f"{e}")
+
+    def delete_lane_data(self):
+        """
+        Function recursively delete's lane_data namespace from moonrakers database.
+
+        Purpose would be to remove data upon boot just incase someone when from a 8 lane
+        system to a 4 lane system, removing and then readding will make sure database has
+        current up to date data.
+        """
+        resp = self._get_results(urljoin(self.database_url, "?namespace=lane_data"), print_error=False)
+        if resp is not None:
+            value = resp.get("value")
+            try:
+                for key in value.keys():
+                    payload = {
+                        "request_method": "DELETE",
+                        "namespace":"lane_data",
+                        "key": key
+                    }
+                    req = Request( self.database_url, urlencode(payload).encode(), method="DELETE")
+                    urlopen(req)
+            except HTTPError as e:
+                self.logger.debug("Error occurred when trying to delete lane data")
+                self.logger.debug(f"{e}")
