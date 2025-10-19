@@ -1359,6 +1359,9 @@ class afc:
             self.error.AFC_error("No lane is currently loaded, nothing to unload", pause=self.function.in_print())
             return False
 
+        # Lookup current extruder object using the lane's information.
+        cur_extruder = cur_lane.extruder_obj
+
         # Verify that printer is in absolute mode
         self.function.check_absolute_mode("TOOL_UNLOAD")
 
@@ -1376,8 +1379,8 @@ class afc:
             next_extruder   = self.lanes.get(self.next_lane_load).extruder_obj.name
             next_lane       = self.lanes.get(self.next_lane_load)
         else:
-            next_extruder   = None
-            next_lane       = None
+            next_extruder   = self.lanes.get(cur_lane.name).extruder_obj.name
+            next_lane       = self.lanes.get(cur_lane.name)
         # TODO: need to check if its just a tool swap, or tool swap with a lane unload
 
         # If the next extruder is specified and it is not the current extruder, perform a tool swap.
@@ -1397,9 +1400,12 @@ class afc:
         # Default to true
         unload_toolhead = True
         if self.next_lane_load is not None:
-            unload_toolhead = True if self.next_lane_load in cur_extruder.lanes else False
+            if self.next_lane_load in cur_extruder.lanes and self.next_lane_load != cur_extruder.lane_loaded:
+                unload_toolhead = True
+            else:
+                unload_toolhead = False
 
-        self.logger.debug(f"Next lane load:{self.next_lane_load}, conditional:{self.next_lane_load in cur_extruder.lanes},\nlanes:{cur_extruder.lanes}, unload_toolhead:{unload_toolhead}")
+        self.logger.debug(f"Next lane load:{self.next_lane_load}, lanes:{cur_extruder.lanes}, current lane:{cur_lane}, unload_toolhead:{unload_toolhead}")
 
         if self.current is not None and unload_toolhead:
             self.current_state  = State.UNLOADING
@@ -1408,9 +1414,8 @@ class afc:
             cur_lane.status = AFCLaneState.TOOL_UNLOADING
             self.save_vars()
 
-            # Lookup current extruder and hub objects using the lane's information.
+            # Lookup current hub object using the lane's information.
             cur_hub = cur_lane.hub_obj
-            cur_extruder = cur_lane.extruder_obj
 
             # Run the unload sequence, which may include custom gcode commands.
             if not self.unload_sequence(cur_lane, cur_hub, cur_extruder):
