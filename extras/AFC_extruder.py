@@ -96,7 +96,7 @@ class AFCExtruder:
             self.toolhead_extruder = self.printer.lookup_object(self.name)
         except:
             raise error("[{}] not found in config file".format(self.name))
-        
+
         try:
             if self.tool:
                 self.tool_obj = self.printer.lookup_object(self.tool)

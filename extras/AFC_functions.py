@@ -381,6 +381,11 @@ class afcFunction:
         return curr_lane_obj
 
     def get_current_extruder_obj(self):
+        """
+        Helper function to lookup current extruder object loaded into active toolhead
+
+        :return Object: Object of current extruder/tool, None if no extruder/tool
+        """
         extruder_name = self.get_current_extruder()
         if extruder_name:
             return self.afc.tools[extruder_name]
@@ -388,7 +393,7 @@ class afcFunction:
 
     def get_current_extruder(self):
         """
-        Helper function to lookup current extruder object loaded into active toolhead
+        Helper function to lookup current extruder name loaded into active toolhead
 
         :return string: Name of current extruder/tool, None if no extruder/tool
         """
@@ -466,8 +471,12 @@ class afcFunction:
         # Wait until printer is not moving so klipper does not crash
         # self.reactor.update_timer( self.activate_extruder_cb, self.reactor.monotonic() + 5 )
         self._handle_activate_extruder(0)
-    
+
     def _handle_activate_extruder(self, eventtime):
+        """
+        Supposed to be a callback function from timer, currently this is not called from timer event.
+        TODO: Update this functionality before pushing to main/dev
+        """
 
         cur_lane_loaded = self.get_current_lane_obj()
         self.logger.debug("Activating extruder lane: {}".format(cur_lane_loaded.name if cur_lane_loaded else "None"))

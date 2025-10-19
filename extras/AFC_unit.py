@@ -185,8 +185,10 @@ class afcUnit:
         text = 'Select to calibrate the distance from extruder to hub or bowden length'
         # Selection buttons
         buttons.append(("Calibrate Lanes", "UNIT_LANE_CALIBRATION UNIT={}".format(self.name), "primary"))
+
         direct_hubs = any( lane.is_direct_hub() for lane in self.afc.lanes.values())
         lanes_loaded = any( lane.load_state and not lane.is_direct_hub() for lane in self.afc.lanes.values())
+
         if not direct_hubs or lanes_loaded:
             buttons.append(("Calibrate afc_bowden_length", "UNIT_BOW_CALIBRATION UNIT={}".format(self.name), "secondary"))
 
