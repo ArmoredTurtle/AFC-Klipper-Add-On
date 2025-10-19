@@ -1058,8 +1058,11 @@ class afcFunction:
                         if not cur_lane.load_state or not cur_lane.prep_state:
                             self.logger.info("{} not loaded skipping to next loaded lane".format(cur_lane.name))
                             continue
-                        # Calibrate the specific lane
-                        checked, msg, pos = cur_lane.unit_obj.calibrate_lane(cur_lane, tol)
+                        # Calibrate the specific lane, call calibrate_bowden if lane is direct hub
+                        if cur_lane.is_direct_hub():
+                            checked, msg, pos = cur_lane.unit_obj.calibrate_bowden(cur_lane, dis, tol)
+                        else:
+                            checked, msg, pos = cur_lane.unit_obj.calibrate_lane(cur_lane, tol)
                         if(not checked):
                             self.afc.error.AFC_error(msg, False)
                             self.afc.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(cur_lane, pos))
@@ -1082,8 +1085,11 @@ class afcFunction:
                         if not cur_lane.load_state or  not cur_lane.prep_state:
                             self.logger.info("{} not loaded skipping to next loaded lane".format(cur_lane.name))
                             continue
-                        # Calibrate the specific lane
-                        checked, msg, pos = CUR_UNIT.calibrate_lane(cur_lane, tol)
+                        # Calibrate the specific lane, call calibrate_bowden if lane is direct hub
+                        if cur_lane.is_direct_hub():
+                            checked, msg, pos = cur_lane.unit_obj.calibrate_bowden(cur_lane, dis, tol)
+                        else:
+                            checked, msg, pos = CUR_UNIT.calibrate_lane(cur_lane, tol)
                         if(not checked):
                             self.afc.error.AFC_error(msg, False)
                             self.afc.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(cur_lane, pos))
