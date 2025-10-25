@@ -613,7 +613,7 @@ class AFCLane:
 
     def load_callback(self, eventtime, state):
         self.load_state = state
-        if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.unit_obj.type == "HTLF":
+        if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
             self.prep_state = state
 
     def handle_load_runout(self, eventtime, load_state):
@@ -628,22 +628,26 @@ class AFCLane:
         :param eventtime: Event time from the button press
         """
         # Call filament sensor callback so that state is registered
+        self.logger.info(f"Load runout triggered state:{load_state}")
         try:
             self.load_debounce_button._old_note_filament_present(is_filament_present=load_state)
         except:
             self.load_debounce_button._old_note_filament_present(eventtime, load_state)
 
-        if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
-            if load_state and not self.tool_loaded:
+        if (self.printer.state_message == 'Printer is ready' and
+            self.unit_obj.type == "HTLF" and
+            True == self._afc_prep_done):
+            if load_state:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
                 self.afc.spool._set_values(self)
                 # Check if user wants to get TD-1 data when loading
-                self._prep_capture_td1()
+                if not self.tool_loaded:
+                    self._prep_capture_td1()
+
                 if self.hub == 'direct_load':
                     self.afc.afcDeltaTime.set_start_time()
                     self.afc.TOOL_LOAD(self)
-                    self.material = self.afc.default_material_type
             else:
                 # Don't run if user disabled sensor in gui
                 if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
