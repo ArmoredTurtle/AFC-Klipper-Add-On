@@ -1261,9 +1261,9 @@ class AFCLane:
 
         self.afc.function.unset_lane_loaded()
 
+        self.afc.function.handle_activate_extruder()
         self.set_loaded()
         self.sync_to_extruder()
-        self.afc.function.handle_activate_extruder()
         self.afc.save_vars()
         self.unit_obj.select_lane(self)
         self.logger.info("Manually set {} loaded to toolhead".format(self.name))
