@@ -1748,6 +1748,7 @@ class afc:
             header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
+            # Initialize extruder_msg to its default value before processing lanes
             extruder_msg = '  Tool: <span class=error--text>x</span>'
             for cur_lane in unit.lanes.values():
                 lane_msg = ''
