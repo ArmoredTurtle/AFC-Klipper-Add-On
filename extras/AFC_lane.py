@@ -628,7 +628,6 @@ class AFCLane:
         :param eventtime: Event time from the button press
         """
         # Call filament sensor callback so that state is registered
-        self.logger.info(f"Load runout triggered state:{load_state}")
         try:
             self.load_debounce_button._old_note_filament_present(is_filament_present=load_state)
         except:
