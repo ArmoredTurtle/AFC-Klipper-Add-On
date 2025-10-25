@@ -979,6 +979,8 @@ class AFCLane:
         Returns True if the lane is in a normal printing state (TOOLED or LOADED).
         Prevents runout logic from triggering during transitions or maintenance.
         """
+        if self.afc.in_toolchange:
+            return False
         return self.status in (AFCLaneState.TOOLED, AFCLaneState.LOADED)
 
     def handle_toolhead_runout(self, sensor=None):
