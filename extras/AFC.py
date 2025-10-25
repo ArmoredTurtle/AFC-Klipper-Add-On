@@ -1737,6 +1737,7 @@ class afc:
         """
         status_msg = ''
 
+        # TODO: Update this function for correct usage with multiple hubs/toolheads
         for unit in self.units.values():
             # Find the maximum length of lane names to determine the column width
             max_lane_length = max(len(lane) for lane in unit.lanes.keys())
@@ -1747,11 +1748,14 @@ class afc:
             header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
+            # Initialize extruder_msg to its default value before processing lanes
+            extruder_msg = '  Tool: <span class=error--text>x</span>'
             for cur_lane in unit.lanes.values():
                 lane_msg = ''
                 if self.current is not None:
                     if self.current == cur_lane.name:
-                        if not cur_lane.get_toolhead_pre_sensor_state() or not cur_lane.hub_obj.state:
+                        if (not cur_lane.get_toolhead_pre_sensor_state() or
+                            not cur_lane.hub_obj.state):
                             lane_msg += '<span class=warning--text>{:<{}} </span>'.format(cur_lane.name, max_lane_length)
                         else:
                             lane_msg += '<span class=success--text>{:<{}} </span>'.format(cur_lane.name, max_lane_length)
@@ -1770,19 +1774,20 @@ class afc:
                     lane_msg += '  <span class=error--text>xx</span>  |\n'
                 status_msg += lane_msg
 
+                if cur_lane.extruder_obj.tool_start != "buffer":
+                    if cur_lane.extruder_obj.tool_start_state:
+                        extruder_msg = '  Tool: <span class=success--text><-></span>'
+                else:
+                    if (cur_lane.tool_loaded and
+                        cur_lane.extruder_obj.lane_loaded in unit.lanes):
+                        if cur_lane.get_toolhead_pre_sensor_state():
+                            extruder_msg = '  Tool: <span class=success--text><-></span>'
+
             if cur_lane.hub_obj.state:
                 status_msg += 'HUB: <span class=success--text><-></span>'
             else:
                 status_msg += 'HUB: <span class=error--text>x</span>'
 
-            extruder_msg = '  Tool: <span class=error--text>x</span>'
-            if cur_lane.extruder_obj.tool_start != "buffer":
-                if cur_lane.extruder_obj.tool_start_state:
-                    extruder_msg = '  Tool: <span class=success--text><-></span>'
-            else:
-                if cur_lane.tool_loaded and cur_lane.extruder_obj.lane_loaded in self.units[unit]:
-                    if cur_lane.get_toolhead_pre_sensor_state():
-                        extruder_msg = '  Tool: <span class=success--text><-></span>'
 
             status_msg += extruder_msg
             if cur_lane.extruder_obj.tool_start == 'buffer':
