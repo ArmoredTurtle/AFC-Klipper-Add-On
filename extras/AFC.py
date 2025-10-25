@@ -1782,6 +1782,11 @@ class afc:
                 if not self.testing:
                     self.afc_stats.reset_toolchange_wo_error()
         else:
+            # Calling handle activate extruder just to make sure lanes are synced as tool
+            # could have been changed with KTC SELECT_TOOL and lane might not be synced
+            # properly
+            # Take call out once transitioned away from KTC
+            self.function._handle_activate_extruder(0)
             self.logger.info("{} already loaded".format(cur_lane.name))
             if not self.error_state and self.current_toolchange == -1:
                 self.current_toolchange += 1
