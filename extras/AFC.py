@@ -1379,8 +1379,13 @@ class afc:
         if self.next_lane_load is not None:
             next_lookup_lane_name = self.next_lane_load
 
-        next_extruder   = self.lanes.get(next_lookup_lane_name).extruder_obj.name
         next_lane       = self.lanes.get(next_lookup_lane_name)
+        if next_lane is None:
+            self.error.AFC_error(f"Lane '{next_lookup_lane_name}' not found in AFC lane mapping during unload operation.",
+                                 pause=self.function.in_print())
+            return False
+
+        next_extruder   = next_lane.extruder_obj.name
         # TODO: need to check if its just a tool swap, or tool swap with a lane unload
 
         # If the next extruder is specified and it is not the current extruder, perform a tool swap.

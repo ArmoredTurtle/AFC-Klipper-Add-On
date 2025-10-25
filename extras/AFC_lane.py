@@ -47,6 +47,8 @@ class AFCLaneState:
     CALIBRATING      = "Calibrating"
     INFINITE_RUNOUT  = "Infinite Runout"
 
+VALID_DIRECT_HUB = ['direct', 'direct_load']
+
 class AFCLane:
     UPDATE_WEIGHT_DELAY = 10.0
     def __init__(self, config):
@@ -487,13 +489,14 @@ class AFCLane:
                 return self.short_moves_speed, self.short_moves_accel
             else:
                 return self.dist_hub_move_speed, self.dist_hub_move_accel
+
     def is_direct_hub(self):
         """
         Helper function to see if hub for lane is 'direct' or 'direct_load' hub.
 
         :return boolean: True if hub for lane is 'direct' or 'direct_load'
         """
-        return self.hub and 'direct' in self.hub
+        return self.hub in VALID_DIRECT_HUB
 
     def select_lane(self):
         """

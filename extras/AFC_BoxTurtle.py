@@ -231,7 +231,7 @@ class afcBoxTurtle(afcUnit):
         """
         bow_pos = 0
         cur_hub = cur_lane.hub_obj
-		#TODO: Add calibration support for direct loads
+        #TODO: Add calibration support for direct loads
 
         # Verify TD-1 is still connected before trying to get data
         if not self.afc.td1_present:

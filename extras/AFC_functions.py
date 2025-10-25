@@ -35,7 +35,8 @@ class afcFunction:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
-        self.reactor = self.printer.get_reactor()
+        # TODO: Use or remove once fully moved away from KTC
+        # self.reactor = self.printer.get_reactor()
         # self.activate_extruder_cb = self.reactor.register_timer( self._handle_activate_extruder )
         self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.auto_var_file = None
@@ -475,7 +476,7 @@ class afcFunction:
     def _handle_activate_extruder(self, eventtime):
         """
         Supposed to be a callback function from timer, currently this is not called from timer event.
-        TODO: Update this functionality before pushing to main/dev
+        TODO: Update this functionality before pushing to main/dev or once fully moved away from KTC
         """
 
         cur_lane_loaded = self.get_current_lane_obj()
@@ -518,6 +519,7 @@ class afcFunction:
         cur_lane_loaded.sync_to_extruder()
         cur_lane_loaded.unit_obj.select_lane( cur_lane_loaded )
         self.logger.debug("Activate extruder done")
+        # TODO: Remove or add back once fully moved away from KTC
         # return self.reactor.NEVER
 
     def unset_lane_loaded(self):
