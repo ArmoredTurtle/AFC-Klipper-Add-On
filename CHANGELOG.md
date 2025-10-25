@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-10-25]
+### Added
+- Added `is_direct_hub()` helper method to detect 'direct' and 'direct_load' hub types
+- Updated calibration logic to handle direct hub lanes using bowden calibration for `dist_hub` length
+- Enhanced tool swapping and activation logic with better multi-extruder support
+
 ## [2025-10-16]
 ### Fixes
 - Fixed issue with debounce logic on latest version of Kalico.

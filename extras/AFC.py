@@ -1371,9 +1371,6 @@ class afc:
         # toolhead wait is needed here as it will cause TTC for some if wait does not occur
         self.move_z_pos(pos[2], "Tool_Unload quick pull", wait_moves=True)
 
-        # TO->T1
-        # next_lane_load = lane1
-
         # Check if the current extruder is loaded with the lane to be unloaded.
         next_lookup_lane_name = cur_lane.name
         if self.next_lane_load is not None:
