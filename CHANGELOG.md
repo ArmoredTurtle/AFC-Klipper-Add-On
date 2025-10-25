@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-10-25]
 ### Fixes
-- Resolved a bug where runout logic could potentially be triggered during a toolchange. 
+- Resolved a bug where runout logic could potentially be triggered during a toolchange.
+- Resolved a bug where AFC_STATUS would crash klipper when using buffer as toolhead sensor and last lane was loaded into toolhead.
 
 ## [2025-10-18]
 ### Fixes
