@@ -640,13 +640,18 @@ class AFCLane:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
                 self.afc.spool._set_values(self)
+
                 # Check if user wants to get TD-1 data when loading
                 if not self.tool_loaded:
                     self._prep_capture_td1()
 
                 if self.hub == 'direct_load':
-                    self.afc.afcDeltaTime.set_start_time()
-                    self.afc.TOOL_LOAD(self)
+                    # Check to see if the printer is printing or moving, as trying to load while printer is doing something will crash klipper
+                    if self.afc.function.is_printing(check_movement=True):
+                        self.afc.error.AFC_error("Cannot load spool to toolhead while printer is actively moving or homing", False)
+                    else:
+                        self.afc.afcDeltaTime.set_start_time()
+                        self.afc.TOOL_LOAD(self)
             else:
                 # Don't run if user disabled sensor in gui
                 if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
