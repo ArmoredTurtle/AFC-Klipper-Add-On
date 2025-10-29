@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed code for Belay.
 - Cleanup terminology around compressing/expanding of the buffer to make it easier to understand for users.
 
+## [2025-10-29]
+### Fixes
+- Fixed klipper crashing when commanding distance of zero for LANE_MOVE macro.
+
 ## [2025-10-25]
 ### Fixes
 - Resolved a bug where runout logic could potentially be triggered during a toolchange.
