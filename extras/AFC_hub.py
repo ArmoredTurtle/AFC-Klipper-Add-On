@@ -27,9 +27,9 @@ class afc_hub:
         self.lanes = {}
         self.state = False
 
+        self.switch_pin = config.get('switch_pin', None)
         # HUB Cut variables
         # Next two variables are used in AFC
-        self.switch_pin             = config.get('switch_pin')                      # Pin hub sensor it connected to
         self.hub_clear_move_dis     = config.getfloat("hub_clear_move_dis", 25)     # How far to move filament so that it's not block the hub exit
         self.afc_bowden_length      = config.getfloat("afc_bowden_length", 900)     # Length of the Bowden tube from the hub to the toolhead sensor in mm.
         self.td1_bowden_length      = config.getfloat("td1_bowden_length", self.afc_bowden_length-50)     # Length of the Bowden tube from the hub to a TD-1 device in mm.
@@ -55,13 +55,23 @@ class afc_hub:
         self.enable_runout          = config.getboolean("enable_hub_runout",        self.afc.enable_hub_runout)
 
         buttons = self.printer.load_object(config, "buttons")
+        self.fila = None
+        self.debounce_button = None
+
         if self.switch_pin is not None:
             self.state = False
             buttons.register_buttons([self.switch_pin], self.switch_pin_callback)
 
-        self.fila, self.debounce_button = add_filament_switch( f"{self.name}_Hub", self.switch_pin, self.printer,
-                                                                self.enable_sensors_in_gui, self.handle_runout, self.enable_runout,
-                                                                self.debounce_delay)
+            self.fila, self.debounce_button = add_filament_switch(f"{self.name}_Hub",
+                                                                  self.switch_pin,
+                                                                  self.printer,
+                                                                  self.enable_sensors_in_gui,
+                                                                  self.handle_runout,
+                                                                  self.enable_runout,
+                                                                  self.debounce_delay
+                                                                )
+        else:
+            self.state = False
 
         # Adding self to AFC hubs
         self.afc.hubs[self.name]=self
