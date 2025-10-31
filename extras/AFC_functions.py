@@ -35,6 +35,9 @@ class afcFunction:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
+        # TODO: Use or remove once fully moved away from KTC
+        # self.reactor = self.printer.get_reactor()
+        # self.activate_extruder_cb = self.reactor.register_timer( self._handle_activate_extruder )
         self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.auto_var_file = None
         self.errorLog = {}
@@ -361,8 +364,9 @@ class afcFunction:
         :return string: Current lane name that is loaded, None if nothing is loaded
         """
         if self.printer.state_message == 'Printer is ready':
-            if self.get_current_extruder() is not None:
-                return self.afc.tools[self.get_current_extruder()].lane_loaded
+            current_extruder = self.get_current_extruder()
+            if current_extruder is not None:
+                return self.afc.tools[current_extruder].lane_loaded
         return None
 
     def get_current_lane_obj(self):
@@ -377,15 +381,28 @@ class afcFunction:
             curr_lane_obj = self.afc.lanes[curr_lane]
         return curr_lane_obj
 
-    def get_current_extruder(self):
+    def get_current_extruder_obj(self):
         """
         Helper function to lookup current extruder object loaded into active toolhead
+
+        :return Object: Object of current extruder/tool, None if no extruder/tool
+        """
+        extruder_name = self.get_current_extruder()
+        if extruder_name:
+            return self.afc.tools[extruder_name]
+        return None
+
+    def get_current_extruder(self):
+        """
+        Helper function to lookup current extruder name loaded into active toolhead
 
         :return string: Name of current extruder/tool, None if no extruder/tool
         """
         current_extruder = self.afc.toolhead.get_extruder().name
         if current_extruder in self.afc.tools:
-            return current_extruder
+            tool_obj = self.afc.tools[current_extruder].tool_obj
+            detected_state = tool_obj.detect_state if hasattr(tool_obj, "detect_state") else 1
+            return current_extruder if detected_state else None
         else:
             return None
 
@@ -452,6 +469,16 @@ class afcFunction:
 
         This will also be tied to a callback once multiple extruders are implemented
         """
+        # Wait until printer is not moving so klipper does not crash
+        # self.reactor.update_timer( self.activate_extruder_cb, self.reactor.monotonic() + 5 )
+        self._handle_activate_extruder(0)
+
+    def _handle_activate_extruder(self, eventtime):
+        """
+        Supposed to be a callback function from timer, currently this is not called from timer event.
+        TODO: Update this functionality before pushing to main/dev or once fully moved away from KTC
+        """
+
         cur_lane_loaded = self.get_current_lane_obj()
         self.logger.debug("Activating extruder lane: {}".format(cur_lane_loaded.name if cur_lane_loaded else "None"))
 
@@ -460,6 +487,8 @@ class afcFunction:
             if cur_lane_loaded is None or key != cur_lane_loaded.name:
                 obj.do_enable(False)
                 obj.disable_buffer()
+                obj.unit_obj.return_to_home()
+                obj.unsync_to_extruder()
                 if obj.prep_state and obj.load_state:
                     if obj.tool_loaded:
                         # If tool is loaded, set led to tool loaded color
@@ -487,6 +516,11 @@ class afcFunction:
         cur_lane_loaded.do_enable(True)
         # Enable buffer
         cur_lane_loaded.enable_buffer()
+        cur_lane_loaded.sync_to_extruder()
+        cur_lane_loaded.unit_obj.select_lane( cur_lane_loaded )
+        self.logger.debug("Activate extruder done")
+        # TODO: Remove or add back once fully moved away from KTC
+        # return self.reactor.NEVER
 
     def unset_lane_loaded(self):
         """
@@ -1026,8 +1060,11 @@ class afcFunction:
                         if not cur_lane.load_state or not cur_lane.prep_state:
                             self.logger.info("{} not loaded skipping to next loaded lane".format(cur_lane.name))
                             continue
-                        # Calibrate the specific lane
-                        checked, msg, pos = cur_lane.unit_obj.calibrate_lane(cur_lane, tol)
+                        # Calibrate the specific lane, call calibrate_bowden if lane is direct hub
+                        if cur_lane.is_direct_hub():
+                            checked, msg, pos = cur_lane.unit_obj.calibrate_bowden(cur_lane, dis, tol)
+                        else:
+                            checked, msg, pos = cur_lane.unit_obj.calibrate_lane(cur_lane, tol)
                         if(not checked):
                             self.afc.error.AFC_error(msg, False)
                             self.afc.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(cur_lane, pos))
@@ -1050,8 +1087,11 @@ class afcFunction:
                         if not cur_lane.load_state or  not cur_lane.prep_state:
                             self.logger.info("{} not loaded skipping to next loaded lane".format(cur_lane.name))
                             continue
-                        # Calibrate the specific lane
-                        checked, msg, pos = CUR_UNIT.calibrate_lane(cur_lane, tol)
+                        # Calibrate the specific lane, call calibrate_bowden if lane is direct hub
+                        if cur_lane.is_direct_hub():
+                            checked, msg, pos = cur_lane.unit_obj.calibrate_bowden(cur_lane, dis, tol)
+                        else:
+                            checked, msg, pos = CUR_UNIT.calibrate_lane(cur_lane, tol)
                         if(not checked):
                             self.afc.error.AFC_error(msg, False)
                             self.afc.gcode.run_script_from_command('AFC_CALI_FAIL FAIL={} DISTANCE={}'.format(cur_lane, pos))

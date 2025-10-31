@@ -39,6 +39,8 @@ class AFCExtruder:
         self.enable_runout              = config.getboolean("enable_tool_runout",       self.afc.enable_tool_runout)
         self.debounce_delay             = config.getfloat("debounce_delay",             self.afc.debounce_delay)
         self.deadband                   = config.getfloat("deadband", 2)                                                # Deadband for extruder heater, default is 2 degrees Celsius
+        self.tool                       = config.get('tool', None)
+        self.tool_obj                   = None
 
         self.lane_loaded                = None
         self.lanes                      = {}
@@ -52,7 +54,7 @@ class AFCExtruder:
                 self.logger.info("Setting up as buffer")
             else:
                 buttons.register_buttons([self.tool_start], self.tool_start_callback)
-                self.fila_tool_start, self.debounce_button_start = add_filament_switch("tool_start", self.tool_start, self.printer,
+                self.fila_tool_start, self.debounce_button_start = add_filament_switch(f"{self.name}_tool_start", self.tool_start, self.printer,
                                                                                         self.enable_sensors_in_gui, self.handle_start_runout, self.enable_runout,
                                                                                         self.debounce_delay )
 
@@ -62,7 +64,7 @@ class AFCExtruder:
                 raise error(f"Unknown is not valid for pin_tool_end in [{self.fullname}] config.")
 
             buttons.register_buttons([self.tool_end], self.tool_end_callback)
-            self.fila_tool_end, self.debounce_button_end = add_filament_switch("tool_end", self.tool_end, self.printer,
+            self.fila_tool_end, self.debounce_button_end = add_filament_switch(f"{self.name}_tool_end", self.tool_end, self.printer,
                                                                                 self.enable_sensors_in_gui, self.handle_end_runout, self.enable_runout,
                                                                                 self.debounce_delay )
 
@@ -94,6 +96,12 @@ class AFCExtruder:
             self.toolhead_extruder = self.printer.lookup_object(self.name)
         except:
             raise error("[{}] not found in config file".format(self.name))
+
+        try:
+            if self.tool:
+                self.tool_obj = self.printer.lookup_object(self.tool)
+        except:
+            raise error(f'[{self.tool}] not found in config file for {self.name}')
 
     def _handle_toolhead_sensor_runout(self, state, sensor_name):
         """

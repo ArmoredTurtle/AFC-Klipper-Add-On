@@ -47,6 +47,8 @@ class AFCLaneState:
     CALIBRATING      = "Calibrating"
     INFINITE_RUNOUT  = "Infinite Runout"
 
+VALID_DIRECT_HUB = ['direct', 'direct_load']
+
 class AFCLane:
     UPDATE_WEIGHT_DELAY = 10.0
     def __init__(self, config):
@@ -293,7 +295,7 @@ class AFCLane:
 
         self.hub_obj = self.unit_obj.hub_obj
 
-        if self.hub != 'direct':
+        if not self.is_direct_hub():
             if self.hub is not None:
                 try:
                     self.hub_obj = self.printer.lookup_object("AFC_hub {}".format(self.hub))
@@ -488,6 +490,20 @@ class AFCLane:
             else:
                 return self.dist_hub_move_speed, self.dist_hub_move_accel
 
+    def is_direct_hub(self):
+        """
+        Helper function to see if hub for lane is 'direct' or 'direct_load' hub.
+
+        :return boolean: True if hub for lane is 'direct' or 'direct_load'
+        """
+        return self.hub in VALID_DIRECT_HUB
+
+    def select_lane(self):
+        """
+        Helper function to select lane, calls unit lane selection function.
+        """
+        self.unit_obj.select_lane( self )
+
     def move(self, distance, speed, accel, assist_active=False):
         """
         Move the specified lane a given distance with specified speed and acceleration.
@@ -617,13 +633,25 @@ class AFCLane:
         except:
             self.load_debounce_button._old_note_filament_present(eventtime, load_state)
 
-        if self.printer.state_message == 'Printer is ready' and self.unit_obj.type == "HTLF":
-            if load_state and not self.tool_loaded:
+        if (self.printer.state_message == 'Printer is ready' and
+            self.unit_obj.type == "HTLF" and
+            True == self._afc_prep_done):
+            if load_state:
                 self.status = AFCLaneState.LOADED
                 self.unit_obj.lane_loaded(self)
                 self.afc.spool._set_values(self)
+
                 # Check if user wants to get TD-1 data when loading
-                self._prep_capture_td1()
+                if not self.tool_loaded:
+                    self._prep_capture_td1()
+
+                if self.hub == 'direct_load':
+                    # Check to see if the printer is printing or moving, as trying to load while printer is doing something will crash klipper
+                    if self.afc.function.is_printing(check_movement=True):
+                        self.afc.error.AFC_error("Cannot load spool to toolhead while printer is actively moving or homing", False)
+                    else:
+                        self.afc.afcDeltaTime.set_start_time()
+                        self.afc.TOOL_LOAD(self)
             else:
                 # Don't run if user disabled sensor in gui
                 if not self.fila_load.runout_helper.sensor_enabled and self.afc.function.is_printing():
@@ -654,7 +682,11 @@ class AFCLane:
         if self.prep_active:
             return
 
-        if self.printer.state_message == 'Printer is ready' and self.hub =='direct' and not self.afc.function.is_homed():
+        if (self.printer.state_message == 'Printer is ready' and
+            True == self._afc_prep_done and
+            self.is_direct_hub() and
+            not self.afc.auto_home and
+            not self.afc.function.is_homed()):
             self.afc.error.AFC_error("Please home printer before directly loading to toolhead", False)
             return False
 
@@ -667,6 +699,7 @@ class AFCLane:
             if self.printer.state_message == 'Printer is ready' and True == self._afc_prep_done and self.status != AFCLaneState.TOOL_UNLOADING:
                 # Only try to load when load state trigger is false
                 if self.prep_state == True and self.load_state == False:
+                    self.logger.debug(f"Prep: callback triggered {self.name}")
                     x = 0
                     # Checking to make sure last time prep switch was activated was less than 1 second, returning to keep is printing message from spamming
                     # the console since it takes klipper some time to transition to idle when idle_resume=printing
@@ -690,17 +723,20 @@ class AFCLane:
                             self.status = AFCLaneState.NONE
                             break
                     self.status = AFCLaneState.NONE
+                    self.logger.debug(f"Prep: Load Done-{self.name}")
 
                     # Verify that load state is still true as this would still trigger if prep sensor was triggered and then filament was removed
-                    #   This is only really a issue when using direct and still using load sensor
-                    if self.hub == 'direct' and self.prep_state:
+                    #   This is only really a issue when using direct_load and still using load sensor
+                    if self.hub == 'direct_load' and self.prep_state:
+                        self.logger.debug(f"Prep: direct load logic-{self.name}-{self.hub}")
                         self.afc.afcDeltaTime.set_start_time()
                         self.afc.TOOL_LOAD(self)
-                        self.material = self.afc.default_material_type
+                        self.afc.spool._set_values(self)
+                        self.logger.debug(f"Prep: direct load logic done-{self.name}-{self.hub}")
                         break
 
                     # Checking if loaded to hub(it should not be since filament was just inserted), if false load to hub. Does a fast load if hub distance is over 200mm
-                    if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state:
+                    if self.load_to_hub and not self.loaded_to_hub and self.load_state and self.prep_state and not self.is_direct_hub():
                         self.move(self.dist_hub, self.dist_hub_move_speed, self.dist_hub_move_accel, self.dist_hub > 200)
                         self.loaded_to_hub = True
 
@@ -1230,9 +1266,9 @@ class AFCLane:
 
         self.afc.function.unset_lane_loaded()
 
+        self.afc.function.handle_activate_extruder()
         self.set_loaded()
         self.sync_to_extruder()
-        self.afc.function.handle_activate_extruder()
         self.afc.save_vars()
         self.unit_obj.select_lane(self)
         self.logger.info("Manually set {} loaded to toolhead".format(self.name))
