@@ -14,27 +14,18 @@ from textwrap import dedent
 from typing import Dict, Optional
 
 from configparser import Error as ConfigError
+try: from extras.AFC_utils import ERROR_STR
+except: raise ConfigError("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
 
-try:  # pragma: no cover - defensive guard for runtime import errors
-    from extras.AFC_unit import afcUnit
-except Exception as exc:  # pragma: no cover - defensive guard
-    raise ConfigError(
-        "Error when trying to import AFC_unit\n{trace}".format(
-            trace=traceback.format_exc()
-        )
-    ) from exc
+try: from extras.AFC_unit import afcUnit
+except: raise ConfigError(ERROR_STR.format(import_lib="AFC_unit", trace=traceback.format_exc()))
 
-try:  # pragma: no cover - defensive guard for runtime import errors
-    from extras.AFC_lane import AFCLane, AFCLaneState
-    from extras.AFC_utils import add_filament_switch
-    import extras.AFC_extruder as _afc_extruder_mod
-except Exception as exc:  # pragma: no cover - defensive guard
-    raise ConfigError(
-        "Error when trying to import AFC_lane\n{trace}".format(
-            trace=traceback.format_exc()
-        )
-    ) from exc
-
+try: from extras.AFC_lane import AFCLane, AFCLaneState
+except: raise ConfigError(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
+try: from extras.AFC_utils import add_filament_switch
+except: raise ConfigError(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.format_exc()))
+try: import extras.AFC_extruder as _afc_extruder_mod
+except: raise ConfigError(ERROR_STR.format(import_lib="AFC_extruder", trace=traceback.format_exc()))
 
 try:  # pragma: no cover - optional at config parse time
     from extras.openams_integration import AMSHardwareService, AMSRunoutCoordinator
@@ -261,7 +252,7 @@ class afcAMS(afcUnit):
 
     def __init__(self, config):
         super().__init__(config)
-        self.type = "AMS"
+        self.type = "OpenAMS"
 
         # OpenAMS specific options
         self.oams_name = config.get("oams", "oams1")
