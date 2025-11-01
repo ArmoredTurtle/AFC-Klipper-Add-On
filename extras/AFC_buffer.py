@@ -103,11 +103,11 @@ class AFCTrigger:
         else:
             multiplier = self.multiplier_high
         self.set_multiplier( multiplier )
-        if self.debug: self.logger.info("{} buffer enabled".format(self.name))
+        self.logger.debug("{} buffer enabled".format(self.name))
 
     def disable_buffer(self):
         self.enable = False
-        if self.debug: self.logger.info("{} buffer disabled".format(self.name))
+        self.logger.debug("{} buffer disabled".format(self.name))
         if self.led:
             self.afc.function.afc_led(self.led_buffer_disabled, self.led_index)
         self.reset_multiplier()
@@ -127,12 +127,10 @@ class AFCTrigger:
             self.last_state = TRAILING_STATE_NAME
             if self.led:
                 self.afc.function.afc_led(self.led_advancing, self.led_index)
-        if self.debug:
-            stepper = cur_stepper.extruder_stepper.stepper
-            self.logger.info("New rotation distance after applying factor: {:.4f}".format(stepper.get_rotation_distance()[0]))
+        self.logger.debug("New rotation distance after applying factor: {:.4f}".format(cur_stepper.extruder_stepper.stepper.get_rotation_distance()[0]))
 
     def reset_multiplier(self):
-        if self.debug: self.logger.info("Buffer multiplier reset")
+        self.logger.debug("Buffer multiplier reset")
 
         cur_stepper = self.afc.function.get_current_lane_obj()
         if cur_stepper is None: return
@@ -147,7 +145,7 @@ class AFCTrigger:
 
             if cur_lane is not None and state:
                 self.set_multiplier( self.multiplier_low )
-                if self.debug: self.logger.info("Buffer Triggered State: Advanced")
+                self.logger.debug("Buffer Triggered State: Advanced")
         self.last_state = TRAILING_STATE_NAME
 
     def trailing_callback(self, eventime, state):
@@ -157,7 +155,7 @@ class AFCTrigger:
 
             if cur_lane is not None and state:
                 self.set_multiplier( self.multiplier_high )
-                if self.debug: self.logger.info("Buffer Triggered State: Trailing")
+                self.logger.debug("Buffer Triggered State: Trailing")
         self.last_state = ADVANCING_STATE_NAME
 
     def buffer_status(self):
