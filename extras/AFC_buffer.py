@@ -10,8 +10,8 @@ from configparser import Error as error
 try: from extras.AFC_utils import add_filament_switch
 except: raise error("Error when trying to import AFC_utils.add_filament_switch\n{trace}".format(trace=traceback.format_exc()))
 
-ADVANCE_STATE_NAME = "Trailing"
-TRAILING_STATE_NAME = "Advancing"
+TRAILING_STATE_NAME = "Trailing"
+ADVANCING_STATE_NAME = "Advancing"
 
 class AFCTrigger:
 
@@ -98,7 +98,7 @@ class AFCTrigger:
             self.afc.function.afc_led(self.led_buffer_disabled, self.led_index)
         self.enable = True
         multiplier = 1.0
-        if self.last_state == ADVANCE_STATE_NAME:
+        if self.last_state == TRAILING_STATE_NAME:
             multiplier = self.multiplier_low
         else:
             multiplier = self.multiplier_high
@@ -120,11 +120,11 @@ class AFCTrigger:
 
         cur_stepper.update_rotation_distance( multiplier )
         if multiplier > 1:
-            self.last_state = TRAILING_STATE_NAME
+            self.last_state = ADVANCING_STATE_NAME
             if self.led:
                 self.afc.function.afc_led(self.led_trailing, self.led_index)
         elif multiplier < 1:
-            self.last_state = ADVANCE_STATE_NAME
+            self.last_state = TRAILING_STATE_NAME
             if self.led:
                 self.afc.function.afc_led(self.led_advancing, self.led_index)
         if self.debug:
@@ -148,7 +148,7 @@ class AFCTrigger:
             if cur_lane is not None and state:
                 self.set_multiplier( self.multiplier_low )
                 if self.debug: self.logger.info("Buffer Triggered State: Advanced")
-        self.last_state = ADVANCE_STATE_NAME
+        self.last_state = TRAILING_STATE_NAME
 
     def trailing_callback(self, eventime, state):
         self.trailing_state = state
@@ -158,7 +158,7 @@ class AFCTrigger:
             if cur_lane is not None and state:
                 self.set_multiplier( self.multiplier_high )
                 if self.debug: self.logger.info("Buffer Triggered State: Trailing")
-        self.last_state = TRAILING_STATE_NAME
+        self.last_state = ADVANCING_STATE_NAME
 
     def buffer_status(self):
         return self.last_state
@@ -270,11 +270,13 @@ class AFCTrigger:
         ```
         """
         state_mapping = {
-            TRAILING_STATE_NAME: ' (Compressed)',
-            ADVANCE_STATE_NAME: ' (Expanded)',
-            }
-        state_info = self.buffer_status()
-        state_info += state_mapping.get(state_info, '')
+            TRAILING_STATE_NAME: ' (buffer is compressing)',
+            ADVANCING_STATE_NAME: ' (buffer is expanding)',
+        }
+
+        buffer_status = self.buffer_status()
+        state_info = "{}{}".format(buffer_status, state_mapping.get(buffer_status, ''))
+
         if self.enable:
             lane = self.afc.function.get_current_lane_obj()
             stepper = lane.extruder_stepper.stepper
