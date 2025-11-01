@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-11-01]
+### Changed
+- Removed code for Belay.
+- Cleanup terminology around compressing/expanding of the buffer to make it easier to understand for users.
+
 ## [2025-10-25]
 ### Fixes
 - Resolved a bug where runout logic could potentially be triggered during a toolchange.
