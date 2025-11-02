@@ -683,6 +683,11 @@ class afc:
             return
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
+
+        if distance == 0:
+            self.error.AFC_error("Distance to move cannot be zero", pause=False)
+            return
+
         if lane not in self.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
@@ -693,7 +698,6 @@ class afc:
         if abs(distance) >= 200: speed_mode = SpeedMode.LONG
 
         cur_lane.set_load_current() # Making current is set correctly when doing lane moves
-        cur_lane.do_enable(True)
         cur_lane.move_advanced(distance, speed_mode, assist_active = AssistActive.YES)
         cur_lane.do_enable(False)
         self.current_state = State.IDLE
@@ -909,7 +913,6 @@ class afc:
         if not cur_lane.prep_state: return
         cur_lane.status = AFCLaneState.HUB_LOADING
         if not cur_lane.load_state:
-            cur_lane.do_enable(True)
             while not cur_lane.load_state:
                 cur_lane.move_advanced( cur_hub.move_dis, SpeedMode.SHORT)
         if not cur_lane.loaded_to_hub:
@@ -965,7 +968,6 @@ class afc:
             # once user removes filament lanes status will go to None
             cur_lane.status = AFCLaneState.EJECTING
             self.save_vars()
-            cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
                 cur_lane.move_advanced(cur_lane.dist_hub * -1, SpeedMode.HUB, assist_active = AssistActive.DYNAMIC)
             cur_lane.loaded_to_hub = False
@@ -1069,9 +1071,6 @@ class afc:
 
             if self._check_extruder_temp(cur_lane):
                 self.afcDeltaTime.log_with_time("Done heating toolhead")
-
-            # Enable the lane for filament movement.
-            cur_lane.do_enable(True)
 
             # Move filament to the hub if it's not already loaded there.
             if not cur_lane.loaded_to_hub or cur_lane.hub == 'direct':
@@ -1319,9 +1318,6 @@ class afc:
         if cur_lane.extruder_stepper.motion_queue != cur_lane.extruder_name:
             # Synchronize the extruder stepper with the lane.
             cur_lane.sync_to_extruder()
-
-        # Enable the lane for unloading operations.
-        cur_lane.do_enable(True)
 
         # Perform filament cutting and parking if specified.
         if self.tool_cut:

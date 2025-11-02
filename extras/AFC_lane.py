@@ -672,7 +672,6 @@ class AFCLane:
 
                     while self.load_state == False and self.prep_state == True and self.load is not None:
                         x += 1
-                        self.do_enable(True)
                         self.move(10,500,400)
                         self.reactor.pause(self.reactor.monotonic() + 0.1)
                         if x> 40:
