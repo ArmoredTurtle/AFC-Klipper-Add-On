@@ -25,6 +25,8 @@ class AFCSpool:
         self.gcode      = self.afc.gcode
         self.logger     = self.afc.logger
 
+        self.disable_weight_check = self.afc.disable_weight_check
+
         # Registering stepper callback so that mux macro can be set properly with valid lane names
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
 
@@ -86,10 +88,12 @@ class AFCSpool:
         self.afc.tool_cmds[map_cmd]=lane
         map_switch = cur_lane.map
         cur_lane.map = map_cmd
+        cur_lane.send_lane_data()
 
         sw_lane = self.afc.lanes[lane_switch]
         self.afc.tool_cmds[map_switch] = lane_switch
         sw_lane.map = map_switch
+        sw_lane.send_lane_data()
         self.afc.save_vars()
 
     cmd_SET_COLOR_help = "Set filaments color for a lane"
@@ -119,6 +123,7 @@ class AFCSpool:
             return
         cur_lane = self.afc.lanes[lane]
         cur_lane.color = '#{}'.format(color.replace('#',''))
+        cur_lane.send_lane_data()
         self.afc.save_vars()
 
     cmd_SET_WEIGHT_help = "Sets filaments weight for a lane"
@@ -195,6 +200,7 @@ class AFCSpool:
         if density is not None:
             cur_lane.filament_density = density
 
+        cur_lane.send_lane_data()
         self.afc.save_vars()
 
     def set_active_spool(self, ID):
@@ -276,7 +282,7 @@ class AFCSpool:
             self.next_spool_id = ''
             self.set_spoolID(cur_lane, spool_id)
 
-    def _clear_values(self, cur_lane):
+    def clear_values(self, cur_lane):
         """
         Helper function for clearing out lane spool values
         """
@@ -285,6 +291,8 @@ class AFCSpool:
         cur_lane.color = ''
         cur_lane.weight = 0
         cur_lane.extruder_temp = None
+        cur_lane.bed_temp = None
+        cur_lane.clear_lane_data()
 
     def set_spoolID(self, cur_lane, SpoolID, save_vars=True):
         if self.afc.spoolman is not None:
@@ -295,25 +303,42 @@ class AFCSpool:
 
                     cur_lane.material           = self._get_filament_values(result['filament'], 'material')
                     cur_lane.extruder_temp      = self._get_filament_values(result['filament'], 'settings_extruder_temp')
+                    cur_lane.bed_temp           = self._get_filament_values(result['filament'], 'settings_bed_temp')
                     cur_lane.filament_density   = self._get_filament_values(result['filament'], 'density')
                     cur_lane.filament_diameter  = self._get_filament_values(result['filament'], 'diameter')
                     cur_lane.empty_spool_weight = self._get_filament_values(result, 'spool_weight', default=190)
                     cur_lane.weight             = self._get_filament_values(result, 'remaining_weight')
-                    # Check to see if filament is defined as multi color and take the first color for now
+
+                    weight_check = self.disable_weight_check
+
+                    self.afc.logger.info('Weight remaining for SpoolID {}: {}'.format(SpoolID, cur_lane.weight))
+
+                    if not weight_check:
+                        if (
+                            cur_lane.weight is None or
+                            cur_lane.weight <= 0
+                        ):
+                            self.afc.error.AFC_error("Invalid weight for spoolID: {}. Please check remaining weight before assigning.".format(SpoolID), False)
+                            self.clear_values(cur_lane)
+                            return
+
+                    # Check to see if filament is defined as multi-color and take the first color for now
                     # Once support for multicolor is added this needs to be updated
                     if "multi_color_hexes" in result['filament']:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'multi_color_hexes').split(",")[0])
                     else:
                         cur_lane.color = '#{}'.format(self._get_filament_values(result['filament'], 'color_hex'))
 
+                    cur_lane.send_lane_data()
+
                 except Exception as e:
                     self.afc.error.AFC_error("Error when trying to get Spoolman data for ID:{}, Error: {}".format(SpoolID, e), False)
             else:
-                self._clear_values(cur_lane)
+                self.clear_values(cur_lane)
         else:
             # Clears out values if users are not using spoolman, this is to cover this function being called from LANE UNLOAD and clearing out
             # Manually entered information
-            self._clear_values(cur_lane)
+            self.clear_values(cur_lane)
         if save_vars: self.afc.save_vars()
 
     cmd_SET_RUNOUT_help = "Set runout lane"
@@ -384,7 +409,7 @@ class AFCSpool:
         existing_cmds = sorted(existing_cmds, key=lambda x: int("".join([i for i in x if i.isdigit()])))
         for key, unit in self.afc.units.items():
             for lane in unit.lanes.values():
-				# Reassigning manually assigned mapping to lane
+                # Reassigning manually assigned mapping to lane
                 if lane._map is not None:
                     map_cmd = lane._map
                 else:

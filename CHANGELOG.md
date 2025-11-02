@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-11-01]
+### Changed
+- Removed code for Belay.
+- Cleanup terminology around compressing/expanding of the buffer to make it easier to understand for users.
+
+## [2025-10-29]
+### Fixes
+- Fixed klipper crashing when commanding distance of zero for LANE_MOVE macro.
+
+## [2025-10-25]
+### Fixes
+- Resolved a bug where runout logic could potentially be triggered during a toolchange.
+- Resolved a bug where AFC_STATUS would crash klipper when using buffer as toolhead sensor and last lane was loaded into toolhead.
+
+## [2025-10-18]
+### Fixes
+- On startup, or when assigning a spool to a lane, AFC will now check the weight of the spool to check if it is either zero, null,
+  or a negative value. If any of these conditions are met, AFC will not assign the spool. This check can be disabled by 
+  setting `disable_weight_check: True` in the `[AFC]` section of the `AFC.cfg` file.
+
+## [2025-10-16]
+### Fixes
+- Fixed issue with debounce logic on latest version of Kalico.
+
+## [2025-10-12]
+### Fixes
+- Capitalized AFC_CALIBRATION help text
+- Removing returning TD-1 color as color in api endpoint, TD-1 color is still returned in td1_color variable per lane
+- Current toolchange will return zero if current toolchange is below zero(starts at -1 when first starting a print)
+- Added additional logic when parsing TD-1 scan_time to work with updated format in moonraker
+
+## [2025-10-10]
+### Added
+- Created a new folder for community-contributed mods and configurations at ``/community_mods/``
+- Added Blurolls AFC-X mcu board with a path of ``/community_mods/mcu/AFC-X.cfg``. [Customer image of board](https://ae-pic-a1.aliexpress-media.com/kf/A030fad34724c426ba8564ca98bb570dfQ.jpg_.webp) Colors do **NOT** match the product description on online retailers.
+
+## [2025-09-30]
+### Added
+- Allow `tool_stn_unload` to be `0` for toolheads with cutter above extruder.
+
+## [2025-09-26]
+### Added
+- Support to move filament to TD-1 device that is inline with PTFE tube to gather TD and color
+
+## [2025-09-27]
+### Fixes
+- Logging the same information multiple times to AFC.log file
+
+## [2025-09-07]
+### Added
+- Support to push lane information to moonrakers `machine/lane_data` endpoint so that third-parties can pull this information easily(eg. orcaslicer)
+
+### Fixes
+- The `AFC_LANE_RESET` macro will properly check for input instead of crashing Klipper.
+### Added
+- Added ability to auto level when `auto_level_macro` is defined with a valid leveling macro.
+
 ## [2025-09-05]
 ### Added
 - Check to verify that pin_tool_start/end is not set to `Unknown`, throws error if pins are set to `Unknown`.

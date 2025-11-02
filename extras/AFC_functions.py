@@ -35,6 +35,7 @@ class afcFunction:
         self.printer.register_event_handler("klippy:connect", self.handle_connect)
         self.printer.register_event_handler("afc_stepper:register_macros",self.register_lane_macros)
         self.printer.register_event_handler("afc_hub:register_macros",self.register_hub_macros)
+        self.printer.register_event_handler("afc:moonraker_connect", self.handle_moonraker_connect)
         self.auto_var_file = None
         self.errorLog = {}
         self.pause    = False
@@ -43,14 +44,15 @@ class afcFunction:
         self.mcu      = None
 
         self.show_macros = True
-        self.register_commands(self.show_macros, 'AFC_CALIBRATION', self.cmd_AFC_CALIBRATION, self.cmd_AFC_CALIBRATION_help)
-        self.register_commands(self.show_macros, 'AFC_RESET', self.cmd_AFC_RESET, self.cmd_AFC_RESET_help,
+        self.register_commands(self.show_macros, 'AFC_CALIBRATION', self.cmd_AFC_CALIBRATION,   self.cmd_AFC_CALIBRATION_help)
+        self.register_commands(self.show_macros, 'AFC_RESET',       self.cmd_AFC_RESET,         self.cmd_AFC_RESET_help,
                                self.cmd_AFC_RESET_options)
-        self.register_commands(self.show_macros, 'AFC_LANE_RESET', self.cmd_AFC_LANE_RESET,
+        self.register_commands(self.show_macros, 'AFC_LANE_RESET',  self.cmd_AFC_LANE_RESET,
                                self.cmd_AFC_LANE_RESET_help, self.cmd_AFC_LANE_RESET_options)
         self.register_commands(self.show_macros, 'AFC_TEST_LANES', self.cmd_AFC_TEST_LANES,
                                self.cmd_AFC_TEST_LANES_help)
-
+        # Always adding this so it will show up as a button in guis
+        self.register_commands(self.show_macros, 'AFC_GET_TD_ONE_DATA', self.cmd_AFC_GET_TD_ONE_DATA,   self.cmd_AFC_GET_TD_ONE_DATA_help)
 
     def register_lane_macros(self, lane_obj):
         """
@@ -70,6 +72,15 @@ class afcFunction:
         :param hub_obj: object for hub to register
         """
         self.afc.gcode.register_mux_command('SET_BOWDEN_LENGTH', 'HUB', hub_obj.name, self.cmd_SET_BOWDEN_LENGTH, desc=self.cmd_SET_BOWDEN_LENGTH_help)
+
+    def handle_moonraker_connect(self):
+        """
+        Registers macros commands after moonrakers connection has been established so that endpoint can be queried successfully
+        to check if TD-1 is defined in users moonrakers.conf file.
+        """
+        if self.afc.td1_defined:
+            self.afc.gcode.register_command('AFC_GET_TD_ONE_LANE_DATA', self.cmd_AFC_GET_TD_ONE_LANE_DATA,  desc=self.cmd_AFC_GET_TD_ONE_LANE_DATA_help)
+            self.afc.gcode.register_command('AFC_RESET_TD1',            self.cmd_AFC_RESET_TD1,             desc=self.cmd_AFC_RESET_TD1_help)
 
     def handle_connect(self):
         """
@@ -196,6 +207,24 @@ class afcFunction:
             self.logger.info("Error trying to map lane {lane} to {tool_macro}, please make sure there are no macros already setup for {tool_macro}".format(lane=[cur_lane.name], tool_macro=cur_lane.map), )
         self.afc.save_vars()
 
+    def check_macro_present(self, macro_name):
+        """
+        Helper function to check if a macro is present in the printer config
+        Args:
+            macro_name: Name of macro to check for
+
+        Returns:
+            boolean: True if macro is present
+        """
+        try:
+            existing_macros = getattr(self.afc.gcode, "ready_gcode_handlers", {})
+            if macro_name in existing_macros:
+                return True
+            return False
+        except Exception:
+            return False
+
+
     def check_homed(self):
         """
         Helper function to determine if printer is currently homed, if not, then apply G28
@@ -206,6 +235,13 @@ class afcFunction:
             if self.afc.auto_home:
                 self.afc.gcode.run_script_from_command("G28")
                 self.afc.toolhead.wait_moves()
+                if self.afc.auto_level_macro is not None:
+                    if self.check_macro_present(self.afc.auto_level_macro):
+                        self.afc.gcode.run_script_from_command(self.afc.auto_level_macro)
+                        self.afc.toolhead.wait_moves()
+                    else:
+                        self.afc.error.AFC_error("Auto level macro defined, but not found in printer configuration.", False, level=2)
+                        return False
                 return True
             else:
                 self.afc.error.AFC_error("Please home printer before doing a tool load", False, level=2)
@@ -476,6 +512,47 @@ class afcFunction:
             return last_extruder_position
         else:
             return past_extruder_position
+
+    def check_for_td1_error(self, serial_number=None, print_error=True):
+        '''
+        Function checks to see if all or specific TD-1 devices found have any reported errors
+
+        If specific serial number is provided, this function will only check that specific number for an error
+
+        :param serial_number: Specific serial number to check for error
+        :param print_error: Prints error message to logger if set to True
+        :return bool,str: Returns tuple of True/False, error message if error occurred
+        '''
+        error_occurred = False
+        error_message = ""
+        td1_data = self.afc.moonraker.get_td1_data()
+        for serial in td1_data:
+            error = td1_data[serial].get("error")
+            if error is not None:
+                if serial_number is None or serial == serial_number:
+                    error_message = f"Error with TD-1 Serial: {serial}, please fix error with TD-1 and run 'AFC_RESET_TD1 SERIAL={serial}' macro.\n"
+                    error_message += "Some errors can occur when first booting machine and filament is in TD-1 device\n"
+                    error_message += f"Reported Error: {td1_data[serial]['error']}"
+                    error_occurred = True
+                    if print_error:
+                        self.logger.error(error_message)
+        return error_occurred, error_message
+
+    def check_for_td1_id(self, serial_number):
+        """
+        Function checks if specific serial number exists, if serial number exists checks to make sure
+        that specific device does not have any errors.
+
+        :param serial_number: Serial number to check for
+        :return bool,str: bool: True if device exists/False if device does not exist or error with device
+                          str: error message if device does not exist or an error with TD-1 device
+        """
+        td1_data = self.afc.moonraker.get_td1_data()
+        if serial_number not in td1_data:
+            return False, f"TD-1 Device ID ({serial_number}) supplied but ID not found."
+
+        no_error, error_message = self.check_for_td1_error(serial_number, print_error=False)
+        return not no_error, error_message
 
     def gcode_get_value( self, gcmd, get_attr, variable, variable_name, section_name, key_name=None, cast_to_bool=False ):
         """
@@ -753,7 +830,7 @@ class afcFunction:
         prompt.p_end()
 
 
-    cmd_AFC_CALIBRATION_help = 'open prompt to begin calibration by selecting Unit to calibrate'
+    cmd_AFC_CALIBRATION_help = 'Open prompt to begin calibration by selecting Unit to calibrate'
     def cmd_AFC_CALIBRATION(self, gcmd):
         """
         Open a prompt to start AFC calibration by selecting a unit to calibrate. Creates buttons for each unit and
@@ -848,6 +925,7 @@ class afcFunction:
         afc_bl = gcmd.get(      'BOWDEN'   , None)
         lanes  = gcmd.get(      'LANE'     , None)
         unit   = gcmd.get(      'UNIT'     , None)
+        td1    = gcmd.get(      'TD1'      , None)
 
         prompt.p_end()
 
@@ -855,8 +933,10 @@ class afcFunction:
             self.logger.info('Tool must be unloaded to calibrate system')
             return
 
-        calibrated = []
-        checked    = False
+        calibrated  = []
+        checked     = False
+        title       = "AFC Calibration"
+
         # Check to make sure lane and unit is valid
         if lanes is not None and lanes != 'all' and lanes not in self.afc.lanes:
             self.afc.error.AFC_error("'{}' is not a valid lane".format(lanes), pause=False)
@@ -869,6 +949,9 @@ class afcFunction:
         if afc_bl is not None and afc_bl not in self.afc.lanes:
             self.afc.error.AFC_error("'{}' is not a valid lane to calibrate bowden length".format(afc_bl), pause=False)
             return
+
+        if td1 is not None and not self.afc.td1_present:
+            self.afc.error.AFC_error("TD-1 is not present, will not be able to calibrate bowden length for TD-1", pause=False)
 
         # Determine if a specific lane is provided
         if lanes is not None:
@@ -956,9 +1039,28 @@ class afcFunction:
             if set_tool_start_back_to_none:
                 cur_lane.extruder_obj.tool_start = None
 
+        # Calibration for TD-1 bowden length
+        if td1 is not None:
+            title = "TD-1 Calibration"
+            td1_lane = self.afc.lanes[td1]
+            if td1_lane.hub_obj.state:
+                msg = f"{td1_lane.hub_obj.name} hub is triggered, make sure hub is clear before trying to calibrate TD-1 bowden length"
+                self.afc.error.AFC_error(msg, pause=False)
+                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='{title} Failed' FAIL={td1} DISTANCE=0 msg='{msg}' RESET=0")
+                return
+
+            checked, msg, pos = td1_lane.unit_obj.calibrate_td1( td1_lane, dis, tol)
+            if not checked:
+                fail_string = f"{td1} failed to calibrate bowden length {msg}"
+                self.afc.error.AFC_error(fail_string, pause=False)
+                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='{title} Failed' FAIL={td1} DISTANCE={pos} msg='{fail_string}' RESET=1")
+                return
+            else:
+                calibrated.append(f"'TD1_Bowden_length: {td1}'")
+
         if checked:
             lanes_calibrated = ','.join(calibrated)
-            self.afc.gcode.run_script_from_command('AFC_CALI_COMP CALI={}'.format(lanes_calibrated))
+            self.afc.gcode.run_script_from_command(f"AFC_CALI_COMP TITLE='{title} Completed' CALI={lanes_calibrated}")
 
     cmd_AFC_CALI_COMP_help = 'Opens prompt after calibration is complete'
     def cmd_AFC_CALI_COMP(self, gcmd):
@@ -979,10 +1081,10 @@ class afcFunction:
         """
 
         cali = gcmd.get("CALI", None)
+        title = gcmd.get("TITLE", "AFC Calibration Completed")
 
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
-        title = 'AFC Calibration Completed'
         text = 'Calibration was completed for {}, would you like to do more calibrations?'.format(cali)
         buttons.append(("Yes", "AFC_Calibration", "primary"))
         buttons.append(("No", "AFC_HAPPY_P STEP='AFC Calibration'", "info"))
@@ -1040,21 +1142,32 @@ class afcFunction:
                 Parameters:
                 - FAIL: Specifies the lane where the calibration failed.
                 - DISTANCE: The distance value that caused the failure (optional).
+                - RESET: Set to 1 to display reset lane message
+                - TITLE: Dynamic title to set in prompt
+                - MSG: Dynamic message to display in prompt
 
         Returns:
             None
         NO_DOC: True
         """
 
-        cali = gcmd.get("FAIL", None)
-        dis = gcmd.get("DISTANCE", None)
+        cali            = gcmd.get("FAIL", None)
+        dis             = gcmd.get("DISTANCE", None)
+        reset_lane      = bool(gcmd.get_int("RESET", 1))
+        title           = gcmd.get("TITLE", "AFC Calibration Failed")
+        fail_message    = gcmd.get("MSG", "")
 
         prompt = AFCprompt(gcmd, self.logger)
         buttons = []
         footer = []
-        title = 'AFC Calibration Failed'
-        text = 'Calibration failed  for {}. First: reset lane, Second: review messages in console and take necessary action and re-run calibration.'.format(cali)
-        buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
+        text = f'{title} for {cali}. '
+        if reset_lane:
+            text += 'First: reset lane, Second: review messages in console and take necessary action and re-run calibration.'
+            buttons.append(("Reset lane", "AFC_LANE_RESET LANE={} DISTANCE={}".format(cali, dis), "primary"))
+
+        if fail_message:
+            text += f" Fail message: {fail_message}"
+
         footer.append(('EXIT', 'prompt_end', 'info'))
 
         prompt.create_custom_p(title, text, buttons,
@@ -1137,14 +1250,30 @@ class afcFunction:
         prompt = AFCprompt(gcmd, self.logger)
         lane = gcmd.get('LANE', None)
         long_dis = gcmd.get('DISTANCE', None)
-        cur_lane = self.afc.lanes[lane]
-        CUR_HUB = cur_lane.hub_obj
-        short_move = cur_lane.short_move_dis * 2
 
-        if lane is not None and lane not in self.afc.lanes:
+        if not lane:
+            prompt.p_end()
+            self.afc.error.AFC_error("No lane selected to reset, please provide a lane to reset.", pause=False)
+            return
+
+        if lane not in self.afc.lanes:
             prompt.p_end()
             self.afc.error.AFC_error("'{}' is not a valid lane".format(lane), pause=False)
             return
+
+        if long_dis is not None:
+            try:
+                long_dis = float(long_dis)
+                if long_dis <= 0:
+                    raise ValueError("DISTANCE must be a positive number.")
+            except (ValueError, TypeError):
+                prompt.p_end()
+                self.afc.error.AFC_error("DISTANCE must be a valid number.", pause=False)
+                return
+
+        cur_lane = self.afc.lanes[lane]
+        CUR_HUB = cur_lane.hub_obj
+        short_move = cur_lane.short_move_dis * 2
 
         if not CUR_HUB.state:
             prompt.p_end()
@@ -1184,6 +1313,150 @@ class afcFunction:
         cur_lane.do_enable(False)
 
         self.afc.gcode.respond_info('{} reset to hub, take necessary action'.format(lane))
+
+    cmd_AFC_GET_TD_ONE_DATA_help = "Display's prompt to easily get TD-1 data for lanes"
+    def cmd_AFC_GET_TD_ONE_DATA(self, gcmd):
+        """
+        This macro displays a prompt to select which lane or all lanes to gather TD-1 data from.
+
+        Calibrating TD-1 bowden length with AFC_CALIBRATION should be ran first before calling this macro.
+
+        Usage
+        -----
+        `AFC_GET_TD_ONE_DATA`
+
+        Example
+        -----
+        ```
+        AFC_GET_TD_ONE_DATA
+        ```
+        """
+        prompt = AFCprompt(gcmd, self.logger)
+        buttons = []
+        group_buttons = []
+        index = 0
+        title = 'Capture TD-1 Data'
+        text  = ('Select a loaded lane to capture TD-1 data, or select ALL. ')
+
+        # Create buttons for each lane and group every 4 lanes together
+        for lane in self.afc.lanes.values():
+            if lane.load_state:
+                button_label = "{}".format(lane)
+                button_command = "AFC_GET_TD_ONE_LANE_DATA LANE={}".format(lane)
+                button_style = "primary" if index % 2 == 0 else "secondary"
+                group_buttons.append((button_label, button_command, button_style))
+
+                # Add group to buttons list after every 4 lanes
+                if (index + 1) % 2 == 0 or index == len(self.afc.lanes) - 1:
+                    buttons.append(list(group_buttons))
+                    group_buttons = []
+                index += 1
+
+        if group_buttons:
+            buttons.append(list(group_buttons))
+
+        total_buttons = sum(len(group) for group in buttons)
+        if total_buttons > 1:
+            all_lanes = [('All lanes', 'AFC_GET_TD_ONE_LANE_DATA LANE=all', "default")]
+        else:
+            all_lanes = None
+        if total_buttons == 0:
+            text = 'No lanes are loaded, please load before calibration'
+
+        prompt.create_custom_p(title, text, all_lanes,
+                               True, buttons, None)
+
+    cmd_AFC_GET_TD_ONE_LANE_DATA_help = "Captures TD-1 for specified LANE"
+    def cmd_AFC_GET_TD_ONE_LANE_DATA(self, gcmd):
+        """
+        This macro gets TD-1 data for the specified lane by moving filament the calibrated TD-1 length.
+        Calibrating TD-1 bowden length with AFC_CALIBRATION should be ran first before calling this macro.
+
+        Usage
+        -----
+        `AFC_GET_TD_ONE_LANE_DATA LANE=<lane>`
+
+        Example
+        -----
+        ```
+        AFC_GET_TD_ONE_LANE_DATA LANE=lane1
+        ```
+
+        NO_DOC: True
+        """
+        prompt = AFCprompt(gcmd, self.logger)
+        lane = gcmd.get("LANE")
+        lanes_captured = []
+        prompt.p_end()
+        if lane.lower() == "all":
+            self.logger.info("Capturing TD-1 data for all lanes")
+            for cur_lane in self.afc.lanes.values():
+                if cur_lane.load_state and cur_lane.prep_state:
+                    success, msg = cur_lane.get_td1_data()
+                    if not success:
+                        self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=0 msg='{msg}' RESET=0")
+                        return
+
+            lanes_captured = "'TD-1 Data captured for all lanes'"
+        else:
+            if lane in self.afc.lanes:
+                self.logger.info(f"Capturing TD-1 data for {lane}")
+                cur_lane = self.afc.lanes[lane]
+                success, msg = cur_lane.get_td1_data()
+                if not success:
+                    msg = msg.replace("\n", " ")
+                    self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Failed' FAIL={cur_lane} DISTANCE=0 msg='{msg}' RESET=0")
+                    return
+                lanes_captured = f"'TD-1 Data captured for {cur_lane.name}'"
+            else:
+                fail_message = f"'{lane} not valid lane, cannot capture TD-1 data'"
+                self.afc.error.AFC_error(fail_message, pause=False)
+                self.afc.gcode.run_script_from_command(f"AFC_CALI_FAIL TITLE='Get TD-1 data Completed' FAIL={lane} msg='{fail_message}' RESET=0")
+                return
+        self.afc.gcode.run_script_from_command('AFC_HAPPY_P STEP={}'.format(lanes_captured))
+
+    cmd_AFC_RESET_TD1_help = "Sends reboot command to specified TD-1 device"
+    def cmd_AFC_RESET_TD1(self, gcmd):
+        """
+        This macro calls moonrakers api endpoint to reset specified TD-1 device by supplied serial number.
+
+        Usage
+        -----
+        `AFC_RESET_TD1 SERIAL=<serial_number>`
+
+        Example
+        -----
+        ```
+        AFC_RESET_TD1 SERIAL=E6625877D318C430
+        ```
+        """
+        serial_number = gcmd.get("SERIAL")
+        timeout_count = 0
+
+        self.logger.info(f"Sending reboot command to TD-1 serial: {serial_number}")
+        status = self.afc.moonraker.reboot_td1(serial_number)
+        if "status" in status:
+            if status['status'] == "ok":
+                self.logger.info("Waiting up to 30 seconds for device to reboot")
+                while True:
+                    data = self.afc.moonraker.get_td1_data()
+                    if data is not None and serial_number in data:
+                        error = data[serial_number].get("error")
+                        if error is not None:
+                            self.logger.error(f"Error still not fixed\nReported error: {data[serial_number]['error']}")
+                            break
+                        else:
+                            self.logger.info(f"TD-1 serial:{serial_number} rebooted successfully without error")
+                            break
+                    elif timeout_count > 30:
+                        self.logger.error("Timeout occurred when trying to verify TD-1 rebooted successfully")
+                        break
+                    timeout_count+= 1
+                    self.afc.toolhead.dwell(1)
+            elif status['status'] == "key_error":
+                self.logger.error("An incorrect serial number was provided")
+        else:
+            self.logger.error("An error occurred when trying to send reboot command")
 
     def _calc_length(self, config_length, current_length, new_length):
         """

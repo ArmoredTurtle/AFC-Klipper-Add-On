@@ -6,7 +6,7 @@
 import traceback
 
 from configparser import Error as error
-
+from datetime import datetime
 
 try: from extras.AFC_utils import ERROR_STR
 except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
@@ -108,6 +108,10 @@ class afcBoxTurtle(afcUnit):
                             return False
 
         if assignTcmd: self.afc.function.TcmdAssign(cur_lane)
+
+        # Now that a T command is assigned, send lane data to moonraker
+        cur_lane.send_lane_data()
+
         cur_lane.do_enable(False)
         self.logger.info( '{lane_name} tool cmd: {tcmd:3} {msg}'.format(lane_name=cur_lane.name, tcmd=cur_lane.map, msg=msg))
         cur_lane.set_afc_prep_done()
@@ -197,6 +201,72 @@ class afcBoxTurtle(afcUnit):
             return True, "afc_bowden_length successful", bowden_dist
         else:
             self.logger.info('CALIBRATE_AFC is not currently supported without tool start sensor')
+            return False, "CALIBRATE_AFC is not currently supported without tool start sensor", 0
+
+    def calibrate_td1(self, cur_lane, dis, tol):
+        """
+        Calibration function for automatically determining td1_bowden_length
+
+        :param cur_lane: Lane to use for calibration
+        :param dis: Distance step to move when calibrating
+        :param tol: Tolerance for fine adjustments during calibration, only used when moving filament to hub
+
+        :return success,message,length: Returns tuple, when successful returns True,message, and length of bowden to TD-1
+                                        When error occurs, returns False,message, and length of current bowden before error occurred
+        """
+        bow_pos = 0
+        cur_hub = cur_lane.hub_obj
+
+        # Verify TD-1 is still connected before trying to get data
+        if not self.afc.td1_present:
+            msg = "TD-1 device not detected anymore, please check before continuing to calibrate TD-1 bowden length"
+            return False, msg, 0
+
+        if cur_lane.td1_device_id:
+            valid, msg = self.afc.function.check_for_td1_id(cur_lane.td1_device_id)
+            if not valid:
+                return valid, msg, 0
+
+        self.logger.raw(f"Calibrating bowden length to TD-1 device with {cur_lane.name}")
+        hub_pos, checkpoint, success = self.move_until_state(cur_lane, lambda: cur_hub.state, cur_hub.move_dis, tol,
+                                                             cur_lane.short_move_dis, 0, cur_lane.dist_hub + cur_lane.hub_obj.move_dis + 200, "Moving to hub")
+
+        if not success:
+            # if movement does not succeed fault and return values to calibration macro
+            msg = 'Failed {} after {}mm'.format(checkpoint, hub_pos)
+            cur_lane.do_enable(False)
+            return False, msg, hub_pos
+
+        compare_time = datetime.now()
+        while not self.get_td1_data(cur_lane, compare_time):
+            if bow_pos > cur_hub.afc_bowden_length:
+                # fault if move to TD-1 is not detected
+                msg = 'TD-1 failed to detect filament after moving {}mm'.format(bow_pos)
+                cur_lane.do_enable(False)
+                return False, msg, bow_pos
+
+            compare_time = datetime.now()
+            bow_pos += dis
+
+            cur_lane.move(dis, self.short_moves_speed, self.short_moves_accel)
+            self.afc.reactor.pause(self.afc.reactor.monotonic() + 5)
+
+        cur_lane.move(bow_pos * -1, cur_lane.long_moves_speed, cur_lane.long_moves_accel, True)
+
+        # Reset to hub
+        self.calc_position(cur_lane, lambda: cur_lane.hub_obj.state, 0,
+                           cur_lane.short_move_dis, tol, 200, checkpoint)
+
+        cur_lane.move(cur_hub.hub_clear_move_dis * -1, cur_lane.short_moves_speed, cur_lane.short_moves_accel, True)
+
+        cal_msg = f"\n td1_bowden_length: New: {bow_pos} Old: {cur_hub.td1_bowden_length}"
+        cur_hub.td1_bowden_length = bow_pos
+        self.afc.function.ConfigRewrite(cur_hub.fullname, "td1_bowden_length", bow_pos, cal_msg)
+
+        cur_lane.do_enable(False)
+        self.afc.save_vars()
+        # self.logger.info(f"td1_bowden_length: {bow_pos}")
+        return True, "td1_bowden_length calibration successful", bow_pos
 
     # Helper functions for movement and calibration
     def calibrate_hub(self, cur_lane, tol):

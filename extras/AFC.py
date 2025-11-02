@@ -27,7 +27,7 @@ except: raise error(ERROR_STR.format(import_lib="AFC_utils", trace=traceback.for
 try: from extras.AFC_stats import AFCStats
 except: raise error(ERROR_STR.format(import_lib="AFC_stats", trace=traceback.format_exc()))
 
-AFC_VERSION="1.0.31"
+AFC_VERSION="1.0.32"
 
 # Class for holding different states so its clear what all valid states are
 class State:
@@ -65,15 +65,19 @@ class afc:
         # Registering webhooks endpoint for <ip_address>/printer/afc/status
         self.webhooks.register_endpoint("afc/status", self._webhooks_status)
 
-        self.current        = None
-        self.current_loading= None
-        self.next_lane_load = None
-        self.error_state    = False
-        self.current_state  = State.INIT
-        self.position_saved = False
-        self.spoolman       = None
-        self.prep_done      = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
-        self.in_print_timer = None
+        self.current            = None
+        self.current_loading    = None
+        self.next_lane_load     = None
+        self.error_state        = False
+        self.current_state      = State.INIT
+        self.position_saved     = False
+        self.spoolman           = None
+        self.moonraker          = None
+        self.td1_defined        = False
+        self._td1_present       = False
+        self.lane_data_enabled  = False
+        self.prep_done          = False         # Variable used to hold of save_vars function from saving too early and overriding save before prep can be ran
+        self.in_print_timer     = None
 
         # Objects for everything configured for AFC
         self.units      = {}
@@ -123,6 +127,7 @@ class afc:
         self.common_density_values  = list(self.common_density_values)
         self.test_extrude_amt       = config.get('test_extrude_amt', 10)
 
+        self.disable_weight_check   = config.getboolean("disable_weight_check", False) # Set to True to disable weight check when loading filament into lane/toolhead
         #LED SETTINGS
         self.ind_lights = None
         # led_name is not used, either use or needs to be removed, removing this would break everyone's config as well
@@ -161,7 +166,8 @@ class afc:
 
         # MOVE SETTINGS
         self.quiet_mode             = False                                         # Flag indicating if quiet move is enabled or not
-        self.auto_home              = config.getboolean("auto_home", False)          # Flag indicating if homing needs to be done if printer is not already homed
+        self.auto_home              = config.getboolean("auto_home", False)         # Flag indicating if homing needs to be done if printer is not already homed
+        self.auto_level_macro       = config.get("auto_level_macro", None)          # Set name for macro to run for auto bed leveling before tool change if auto_home is True and printer is not already homed
         self.show_quiet_mode        = config.getboolean("show_quiet_mode", True)    # Flag indicating if quiet move is enabled or not
         self.quiet_moves_speed      = config.getfloat("quiet_moves_speed", 50)      # Max speed in mm/s to move filament during quietmode
         self.long_moves_speed       = config.getfloat("long_moves_speed", 100)      # Speed in mm/s to move filament when doing long moves
@@ -175,6 +181,7 @@ class afc:
 
         self.tool_max_unload_attempts= config.getint('tool_max_unload_attempts', 4) # Max number of attempts to unload filament from toolhead when using buffer as ramming sensor
         self.tool_max_load_checks   = config.getint('tool_max_load_checks', 4)      # Max number of attempts to check to make sure filament is loaded into toolhead extruder when using buffer as ramming sensor
+        self.max_move_tries         = config.getint("max_move_tries", 20)
 
         self.rev_long_moves_speed_factor 	= config.getfloat("rev_long_moves_speed_factor", 1.)     # scalar speed factor when reversing filamentalist
 
@@ -200,7 +207,9 @@ class afc:
         self.enable_tool_runout     = config.getboolean("enable_tool_runout",   True)
         self.debounce_delay         = config.getfloat("debounce_delay",         0.)
 
+        self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False)
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
+        self.log_frame_data         = config.getboolean('log_frame_data', True)
         self.testing                = config.getboolean('testing', False)           # Set to true for testing only so that failure states can be tested without stats being reset
         # Get debug and cast to boolean
         self.logger.set_debug( self.debug )
@@ -292,12 +301,18 @@ class afc:
             self.moonraker = AFC_moonraker( self.moonraker_host, self.moonraker_port, self.logger )
             if not self.moonraker.wait_for_moonraker( toolhead=self.toolhead, timeout=self.moonraker_connect_to ):
                 return False
+
+            # Remove current lane_data from database before pushing data back up so that
+            # stale lane data is not in database
+            self.moonraker.delete_lane_data()
             self.spoolman = self.moonraker.get_spoolman_server()
+            self.td1_defined, self._td1_present, self.lane_data_enabled = self.moonraker.check_for_td1()
             self.afc_stats = AFCStats(self.moonraker, self.logger, self.tool_cut_threshold)
+
+            self.printer.send_event("afc:moonraker_connect")
         except Exception as e:
-            self.logger.debug("Moonraker/Spoolman/afc_stats error: {}\n{}".format(e, traceback.format_exc()))
+            self.logger.debug("Moonraker/Spoolman/afc_stats/td1 error\nError: {}\n{}".format(e, traceback.format_exc()))
             self.spoolman = None                      # set to none if not found
-        return True
 
     def handle_connect(self):
         """
@@ -338,6 +353,16 @@ class afc:
         string  = "AFC Version: v{}-{}-{}".format(AFC_VERSION, git_commit_num, git_hash)
 
         self.logger.info(string, console_only)
+
+    @property
+    def td1_present(self):
+        present = self._td1_present
+        if self.printer.state_message == 'Printer is ready' and self.moonraker is not None:
+            if not self.function.is_printing(check_movement=True):
+                present = self.moonraker.check_for_td1()[1]
+                self._td1_present = present
+
+        return present
 
     def _reset_file_callback(self):
         """
@@ -658,6 +683,11 @@ class afc:
             return
         lane = gcmd.get('LANE', None)
         distance = gcmd.get_float('DISTANCE', 0)
+
+        if distance == 0:
+            self.error.AFC_error("Distance to move cannot be zero", pause=False)
+            return
+
         if lane not in self.lanes:
             self.logger.info('{} Unknown'.format(lane))
             return
@@ -668,7 +698,6 @@ class afc:
         if abs(distance) >= 200: speed_mode = SpeedMode.LONG
 
         cur_lane.set_load_current() # Making current is set correctly when doing lane moves
-        cur_lane.do_enable(True)
         cur_lane.move_advanced(distance, speed_mode, assist_active = AssistActive.YES)
         cur_lane.do_enable(False)
         self.current_state = State.IDLE
@@ -884,7 +913,6 @@ class afc:
         if not cur_lane.prep_state: return
         cur_lane.status = AFCLaneState.HUB_LOADING
         if not cur_lane.load_state:
-            cur_lane.do_enable(True)
             while not cur_lane.load_state:
                 cur_lane.move_advanced( cur_hub.move_dis, SpeedMode.SHORT)
         if not cur_lane.loaded_to_hub:
@@ -940,7 +968,6 @@ class afc:
             # once user removes filament lanes status will go to None
             cur_lane.status = AFCLaneState.EJECTING
             self.save_vars()
-            cur_lane.do_enable(True)
             if cur_lane.loaded_to_hub:
                 cur_lane.move_advanced(cur_lane.dist_hub * -1, SpeedMode.HUB, assist_active = AssistActive.DYNAMIC)
             cur_lane.loaded_to_hub = False
@@ -1044,9 +1071,6 @@ class afc:
 
             if self._check_extruder_temp(cur_lane):
                 self.afcDeltaTime.log_with_time("Done heating toolhead")
-
-            # Enable the lane for filament movement.
-            cur_lane.do_enable(True)
 
             # Move filament to the hub if it's not already loaded there.
             if not cur_lane.loaded_to_hub or cur_lane.hub == 'direct':
@@ -1295,9 +1319,6 @@ class afc:
             # Synchronize the extruder stepper with the lane.
             cur_lane.sync_to_extruder()
 
-        # Enable the lane for unloading operations.
-        cur_lane.do_enable(True)
-
         # Perform filament cutting and parking if specified.
         if self.tool_cut:
             self.afc_stats.increase_cut_total()
@@ -1354,11 +1375,26 @@ class afc:
                     self.error.handle_lane_failure(cur_lane, msg)
                     return False
             cur_lane.sync_to_extruder(False)
-            with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
-                self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
+            # we only need to do this if we need to move off the extruder gears
+            if cur_extruder.tool_stn_unload > 0:
+                with cur_lane.assist_move(cur_extruder.tool_unload_speed, True, cur_lane.assisted_unload):
+                    self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Buffer Move")
 
             self.function.log_toolhead_pos("Buffer move after ")
         else:
+
+            if cur_extruder.tool_stn_unload == 0:
+                cur_lane.unsync_to_extruder()
+                while cur_lane.get_toolhead_pre_sensor_state():
+                    # attempt to move filament back from sensor without moving extruder
+                    cur_lane.move_advanced(cur_lane.short_move_dis * -1, SpeedMode.SHORT)
+                    num_tries += 1
+                    if num_tries > self.tool_max_unload_attempts:
+                        # note that this will break out of the loop and immediately fall into the error
+                        # condition of the next loop for messaging to the user
+                        break
+                    self.reactor.pause(self.reactor.monotonic() + 0.1)
+
             while cur_lane.get_toolhead_pre_sensor_state() or cur_extruder.tool_end_state:
                 num_tries += 1
                 if num_tries > self.tool_max_unload_attempts:
@@ -1613,9 +1649,11 @@ class afc:
         str['current_lane']             = self.current_loading
         str['next_lane']                = self.next_lane_load
         str['current_state']            = self.current_state
-        str["current_toolchange"]       = self.current_toolchange
+        str["current_toolchange"]       = self.current_toolchange if self.current_toolchange >= 0 else 0
         str["number_of_toolchanges"]    = self.number_of_toolchanges
         str['spoolman']                 = self.spoolman
+        str["td1_present"]              = self.td1_present
+        str["lane_data_enabled"]        = self.lane_data_enabled
         str['error_state']              = self.error_state
         str["bypass_state"]             = bool(self._get_bypass_state())
         str["quiet_mode"]               = bool(self._get_quiet_mode())
@@ -1657,6 +1695,8 @@ class afc:
         str["system"]['num_lanes']              = numoflanes
         str["system"]['num_extruders']          = len(self.tools)
         str["system"]['spoolman']               = self.spoolman
+        str["system"]["td1_present"]            = self.td1_present
+        str["system"]["lane_data_enabled"]      = self.lane_data_enabled
         str["system"]["current_toolchange"]     = self.current_toolchange
         str["system"]["number_of_toolchanges"]  = self.number_of_toolchanges
         str["system"]["extruders"]              = {}
@@ -1693,6 +1733,7 @@ class afc:
         """
         status_msg = ''
 
+        # TODO: Update this function for correct usage with multiple hubs/toolheads
         for unit in self.units.values():
             # Find the maximum length of lane names to determine the column width
             max_lane_length = max(len(lane) for lane in unit.lanes.keys())
@@ -1703,11 +1744,14 @@ class afc:
             header_format = '{:<{}} | Prep | Load |\n'
             status_msg += header_format.format("LANE", max_lane_length)
 
+            # Initialize extruder_msg to its default value before processing lanes
+            extruder_msg = '  Tool: <span class=error--text>x</span>'
             for cur_lane in unit.lanes.values():
                 lane_msg = ''
                 if self.current is not None:
                     if self.current == cur_lane.name:
-                        if not cur_lane.get_toolhead_pre_sensor_state() or not cur_lane.hub_obj.state:
+                        if (not cur_lane.get_toolhead_pre_sensor_state() or
+                            not cur_lane.hub_obj.state):
                             lane_msg += '<span class=warning--text>{:<{}} </span>'.format(cur_lane.name, max_lane_length)
                         else:
                             lane_msg += '<span class=success--text>{:<{}} </span>'.format(cur_lane.name, max_lane_length)
@@ -1726,19 +1770,20 @@ class afc:
                     lane_msg += '  <span class=error--text>xx</span>  |\n'
                 status_msg += lane_msg
 
+                if cur_lane.extruder_obj.tool_start != "buffer":
+                    if cur_lane.extruder_obj.tool_start_state:
+                        extruder_msg = '  Tool: <span class=success--text><-></span>'
+                else:
+                    if (cur_lane.tool_loaded and
+                        cur_lane.extruder_obj.lane_loaded in unit.lanes):
+                        if cur_lane.get_toolhead_pre_sensor_state():
+                            extruder_msg = '  Tool: <span class=success--text><-></span>'
+
             if cur_lane.hub_obj.state:
                 status_msg += 'HUB: <span class=success--text><-></span>'
             else:
                 status_msg += 'HUB: <span class=error--text>x</span>'
 
-            extruder_msg = '  Tool: <span class=error--text>x</span>'
-            if cur_lane.extruder_obj.tool_start != "buffer":
-                if cur_lane.extruder_obj.tool_start_state:
-                    extruder_msg = '  Tool: <span class=success--text><-></span>'
-            else:
-                if cur_lane.tool_loaded and cur_lane.extruder_obj.lane_loaded in self.units[unit]:
-                    if cur_lane.get_toolhead_pre_sensor_state():
-                        extruder_msg = '  Tool: <span class=success--text><-></span>'
 
             status_msg += extruder_msg
             if cur_lane.extruder_obj.tool_start == 'buffer':

@@ -800,7 +800,7 @@ class Espooler:
         Example
         -----
         ```
-        `SET_ESPOOLER_VALUES LANE=lane1 DEBUG=1 ENABLE_ASSIST=1`
+        SET_ESPOOLER_VALUES LANE=lane1 DEBUG=1 ENABLE_ASSIST=1
         ```
         """
         self.n20_break_delay_time                   = self.function.gcode_get_value(gcmd, "get_float", self.n20_break_delay_time,
