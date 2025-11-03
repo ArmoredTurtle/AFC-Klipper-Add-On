@@ -381,7 +381,15 @@ class afcBoxTurtle(afcUnit):
                                                       tol, cur_lane.dist_hub + 100, "retract to extruder")
 
         if not success:
-            msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
+            if checkpoint == "retract to extruder":
+                msg = (
+                    """Lane failed during calibration after {}mm. Check position of filament and 
+                    reset filament using BT_LANE_MOVE macro if necessary. If filament is between 
+                    the extruder and the hub, and is moving smoothly, you may need to increase the 
+                    dist_hub value. Once adjusted, please try again.""".format(pos)
+                )
+            else:
+                msg = 'Lane failed to calibrate {} after {}mm'.format(checkpoint, pos)
             cur_lane.status = AFCLaneState.NONE
             cur_lane.unit_obj.return_to_home()
             return False, msg, 0
