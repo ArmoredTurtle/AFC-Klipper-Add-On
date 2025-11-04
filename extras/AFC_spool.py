@@ -255,6 +255,10 @@ class AFCSpool:
 
             self.set_spoolID(cur_lane, SpoolID)
 
+            # If the lane is currently loaded to the toolhead, update the active spool in Spoolman
+            if cur_lane.tool_loaded:
+                self.set_active_spool(cur_lane.spool_id)
+
     def _get_filament_values( self, filament, field, default=None):
         '''
         Helper function for checking if field is set and returns value if it exists,
