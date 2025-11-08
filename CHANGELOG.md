@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated error message when using the SET_LANE_LOADED command to be more descriptive.
 
+## [2025-11-03]
+### Fixes
+- Clarified fix message if during AFC calibration, the filament fails to reach to hub sensor.
+
 ## [2025-11-01]
 ### Changed
 - Removed code for Belay.
