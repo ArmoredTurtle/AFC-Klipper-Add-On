@@ -48,7 +48,7 @@ function copy_openams_config() {
   if [ $openams_macro_type == "Basic" ]; then
     cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Macros.cfg "${afc_config_dir}/macros/"
   elif [ $openams_macro_type == "Smart" ]; then
-    cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Smart_Macros.cfg "${afc_config_dir}/macros/AFC_Oams_Macros.cfg"
+    cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Smart_Purge_Temp_Macros.cfg "${afc_config_dir}/macros/"
   fi
 }
 
