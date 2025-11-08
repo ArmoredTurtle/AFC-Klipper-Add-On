@@ -33,7 +33,7 @@ uninstall="False"
 backup_date=$(date +%Y%m%d%H%M%S)
 files_updated_or_installed="False"
 test_mode="False"
-installation_options=("BoxTurtle (4-Lane)" "BoxTurtle (8-Lane)" "NightOwl" "HTLF" "QuattroBox")
+installation_options=("BoxTurtle (4-Lane)" "BoxTurtle (8-Lane)" "NightOwl" "HTLF" "QuattroBox" "OpenAMS")
 invalid_name="False"
 minimum_python_major="3"
 minimum_python_minor="8"
@@ -57,6 +57,8 @@ qb_board_types=("MMB_1.0" "MMB_1.1" "MMB_2.0")
 qb_board_type="MMB_2.0"
 qb_motor_types=("NEMA_17" "NEMA_14")
 qb_motor_type="NEMA_14"
+openams_macro_types=("Basic" "Smart")
+openams_macro_type="Basic"
 
 # Moonraker Config
 moonraker_update_config="""

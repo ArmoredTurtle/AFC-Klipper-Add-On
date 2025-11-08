@@ -39,6 +39,19 @@ function copy_config() {
   cp -R ${afc_path}/config/macros "${afc_config_dir}/"
 }
 
+function copy_openams_config() {
+  mkdir -p "${afc_config_dir}"
+  cp ${afc_path}/config/AFC.cfg "${afc_config_dir}/"
+  cp ${afc_path}/config/AFC_Macro_Vars.cfg "${afc_config_dir}/"
+  mkdir -p "${afc_config_dir}/mcu"
+  cp -R ${afc_path}/config/macros "${afc_config_dir}/"
+  if [ $openams_macro_type == "Basic" ]; then
+    cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Macros.cfg "${afc_config_dir}/macros/"
+  elif [ $openams_macro_type == "Smart" ]; then
+    cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Smart_Macros.cfg "${afc_config_dir}/macros/AFC_Oams_Macros.cfg"
+  fi
+}
+
 get_git_version() {
   cd "$afc_path"
 	git_hash=$(git -C . rev-parse --short HEAD)
@@ -150,7 +163,10 @@ restart_klipper() {
 
 exit_afc_install() {
   if [ "$files_updated_or_installed" == "True" ]; then
-    restart_klipper
+    if [ "$test_mode" != "True" ]; then
+      print_msg INFO "Restarting Klipper service to apply changes..."
+      restart_klipper
+    fi
   fi
   remove_vars_tool_file
   exit 0
