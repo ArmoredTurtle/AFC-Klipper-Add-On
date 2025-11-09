@@ -124,7 +124,6 @@ copy_unit_files() {
   "OpenAMS")
     cp "${afc_path}/templates/AFC_Hardware-AFC.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
     cp "${afc_path}/templates/AFC_AMS_1.cfg" "${afc_config_dir}/AFC_AMS_1.cfg"
-    cp "${afc_path}/templates/AFC_Oams.cfg" "${afc_config_dir}/AFC_Oams.cfg"
     ;;
 
 esac
@@ -219,11 +218,9 @@ elif [ "$installation_type" == "QuattroBox" ]; then
   """
 elif [ "$installation_type" == "OpenAMS" ]; then
   message+="""
-- You must update the appropriate CAN bus UUIDs for FPS and OAMS mcu boards in the ${afc_config_dir}/AFC_Oams.cfg file
-
-- Review other necessary settings in the ${afc_config_dir}/AFC_Oams.cfg file
-
 - Review and updates the ${afc_config_dir}/AFC_AMS_1.cfg file for your AMS unit settings.
+
+- Ensure OpenAMS is properly installed and configured per their instructions.
   """
 fi
 
