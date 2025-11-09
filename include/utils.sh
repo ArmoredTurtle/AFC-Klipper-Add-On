@@ -45,11 +45,6 @@ function copy_openams_config() {
   cp ${afc_path}/config/AFC_Macro_Vars.cfg "${afc_config_dir}/"
   mkdir -p "${afc_config_dir}/mcu"
   cp -R ${afc_path}/config/macros "${afc_config_dir}/"
-  if [ $openams_macro_type == "Basic" ]; then
-    cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Macros.cfg "${afc_config_dir}/macros/"
-  elif [ $openams_macro_type == "Smart" ]; then
-    cp -R ${afc_path}/templates/openams_macros/AFC_Oams_Smart_Purge_Temp_Macros.cfg "${afc_config_dir}/macros/"
-  fi
 }
 
 get_git_version() {

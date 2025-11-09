@@ -57,8 +57,6 @@ qb_board_types=("MMB_1.0" "MMB_1.1" "MMB_2.0")
 qb_board_type="MMB_2.0"
 qb_motor_types=("NEMA_17" "NEMA_14")
 qb_motor_type="NEMA_14"
-openams_macro_types=("Basic" "Smart")
-openams_macro_type="Basic"
 
 # Moonraker Config
 moonraker_update_config="""
