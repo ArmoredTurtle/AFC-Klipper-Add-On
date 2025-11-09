@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixes
 - Fixes an issue where spoolman was not updating a loaded spool in toolhead
 
+## [2025-11-02]
+### Changed
+- Consolidated all variables for the `POOP` macro to be in the `AFC_Macro_Vars.cfg` file instead of being split in two places.
+
 ## [2025-11-01]
 ### Changed
 - Removed code for Belay.
