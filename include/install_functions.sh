@@ -218,7 +218,7 @@ elif [ "$installation_type" == "QuattroBox" ]; then
   """
 elif [ "$installation_type" == "OpenAMS" ]; then
   message+="""
-- Review and updates the ${afc_config_dir}/AFC_AMS_1.cfg file for your AMS unit settings.
+- Review and update the ${afc_config_dir}/AFC_AMS_1.cfg file for your AMS unit settings.
 
 - Ensure OpenAMS is properly installed and configured per their instructions.
   """
