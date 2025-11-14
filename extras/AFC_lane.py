@@ -547,7 +547,7 @@ class AFCLane:
 
         # Position will be restored after lane is unloaded so that nozzle does not sit
         # on print while lane is unloading
-        if not self.afc.TOOL_UNLOAD():
+        if not self.afc.TOOL_UNLOAD(empty_lane):
             return
 
         # Eject spool before loading next lane
