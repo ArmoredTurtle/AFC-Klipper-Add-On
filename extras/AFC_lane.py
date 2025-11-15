@@ -530,21 +530,35 @@ class AFCLane:
         self.status = AFCLaneState.NONE
         self.afc.function.afc_led(self.afc.led_not_ready, self.led_index)
         self.logger.info("Infinite Spool triggered for {}".format(self.name))
-        empty_lane = self.afc.lanes[self.afc.current]
-        change_lane = self.afc.lanes[self.runout_lane]
+        empty_lane = self.afc.lanes.get(self.afc.current)
+        change_lane = self.afc.lanes.get(self.runout_lane)
         # Pause printer with manual command
         self.afc.error.pause_resume.send_pause_command()
         # Saving position after printer is paused
         self.afc.save_pos()
-        # Change Tool and don't restore position. Position will be restored after lane is unloaded
-        #  so that nozzle does not sit on print while lane is unloading
-        self.afc.CHANGE_TOOL(change_lane, restore_pos=False)
+
+        # Verifying lanes are valid before continuing
+        if not change_lane:
+            self.afc.error.AFC_error(f"Error when looking up runout lane:{self.runout_lane} for lane:{self.name}")
+            return
+        if not empty_lane:
+            self.afc.error.AFC_error(f"Error when looking up current lane:{self.afc.current}")
+            return
+
+        # Position will be restored after lane is unloaded so that nozzle does not sit
+        # on print while lane is unloading
+        if not self.afc.TOOL_UNLOAD(empty_lane):
+            return
+
+        # Eject spool before loading next lane
+        self.gcode.run_script_from_command('LANE_UNLOAD LANE={}'.format(empty_lane.name))
+
+        self.afc.TOOL_LOAD(change_lane)
         # Change Mapping
         self.gcode.run_script_from_command('SET_MAP LANE={} MAP={}'.format(change_lane.name, empty_lane.map))
+
         # Only continue if a error did not happen
         if not self.afc.error_state:
-            # Eject lane from BT
-            self.gcode.run_script_from_command('LANE_UNLOAD LANE={}'.format(empty_lane.name))
             # Resume pos
             self.afc.restore_pos()
             # Resume with manual issued command
