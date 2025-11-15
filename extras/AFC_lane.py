@@ -539,10 +539,10 @@ class AFCLane:
 
         # Verifying lanes are valid before continuing
         if not change_lane:
-            self.afc.error.AFC_error("Error when looking up runout lane")
+            self.afc.error.AFC_error(f"Error when looking up runout lane:{self.runout_lane} for lane:{self.name}")
             return
         if not empty_lane:
-            self.afc.error.AFC_error("Error when looking up current lane")
+            self.afc.error.AFC_error(f"Error when looking up current lane:{self.afc.current}")
             return
 
         # Position will be restored after lane is unloaded so that nozzle does not sit
