@@ -188,7 +188,7 @@ class afc:
         self.temp_wait_tolerance    = config.getfloat("temp_wait_tolerance", 5.0)         # Temperature tolerance in degrees Celsius for wait commands like M109
 
         self.disable_weight_check   = config.getboolean("disable_weight_check", False) # Set to True to disable weight check when loading filament into lane/toolhead
-        self.disable_ooze_check     = config.getboolean("disable_ooze_check", False) # Disable ooze check for lanes being on the same extruder in M104/M109 commands
+        self.disable_ooze_check     = config.getboolean("disable_ooze_check", True) # Disable ooze check for lanes being on the same extruder in M104/M109 commands
         self.disable_print_temp_check = config.getboolean("disable_print_temp_check", False) # Disables print temperature check when swapping lanes while printing
 
         # Auto spool switch settings
