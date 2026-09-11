@@ -570,7 +570,8 @@ class AFCExtruderStepper(AFCLane):
         if (hub_pin
             and hub_pin.lower() != "virtual"):
             self._add_endstop('hub', hub_pin, 'hub')
-        if tool_start_pin is not None and tool_start_pin.lower() == "virtual":
+        if (tool_start_pin is not None
+            and tool_start_pin.lower() == "virtual"):
             # Virtual toolhead sensor: no hardware pin to register an endstop for
             pass
         elif tool_start_pin != 'buffer':

@@ -276,7 +276,10 @@ class AFCExtruder:
         self.no_lanes                   = False
         self.custom_tool_swap: Optional[str] = config.get("custom_tool_swap", None)
         self.custom_unselect: Optional[str] = config.get("custom_unselect", None)
-        self.enable_standalone_purge: bool  = config.getboolean("enable_standalone_purge", self.afc.enable_standalone_purge)
+        self.enable_standalone_purge: bool  = config.getboolean("enable_standalone_purge",
+                                                                self.afc.enable_standalone_purge)
+        self.standalone_auto_load_unload: bool  = config.getboolean("standalone_auto_load_unload",
+                                                                    self.afc.standalone_auto_load_unload)
 
         self.lane_loaded: Optional[str] = None
         self.lanes: Dict                = {}
@@ -296,14 +299,12 @@ class AFCExtruder:
                 self.logger.info("Setting up as buffer")
             elif self.tool_start == "virtual":
                 # Virtual toolhead sensor for toolheads without a physical sensor (standalone
-                # toolchanger lanes). The sensor starts unloaded and disabled; the GUI switch
-                # (SET_FILAMENT_SENSOR ENABLE=) is the filament-presence state, mirroring how
-                # the virtual bypass works. The state is persisted in the vars file and restored
-                # during PREP.
-                self.fila_tool_start = VirtualFilamentSensor(
-                    self.printer, f"{self.name}_tool_start", self.logger,
-                    show_in_gui=self.enable_sensors_in_gui,
-                    enable_cb=self._virtual_tool_start_toggle)
+                # toolchanger lanes only)
+                self.fila_tool_start = VirtualFilamentSensor(self.printer,
+                                                             f"{self.name}_tool_start", self.logger,
+                                                             show_in_gui=self.enable_sensors_in_gui,
+                                                             enable_cb=self._virtual_tool_start_toggle)
+                self.orig_note_filament_present = self.fila_tool_start.runout_helper.note_filament_present
             else:
                 self.fila_tool_start, self.debounce_button_start = add_filament_switch(f"{self.name}_tool_start", self.tool_start, self.printer,
                                                                                     self.enable_sensors_in_gui, self.handle_start_runout, self.enable_runout,
@@ -425,9 +426,18 @@ class AFCExtruder:
                 self.tc_lane.set_loaded()
 
             if self.tool_start == "buffer":
-                raise error(
-                    f"buffer is not valid config for pin_tool_start when using {self.name} as a standalone extruder"
+                error_msg = (
+                    f"buffer is not valid config for pin_tool_start when using {self.name} "
+                    "as a standalone extruder"
                 )
+                raise error(error_msg)
+        else:
+            if self.tool_start == "virtual":
+                error_msg = (
+                    f"{self.fullname} config section cannot have a virtual toolhead sensor when "
+                    "lanes are configured for this toolhead."
+                )
+                raise error(error_msg)
 
     def handle_connect(self):
         """
@@ -613,6 +623,26 @@ class AFCExtruder:
 
         self.tool_start_state = state
 
+    def _set_standalone_lane_states(self, enabled: bool) -> None:
+        """
+        Sync the standalone toolchanger lane's tool-loaded state with the extruder.
+
+        Marks the lane tool-loaded when enabled, or tool-unloaded when not. For a
+        virtual tool_start sensor, disabling also clears the lane back to fully
+        unloaded since there is no hardware sensor left holding it "prepped".
+
+        :param enabled: True to mark the lane loaded, False to mark it unloaded.
+        """
+        lane = self.tc_lane
+        if lane is None: return
+        if enabled:
+            lane.set_tool_loaded()
+            lane.set_loaded()
+        else:
+            lane.set_tool_unloaded()
+            if self.tool_start == "virtual":
+                lane.set_unloaded()
+
     def _apply_virtual_tool_start_state(self, enabled: bool) -> None:
         """
         Shared bookkeeping for the virtual tool_start sensor state.
@@ -624,37 +654,28 @@ class AFCExtruder:
 
         :param enabled: New filament-present state for the virtual sensor.
         """
+        if self.tool_start != "virtual": return
+
         enabled = bool(enabled)
         helper = self.fila_tool_start.runout_helper
         helper.sensor_enabled = enabled
         helper.filament_present = enabled
         self.tool_start_state = enabled
 
-        if self.tc_unit_name and self.is_standalone():
-            lane = self.tc_lane
-            lane._load_state = lane.prep_state = enabled
-            if enabled:
-                lane.set_tool_loaded()
-                lane.set_loaded()
-            else:
-                lane.set_tool_unloaded()
-                lane.set_unloaded()
-
     def _virtual_tool_start_toggle(self, enabled: bool) -> None:
         """
         Callback for the virtual tool_start sensor's GUI switch (SET_FILAMENT_SENSOR
-        ENABLE=). The switch state is the filament-present state, so toggling it only
-        updates bookkeeping; no hardware is read and no load/unload sequence runs.
+        ENABLE=). The switch state is the filament-present state; no hardware is read.
+        For a standalone extruder this routes through the normal tool_start_callback
+        auto load/unload chain (which owns persisting any resulting state change),
+        same as a real hardware sensor triggering.
 
         :param enabled: New ENABLE value from SET_FILAMENT_SENSOR.
         """
-        enabled = bool(enabled)
-        if enabled == self.tool_start_state:
-            return
-
+        self.note_tool_start_callback(enabled)
         self._apply_virtual_tool_start_state(enabled)
         self.logger.info(f"Virtual toolhead sensor for {self.name} "
-                         f"{'enabled, filament loaded' if enabled else 'disabled, filament unloaded'}")
+                         f"{'enabled.' if enabled else 'disabled'}")
         if self.afc.prep_done:
             self.afc.save_vars()
 
@@ -670,7 +691,12 @@ class AFCExtruder:
         if enabled == self.tool_start_state:
             return
 
+        if self.tc_lane is None:
+            return
+
         self._apply_virtual_tool_start_state(enabled)
+        self._set_standalone_lane_states(enabled)
+        self.tc_lane._load_state = self.tc_lane.prep_state = enabled
         self.logger.info(f"Virtual toolhead sensor for {self.name} restored as "
                          f"{'enabled, filament loaded' if enabled else 'disabled'}")
 
@@ -723,11 +749,27 @@ class AFCExtruder:
 
         This sequence has been setup so that this can happen during a print without causing TTC's
 
+        When `standalone_auto_load_unload` is disabled, the hotend is not heated and no filament is
+        moved; only the lane/extruder variables are updated to reflect the requested
+        load/unload state, as if the sequence had completed.
+
         :param distance: distance to load filament, this is set to `self.current_move_distance` so
                          that distance is saved and used in move_extruder function once extruder is
                          up to temperature
         """
         info_str = "Loading" if distance > 0 else "Unloading"
+        loaded = bool(distance > 0)
+
+        if not self.standalone_auto_load_unload:
+            self.tc_lane.status = AFCLaneState.TOOLED if loaded else AFCLaneState.NONE
+            self.tc_lane.need_purge = False
+            self._set_standalone_lane_states(loaded)
+            self._apply_virtual_tool_start_state(loaded)
+            self.logger.info(
+                f"{info_str} {self.name} skipped: standalone_auto_load_unload is disabled, "
+                "hotend heating and filament move were not performed")
+            return
+
         self.logger.info(f"{info_str} {self.name}")
         self.load_active = True
         self.current_move_distance = distance
@@ -836,21 +878,16 @@ class AFCExtruder:
 
         if (current_temp >= target_temp - self.afc.temp_wait_tolerance
             and current_temp <= target_temp + self.afc.temp_wait_tolerance):
-            # The virtual tool_start sensor has no hardware to confirm filament, so a
-            # load/unload sequence in progress is what defines its state
-            if self.tool_start_state or self.tool_start == "virtual":
+            if self.tool_start_state:
                 info_str = "loading to" if self.current_move_distance > 0 else "unloading from"
                 self.logger.info(f"{self.th_extruder_name} temp within range, {info_str} nozzle")
                 self.move_extruder(self.current_move_distance)
-                if self.current_move_distance > 0:
-                    self.tc_lane.set_loaded()
-                    self.tc_lane.set_tool_loaded()
-                    if self.tool_start == "virtual":
-                        self._apply_virtual_tool_start_state(True)
-                else:
-                    self.tc_lane.set_tool_unloaded()
-                    if self.tool_start == "virtual":
-                        self._apply_virtual_tool_start_state(False)
+                loaded = bool(self.current_move_distance > 0)
+
+                self._set_standalone_lane_states(loaded)
+                self._apply_virtual_tool_start_state(loaded)
+                if self.tool_start == "virtual":
+                    self.tc_lane._load_state = self.tc_lane.prep_state = loaded
             else:
                 self.load_active = False
                 self.tc_lane.set_unloaded()
