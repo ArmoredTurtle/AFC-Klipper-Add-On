@@ -294,8 +294,13 @@ def _make_afc_extruder_as_standalone(name="extruder", extruder_values=None, afc_
 
 class TestVirtualToolStart:
     def _make_virtual_extruder(self):
+        # A virtual tool_start sensor means there is no physical AFC feeder at this
+        # toolhead -- the GUI switch is the whole state, so standalone_auto_load_unload
+        # is disabled: the state-toggle path completes synchronously instead of trying
+        # to heat/move filament that no hardware will ever act on.
         return _make_afc_extruder_as_standalone(
-            "extruder", extruder_values={"pin_tool_start": "virtual"})
+            "extruder", extruder_values={"pin_tool_start": "virtual",
+                                         "standalone_auto_load_unload": False})
 
     def _make_standalone_virtual(self):
         """Virtual-sensor extruder wired like a standalone toolchanger lane."""
@@ -304,6 +309,14 @@ class TestVirtualToolStart:
         ext.tc_unit_name = "AFC_Toolchanger tc"
         ext.tc_lane = _make_afc_lane()
         ext.tc_lane.extruder_obj = ext
+        # PREP has already run and no print is active, so tool_start_callback's auto
+        # load/unload logic engages instead of being a no-op for the sensor-toggle
+        # tests below. afc.function is a bare MagicMock here (a real afc's function
+        # section isn't loaded by MockPrinter), so is_printing() must be pinned down
+        # -- otherwise it returns a truthy Mock and actively_printing short-circuits
+        # the load/unload path for every one of these tests.
+        ext.tc_lane._afc_prep_done = True
+        ext.afc.function.is_printing.return_value = False
         ext.handle_ready()
         assert ext.no_lanes is True
         return ext
@@ -343,7 +356,9 @@ class TestVirtualToolStart:
         assert ext.tc_lane._load_state is True
         assert ext.tc_lane.prep_state is True
         assert ext.tc_lane.extruder_obj.lane_loaded == ext.tc_lane.name
-        ext.afc.save_vars.assert_called_once()
+        # Saved twice: once by tool_start_callback's own auto-load-triggered save,
+        # once more by _virtual_tool_start_toggle's own `if self.afc.prep_done` save.
+        assert ext.afc.save_vars.call_count == 2
 
     def test_set_filament_sensor_disable_unloads_lane(self):
         ext = self._make_standalone_virtual()
@@ -358,7 +373,10 @@ class TestVirtualToolStart:
         assert ext.tc_lane._load_state is False
         assert ext.tc_lane.prep_state is False
 
-    def test_toggle_same_state_is_noop(self):
+    def test_toggle_same_state_is_noop_for_tool_start_callback(self):
+        """tool_start_callback itself is a no-op when the sensor state doesn't
+        change (no auto load/unload triggered), but _virtual_tool_start_toggle
+        still persists once on its own since afc.prep_done is True here."""
         ext = self._make_standalone_virtual()
         ext.afc.prep_done = True
         ext.afc.save_vars = MagicMock()
@@ -366,11 +384,15 @@ class TestVirtualToolStart:
         ext.fila_tool_start.cmd_SET_FILAMENT_SENSOR(MockGCodeCommand(params={"ENABLE": 0}))
 
         assert ext.tool_start_state is False
-        ext.afc.save_vars.assert_not_called()
+        ext.afc.save_vars.assert_called_once()
 
-    def test_toggle_skips_save_vars_before_prep(self):
+    def test_toggle_skips_save_vars_before_lane_prep_done(self):
+        """tool_start_callback (reached via the toggle) gates its whole
+        auto load/unload chain -- save_vars included -- on the lane's own
+        _afc_prep_done, not the global afc.prep_done. Before that lane's
+        prep has completed, toggling the switch is pure bookkeeping."""
         ext = self._make_standalone_virtual()
-        assert ext.afc.prep_done is False
+        ext.tc_lane._afc_prep_done = False
         ext.afc.save_vars = MagicMock()
 
         ext.fila_tool_start.cmd_SET_FILAMENT_SENSOR(MockGCodeCommand(params={"ENABLE": 1}))
@@ -399,6 +421,9 @@ class TestVirtualToolStart:
 
     def test_temp_check_cb_load_completes_and_syncs_virtual_sensor(self):
         ext = self._make_standalone_virtual()
+        # A load is in progress: the switch was already toggled on (tool_start_state
+        # True), and temp_check_cb is now firing once the hotend reaches temp.
+        ext.tool_start_state = True
         heater = MagicMock()
         heater.get_temp.return_value = (200.0, 200.0)
         ext.get_heater = MagicMock(return_value=heater)
@@ -1642,3 +1667,337 @@ class TestExtruderMoveCB:
         assert AFCLaneState.TOOLED == ext.tc_lane.status
         assert not ext.tc_lane.need_purge
         assert 0 == ext.current_move_distance
+
+
+# ── load_unload_sequence ───────────────────────────────────────────────────────
+
+class TestLoadUnloadSequence:
+    def _make(self, standalone_auto_load_unload=True, extruder_values=None):
+        values = {"toolchanger_unit": "Tools",
+                  "standalone_auto_load_unload": standalone_auto_load_unload}
+        values.update(extruder_values or {})
+        ext = _make_afc_extruder_as_standalone(extruder_values=values)
+        ext.afc.capture_toolhead_temp = MagicMock(return_value="captured")
+        ext.afc._check_extruder_temp = MagicMock()
+        ext.afc.save_vars = MagicMock()
+        ext.reactor.update_timer = MagicMock()
+        ext.tc_lane = _make_afc_lane(fullname="AFC_stepper extruder")
+        ext.tc_lane.unit_obj = MagicMock()
+        ext._set_standalone_lane_states = MagicMock()
+        ext._apply_virtual_tool_start_state = MagicMock()
+        return ext
+
+    def test_enabled_starts_heating(self):
+        ext = self._make(standalone_auto_load_unload=True)
+        ext.load_unload_sequence(100)
+        ext.afc._check_extruder_temp.assert_called_once_with(ext.tc_lane, no_wait=True)
+        ext.afc.capture_toolhead_temp.assert_called_once_with(extruder=ext, async_capture=True)
+        ext.reactor.update_timer.assert_called_once()
+
+    def test_enabled_sets_load_active_and_move_distance(self):
+        ext = self._make(standalone_auto_load_unload=True)
+        ext.load_unload_sequence(100)
+        assert ext.load_active is True
+        assert ext.current_move_distance == 100
+
+    def test_enabled_loading_sets_tool_loading_status_and_led(self):
+        ext = self._make(standalone_auto_load_unload=True)
+        ext.load_unload_sequence(100)
+        assert ext.tc_lane.status == AFCLaneState.TOOL_LOADING
+        ext.tc_lane.unit_obj.lane_loading.assert_called_once_with(ext.tc_lane)
+
+    def test_enabled_unloading_sets_tool_unloading_status(self):
+        ext = self._make(standalone_auto_load_unload=True)
+        ext.load_unload_sequence(-100)
+        assert ext.tc_lane.status == AFCLaneState.TOOL_UNLOADING
+        ext.tc_lane.unit_obj.lane_loading.assert_not_called()
+
+    def test_enabled_does_not_touch_bookkeeping_helpers(self):
+        """The skip-path bookkeeping (final status/need_purge/lane-state helpers)
+        is only for the disabled branch -- the enabled path leaves that to the
+        temp/move callbacks instead."""
+        ext = self._make(standalone_auto_load_unload=True)
+        ext.load_unload_sequence(100)
+        ext._set_standalone_lane_states.assert_not_called()
+        ext._apply_virtual_tool_start_state.assert_not_called()
+        ext.afc.save_vars.assert_not_called()
+
+    def test_disabled_does_not_start_heating_or_timer(self):
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.load_unload_sequence(100)
+        ext.afc._check_extruder_temp.assert_not_called()
+        ext.afc.capture_toolhead_temp.assert_not_called()
+        ext.reactor.update_timer.assert_not_called()
+
+    def test_disabled_does_not_set_load_active_or_move_distance(self):
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.load_unload_sequence(100)
+        assert ext.load_active is False
+        assert ext.current_move_distance == 0
+
+    def test_disabled_loading_sets_final_tooled_status(self):
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.load_unload_sequence(100)
+        assert ext.tc_lane.status == AFCLaneState.TOOLED
+        ext.tc_lane.unit_obj.lane_loading.assert_not_called()
+        ext._set_standalone_lane_states.assert_called_once_with(True)
+        ext._apply_virtual_tool_start_state.assert_called_once_with(True)
+
+    def test_disabled_unloading_sets_final_none_status(self):
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.load_unload_sequence(-100)
+        assert ext.tc_lane.status == AFCLaneState.NONE
+        ext._set_standalone_lane_states.assert_called_once_with(False)
+        ext._apply_virtual_tool_start_state.assert_called_once_with(False)
+
+    def test_disabled_clears_need_purge(self):
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.tc_lane.need_purge = True
+        ext.load_unload_sequence(100)
+        assert ext.tc_lane.need_purge is False
+
+    def test_disabled_does_not_save_vars(self):
+        """Persisting is the caller's job (tool_start_callback / AFC.LANE_EJECT),
+        same as the enabled/heating path which only saves later via
+        extruder_move_cb -- load_unload_sequence itself never saves synchronously
+        for either branch."""
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.load_unload_sequence(100)
+        ext.afc.save_vars.assert_not_called()
+
+    def test_disabled_logs_skip_message(self):
+        ext = self._make(standalone_auto_load_unload=False)
+        ext.load_unload_sequence(100)
+        info_msgs = [m for lvl, m in ext.logger.messages if lvl == "info"]
+        assert any("standalone_auto_load_unload is disabled" in m for m in info_msgs)
+        assert any("hotend heating and filament move were not performed" in m for m in info_msgs)
+
+    def test_default_config_value_is_enabled(self):
+        """standalone_auto_load_unload defaults to True (mirroring afc.standalone_auto_load_unload)
+        when not set in either the extruder or AFC config sections."""
+        ext = self._make(standalone_auto_load_unload=True)
+        assert ext.standalone_auto_load_unload is True
+
+    def test_falls_back_to_afc_level_default(self):
+        """Regression test: the config default expression must reference
+        afc.standalone_auto_load_unload (not the nonexistent afc.standalone_auto_load),
+        or constructing the extruder raises AttributeError."""
+        ext = _make_afc_extruder_as_standalone(
+            extruder_values={"toolchanger_unit": "Tools"},
+            afc_values={"standalone_auto_load_unload": False})
+        assert ext.standalone_auto_load_unload is False
+
+
+# ── _set_standalone_lane_states ─────────────────────────────────────────────────
+
+class TestSetStandaloneLaneStates:
+    def _make(self, tool_start=None):
+        ext = _make_afc_extruder()
+        ext.tool_start = tool_start
+        ext.tc_lane = MagicMock()
+        return ext
+
+    def test_none_lane_returns_without_error(self):
+        ext = self._make()
+        ext.tc_lane = None
+        ext._set_standalone_lane_states(True)  # must not raise
+
+    def test_enabled_calls_set_tool_loaded_and_set_loaded(self):
+        ext = self._make()
+        ext._set_standalone_lane_states(True)
+        ext.tc_lane.set_tool_loaded.assert_called_once_with()
+        ext.tc_lane.set_loaded.assert_called_once_with()
+
+    def test_enabled_does_not_call_unload_helpers(self):
+        ext = self._make()
+        ext._set_standalone_lane_states(True)
+        ext.tc_lane.set_tool_unloaded.assert_not_called()
+        ext.tc_lane.set_unloaded.assert_not_called()
+
+    def test_disabled_real_sensor_calls_set_tool_unloaded_only(self):
+        """Covers the `self.tool_start == "virtual"` guard's False branch."""
+        ext = self._make(tool_start="^PD3")
+        ext._set_standalone_lane_states(False)
+        ext.tc_lane.set_tool_unloaded.assert_called_once_with()
+        ext.tc_lane.set_unloaded.assert_not_called()
+
+    def test_disabled_virtual_sensor_also_calls_set_unloaded(self):
+        """Covers the `self.tool_start == "virtual"` guard's True branch."""
+        ext = self._make(tool_start="virtual")
+        ext._set_standalone_lane_states(False)
+        ext.tc_lane.set_tool_unloaded.assert_called_once_with()
+        ext.tc_lane.set_unloaded.assert_called_once_with()
+
+    def test_disabled_does_not_call_load_helpers(self):
+        ext = self._make(tool_start="virtual")
+        ext._set_standalone_lane_states(False)
+        ext.tc_lane.set_tool_loaded.assert_not_called()
+        ext.tc_lane.set_loaded.assert_not_called()
+
+
+# ── _apply_virtual_tool_start_state ──────────────────────────────────────────────
+
+class TestApplyVirtualToolStartState:
+    def _make(self, tool_start="virtual"):
+        ext = _make_afc_extruder()
+        ext.tool_start = tool_start
+        ext.fila_tool_start = MagicMock()
+        ext.tool_start_state = None
+        return ext
+
+    def test_non_virtual_sensor_is_noop(self):
+        """Covers the `self.tool_start != "virtual"` guard's True branch."""
+        ext = self._make(tool_start="^PD3")
+        ext._apply_virtual_tool_start_state(True)
+        assert ext.tool_start_state is None
+        assert ext.fila_tool_start.mock_calls == []
+
+    def test_virtual_enabled_sets_sensor_flags_true(self):
+        ext = self._make()
+        ext._apply_virtual_tool_start_state(True)
+        assert ext.fila_tool_start.runout_helper.sensor_enabled is True
+        assert ext.fila_tool_start.runout_helper.filament_present is True
+
+    def test_virtual_enabled_sets_tool_start_state_true(self):
+        ext = self._make()
+        ext._apply_virtual_tool_start_state(True)
+        assert ext.tool_start_state is True
+
+    def test_virtual_disabled_sets_sensor_flags_false(self):
+        ext = self._make()
+        ext._apply_virtual_tool_start_state(False)
+        assert ext.fila_tool_start.runout_helper.sensor_enabled is False
+        assert ext.fila_tool_start.runout_helper.filament_present is False
+
+    def test_virtual_disabled_sets_tool_start_state_false(self):
+        ext = self._make()
+        ext._apply_virtual_tool_start_state(False)
+        assert ext.tool_start_state is False
+
+    def test_non_bool_truthy_value_coerced_to_true(self):
+        """Covers `enabled = bool(enabled)` -- a truthy non-bool must behave like True."""
+        ext = self._make()
+        ext._apply_virtual_tool_start_state(1)
+        assert ext.tool_start_state is True
+        assert ext.fila_tool_start.runout_helper.sensor_enabled is True
+
+
+# ── _virtual_tool_start_toggle ────────────────────────────────────────────────
+
+class TestVirtualToolStartToggle:
+    def _make(self, prep_done=False):
+        ext = _make_afc_extruder()
+        ext.name = "extruder"
+        ext.note_tool_start_callback = MagicMock()
+        ext._apply_virtual_tool_start_state = MagicMock()
+        ext.afc.prep_done = prep_done
+        ext.afc.save_vars = MagicMock()
+        return ext
+
+    def test_calls_note_tool_start_callback(self):
+        ext = self._make()
+        ext._virtual_tool_start_toggle(True)
+        ext.note_tool_start_callback.assert_called_once_with(True)
+
+    def test_calls_apply_virtual_tool_start_state(self):
+        ext = self._make()
+        ext._virtual_tool_start_toggle(False)
+        ext._apply_virtual_tool_start_state.assert_called_once_with(False)
+
+    def test_logs_enabled_message(self):
+        """Covers the `'enabled.' if enabled else 'disabled'` ternary's True side."""
+        ext = self._make()
+        ext._virtual_tool_start_toggle(True)
+        assert ext.logger.messages == [
+            ("info", "Virtual toolhead sensor for extruder enabled.")]
+
+    def test_logs_disabled_message(self):
+        """Covers the `'enabled.' if enabled else 'disabled'` ternary's False side."""
+        ext = self._make()
+        ext._virtual_tool_start_toggle(False)
+        assert ext.logger.messages == [
+            ("info", "Virtual toolhead sensor for extruder disabled")]
+
+    def test_saves_vars_when_prep_done(self):
+        """Covers the `if self.afc.prep_done` guard's True branch."""
+        ext = self._make(prep_done=True)
+        ext._virtual_tool_start_toggle(True)
+        ext.afc.save_vars.assert_called_once_with()
+
+    def test_skips_save_vars_when_prep_not_done(self):
+        """Covers the `if self.afc.prep_done` guard's False branch."""
+        ext = self._make(prep_done=False)
+        ext._virtual_tool_start_toggle(True)
+        ext.afc.save_vars.assert_not_called()
+
+
+# ── restore_virtual_tool_start ────────────────────────────────────────────────
+
+class TestRestoreVirtualToolStart:
+    def _make(self, tool_start_state=False):
+        ext = _make_afc_extruder()
+        ext.name = "extruder"
+        ext.tool_start_state = tool_start_state
+        ext.tc_lane = MagicMock()
+        ext._apply_virtual_tool_start_state = MagicMock()
+        ext._set_standalone_lane_states = MagicMock()
+        return ext
+
+    def test_noop_when_state_already_matches(self):
+        """Covers the `enabled == self.tool_start_state` guard's True branch."""
+        ext = self._make(tool_start_state=True)
+        ext.restore_virtual_tool_start(True)
+        ext._apply_virtual_tool_start_state.assert_not_called()
+        ext._set_standalone_lane_states.assert_not_called()
+        assert ext.logger.messages == []
+
+    def test_noop_when_tc_lane_is_none(self):
+        """Covers the `self.tc_lane is None` guard's True branch."""
+        ext = self._make(tool_start_state=False)
+        ext.tc_lane = None
+        ext.restore_virtual_tool_start(True)
+        ext._apply_virtual_tool_start_state.assert_not_called()
+        assert ext.logger.messages == []
+
+    def test_applies_virtual_tool_start_state(self):
+        ext = self._make(tool_start_state=False)
+        ext.restore_virtual_tool_start(True)
+        ext._apply_virtual_tool_start_state.assert_called_once_with(True)
+
+    def test_sets_standalone_lane_states(self):
+        ext = self._make(tool_start_state=False)
+        ext.restore_virtual_tool_start(True)
+        ext._set_standalone_lane_states.assert_called_once_with(True)
+
+    def test_enabled_sets_load_state_and_prep_state_true(self):
+        ext = self._make(tool_start_state=False)
+        ext.restore_virtual_tool_start(True)
+        assert ext.tc_lane._load_state is True
+        assert ext.tc_lane.prep_state is True
+
+    def test_disabled_sets_load_state_and_prep_state_false(self):
+        ext = self._make(tool_start_state=True)
+        ext.restore_virtual_tool_start(False)
+        assert ext.tc_lane._load_state is False
+        assert ext.tc_lane.prep_state is False
+
+    def test_logs_enabled_message(self):
+        """Covers the restore-message ternary's True side."""
+        ext = self._make(tool_start_state=False)
+        ext.restore_virtual_tool_start(True)
+        assert ext.logger.messages == [
+            ("info", "Virtual toolhead sensor for extruder restored as enabled, filament loaded")]
+
+    def test_logs_disabled_message(self):
+        """Covers the restore-message ternary's False side."""
+        ext = self._make(tool_start_state=True)
+        ext.restore_virtual_tool_start(False)
+        assert ext.logger.messages == [
+            ("info", "Virtual toolhead sensor for extruder restored as disabled")]
+
+    def test_non_bool_truthy_value_coerced_to_true(self):
+        """Covers `enabled = bool(enabled)` -- a truthy non-bool must behave like True."""
+        ext = self._make(tool_start_state=False)
+        ext.restore_virtual_tool_start(1)
+        assert ext.tc_lane._load_state is True
+        ext._apply_virtual_tool_start_state.assert_called_once_with(True)

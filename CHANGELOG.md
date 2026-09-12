@@ -5,18 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2026-09-12]
 ### Added
-- New `pin_tool_start: virtual` option for `[AFC_extruder]` sections: creates a virtual
-  toolhead sensor for standalone toolchanger toolheads that have no physical sensor
-  (closes #810). The sensor starts unloaded and disabled; the GUI switch
-  (`SET_FILAMENT_SENSOR ENABLE=`) toggles filament presence, mirroring the virtual bypass.
-  The state persists in the vars file and is restored during PREP, and load/unload
-  sequences sync the switch with their result, so standalone lanes no longer fail tool
-  loads with "Please load lane before continuing" once the sensor is enabled.
-  Feeder lanes loading into an extruder with a virtual tool_start sensor now move by
-  distance instead of homing to the nonexistent tool sensor, and TOOL_UNLOAD no longer
-  retries forever against the software-only sensor state.
+- New `pin_tool_start: virtual` option for `[AFC_extruder]` sections: creates a virtual toolhead sensor for standalone toolchanger toolheads that have no physical sensor (closes #810).
+- Added `standalone_auto_load_unload` variable to AFC and AFC_extruder configs so users can bypass the automated load for standalone lanes for both toolheads that have a sensor and virtual sensors. When this is disabled user will have to still manually load filament into the toolheads gears/hotend.
 
 ## [09-10-2026]
 ### Fixed
