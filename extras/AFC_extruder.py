@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from extras.AFC_functions import afcFunction
     from extras.AFC_utils import AFC_moonraker
     from extras.AFC_lane import AFCLane
+    from extras.filament_switch_sensor import SwitchSensor
 
 try: from extras.AFC_utils import ERROR_STR
 except: raise error("Error when trying to import AFC_utils.ERROR_STR\n{trace}".format(trace=traceback.format_exc()))
@@ -291,6 +292,7 @@ class AFCExtruder:
         self.park_detector_obj   = None
 
         self.tool_start_state = False
+        self.fila_tool_start: SwitchSensor|VirtualFilamentSensor|None=None
         if self.tool_start is not None:
             if "unknown" == self.tool_start.lower():
                 raise error(f"Unknown is not valid for pin_tool_start in [{self.fullname}] config.")
