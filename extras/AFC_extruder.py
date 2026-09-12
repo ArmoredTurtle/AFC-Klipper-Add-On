@@ -424,8 +424,8 @@ class AFCExtruder:
             self.tc_lane._load_state = self.tc_lane.prep_state = self.tool_start_state
 
             if self.tool_start_state:
-                self.tc_lane.set_tool_loaded()
                 self.tc_lane.set_loaded()
+                self.tc_lane.set_tool_loaded()
 
             if self.tool_start == "buffer":
                 error_msg = (
@@ -638,8 +638,10 @@ class AFCExtruder:
         lane = self.tc_lane
         if lane is None: return
         if enabled:
-            lane.set_tool_loaded()
             lane.set_loaded()
+            lane.set_tool_loaded()
+            if not self.on_shuttle():
+                lane.unit_obj.lane_tool_loaded_idle(lane)
         else:
             lane.set_tool_unloaded()
             if self.tool_start == "virtual":

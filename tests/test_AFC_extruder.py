@@ -1814,6 +1814,27 @@ class TestSetStandaloneLaneStates:
         ext.tc_lane.set_tool_unloaded.assert_not_called()
         ext.tc_lane.set_unloaded.assert_not_called()
 
+    def test_enabled_not_on_shuttle_calls_lane_tool_loaded_idle(self):
+        """Covers the `not self.on_shuttle()` guard's True branch."""
+        ext = self._make()
+        ext.on_shuttle = MagicMock(return_value=False)
+        ext._set_standalone_lane_states(True)
+        ext.tc_lane.unit_obj.lane_tool_loaded_idle.assert_called_once_with(ext.tc_lane)
+
+    def test_enabled_on_shuttle_skips_lane_tool_loaded_idle(self):
+        """Covers the `not self.on_shuttle()` guard's False branch."""
+        ext = self._make()
+        ext.on_shuttle = MagicMock(return_value=True)
+        ext._set_standalone_lane_states(True)
+        ext.tc_lane.unit_obj.lane_tool_loaded_idle.assert_not_called()
+
+    def test_disabled_does_not_call_lane_tool_loaded_idle(self):
+        """The on_shuttle/idle-led check only runs on the enabled path."""
+        ext = self._make(tool_start="virtual")
+        ext.on_shuttle = MagicMock(return_value=False)
+        ext._set_standalone_lane_states(False)
+        ext.tc_lane.unit_obj.lane_tool_loaded_idle.assert_not_called()
+
     def test_disabled_real_sensor_calls_set_tool_unloaded_only(self):
         """Covers the `self.tool_start == "virtual"` guard's False branch."""
         ext = self._make(tool_start="^PD3")
