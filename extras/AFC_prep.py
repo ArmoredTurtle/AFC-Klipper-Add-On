@@ -140,6 +140,16 @@ class afcPrep:
                   units["system"]["extruders"][extruder_obj.name]['lane_loaded']:
                     extruder_obj.lane_loaded = units["system"]["extruders"][extruder_obj.name]['lane_loaded']
 
+            # Restore previous virtual tool_start sensor states (toolheads without a physical
+            # toolhead sensor), same vars-file pattern as the virtual bypass above
+            if getattr(extruder_obj, "tool_start", None) == "virtual":
+                virt_state = False
+                if "system" in units and "extruders" in units["system"]:
+                    virt_state = bool(units["system"]["extruders"]
+                                      .get(extruder_obj.name, {})
+                                      .get("virtual_tool_start", False))
+                extruder_obj.restore_virtual_tool_start(virt_state)
+
         self.afc.print_version(console_only=True)
         if self.afc.snapmaker_printer:
             self.logger.info("Snapmaker Printer Detected")

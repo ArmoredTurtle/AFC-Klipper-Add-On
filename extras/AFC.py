@@ -301,6 +301,7 @@ class afc:
         self.enable_tool_runout     = config.getboolean("enable_tool_runout",   True)
         self.enable_runout_in_bypass = config.getboolean("enable_runout_in_bypass", False)
         self.debounce_delay         = config.getfloat("debounce_delay",         0.)
+        self.standalone_auto_load_unload = config.getboolean("standalone_auto_load_unload", True)
 
         self.td1_when_loaded        = config.getboolean("capture_td1_when_loaded", False)
         self.debug                  = config.getboolean('debug', False)             # Setting to True turns on more debugging to show on console
@@ -1333,6 +1334,9 @@ class afc:
             cur_extruder = self.tools[extrude]
             str["system"]["extruders"][cur_extruder.name]={}
             str["system"]["extruders"][cur_extruder.name]['lane_loaded'] = cur_extruder.lane_loaded
+            if getattr(cur_extruder, "tool_start", None) == "virtual":
+                extruder_entry = str["system"]["extruders"][cur_extruder.name]
+                extruder_entry['virtual_tool_start'] = bool(cur_extruder.tool_start_state)
 
         # Handing off to the background writer thread so a slow disk doesn't
         # block the reactor; queue.put_nowait never blocks the caller here
@@ -1534,6 +1538,7 @@ class afc:
         elif cur_lane.extruder_obj.is_standalone() and cur_lane.extruder_obj.lane_loaded:
             cur_lane.status = AFCLaneState.EJECTING
             cur_lane.extruder_obj.load_unload_sequence(cur_lane.extruder_obj.tool_stn_unload*-1)
+            self.save_vars()
 
         elif cur_lane.name == cur_lane.extruder_obj.lane_loaded:
             self.logger.warning(f"LANE {cur_lane.name} is loaded in toolhead, can't unload. "
@@ -1899,7 +1904,10 @@ class afc:
                     return False
             # Ensure filament reaches the toolhead.
             tool_attempts = 0
-            if cur_extruder.tool_start:
+            # A virtual tool_start sensor has no hardware to confirm against,
+            # the distance move above is the whole load
+            if (cur_extruder.tool_start
+                and cur_extruder.tool_start != "virtual"):
                 while (not cur_lane.get_toolhead_pre_sensor_state()
                        or warn == AFCMoveWarning.WARN):
                     tool_attempts += 1
@@ -2337,8 +2345,6 @@ class afc:
                         self.move_e_pos( cur_extruder.tool_stn_unload * -1, cur_extruder.tool_unload_speed, "Sensor move", wait_tool=True)
 
                     self.function.log_toolhead_pos("Sensor move after ")
-                    # For "standalone" toolheads, break out of the loop since sensor will always
-                    # be triggered
                     if cur_lane.extruder_obj.is_standalone():
                         break
 

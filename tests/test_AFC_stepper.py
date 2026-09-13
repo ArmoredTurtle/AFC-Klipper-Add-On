@@ -810,6 +810,68 @@ class TestInitEndstopsFpsPfsBuffer:
         assert tool_start_calls[0].args[1] == "PC6"
 
 
+class TestInitEndstopsVirtualToolStart:
+    """Exercises the `tool_start_pin.lower() == "virtual"` branch inside
+    _init_endstops(): a virtual tool_start sensor has no hardware pin, so no
+    tool_start endstop should be registered for it."""
+
+    def _make_endstop_stepper(self, section_values, name="lane1"):
+        return TestInitEndstopsFpsPfsBuffer()._make_endstop_stepper(section_values, name)
+
+    def test_virtual_tool_start_skips_endstop_registration(self):
+        s = self._make_endstop_stepper({
+            ("AFC_extruder", "extruder", "pin_tool_start"): "virtual",
+        })
+
+        s._init_endstops()  # should not raise
+
+        tool_start_calls = [c for c in s._add_endstop.call_args_list
+                            if c.args[0] == "tool_start"]
+        assert tool_start_calls == []
+
+    def test_virtual_tool_start_case_insensitive(self):
+        """Covers `.lower()` -- config value casing shouldn't matter."""
+        s = self._make_endstop_stepper({
+            ("AFC_extruder", "extruder", "pin_tool_start"): "VIRTUAL",
+        })
+
+        s._init_endstops()
+
+        tool_start_calls = [c for c in s._add_endstop.call_args_list
+                            if c.args[0] == "tool_start"]
+        assert tool_start_calls == []
+
+    def test_none_tool_start_pin_does_not_match_virtual_branch(self):
+        """Covers the `tool_start_pin is not None` guard's False branch: a
+        missing pin_tool_start must not raise from the virtual-check itself
+        (AttributeError on NoneType.lower) and instead fall through to the
+        `elif tool_start_pin != 'buffer'` branch."""
+        s = self._make_endstop_stepper({
+            ("AFC_extruder", "extruder", "pin_tool_start"): None,
+        })
+
+        s._init_endstops()  # should not raise on None.lower()
+
+        tool_start_calls = [c for c in s._add_endstop.call_args_list
+                            if c.args[0] == "tool_start"]
+        assert len(tool_start_calls) == 1
+        assert tool_start_calls[0].args[1] is None
+
+    def test_real_pin_still_registers_tool_start_endstop(self):
+        """Regression check: a normal hardware pin is unaffected by the
+        virtual-sensor addition."""
+        s = self._make_endstop_stepper({
+            ("AFC_extruder", "extruder", "pin_tool_start"): "^PD3",
+        })
+
+        s._init_endstops()
+
+        tool_start_calls = [c for c in s._add_endstop.call_args_list
+                            if c.args[0] == "tool_start"]
+        assert len(tool_start_calls) == 1
+        assert tool_start_calls[0].args[1] == "^PD3"
+
+
 class TestAddEndstopMcuEndstopParam:
     """Exercises _add_endstop's mcu_endstop parameter, which lets a
     pre-built MCU endstop (e.g. an FPS software endstop) be registered

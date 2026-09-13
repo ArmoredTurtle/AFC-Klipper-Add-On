@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-09-12]
+### Added
+- New `pin_tool_start: virtual` option for `[AFC_extruder]` sections: creates a virtual toolhead sensor for standalone toolchanger toolheads that have no physical sensor (closes #810).
+- Added `standalone_auto_load_unload` variable to AFC and AFC_extruder configs so users can bypass the automated load for standalone lanes for both toolheads that have a sensor and virtual sensors. When this is disabled user will have to still manually load filament into the toolheads gears/hotend.
+
 ## [09-10-2026]
 ### Fixed
 - Disabled ooze prevention by default, this was originally meant for toolchangers. But with a recent klipperscreen update, klipperscreen now sends tool number(T) when setting temperature for single toolhead printers and AFC does not set temp because this was defaulted as enabled.

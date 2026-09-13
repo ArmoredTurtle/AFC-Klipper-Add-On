@@ -3719,6 +3719,44 @@ class TestLoadSequenceDefaultPathSuccess:
         lane.unit_obj.lane_tool_loaded_gears.assert_called_once_with(lane)
 
 
+class TestLoadSequenceToolStartVirtualSkip:
+    """Covers the `cur_extruder.tool_start != "virtual"` guard on the pre-extruder
+    sensor retry loop, distinct from TestLoadSequenceDefaultPathSuccess where the
+    sensor already reports True and never exercises the loop either way."""
+
+    def _make(self, tool_start):
+        afc, lane, hub, extruder = TestLoadSequenceDefaultPathSuccess()._make()
+        extruder.tool_start = tool_start
+        afc.home_to_tool = False
+        afc.tool_homing_distance = 200
+        lane.short_move_dis = 10
+        # Sensor never confirms filament, so the retry loop -- if entered at
+        # all -- would keep calling move_to until the guard above skips it.
+        lane.get_toolhead_pre_sensor_state = MagicMock(side_effect=[False, True])
+        lane.move_to = MagicMock(return_value=(True, 10, AFCMoveWarning.NONE))
+        return afc, lane, hub, extruder
+
+    def test_virtual_tool_start_skips_retry_loop(self):
+        afc, lane, hub, extruder = self._make("virtual")
+        result = afc.load_sequence(lane, hub, extruder)
+        assert result is not False
+        lane.move_to.assert_not_called()
+
+    def test_no_tool_start_pin_skips_retry_loop(self):
+        """Covers the `cur_extruder.tool_start` guard's falsy branch (no
+        tool_start pin configured at all, e.g. a buffer-only setup)."""
+        afc, lane, hub, extruder = self._make(None)
+        result = afc.load_sequence(lane, hub, extruder)
+        assert result is not False
+        lane.move_to.assert_not_called()
+
+    def test_real_tool_start_pin_runs_retry_loop(self):
+        afc, lane, hub, extruder = self._make("^PD3")
+        result = afc.load_sequence(lane, hub, extruder)
+        assert result is not False
+        lane.move_to.assert_called_once()
+
+
 class TestToolLoadNeedPurge:
     def _make_afc_lane_for_need_purge(self, need_purge=True, check_extruder_temp_return=True,
                                       printing=False):
@@ -4648,6 +4686,53 @@ class TestSaveVars:
         with patch("builtins.open") as mock_open:
             obj.save_vars()
         mock_open.assert_not_called()
+
+
+class TestSaveVarsVirtualToolStart:
+    """Covers the `getattr(cur_extruder, "tool_start", None) == "virtual"` branch
+    that adds a `virtual_tool_start` entry to the persisted extruder snapshot."""
+
+    def test_virtual_sensor_adds_virtual_tool_start_key(self):
+        obj = _make_afc_for_save_vars(prep_done=True)
+        obj.tools["extruder"].tool_start = "virtual"
+        obj.tools["extruder"].tool_start_state = True
+
+        obj.save_vars()
+
+        data = obj._var_write_queue.put_nowait.call_args[0][0]
+        assert data["system"]["extruders"]["extruder"]["virtual_tool_start"] is True
+
+    def test_virtual_sensor_state_false(self):
+        """Covers `bool(cur_extruder.tool_start_state)` with a falsy state."""
+        obj = _make_afc_for_save_vars(prep_done=True)
+        obj.tools["extruder"].tool_start = "virtual"
+        obj.tools["extruder"].tool_start_state = False
+
+        obj.save_vars()
+
+        data = obj._var_write_queue.put_nowait.call_args[0][0]
+        assert data["system"]["extruders"]["extruder"]["virtual_tool_start"] is False
+
+    def test_non_virtual_sensor_omits_key(self):
+        """Covers the `== "virtual"` guard's False branch for a real hardware pin."""
+        obj = _make_afc_for_save_vars(prep_done=True)
+        obj.tools["extruder"].tool_start = "^PD3"
+
+        obj.save_vars()
+
+        data = obj._var_write_queue.put_nowait.call_args[0][0]
+        assert "virtual_tool_start" not in data["system"]["extruders"]["extruder"]
+
+    def test_missing_tool_start_attribute_omits_key(self):
+        """Covers the `getattr(..., None)` default for extruders with no
+        tool_start attribute at all."""
+        obj = _make_afc_for_save_vars(prep_done=True)
+        del obj.tools["extruder"].tool_start
+
+        obj.save_vars()
+
+        data = obj._var_write_queue.put_nowait.call_args[0][0]
+        assert "virtual_tool_start" not in data["system"]["extruders"]["extruder"]
 
 
 class TestWriteVarsSnapshot:
