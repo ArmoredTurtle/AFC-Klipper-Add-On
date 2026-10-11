@@ -16,13 +16,6 @@ tool_load_speed: 25             # Load speed in mm/s. Default is 25mm/s.
 #switch_pin: ^Nightowl:PB5
 #pause_on_runout: False
 
-
-[AFC_buffer TN]
-advance_pin: ^NightOwl:TN_ADV    # set advance pin
-trailing_pin: ^NightOwl:TN_TRL  # set trailing pin
-multiplier_high: 1.05   # default 1.05, factor to feed more filament
-multiplier_low:  0.95   # default 0.95, factor to feed less filament
-
 #--=================================================================================--#
 ######### Tip Cut Servo ###############################################################
 #--=================================================================================--#
@@ -56,7 +49,7 @@ sensor_mcu: NightOwl
 [AFC_NightOwl NightOwl]
 hub: NightOwl_Hub
 extruder: extruder
-buffer: TN                  #Turtleneck as standard Buffer
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 
 [AFC_stepper lane1]
 unit: NightOwl:1

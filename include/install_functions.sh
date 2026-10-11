@@ -105,7 +105,61 @@ apply_boxturtle_rename() {
   fi
 }
 
+apply_unit_buffer() {
+  local buffer_type="$1"
+  if [ "$buffer_type" != "TurtleNeck" ] && [ "$buffer_type" != "TurtleNeckV2" ] && [ "$buffer_type" != "FPS_PSF" ]; then
+    return 0
+  fi
+  get_unit_buffer_target
+  if [ -z "$buffer_unit_name" ]; then
+    print_msg WARNING "PSF buffer selected but no unit target is known for installation type '${installation_type}'; skipping."
+    return 0
+  fi
+  case "$buffer_type" in
+    TurtleNeck)
+      query_tn_pins "TN" "$buffer_unit_name"
+      append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin" "$buffer_section_name" "$buffer_extruder_file"
+      ;;
+    TurtleNeckV2)
+      append_buffer_config "TurtleNeckV2" "" "" "$buffer_section_name" "$buffer_extruder_file"
+      ;;
+    FPS_PSF)
+      if [ "$installation_type" == "EMU" ]; then
+        # EMU's MCU board_pins config already defines a dedicated alias
+        # for this sensor per lane.
+        query_fps_pin "FPS_PSF" "$buffer_unit_name" "${buffer_unit_name}_lane1:TN"
+      elif [ "$installation_type" == "OpenAMS" ]; then
+        query_fps_pin "FPS_PSF" "$buffer_unit_name" "fps:PA2"
+      else
+        query_fps_pin "FPS_PSF" "$buffer_unit_name"
+      fi
+      append_buffer_config "FPS_PSF" "" "" "$buffer_section_name" "$buffer_extruder_file"
+      ;;
+  esac
+  add_buffer_to_extruder "$buffer_extruder_file" "$buffer_section_name" "$buffer_unit_name" "$buffer_unit_section_prefix"
+}
+
+apply_shared_buffer() {
+  # Points the current unit's `buffer:` line at an existing buffer section and
+  # drops the unit's now-unused pre-baked buffer section, if it has one.
+  # Arguments:
+  #   $1: shared_buffer_name - name of the existing [AFC_buffer <name>] section.
+  local shared_buffer_name="$1"
+  get_unit_buffer_target
+  if [ -z "$buffer_unit_name" ]; then
+    print_msg WARNING "No unit target is known for installation type '${installation_type}'; skipping."
+    return 0
+  fi
+  add_buffer_to_extruder "$buffer_extruder_file" "$shared_buffer_name" "$buffer_unit_name" "$buffer_unit_section_prefix"
+  if [ -n "$buffer_prebaked_header" ] && [ "$buffer_prebaked_header" != "[AFC_buffer ${shared_buffer_name}]" ]; then
+    remove_buffer_section "$buffer_extruder_file" "$buffer_prebaked_header"
+  fi
+}
+
 install_afc() {
+  # This is always the first unit -- additional_system_menu.sh sets
+  # is_additional_unit="True" itself
+  is_additional_unit="False"
   # Link the python extensions
   if [ "$is_snapmaker" == "True" ]; then
     check_and_move_lite_files
@@ -151,35 +205,7 @@ install_afc() {
 
   apply_boxturtle_rename
 
-  if [ "$buffer_type" == "TurtleNeck" ] || [ "$buffer_type" == "TurtleNeckV2" ] || [ "$buffer_type" == "FPS_PSF" ]; then
-    get_unit_buffer_target
-    if [ -z "$buffer_unit_name" ]; then
-      print_msg WARNING "PSF buffer selected but no unit target is known for installation type '${installation_type}'; skipping."
-    else
-      case "$buffer_type" in
-        TurtleNeck)
-          query_tn_pins "TN" "$buffer_unit_name"
-          append_buffer_config "TurtleNeck" "$tn_advance_pin" "$tn_trailing_pin" "$buffer_section_name" "$buffer_extruder_file"
-          ;;
-        TurtleNeckV2)
-          append_buffer_config "TurtleNeckV2" "" "" "$buffer_section_name" "$buffer_extruder_file"
-          ;;
-        FPS_PSF)
-          if [ "$installation_type" == "EMU" ]; then
-            # EMU's MCU board_pins config already defines a dedicated alias
-            # for this sensor per lane.
-            query_fps_pin "FPS_PSF" "$buffer_unit_name" "${buffer_unit_name}_lane1:TN"
-          elif [ "$installation_type" == "OpenAMS" ]; then
-            query_fps_pin "FPS_PSF" "$buffer_unit_name" "fps:PA2"
-          else
-            query_fps_pin "FPS_PSF" "$buffer_unit_name"
-          fi
-          append_buffer_config "FPS_PSF" "" "" "$buffer_section_name" "$buffer_extruder_file"
-          ;;
-      esac
-      add_buffer_to_extruder "$buffer_extruder_file" "$buffer_section_name" "$buffer_unit_name" "$buffer_unit_section_prefix"
-    fi
-  fi
+  apply_unit_buffer "$buffer_type"
   check_and_append_prep "${afc_config_dir}/AFC.cfg"
   replace_varfile_path "${afc_config_dir}/AFC.cfg"
   if [ "$git_install" == "True" ] && [ "$is_snapmaker" == "False" ]; then

@@ -11,11 +11,11 @@
 sensor_type: temperature_mcu
 sensor_mcu: NightOwl_1
 
-[AFC_NightOwl_1 NightOwl_1]
+[AFC_NightOwl NightOwl_1]
 type: 'NightOwl_1'
 hub: NightOwl_1_Hub
 extruder: extruder
-buffer: TN                  #Turtleneck as standard Buffer
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 
 [AFC_stepper lane1]
 unit: NightOwl_1:1

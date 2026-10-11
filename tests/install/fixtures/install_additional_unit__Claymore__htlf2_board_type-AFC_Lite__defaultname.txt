@@ -13,7 +13,7 @@ sensor_mcu: Claymore_1
 [AFC_Claymore Claymore_1]
 hub: Claymore_1
 extruder: extruder
-buffer: Claymore_buffer
+buffer: Claymore_1_buffer
 drive_stepper: Claymore_drive
 selector_stepper: Claymore_selector
 long_moves_speed: 300
@@ -104,7 +104,7 @@ afc_bowden_length: 1015.036
 cut: False
 switch_pin: Claymore_1:HUB
 
-[AFC_buffer Claymore_buffer]
+[AFC_buffer Claymore_1_buffer]
 advance_pin: ^!Claymore_1:ADV
 trailing_pin: ^!Claymore_1:TRL
 multiplier_high: 1.15
