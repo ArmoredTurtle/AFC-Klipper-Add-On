@@ -2497,14 +2497,29 @@ class TestIsVirtualHub:
 
 
 class TestGetOamsIndex:
-    def test_parses_numeric_suffix(self):
+    def test_returns_resolved_controllers_oams_idx(self):
+        """Regression test for issue #790: must use the resolved controller's
+        configured oams_idx, not a digit parsed from oams_name -- the two can
+        mismatch (e.g. section [AFC_OAMS oams_a] with oams_idx: 2)."""
         ams, afc, printer, reactor = _make_ams()
         ams.oams_name = "oams3"
-        assert ams._get_oams_index() == 3
+        ams.oams = MagicMock()
+        ams.oams.oams_idx = 2
+        assert ams._get_oams_index() == 2
 
-    def test_unparseable_name_defaults_to_1(self):
+    def test_ignores_oams_name_even_when_it_would_parse(self):
+        """Covers the case where oams_name happens to contain a digit that
+        differs from the real oams_idx -- the name must never be consulted."""
         ams, afc, printer, reactor = _make_ams()
-        ams.oams_name = "not-numeric-suffix-xyz"
+        ams.oams_name = "oams3"
+        ams.oams = MagicMock()
+        ams.oams.oams_idx = 7
+        assert ams._get_oams_index() == 7
+
+    def test_unresolved_controller_defaults_to_1(self):
+        """Covers the `self.oams is not None` guard's False branch."""
+        ams, afc, printer, reactor = _make_ams()
+        ams.oams = None
         assert ams._get_oams_index() == 1
 
 
