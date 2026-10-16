@@ -29,7 +29,7 @@ cycle_in_list() {
 additional_system_menu() {
   local message
   local choice
-  local counter board_counter qb_board_counter qb_motor_counter
+  local counter board_counter nightowl_board_counter qb_board_counter qb_motor_counter
   local previous_installation_type
   if ! check_existing_unit_installed; then
     echo ""
@@ -56,6 +56,7 @@ additional_system_menu() {
   fi
   counter=0
   board_counter=0
+  nightowl_board_counter=$(index_of nightowl_board_types "$nightowl_board_type")
   emu_board_counter=0
   qb_board_counter=0
   qb_motor_counter=0
@@ -160,15 +161,7 @@ additional_system_menu() {
           export message
         fi ;;
       J)
-        # Increment the counter and reset if it exceeds the array length
-        board_counter=$(( (board_counter + 1) % ${#nightowl_board_types[@]} ))
-
-        # Set the installation type to the current option
-        nightowl_board_type="${nightowl_board_types[$board_counter]}"
-
-        # Update the message
-        message="NightOwl Board Type: $nightowl_board_type"
-        export message ;;
+        cycle_array nightowl_board_types nightowl_board_counter nightowl_board_type "NightOwl Board Type" ;;
       1)
         name_additional_unit
         export message ;;

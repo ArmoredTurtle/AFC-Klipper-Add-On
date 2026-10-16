@@ -1,6 +1,6 @@
 === FILES ===
 --- AFC_CustomName2.cfg ---
-[include mcu/OWLFC_Mini.cfg]
+[include mcu/OWLFC_Mini_CustomName2.cfg]
 
 [mcu CustomName2]
 #comment one out and add serial or uuid of the board nightowl
@@ -34,6 +34,7 @@ prep: ^CustomName2:EXT1
 uart_pin: CustomName2:M1_UART
 uart_address: 0
 run_current: 0.6
+sense_resistor: 0.180
 
 [AFC_stepper lane2]
 unit: CustomName2:2
@@ -52,6 +53,7 @@ prep: ^CustomName2:EXT2
 uart_pin: CustomName2:M2_UART
 uart_address: 0
 run_current: 0.6
+sense_resistor: 0.180
 
 [AFC_hub CustomName2_Hub]
 afc_bowden_length: 1317.52
@@ -72,9 +74,9 @@ switch_pin: ^CustomName2:HUB
 --- AFC_Turtle_1.cfg ---
 placeholder
 --- end AFC_Turtle_1.cfg ---
---- mcu/OWLFC_Mini.cfg ---
-[board_pins NightOwl]
-mcu: NightOwl
+--- mcu/OWLFC_Mini_CustomName2.cfg ---
+[board_pins CustomName2]
+mcu: CustomName2
 aliases:
     M1_STEP=PB15    , M1_DIR=PB14   , M1_EN=PA8    , M1_UART=PB13   ,
     M2_STEP=PC6     , M2_DIR=PA9    , M2_EN=PA10   , M2_UART=PC7    ,
@@ -83,11 +85,7 @@ aliases:
     TRG1=PB11       , TRG2=PB4      ,
     EXT1=PB1        , EXT2=PB12     ,
     TN_ADV=PA3      , TN_TRL=PA2    ,
+    RGB1=PB3        ,
     # alternate names for endstop ports
     SW1=PB1         , SW2=PB11      , SW3=PB12      , SW4=PB4       , SW5=PB5       , SW6=PB10      , SW7=PB2       , SW8=PA2       , SW9=PA3 ,
-
-[tmc2209 AFC_stepper lane1]
-sense_resistor: 0.180
-[tmc2209 AFC_stepper lane2]
-sense_resistor: 0.180
---- end mcu/OWLFC_Mini.cfg ---
+--- end mcu/OWLFC_Mini_CustomName2.cfg ---

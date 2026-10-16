@@ -348,11 +348,15 @@ unit_copy_files_NightOwl() {
 unit_install_additional_NightOwl() {
   local board_type="$nightowl_board_type"
   safe_copy "${afc_path}/templates/$(nightowl_template_for_board "$board_type")" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
-  safe_copy "${afc_path}/config/mcu/${board_type}.cfg" "${afc_config_dir}/mcu/"
+  # Per-unit mcu file so the board_pins/mcu names match the renamed unit.
+  local mcu_file="${board_type}_${boxturtle_name}.cfg"
+  safe_copy "${afc_path}/config/mcu/${board_type}.cfg" "${afc_config_dir}/mcu/${mcu_file}"
+  sed -i "s/NightOwl/$boxturtle_name/g" "${afc_config_dir}/mcu/${mcu_file}"
   sed -i \
     -e "s/AFC_NightOwl/AFC_NIGHTOWL_CLASS_PLACEHOLDER/g" \
     -e "s/NightOwl/$boxturtle_name/g" \
     -e "s/AFC_NIGHTOWL_CLASS_PLACEHOLDER/AFC_NightOwl/g" \
+    -e "s#\[include mcu/${board_type}.cfg\]#[include mcu/${mcu_file}]#" \
     "$afc_config_dir/AFC_${boxturtle_name}.cfg"
 }
 

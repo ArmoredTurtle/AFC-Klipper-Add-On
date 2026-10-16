@@ -14,6 +14,19 @@ cycle_array() {
   message="$4: ${!var_name}"
 }
 
+index_of() {
+  # Echoes the index of value $2 in the array named $1, or 0 if not found.
+  local -n arr=$1
+  local i
+  for i in "${!arr[@]}"; do
+    if [ "${arr[$i]}" == "$2" ]; then
+      echo "$i"
+      return
+    fi
+  done
+  echo 0
+}
+
 buffer_type_label() {
   # Maps the internal buffer_type token to a user-facing display label.
   case "$1" in
@@ -44,10 +57,11 @@ toggle_option() {
 }
 
 install_menu() {
-  local message choice counter board_counter motor index i
+  local message choice counter board_counter nightowl_board_counter motor index i
   local toggle_items toggle_labels
   counter=0
   board_counter=0
+  nightowl_board_counter=$(index_of nightowl_board_types "$nightowl_board_type")
   motor=0
 
   toggle_items=("afc_includes" "tip_forming" "toolhead_cutter" "hub_cutter" "kick_macro" "park_macro" "poop_macro" "wipe_macro")
@@ -161,7 +175,7 @@ install_menu() {
       D)
         cycle_array htlf_board_types board_counter htlf_board_type "HTLF Board Type" ;;
       J)
-        cycle_array nightowl_board_types board_counter nightowl_board_type "NightOwl Board Type" ;;
+        cycle_array nightowl_board_types nightowl_board_counter nightowl_board_type "NightOwl Board Type" ;;
       E)
         cycle_array qb_board_types board_counter qb_board_type "QuattroBox Board Type" ;;
       F)
