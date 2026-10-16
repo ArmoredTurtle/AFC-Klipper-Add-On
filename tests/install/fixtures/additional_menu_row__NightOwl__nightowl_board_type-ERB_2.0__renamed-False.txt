@@ -1,0 +1,5 @@
+=== OUTPUT ===
+1. NightOwl Name: NightOwl_1 
+J. NightOwl Board Type : ERB_2.0 
+=== VARS ===
+boxturtle_name=NightOwl_1
