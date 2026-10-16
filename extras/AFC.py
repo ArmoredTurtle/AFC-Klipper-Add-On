@@ -1628,7 +1628,8 @@ class afc:
             self.afc_stats.increase_load_error_count(self)
 
     def TOOL_LOAD(self, cur_lane: AFCLane, purge_length: Optional[float]=None,
-                  set_start_time: bool=False, load_to_gears: bool=False) -> bool:
+                  set_start_time: bool=False, load_to_gears: bool=False,
+                  restore_temp: bool=True) -> bool:
         """
         This function handles the loading of a specified lane into the tool. It performs
         several checks and movements to ensure the lane is properly loaded.
@@ -1747,7 +1748,8 @@ class afc:
                             self.gcode.run_script_from_command(self.post_load_macro)
                             # TODO: Add afcDeltaTime log
                 finally:
-                    self.restore_toolhead_temp(temp_state)
+                    if restore_temp: 
+                        self.restore_toolhead_temp(temp_state)
 
             else:
                 # Handle errors if the hub is not clear or the lane is not ready for loading.
@@ -2060,7 +2062,8 @@ class afc:
         # User manually unloaded spool from toolhead, remove spool from active status
         self.spool.set_active_spool(None)
 
-    def TOOL_UNLOAD(self, cur_lane: AFCLane, set_start_time=True, force_unload=False):
+    def TOOL_UNLOAD(self, cur_lane: AFCLane, set_start_time=True, force_unload=False,
+                    restore_temp: bool=True):
         """
         This function handles the unloading of a specified lane from the tool. It performs
         several checks and movements to ensure the lane is properly unloaded.
@@ -2171,7 +2174,7 @@ class afc:
                 if not success:
                     return success
             finally:
-                self.restore_toolhead_temp(temp_state)
+                if restore_temp: self.restore_toolhead_temp(temp_state)
 
             unload_time = self.afcDeltaTime.log_major_delta("Lane {} unload done".format(cur_lane.name if cur_lane is not None else "None"))
             self.afc_stats.average_tool_unload_time.average_time(unload_time)
