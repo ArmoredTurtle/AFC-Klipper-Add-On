@@ -84,6 +84,17 @@ class TestAppendBufferConfig:
         assert result.stdout == "0\nTurtleNeckv2.cfg\n"
 
 
+    def test_remastered_does_not_copy_or_include_turtleneck_v2_file(self) -> None:
+        body = (
+            'target="$afc_config_dir/AFC_Hardware.cfg"\n'
+            'printf "[AFC_extruder extruder]\\n" > "$target"\n'
+            'append_buffer_config TurtleNeck2Remastered "" "" Turtle_1 "$target"\n'
+            'grep -c "TurtleNeckv2" "$target"; ls "$afc_config_dir/mcu"\n'
+        )
+        result = run_bash(body)
+        assert result.stdout == "0\nTN2.cfg\n"
+
+
 class TestBufferTypeLabel:
     def test_label_is_user_facing_name(self) -> None:
         result = run_bash('buffer_type_label TurtleNeck2Remastered')
