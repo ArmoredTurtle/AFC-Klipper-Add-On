@@ -495,7 +495,7 @@ class TestHandleConnect:
             "Failed to initialize OAMS current PID command: not supported\n"
             "Most likely the firmware needs to be updated to support this command."
         )
-        assert any(msg in m for m in warning_msgs)
+        assert warning_msgs == [msg]
         oams.clear_errors.assert_called_once()
 
     def test_cancel_command_missing_sets_cancel_cmd_none(self):
@@ -624,17 +624,17 @@ class TestRequireMcuCmd:
     def test_raises_when_cmd_is_none(self):
         """Covers the `cmd is None` guard's True branch."""
         oams = _make_oams()
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="some_cmd command not initialized"):
             oams._require_mcu_cmd(None, "some_cmd")
 
     def test_error_message_includes_oams_idx_and_name(self):
         oams = _make_oams(oams_idx=2)
-        try:
+        with pytest.raises(Exception) as exc_info:
             oams._require_mcu_cmd(None, "set_led_error")
-            assert False, "expected an exception"
-        except Exception as e:
-            assert "OAMS[2]" in str(e)
-            assert "set_led_error" in str(e)
+        assert str(exc_info.value) == (
+            "OAMS[2]: set_led_error command not initialized, "
+            "MCU connection may have failed"
+        )
 
 
 class TestSetLedError:
