@@ -1225,6 +1225,11 @@ class afcAMS(afcUnit):
                 f"Stuck spool recovery: lane '{lane_name}' not found, pausing")
             self._stuck_spool_recovery_fallback(fps_name, lane_name, "lane not found")
             return
+        owner = getattr(lane, "unit_obj", None)
+        if (owner is not None
+            and owner is not self):
+            owner._cmd_stuck_spool_recovery(gcmd)
+            return
 
         self.logger.info(
             f"Stuck spool auto-recovery starting: unload then reload for {lane_name}")
