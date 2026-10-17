@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [10-16-2026]
+### Added
+- Added support for Isik Techs new OWLFC MCU board for NightOwl units
 ### Fixed
 - `OAMS_CURRENT_PID_SET` now sends its gains to a dedicated current-loop MCU command instead of the pressure/FPS PID command, so setting the current PID no longer overwrites the pressure PID (closes #772).
 - `OAMS_CALIBRATE_PTFE_LENGTH` no longer marks the unit as calibrating before validating that `SPOOL` was provided, so a missing `SPOOL` argument no longer leaves the unit stuck (closes #789).
