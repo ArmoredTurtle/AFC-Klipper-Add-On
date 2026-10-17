@@ -13,7 +13,7 @@ sensor_mcu: ERB
 [AFC_HTLF CustomName2]
 hub: CustomName2
 extruder: extruder
-buffer: Turtle_1
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 drive_stepper: HTLF_Drive
 selector_stepper: HTLF_Selector
 home_pin: ERB:HOME_POS

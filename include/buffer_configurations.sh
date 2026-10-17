@@ -195,6 +195,68 @@ replace_buffer_section() {
   ' "$file_path" > "$file_path.tmp" && mv "$file_path.tmp" "$file_path"
 }
 
+list_existing_buffers() {
+  # Echoes the name of every [AFC_buffer <name>] section defined in the cfg
+  # files directly under $afc_config_dir, one per line, sorted and unique.
+  grep -hE '^\[AFC_buffer [^]]+\]' "$afc_config_dir"/*.cfg 2>/dev/null \
+    | sed -E 's/^\[AFC_buffer ([^]]+)\].*/\1/' | sort -u
+}
+
+prompt_shared_buffer_name() {
+  # Asks which existing buffer a new additional unit should share and sets
+  # the global `shared_buffer_name` (empty if skipped or none exist).
+  local buffers choice i=1 name
+  shared_buffer_name=""
+  buffers=$(list_existing_buffers)
+  if [ -z "$buffers" ]; then
+    print_msg WARNING "No existing buffers found in ${afc_config_dir}; set 'buffer:' manually."
+    return 0
+  fi
+  echo ""
+  echo "Existing buffers:"
+  while IFS= read -r name; do
+    printf "  %s. %s\n" "$i" "$name"
+    i=$((i + 1))
+  done <<< "$buffers"
+  while true; do
+    read -r -p "Enter the number or name of the buffer to share (blank to skip): " choice || choice=""
+    if [ -z "$choice" ]; then
+      return 0
+    fi
+    if [[ "$choice" =~ ^[0-9]+$ ]]; then
+      name=$(sed -n "${choice}p" <<< "$buffers")
+    elif grep -qxF -- "$choice" <<< "$buffers"; then
+      name="$choice"
+    else
+      name=""
+    fi
+    if [ -n "$name" ]; then
+      shared_buffer_name="$name"
+      return 0
+    fi
+    print_msg WARNING "'$choice' is not one of the existing buffers."
+  done
+}
+
+remove_buffer_section() {
+  # Removes one [AFC_buffer <name>] section (header through its body and one
+  # trailing blank line) from a config file. Commented lines are untouched.
+  # Arguments:
+  #   $1: file_path - The path to the configuration file containing the block.
+  #   $2: section_header - The exact header line, e.g. "[AFC_buffer Claymore_2_buffer]".
+  local file_path="$1"
+  local section_header="$2"
+
+  awk -v header="$section_header" '
+    BEGIN { in_section = 0 }
+    $0 == header { in_section = 1; next }
+    in_section && /^$/ { in_section = 0; next }
+    in_section && /^\[.+\]/ { in_section = 0 }
+    in_section { next }
+    { print $0 }
+  ' "$file_path" > "$file_path.tmp" && mv "$file_path.tmp" "$file_path"
+}
+
 query_tn_pins() {
   # Function to query the user for the TurtleNeck pins.
   # Arguments:
