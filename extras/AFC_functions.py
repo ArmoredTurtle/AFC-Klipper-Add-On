@@ -1727,7 +1727,7 @@ class afcFunction:
 
         if (lane is None
             or self.afc.current != self.stn_calibration_lane):
-            self.stn_calibration_active = False
+            self._reset_stn_calibration_values()
             prompt.p_end()
             self.afc.error.AFC_error(
                 "The calibrated lane is no longer loaded; cancel and restart calibration.",
