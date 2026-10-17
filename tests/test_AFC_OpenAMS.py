@@ -4134,12 +4134,13 @@ class TestCmdStuckSpoolRecovery:
     def test_proceeds_normally_when_lane_has_no_unit_obj(self):
         """Covers the `owner is not None` guard's False branch: a lane with
         no unit_obj (e.g. a bare test double) must not be treated as owned
-        by another instance."""
+        by another instance, and recovery must run to completion rather
+        than stopping early or taking some other branch."""
         ams, afc, printer, reactor = _make_ams()
-        lane = _make_lane("lane1", unit_obj=None)
+        lane = _make_lane("lane1", unit_obj=None, hub_obj=None)
         afc.lanes = {"lane1": lane}
         afc.gcode_move.last_position = [0.0, 0.0, 5.0, 0.0]
-        afc.function.is_paused.return_value = True
+        afc.function.is_paused.return_value = False
         afc.TOOL_UNLOAD = MagicMock(return_value=True)
         afc.TOOL_LOAD = MagicMock(return_value=True)
         ams._stuck_spool_recovery_clear_oams_state = MagicMock()
@@ -4148,6 +4149,21 @@ class TestCmdStuckSpoolRecovery:
         ams._cmd_stuck_spool_recovery(self._gcmd())
 
         afc.TOOL_UNLOAD.assert_called_once_with(lane, set_start_time=True)
+        afc.TOOL_LOAD.assert_called_once_with(lane, set_start_time=True)
+        ams._stuck_spool_recovery_clear_oams_state.assert_called_once()
+        ams.gcode.run_script_from_command.assert_any_call("AFC_RESUME")
+        assert ams.logger.messages == [
+            (
+                "info",
+                "Stuck spool auto-recovery starting: unload then reload for lane1",
+            ),
+            ("info", "Stuck spool recovery: unloading lane1"),
+            ("info", "Stuck spool recovery: reloading lane1"),
+            (
+                "info",
+                "Stuck spool auto-recovery SUCCEEDED for lane1, resuming print",
+            ),
+        ]
 
     def test_already_paused_skips_pause_resume_send(self):
         ams, afc, printer, reactor = _make_ams()
