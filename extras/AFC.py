@@ -1638,6 +1638,8 @@ class afc:
         :param purge_length: Amount of filament to poop (optional).
         :param set_start_time: Set true to set a starting time for afcDeltaTime.
         :param load_to_gears: Stop after loading filament to the extruder gears or sensor.
+        :param restore_temp: Set False to skip restoring the toolhead's temperature when
+                             done, needed when the caller manages temperature itself.
         :return bool: True if load was successful, False if an error occurred.
         """
         if not self.function.check_homed():
@@ -1748,7 +1750,7 @@ class afc:
                             self.gcode.run_script_from_command(self.post_load_macro)
                             # TODO: Add afcDeltaTime log
                 finally:
-                    if restore_temp: 
+                    if restore_temp:
                         self.restore_toolhead_temp(temp_state)
 
             else:
@@ -1770,7 +1772,8 @@ class afc:
                     return False
 
         # Check if toolhead needs to purge, this normally should only apply for standalone toolheads
-        if cur_lane.need_purge and not load_to_gears:
+        if (cur_lane.need_purge
+            and not load_to_gears):
             temp_state = self.capture_toolhead_temp()
             try:
                 self.logger.info(f"Flag set to purge for {cur_lane.extruder_obj.name}:{cur_lane.current_map}")
@@ -2062,8 +2065,8 @@ class afc:
         # User manually unloaded spool from toolhead, remove spool from active status
         self.spool.set_active_spool(None)
 
-    def TOOL_UNLOAD(self, cur_lane: AFCLane, set_start_time=True, force_unload=False,
-                    restore_temp: bool=True):
+    def TOOL_UNLOAD(self, cur_lane: AFCLane, set_start_time: bool=True, force_unload: bool=False,
+                    restore_temp: bool=True) -> bool:
         """
         This function handles the unloading of a specified lane from the tool. It performs
         several checks and movements to ensure the lane is properly unloaded.
@@ -2073,7 +2076,8 @@ class afc:
         :param force_unload: Set to True to always force unload a lane, needed for infinite runout
                              to unload the lane so lane can be ejected before swapping to another
                              toolhead.
-
+        :param restore_temp: Set False to skip restoring the toolhead's temperature when
+                             done, needed when the caller manages temperature itself.
         :return bool: True if unloading was successful, False if an error occurred.
         """
         # Check if the bypass filament sensor detects filament; if so unload filament and abort the tool load.

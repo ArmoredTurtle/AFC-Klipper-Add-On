@@ -1211,7 +1211,7 @@ class afcFunction:
                 )
                 error = True
         return error, set_tool_start_back_to_none, failed_msg
-    
+
     def _resolve_calibration_lane(self, extruder_name: str,
                                   lane_name: Optional[str]) -> Optional[AFCLane]:
         """
@@ -1227,13 +1227,15 @@ class afcFunction:
             return None
 
         lane = self.afc.lanes.get(lane_name) if lane_name else None
-        if lane_name and lane is None:
+        if (lane_name
+            and lane is None):
             self.afc.error.AFC_error(f"'{lane_name}' is not a valid lane", pause=False)
             return None
 
         if lane is None:
             current_lane = self.afc.lanes.get(self.afc.current)
-            if current_lane is not None and current_lane.extruder_obj is extruder:
+            if (current_lane is not None
+                and current_lane.extruder_obj is extruder):
                 lane = current_lane
             else:
                 lanes = [candidate for candidate in self.afc.lanes.values()
@@ -1251,10 +1253,16 @@ class afcFunction:
             return None
 
         return lane
-    
+
     def _check_and_set_temp_for_calibration_lane(self, lane: AFCLane,
                                                  prompt: AFCprompt) -> None:
-        
+        """
+        Helper method that waits for the toolhead to reach the lane's configured temperature
+        before a calibration move, showing a status prompt while it waits.
+
+        :param lane: AFCLane whose configured temperature should be reached
+        :param prompt: Calibration status prompt to show progress on
+        """
         text = "Checking toolhead temperature and waiting for toolhead to reach temperature"
         prompt.create_custom_p("Checking toolhead temperature", text, None, True,
                                 None, None)
@@ -1290,21 +1298,33 @@ class afcFunction:
         finally:
             prompt.p_end()
         return lane
-    
+
     def _reset_stn_calibration_values(self) -> None:
+        """
+        Clears tool_stn calibration session state, ending the session so a
+        new AFC_TOOL_STN_CALIBRATION call starts fresh.
+        """
         self.stn_calibration_active = False
         self.stn_calibration_distance = 0.0
         self.stn_calibration_original = 0.0
         self.stn_calibration_extruder = None
         self.stn_calibration_lane = None
-    
+
     def _reset_stn_unload_calibration_values(self) -> None:
+        """
+        Clears tool_stn_unload calibration session state, ending the session
+        so a new AFC_TOOL_STN_UNLOAD_CALIBRATION call starts fresh.
+        """
         self.stn_unload_calibration_active = False
         self.stn_unload_calibration_distance = 0.0
         self.stn_unload_calibration_extruder = None
         self.stn_unload_calibration_lane = None
-    
+
     def _reset_cutter_calibration_values(self) -> None:
+        """
+        Clears cutter retract calibration session state, ending the session
+        so a new AFC_CUTTER_CALIBRATION call starts fresh.
+        """
         self.cutter_calibration_active = False
         self.cutter_calibration_distance = 0.0
         self.cutter_calibration_extruder = None
@@ -1506,7 +1526,7 @@ class afcFunction:
             button_command = f'UNIT_CALIBRATION UNIT={key}'
             button_style = "primary" if index % 2 == 0 else "secondary"
             buttons.append((button_label, button_command, button_style))
-        
+
         button_style = "secondary" if button_style == "primary" else button_style
         buttons.append(("Toolhead Calibration", "AFC_TOOLHEAD_CALIBRATION", "info"))
 
@@ -1670,7 +1690,7 @@ class afcFunction:
             text = f"Loading {lane.name} into toolhead"
             prompt.create_custom_p("Loading Lane", text, None, True,
                                     None, None)
-            
+
             try:
                 if not self.afc.TOOL_LOAD(lane, load_to_gears=True, restore_temp=False):
                     prompt.p_end()
@@ -1688,7 +1708,8 @@ class afcFunction:
             self.stn_calibration_lane = lane.name
             extruder.tool_stn = 0.0
         else:
-            lane = self.afc.lanes.get(self.stn_calibration_lane)
+            lane = (self.afc.lanes.get(self.stn_calibration_lane)
+                    if self.stn_calibration_lane is not None else None)
             if (extruder_name != self.stn_calibration_extruder
                 or lane_name not in (None, self.stn_calibration_lane)):
                 prompt.p_end()
@@ -1741,7 +1762,7 @@ class afcFunction:
                     self.afc.error.AFC_error(
                         f"Lane '{lane_name}' did not unload during the tool_stn test.", pause=False)
                     return
-                
+
                 text = f"Loading {lane.name} into toolhead"
                 prompt.create_custom_p("Loading Lane", text, None, True,
                                         None, None)
@@ -1847,7 +1868,7 @@ class afcFunction:
             if lane is None:
                 prompt.p_end()
                 return
-            
+
             lane_name = lane.name
             if not start:
                 start_command = (f"AFC_TOOL_STN_UNLOAD_CALIBRATION EXTRUDER={extruder_name} "
@@ -1858,7 +1879,7 @@ class afcFunction:
                         "sensor clears, or until filament leaves the extruder gears when ramming.")
                 prompt.create_custom_p("tool_stn_unload Calibration", text, begin, True, None, None)
                 return
-            
+
             self._check_and_set_temp_for_calibration_lane(lane, prompt)
 
             cutter_command = getattr(self.afc, "tool_cut_cmd", None) or "AFC_CUT"
@@ -1894,7 +1915,8 @@ class afcFunction:
                 "Cannot save tool_stn_unload while a toolhead sensor is still triggered.",
                 pause=False)
             return
-        if cancel or complete:
+        if (cancel
+            or complete):
             measured = self.stn_unload_calibration_distance
             if (complete
                 and measured <= 0):
@@ -2023,7 +2045,9 @@ class afcFunction:
                 self.afc.error.AFC_error("tool_stn_unload calibration is already active.",
                                          pause=False)
                 return
-            if move or complete or cancel:
+            if (move
+                or complete
+                or cancel):
                 prompt.p_end()
                 self.afc.error.AFC_error(
                     "Start AFC_CUTTER_CALIBRATION before using its prompt actions.", pause=False)
@@ -2035,7 +2059,7 @@ class afcFunction:
             if lane is None:
                 prompt.p_end()
                 return
-            
+
             self._check_and_set_temp_for_calibration_lane(lane, prompt)
 
             lane_name = lane.name
@@ -2053,7 +2077,7 @@ class afcFunction:
                 self.afc.error.AFC_error("Finish or cancel the active cutter calibration first.",
                                          pause=False)
                 return
-        extruder = self.afc.tools.get(extruder_name)
+        extruder = self.afc.tools[extruder_name]
         if cancel:
             if self.cutter_calibration_distance:
                 self.afc.move_e_pos(self.cutter_calibration_distance, extruder.tool_unload_speed,
@@ -2072,14 +2096,14 @@ class afcFunction:
                 self.afc.error.AFC_error(
                     "Retract filament past the safety margin before saving.", pause=False)
                 return
-            if self.cutter_calibration_distance:
-                prompt.p_end()
 
-                text = "Moving filament back to original position"
-                prompt.create_custom_p("Moving extruder", text, None, True,
-                                        None, None)
-                self.afc.move_e_pos(self.cutter_calibration_distance, extruder.tool_unload_speed,
-                                    "Cutter calibration restore", wait_tool=True)
+            prompt.p_end()
+
+            text = "Moving filament back to original position"
+            prompt.create_custom_p("Moving extruder", text, None, True,
+                                    None, None)
+            self.afc.move_e_pos(self.cutter_calibration_distance, extruder.tool_unload_speed,
+                                "Cutter calibration restore", wait_tool=True)
 
             macro_name = "_AFC_CUT_TIP_VARS"
             per_tool_macro = f"{macro_name}_{extruder_name}"

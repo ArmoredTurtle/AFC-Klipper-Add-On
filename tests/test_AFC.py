@@ -4460,6 +4460,27 @@ class TestToolLoadDisplayStatusLifecycle:
         lane.espooler.stats.update_database.assert_called_once_with()
         afc.gcode.run_script_from_command.assert_called_once_with("POST_LOAD")
 
+    def test_restore_temp_default_restores_toolhead_temp(self) -> None:
+        """Independent coverage of the `if restore_temp:` True side (the
+        default) of the finally block wrapping load_sequence."""
+        afc, lane, events = self._make()
+        afc.load_sequence = MagicMock(return_value=True)
+
+        assert afc.TOOL_LOAD(lane)
+
+        afc.restore_toolhead_temp.assert_called_once_with(100)
+
+    def test_restore_temp_false_skips_restoring_toolhead_temp(self) -> None:
+        """Independent coverage of the `if restore_temp:` False side: the
+        calibration macros pass restore_temp=False since they (or the
+        caller doing the restore) manage temperature separately."""
+        afc, lane, events = self._make()
+        afc.load_sequence = MagicMock(return_value=True)
+
+        assert afc.TOOL_LOAD(lane, restore_temp=False)
+
+        afc.restore_toolhead_temp.assert_not_called()
+
 
 class TestToolUnloadDisplayStatusLifecycle:
     def _make(self):
@@ -4510,6 +4531,26 @@ class TestToolUnloadDisplayStatusLifecycle:
 
         assert events == [
             ('display', 'retraction', True), 'unload_sequence', ('display', 'retraction', False)]
+
+    def test_restore_temp_default_restores_toolhead_temp(self) -> None:
+        """Independent coverage of the `if restore_temp:` True side (the
+        default) of the finally block wrapping unload_sequence."""
+        afc, lane, events = self._make()
+        afc.unload_sequence = MagicMock(return_value=True)
+
+        assert afc.TOOL_UNLOAD(lane, force_unload=True)
+
+        afc.restore_toolhead_temp.assert_called_once_with(100)
+
+    def test_restore_temp_false_skips_restoring_toolhead_temp(self) -> None:
+        """Independent coverage of the `if restore_temp:` False side: the
+        calibration macros pass restore_temp=False."""
+        afc, lane, events = self._make()
+        afc.unload_sequence = MagicMock(return_value=True)
+
+        assert afc.TOOL_UNLOAD(lane, force_unload=True, restore_temp=False)
+
+        afc.restore_toolhead_temp.assert_not_called()
 
 
 class TestBypassUnloadDisplayStatus:
