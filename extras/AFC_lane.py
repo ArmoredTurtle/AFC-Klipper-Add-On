@@ -576,7 +576,7 @@ class AFCLane:
         if pin is not None and pin.strip().lower() == "virtual":
             return
 
-        ppins.allow_multi_use_pin(pin.strip("!^"))
+        ppins.allow_multi_use_pin(pin.strip("!^~"))
         ppins.parse_pin(pin, True, True)
         endstop = ppins.setup_pin('endstop', pin)
         endstop_name = f"{self.name}_{name}"
