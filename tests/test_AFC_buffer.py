@@ -1258,6 +1258,7 @@ class TestCmdSetBufferMultiplier:
     def test_high_with_factor_one_sets_multiplier_high(self):
         buf, lane = self._ready_buf()
         buf.type = "switched"
+        buf.last_state = ADVANCING_STATE_NAME
         buf.cmd_SET_BUFFER_MULTIPLIER(_make_gcmd({"MULTIPLIER": "high"}, {"FACTOR": 1.0}))
         assert buf.multiplier_high == 1.0
         assert lane.update_rotation_distance.call_args[0][0] == 1.0
@@ -1271,6 +1272,7 @@ class TestCmdSetBufferMultiplier:
     def test_low_with_factor_one_sets_multiplier_low(self):
         buf, lane = self._ready_buf()
         buf.type = "switched"
+        buf.last_state = TRAILING_STATE_NAME
         buf.cmd_SET_BUFFER_MULTIPLIER(_make_gcmd({"MULTIPLIER": "low"}, {"FACTOR": 1.0}))
         assert buf.multiplier_low == 1.0
         assert lane.update_rotation_distance.call_args[0][0] == 1.0
