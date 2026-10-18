@@ -527,7 +527,7 @@ class AFCBuffer:
                 self.logger.info("FACTOR must be greater than 0")
                 return
             if (chg_multiplier == "HIGH"
-                and chg_factor > 1):
+                and chg_factor >= 1):
                 self.multiplier_high = chg_factor
                 # Only apply live if already advancing, otherwise the next trigger picks it up
                 if (self.type == "switched"
@@ -540,7 +540,7 @@ class AFCBuffer:
                 self.logger.info("multiplier_high set to {}".format(chg_factor))
                 self.logger.info('multiplier_high: {} MUST be updated under buffer config for value to be saved'.format(chg_factor))
             elif (chg_multiplier == "LOW"
-                  and chg_factor < 1):
+                  and chg_factor <= 1):
                 self.multiplier_low = chg_factor
                 # Only apply live if already trailing, otherwise the next trigger picks it up
                 if (self.type == "switched"
@@ -552,7 +552,7 @@ class AFCBuffer:
                 self.logger.info("multiplier_low set to {}".format(chg_factor))
                 self.logger.info('multiplier_low: {} MUST be updated under buffer config for value to be saved'.format(chg_factor))
             else:
-                self.logger.info('multiplier_high must be greater than 1, multiplier_low must be less than 1')
+                self.logger.info('multiplier_high must be greater than or equal to 1, multiplier_low must be less than or equal to 1')
 
     cmd_LANE_ROT_FACTOR_help = "change rotation distance by factor specified"
     def cmd_SET_ROTATION_FACTOR(self, gcmd):
