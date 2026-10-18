@@ -246,6 +246,12 @@ class TestHTLFInit:
         ppins = printer._objects["pins"]
         assert ppins.allow_multi_use_pin.call_args_list == [call("PA1"), call("PA1")]
 
+    def test_home_pin_set_strips_pulldown_prefix_for_allow_multi_use_pin(self):
+        config, printer, afc = _make_htlf_config(values={"home_pin": "~PA1"})
+        AFC_HTLF(config)
+        ppins = printer._objects["pins"]
+        assert ppins.allow_multi_use_pin.call_args_list == [call("PA1"), call("PA1")]
+
     def test_home_pin_set_calls_parse_pin(self):
         config, printer, afc = _make_htlf_config(values={"home_pin": "PA1"})
         AFC_HTLF(config)

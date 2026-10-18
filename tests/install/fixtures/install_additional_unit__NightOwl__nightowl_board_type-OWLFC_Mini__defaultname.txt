@@ -1,0 +1,91 @@
+=== FILES ===
+--- AFC_NightOwl_1.cfg ---
+[include mcu/OWLFC_Mini_NightOwl_1.cfg]
+
+[mcu NightOwl_1]
+#comment one out and add serial or uuid of the board nightowl
+#serial:
+#canbus_uuid:
+
+[temperature_sensor NightOwl_1-OWLFC_Mini]
+sensor_type: temperature_mcu
+sensor_mcu: NightOwl_1
+
+[AFC_NightOwl NightOwl_1]
+type: 'NightOwl_1'
+hub: NightOwl_1_Hub
+extruder: extruder
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
+
+[AFC_stepper lane1]
+unit: NightOwl_1:1
+extruder: extruder
+step_pin: NightOwl_1:M1_STEP
+dir_pin: NightOwl_1:M1_DIR
+enable_pin: !NightOwl_1:M1_EN
+microsteps: 16
+rotation_distance: 4.65
+dist_hub: 28.1
+park_dist: 10
+load: ^NightOwl_1:TRG1
+prep: ^NightOwl_1:EXT1
+
+[tmc2209 AFC_stepper lane1]
+uart_pin: NightOwl_1:M1_UART
+uart_address: 0
+run_current: 0.6
+sense_resistor: 0.180
+
+[AFC_stepper lane2]
+unit: NightOwl_1:2
+extruder: extruder
+step_pin: NightOwl_1:M2_STEP
+dir_pin: !NightOwl_1:M2_DIR
+enable_pin: !NightOwl_1:M2_EN
+microsteps: 16
+rotation_distance: 4.65
+dist_hub: 27.87
+park_dist: 10
+load: ^NightOwl_1:TRG2
+prep: ^NightOwl_1:EXT2
+
+[tmc2209 AFC_stepper lane2]
+uart_pin: NightOwl_1:M2_UART
+uart_address: 0
+run_current: 0.6
+sense_resistor: 0.180
+
+[AFC_hub NightOwl_1_Hub]
+afc_bowden_length: 1317.52
+move_dis: 30                # Distance to move the filament within the hub in mm.
+cut: False                  # Hub has Cutter
+#--=================================================================================--#
+######### Hub Cut #####################################################################
+#--=================================================================================--#
+cut_cmd: AFC                # CMD to use
+cut_dist: 200               # How much filament to cut off (in mm).
+cut_clear: 120              # How far the filament should retract back from the hub (in mm).
+cut_min_length: 300.0
+cut_servo_pass_angle: 10    # Servo angle to align the Bowden tube with the hole for loading the toolhead.
+cut_servo_clip_angle: 180   # Servo angle for cutting the filament.
+cut_servo_prep_angle: 80    # Servo angle to prepare the filament for cutting (aligning the exit hole).
+switch_pin: ^NightOwl_1:HUB
+--- end AFC_NightOwl_1.cfg ---
+--- AFC_Turtle_1.cfg ---
+placeholder
+--- end AFC_Turtle_1.cfg ---
+--- mcu/OWLFC_Mini_NightOwl_1.cfg ---
+[board_pins NightOwl_1]
+mcu: NightOwl_1
+aliases:
+    M1_STEP=PB15    , M1_DIR=PB14   , M1_EN=PA8    , M1_UART=PB13   ,
+    M2_STEP=PC6     , M2_DIR=PA9    , M2_EN=PA10   , M2_UART=PC7    ,
+    # suggested switch pin configurations
+    HUB=PB5         ,
+    TRG1=PB11       , TRG2=PB4      ,
+    EXT1=PB1        , EXT2=PB12     ,
+    TN_ADV=PA3      , TN_TRL=PA2    ,
+    RGB1=PB3        ,
+    # alternate names for endstop ports
+    SW1=PB1         , SW2=PB11      , SW3=PB12      , SW4=PB4       , SW5=PB5       , SW6=PB10      , SW7=PB2       , SW8=PA2       , SW9=PA3 ,
+--- end mcu/OWLFC_Mini_NightOwl_1.cfg ---

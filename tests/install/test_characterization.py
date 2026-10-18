@@ -28,7 +28,7 @@ BUFFER_TYPES = ["TurtleNeck", "TurtleNeckV2", "FPS_PSF", "None"]
 UNIT_VARIANTS: dict[str, list[dict[str, str]]] = {
     "BoxTurtle (4-Lane)": [{}],
     "BoxTurtle (8-Lane)": [{}],
-    "NightOwl": [{}],
+    "NightOwl": [{"nightowl_board_type": b} for b in ["ERB_2.0", "OWLFC_Mini"]],
     "ViViD": [{}],
     "OpenAMS": [{}],
     "HTLF": [{"htlf_board_type": b} for b in ["ERB", "MMB_1.1", "MMB_1.0"]],
