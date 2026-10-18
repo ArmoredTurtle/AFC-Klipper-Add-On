@@ -16,13 +16,6 @@ tool_load_speed: 25             # Load speed in mm/s. Default is 25mm/s.
 #switch_pin: ^Nightowl:PB5
 #pause_on_runout: False
 
-
-[AFC_buffer TN]
-advance_pin: ^NightOwl:TN_ADV    # set advance pin
-trailing_pin: ^NightOwl:TN_TRL  # set trailing pin
-multiplier_high: 1.05   # default 1.05, factor to feed more filament
-multiplier_low:  0.95   # default 0.95, factor to feed less filament
-
 #--=================================================================================--#
 ######### Tip Cut Servo ###############################################################
 #--=================================================================================--#
@@ -40,104 +33,89 @@ multiplier_low:  0.95   # default 0.95, factor to feed less filament
 #   Initial angle (in degrees) to set the servo to. The default is to
 #   not send any signal at startup.--- end AFC_Hardware.cfg ---
 --- AFC_NightOwl_1.cfg ---
-# When using different hardware use config below as template
-# Adapt pins in config file
-[include mcu/ERB_2.0.cfg]
+[include mcu/OWLFC_Mini.cfg]
 
 [mcu NightOwl]
 #comment one out and add serial or uuid of the board nightowl
 #serial:
 #canbus_uuid:
 
-[temperature_sensor NightOwl-ERB]
+[temperature_sensor NightOwl-OWLFC_Mini]
 sensor_type: temperature_mcu
 sensor_mcu: NightOwl
 
 [AFC_NightOwl NightOwl]
+type: 'NightOwl'
 hub: NightOwl_Hub
 extruder: extruder
-buffer: TN                  #Turtleneck as standard Buffer
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 
 [AFC_stepper lane1]
 unit: NightOwl:1
 extruder: extruder
-step_pin: NightOwl:LANE1_STEP
-dir_pin: NightOwl:LANE1_DIR
-enable_pin: !NightOwl:LANE1_EN
+step_pin: NightOwl:M1_STEP
+dir_pin: NightOwl:M1_DIR
+enable_pin: !NightOwl:M1_EN
 microsteps: 16
 rotation_distance: 4.65
-dist_hub: 45.0
+dist_hub: 28.1
 park_dist: 10
-load: ^NightOwl:LANE1_TRIG
-prep: ^NightOwl:LANE1_EXT
+load: ^NightOwl:TRG1
+prep: ^NightOwl:EXT1
 
 [tmc2209 AFC_stepper lane1]
-uart_pin: NightOwl:LANE1_UART
+uart_pin: NightOwl:M1_UART
 uart_address: 0
-run_current: 0.8
-sense_resistor: 0.110
+run_current: 0.6
+sense_resistor: 0.180
 
 [AFC_stepper lane2]
 unit: NightOwl:2
 extruder: extruder
-step_pin: NightOwl:LANE2_STEP
-dir_pin: !NightOwl:LANE2_DIR
-enable_pin: !NightOwl:LANE2_EN
+step_pin: NightOwl:M2_STEP
+dir_pin: !NightOwl:M2_DIR
+enable_pin: !NightOwl:M2_EN
 microsteps: 16
 rotation_distance: 4.65
-dist_hub: 45.0
+dist_hub: 27.87
 park_dist: 10
-load: ^NightOwl:LANE2_TRIG
-prep: ^NightOwl:LANE2_EXT
+load: ^NightOwl:TRG2
+prep: ^NightOwl:EXT2
 
 [tmc2209 AFC_stepper lane2]
-uart_pin: NightOwl:LANE2_UART
+uart_pin: NightOwl:M2_UART
 uart_address: 0
-run_current: 0.8
-sense_resistor: 0.110
+run_current: 0.6
+sense_resistor: 0.180
 
 [AFC_hub NightOwl_Hub]
-afc_bowden_length: 1690.032
-move_dis: 50                # Distance to move the filament within the hub in mm.
+afc_bowden_length: 1317.52
+move_dis: 30                # Distance to move the filament within the hub in mm.
 cut: False                  # Hub has Cutter
 #--=================================================================================--#
 ######### Hub Cut #####################################################################
 #--=================================================================================--#
-cut_cmd: AFC                #CMD to use
+cut_cmd: AFC                # CMD to use
 cut_dist: 200               # How much filament to cut off (in mm).
 cut_clear: 120              # How far the filament should retract back from the hub (in mm).
 cut_min_length: 300.0
 cut_servo_pass_angle: 10    # Servo angle to align the Bowden tube with the hole for loading the toolhead.
 cut_servo_clip_angle: 180   # Servo angle for cutting the filament.
 cut_servo_prep_angle: 80    # Servo angle to prepare the filament for cutting (aligning the exit hole).
-switch_pin: ^NightOwl:NT_HUB--- end AFC_NightOwl_1.cfg ---
---- mcu/ERB_2.0.cfg ---
+switch_pin: ^NightOwl:HUB
+--- end AFC_NightOwl_1.cfg ---
+--- mcu/OWLFC_Mini.cfg ---
 [board_pins NightOwl]
-#fysetc erb2.0
-mcu: NightOwl # Assuming using an external / extra mcu dedicated to MMU
+mcu: NightOwl
 aliases:
-    LANE1_UART=gpio17,
-    LANE1_STEP=gpio16,
-    LANE1_DIR=gpio15,
-    LANE1_EN=gpio14,
-    LANE1_DIAG=gpio19,
-    LANE1_ENDSTOP=gpio24,
-    LANE2_UART=gpio11,
-    LANE2_STEP=gpio10,
-    LANE2_DIR=gpio9,
-    LANE2_EN=gpio8,
-    LANE2_DIAG=gpio13,
-    MMU_SERVO=gpio23,
-    MMU_ENCODER=gpio22,
-    MMU_GATE_SENSOR=,
-    MMU_NEOPIXEL=gpio21,
-    LANE1_TRIG=gpio3,
-    LANE2_TRIG=gpio5,
-    LANE1_EXT=gpio4,
-    LANE2_EXT=gpio6,
-    NT_HUB=gpio12,
-    TN_ADV=gpio2,
-    TN_TRL=gpio18,
-    # The following pins are all ADC pins on the ERB 2.0 board for the PSF sensor
-    # gpio26, gpio 27, gpio28, gpio29
-    PSF=gpio26--- end mcu/ERB_2.0.cfg ---
+    M1_STEP=PB15    , M1_DIR=PB14   , M1_EN=PA8    , M1_UART=PB13   ,
+    M2_STEP=PC6     , M2_DIR=PA9    , M2_EN=PA10   , M2_UART=PC7    ,
+    # suggested switch pin configurations
+    HUB=PB5         ,
+    TRG1=PB11       , TRG2=PB4      ,
+    EXT1=PB1        , EXT2=PB12     ,
+    TN_ADV=PA3      , TN_TRL=PA2    ,
+    RGB1=PB3        ,
+    # alternate names for endstop ports
+    SW1=PB1         , SW2=PB11      , SW3=PB12      , SW4=PB4       , SW5=PB5       , SW6=PB10      , SW7=PB2       , SW8=PA2       , SW9=PA3 ,
+--- end mcu/OWLFC_Mini.cfg ---
