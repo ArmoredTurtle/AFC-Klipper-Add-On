@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [09-27-2026]
+### Fixed
+- `SET_BUFFER_MULTIPLIER` macro no longer overwrites the active multiplier if it would put the system in an invalid state, instead waiting until the next switch trigger for the value to be applied (closes #870).
+
 ## [09-26-2026]
 ### Fixed
 - The factor parameter for the SET_BUFFER_MULTIPLIER now allows setting both the High and Low factors to 1.0 instead of strictly greater than or less than respectively.

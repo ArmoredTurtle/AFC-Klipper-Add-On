@@ -515,7 +515,8 @@ class AFCBuffer:
         SET_BUFFER_MULTIPLIER BUFFER=TN MULTIPLIER=HIGH FACTOR=1.2
         ```
         """
-        if self.current_lane is not None and self.enable:
+        if (self.current_lane is not None
+            and self.enable):
             chg_multiplier = gcmd.get('MULTIPLIER', None)
             if chg_multiplier is None:
                 self.logger.info("Multiplier must be provided, HIGH or LOW")
@@ -525,14 +526,29 @@ class AFCBuffer:
             if chg_factor <= 0:
                 self.logger.info("FACTOR must be greater than 0")
                 return
-            if chg_multiplier == "HIGH" and chg_factor >= 1:
+            if (chg_multiplier == "HIGH"
+                and chg_factor >= 1):
                 self.multiplier_high = chg_factor
-                if self.type == "switched": self.set_multiplier(chg_factor)
+                # Only apply live if already advancing, otherwise the next trigger picks it up
+                if (self.type == "switched"
+                    and self.last_state == ADVANCING_STATE_NAME):
+                    if (self.fault_detection_enabled()
+                        and self.trailing_state):
+                        self.set_multiplier(chg_factor * 1.5)
+                    else:
+                        self.set_multiplier(chg_factor)
                 self.logger.info("multiplier_high set to {}".format(chg_factor))
                 self.logger.info('multiplier_high: {} MUST be updated under buffer config for value to be saved'.format(chg_factor))
-            elif chg_multiplier == "LOW" and chg_factor <= 1:
+            elif (chg_multiplier == "LOW"
+                  and chg_factor <= 1):
                 self.multiplier_low = chg_factor
-                if self.type == "switched": self.set_multiplier(chg_factor)
+                # Only apply live if already trailing, otherwise the next trigger picks it up
+                if (self.type == "switched"
+                    and self.last_state == TRAILING_STATE_NAME):
+                    if self.fault_detection_enabled() and self.advance_state:
+                        self.set_multiplier((chg_factor * 2) / 5)
+                    else:
+                        self.set_multiplier(chg_factor)
                 self.logger.info("multiplier_low set to {}".format(chg_factor))
                 self.logger.info('multiplier_low: {} MUST be updated under buffer config for value to be saved'.format(chg_factor))
             else:
