@@ -1,4 +1,5 @@
 === OUTPUT ===
 1. NightOwl Name: Foo_1 
+J. NightOwl Board Type : ERB_2.0 
 === VARS ===
 boxturtle_name=Foo_1
