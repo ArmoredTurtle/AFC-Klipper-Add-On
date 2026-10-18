@@ -2,7 +2,7 @@
 --- AFC_NightOwl_1.cfg ---
 # When using different hardware use config below as template
 # Adapt pins in config file
-[include mcu/ERB_2.0.cfg]
+[include mcu/ERB_2.0_NightOwl_1.cfg]
 
 [mcu NightOwl_1]
 #comment one out and add serial or uuid of the board nightowl
@@ -13,10 +13,10 @@
 sensor_type: temperature_mcu
 sensor_mcu: NightOwl_1
 
-[AFC_NightOwl_1 NightOwl_1]
+[AFC_NightOwl NightOwl_1]
 hub: NightOwl_1_Hub
 extruder: extruder
-buffer: TN                  #Turtleneck as standard Buffer
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 
 [AFC_stepper lane1]
 unit: NightOwl_1:1
@@ -74,10 +74,10 @@ switch_pin: ^NightOwl_1:NT_HUB--- end AFC_NightOwl_1.cfg ---
 --- AFC_Turtle_1.cfg ---
 placeholder
 --- end AFC_Turtle_1.cfg ---
---- mcu/ERB_2.0.cfg ---
-[board_pins NightOwl]
+--- mcu/ERB_2.0_NightOwl_1.cfg ---
+[board_pins NightOwl_1]
 #fysetc erb2.0
-mcu: NightOwl # Assuming using an external / extra mcu dedicated to MMU
+mcu: NightOwl_1 # Assuming using an external / extra mcu dedicated to MMU
 aliases:
     LANE1_UART=gpio17,
     LANE1_STEP=gpio16,
@@ -103,4 +103,4 @@ aliases:
     TN_TRL=gpio18,
     # The following pins are all ADC pins on the ERB 2.0 board for the PSF sensor
     # gpio26, gpio 27, gpio28, gpio29
-    PSF=gpio26--- end mcu/ERB_2.0.cfg ---
+    PSF=gpio26--- end mcu/ERB_2.0_NightOwl_1.cfg ---

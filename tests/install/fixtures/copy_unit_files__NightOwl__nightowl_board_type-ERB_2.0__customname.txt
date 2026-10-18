@@ -1,0 +1,136 @@
+=== FILES ===
+--- AFC_Hardware.cfg ---
+[force_move]
+enable_force_move: True
+
+[AFC_extruder extruder]
+pin_tool_start: enter_tool_pin
+#pin_tool_end: ^!nhk:gpio12
+tool_stn: 113.52                # See documentation for details on how to calculate this value. https://www.afcproject.dev/toolhead/calculation.html
+tool_stn_unload: 100            # See documentation for details on how to calculate this value. https://www.afcproject.dev/toolhead/calculation.html
+tool_sensor_after_extruder: 0   # Distance in mm.
+tool_unload_speed: 25           # Unload speed in mm/s. Default is 25mm/s.
+tool_load_speed: 25             # Load speed in mm/s. Default is 25mm/s.
+
+#[filament_switch_sensor bypass]
+#switch_pin: ^Nightowl:PB5
+#pause_on_runout: False
+
+#--=================================================================================--#
+######### Tip Cut Servo ###############################################################
+#--=================================================================================--#
+#[servo tool_cut]
+# Pin for the cut pin servo.
+#pin: YOUR_SERVO_PIN_HERE
+# Adjust this value until a '_CUTTER_SERVO POS=out' extends the pin fully without a
+# buzzing sound
+#minimum_pulse_width: 0.00053
+# Adjust this value until a '_CUTTER_SERVO POS=in' retracts the pin fully without a
+# buzzing sound
+#maximum_pulse_width: 0.0023
+# Leave this value at 180
+#maximum_servo_angle: 180
+#   Initial angle (in degrees) to set the servo to. The default is to
+#   not send any signal at startup.--- end AFC_Hardware.cfg ---
+--- AFC_NightOwl_1.cfg ---
+# When using different hardware use config below as template
+# Adapt pins in config file
+[include mcu/ERB_2.0.cfg]
+
+[mcu NightOwl]
+#comment one out and add serial or uuid of the board nightowl
+#serial:
+#canbus_uuid:
+
+[temperature_sensor NightOwl-ERB]
+sensor_type: temperature_mcu
+sensor_mcu: NightOwl
+
+[AFC_NightOwl NightOwl]
+hub: NightOwl_Hub
+extruder: extruder
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
+
+[AFC_stepper lane1]
+unit: NightOwl:1
+extruder: extruder
+step_pin: NightOwl:LANE1_STEP
+dir_pin: NightOwl:LANE1_DIR
+enable_pin: !NightOwl:LANE1_EN
+microsteps: 16
+rotation_distance: 4.65
+dist_hub: 45.0
+park_dist: 10
+load: ^NightOwl:LANE1_TRIG
+prep: ^NightOwl:LANE1_EXT
+
+[tmc2209 AFC_stepper lane1]
+uart_pin: NightOwl:LANE1_UART
+uart_address: 0
+run_current: 0.8
+sense_resistor: 0.110
+
+[AFC_stepper lane2]
+unit: NightOwl:2
+extruder: extruder
+step_pin: NightOwl:LANE2_STEP
+dir_pin: !NightOwl:LANE2_DIR
+enable_pin: !NightOwl:LANE2_EN
+microsteps: 16
+rotation_distance: 4.65
+dist_hub: 45.0
+park_dist: 10
+load: ^NightOwl:LANE2_TRIG
+prep: ^NightOwl:LANE2_EXT
+
+[tmc2209 AFC_stepper lane2]
+uart_pin: NightOwl:LANE2_UART
+uart_address: 0
+run_current: 0.8
+sense_resistor: 0.110
+
+[AFC_hub NightOwl_Hub]
+afc_bowden_length: 1690.032
+move_dis: 50                # Distance to move the filament within the hub in mm.
+cut: False                  # Hub has Cutter
+#--=================================================================================--#
+######### Hub Cut #####################################################################
+#--=================================================================================--#
+cut_cmd: AFC                #CMD to use
+cut_dist: 200               # How much filament to cut off (in mm).
+cut_clear: 120              # How far the filament should retract back from the hub (in mm).
+cut_min_length: 300.0
+cut_servo_pass_angle: 10    # Servo angle to align the Bowden tube with the hole for loading the toolhead.
+cut_servo_clip_angle: 180   # Servo angle for cutting the filament.
+cut_servo_prep_angle: 80    # Servo angle to prepare the filament for cutting (aligning the exit hole).
+switch_pin: ^NightOwl:NT_HUB--- end AFC_NightOwl_1.cfg ---
+--- mcu/ERB_2.0.cfg ---
+[board_pins NightOwl]
+#fysetc erb2.0
+mcu: NightOwl # Assuming using an external / extra mcu dedicated to MMU
+aliases:
+    LANE1_UART=gpio17,
+    LANE1_STEP=gpio16,
+    LANE1_DIR=gpio15,
+    LANE1_EN=gpio14,
+    LANE1_DIAG=gpio19,
+    LANE1_ENDSTOP=gpio24,
+    LANE2_UART=gpio11,
+    LANE2_STEP=gpio10,
+    LANE2_DIR=gpio9,
+    LANE2_EN=gpio8,
+    LANE2_DIAG=gpio13,
+    MMU_SERVO=gpio23,
+    MMU_ENCODER=gpio22,
+    MMU_GATE_SENSOR=,
+    MMU_NEOPIXEL=gpio21,
+    LANE1_TRIG=gpio3,
+    LANE2_TRIG=gpio5,
+    LANE1_EXT=gpio4,
+    LANE2_EXT=gpio6,
+    NT_HUB=gpio12,
+    TN_ADV=gpio2,
+    TN_TRL=gpio18,
+    # The following pins are all ADC pins on the ERB 2.0 board for the PSF sensor
+    # gpio26, gpio 27, gpio28, gpio29
+    PSF=gpio26--- end mcu/ERB_2.0.cfg ---

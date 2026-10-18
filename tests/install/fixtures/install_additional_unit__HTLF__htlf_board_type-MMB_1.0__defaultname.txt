@@ -13,7 +13,7 @@ sensor_mcu: MMB_HTLF
 [AFC_HTLF HTLF_1]
 hub: HTLF_1
 extruder: extruder
-buffer: TurtleNeck
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 drive_stepper: HTLF_Drive
 selector_stepper: HTLF_Selector
 home_pin: MMB_HTLF:HOME_POS

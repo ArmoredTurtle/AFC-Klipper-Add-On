@@ -14,6 +14,19 @@ cycle_array() {
   message="$4: ${!var_name}"
 }
 
+index_of() {
+  # Echoes the index of value $2 in the array named $1, or 0 if not found.
+  local -n arr=$1
+  local i
+  for i in "${!arr[@]}"; do
+    if [ "${arr[$i]}" == "$2" ]; then
+      echo "$i"
+      return
+    fi
+  done
+  echo 0
+}
+
 buffer_type_label() {
   # Maps the internal buffer_type token to a user-facing display label.
   case "$1" in
@@ -44,10 +57,11 @@ toggle_option() {
 }
 
 install_menu() {
-  local message choice counter board_counter motor index i
+  local message choice counter board_counter nightowl_board_counter motor index i
   local toggle_items toggle_labels
   counter=0
   board_counter=0
+  nightowl_board_counter=$(index_of nightowl_board_types "$nightowl_board_type")
   motor=0
 
   toggle_items=("afc_includes" "tip_forming" "toolhead_cutter" "hub_cutter" "kick_macro" "park_macro" "poop_macro" "wipe_macro")
@@ -86,7 +100,11 @@ install_menu() {
       fi
       fi
       if [ "$installation_type" != "ViViD" ] && [ "$installation_type" != "OpenAMS" ]; then
-        printf "B. Buffer type : %s \n" "$(buffer_type_label "$buffer_type")"
+        if [ "$toolhead_sensor" == "Ramming" ] && { [ "$buffer_type" == "Unknown" ] || [ "$buffer_type" == "None" ]; }; then
+          printf "B. Buffer type : ${RED}%s${RESET} (a buffer is required with ramming) \n" "$buffer_type"
+        else
+          printf "B. Buffer type : %s \n" "$(buffer_type_label "$buffer_type")"
+        fi
       fi
       unit_print_install_menu_options "$installation_type"
       printf "\n${BOLD_GREEN}I. Install system with current selections${RESET}\n"
@@ -123,12 +141,19 @@ install_menu() {
         toolhead_sensor=$([ "$toolhead_sensor" == "Sensor" ] && echo "Ramming" || echo "Sensor")
         if [ "$toolhead_sensor" == "Sensor" ]; then
           message="Using toolhead sensor"
+          # A buffer is optional with a sensor, don't leave it unselected.
+          [ "$buffer_type" == "Unknown" ] && buffer_type="None"
           [ "$installation_type" == "OpenAMS" ] && buffer_type="None"
         elif [ "$installation_type" == "OpenAMS" ]; then
           message="Using ramming with an FPS board"
           buffer_type="FPS_PSF"
         else
           message="Using ramming with a TurtleNeck buffer"
+          if [ "$installation_type" != "ViViD" ]; then
+            # None isn't valid with ramming, force a fresh selection.
+            [ "$buffer_type" == "None" ] && buffer_type="Unknown"
+            [ "$buffer_type" == "Unknown" ] && message="$message. Select a buffer type with B"
+          fi
         fi ;;
       A)
         read -p "Enter toolhead sensor pin (Example: nhk:gpio13): " toolhead_sensor_pin
@@ -138,7 +163,7 @@ install_menu() {
           # Buffer type isn't a user choice for these currently.
           message="Buffer type is not selectable for $installation_type"
         else
-          buffer_type=$(case "$buffer_type" in "TurtleNeck") echo "TurtleNeckV2";; "TurtleNeckV2") echo "FPS_PSF";; "FPS_PSF") echo "None";; "None"|*) echo "TurtleNeck";; esac)
+          buffer_type=$(case "$buffer_type" in "TurtleNeck") echo "TurtleNeckV2";; "TurtleNeckV2") echo "FPS_PSF";; "FPS_PSF") [ "$toolhead_sensor" == "Ramming" ] && echo "TurtleNeck" || echo "None";; "None"|*) echo "TurtleNeck";; esac)
           message="Buffer Type: $(buffer_type_label "$buffer_type")"
         fi ;;
       C)
@@ -149,6 +174,8 @@ install_menu() {
         fi ;;
       D)
         cycle_array htlf_board_types board_counter htlf_board_type "HTLF Board Type" ;;
+      J)
+        cycle_array nightowl_board_types nightowl_board_counter nightowl_board_type "NightOwl Board Type" ;;
       E)
         cycle_array qb_board_types board_counter qb_board_type "QuattroBox Board Type" ;;
       F)
@@ -161,7 +188,14 @@ install_menu() {
         elif  [ "$installation_type" == "Claymore" ]; then
           cycle_array htlf2_board_types board_counter htlf2_board_type "Claymore Board Type"
         fi ;;
-      I) install_afc ;;
+      I)
+        if [ "$toolhead_sensor" == "Ramming" ] \
+           && { [ "$buffer_type" == "Unknown" ] || [ "$buffer_type" == "None" ]; } \
+           && [ "$installation_type" != "ViViD" ] && [ "$installation_type" != "OpenAMS" ]; then
+          message="${RED}Ramming requires a buffer type. Select one with B${RESET}"
+        else
+          install_afc
+        fi ;;
       M) main_menu ;;
       Q) exit_afc_install ;;
       *) echo "Invalid selection" ;;

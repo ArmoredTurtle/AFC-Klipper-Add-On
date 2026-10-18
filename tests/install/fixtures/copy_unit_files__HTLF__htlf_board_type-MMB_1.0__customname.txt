@@ -16,12 +16,6 @@ tool_load_speed: 25             # Load speed in mm/s when loading toolhead. Defa
 #switch_pin: turtleneck:PB5
 #pause_on_runout: False
 
-[AFC_buffer TN]
-advance_pin: <enter_pin>    # set advance pin
-trailing_pin: <enter_pin>  # set trailing pin
-multiplier_high: 1.05   # default 1.05, factor to feed more filament
-multiplier_low:  0.95   # default 0.95, factor to feed less filament
-
 #--=================================================================================--#
 ######### Tip Cut Servo ###############################################################
 #--=================================================================================--#
@@ -52,7 +46,7 @@ sensor_mcu: MMB_HTLF
 [AFC_HTLF HTLF_1]
 hub: HTLF_1
 extruder: extruder
-buffer: TurtleNeck
+# buffer: <buffer_name>  # Set by the install script when a buffer is selected
 drive_stepper: HTLF_Drive
 selector_stepper: HTLF_Selector
 home_pin: MMB_HTLF:HOME_POS
