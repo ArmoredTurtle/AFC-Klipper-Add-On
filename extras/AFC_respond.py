@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 class AFCprompt:
+    DONE_BTN = [('Done', "RESPOND TYPE=command MSG=action:prompt_end", 'info')]
     def __init__(self, gcmd, logger):
         self.gcode = gcmd
         self.logger     = logger
