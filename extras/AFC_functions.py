@@ -1683,7 +1683,8 @@ class afcFunction:
             if lane is None:
                 prompt.p_end()
                 return
-            if self.afc.current is not None:
+            if (self.afc.current is not None
+                or extruder.lane_loaded is not None):
                 prompt.p_end()
                 self.afc.error.AFC_error(
                     "Unload the toolhead before starting tool_stn calibration.", pause=False)
