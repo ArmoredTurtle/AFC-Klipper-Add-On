@@ -1,0 +1,6 @@
+=== VARS ===
+buffer_unit_name=NightOwl
+buffer_unit_section_prefix=AFC_NightOwl
+buffer_extruder_file=AFC_NightOwl_1.cfg
+buffer_section_name=NightOwl
+buffer_prebaked_header=

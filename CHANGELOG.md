@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenAMS gcode commands (`OAMS_CALIBRATE_PTFE_LENGTH`, `OAMS_CALIBRATE_HUB_HES`, etc.) now dispatch using the resolved OAMS controller's configured `oams_idx` instead of a number parsed from the `oams` name, fixing mismatches when the two don't line up (closes #790).
 - `AFC_OAMS` MCU command handles are now always initialized (`None` by default) and validated before use, so a failed `klippy:connect` lookup raises a clear error instead of an `AttributeError` later (closes #791).
 
+## [2026-10-05]
+### Fixed
+- Sensor and endstop pins using Klipper's `~` (pulldown) prefix, e.g. `pin_tool_end: ~PA15`, no longer halt Klipper at startup with `Invalid pin description '~PA15'`.
+
+## [09-27-2026]
+### Fixed
+- `SET_BUFFER_MULTIPLIER` macro no longer overwrites the active multiplier if it would put the system in an invalid state, instead waiting until the next switch trigger for the value to be applied (closes #870).
+
+## [09-26-2026]
+### Fixed
+- The factor parameter for the SET_BUFFER_MULTIPLIER now allows setting both the High and Low factors to 1.0 instead of strictly greater than or less than respectively.
+
 ## [09-12-2026]
 ### Fixed
 - The `install-afc.sh` script will now properly enumerate additional unit installs.
