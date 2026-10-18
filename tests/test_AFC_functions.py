@@ -1074,9 +1074,13 @@ class TestCmdAfcToolheadCalibration:
 
         assert func.logger.messages == [
             ("raw", "// action:prompt_begin Toolhead Calibration"),
-            ("raw", "// action:prompt_text Calibrate extruder with lane1. tool_stn controls "
-             "loading to the nozzle; tool_stn_unload controls the movement after cutting "
-             "that clears the toolhead sensor or extruder gears."),
+            ("raw", "// action:prompt_text Calibrate extruder with lane1."),
+            ("raw", "// action:prompt_text tool_stn controls loading to the nozzle(Note: "
+             "Button only shows up when toolhead is unloaded)"),
+            ("raw", "// action:prompt_text tool_stn_unload controls the movement after "
+             "cutting that clears the toolhead sensor or extruder gears."),
+            ("raw", "// action:prompt_text Cutter Retract helps you find how much to "
+             "retract when cutting."),
             ("raw", "// action:prompt_button tool_stn|AFC_TOOL_STN_CALIBRATION EXTRUDER=extruder "
              "LANE=lane1|primary"),
             ("raw", "// action:prompt_button Cutter Retract|AFC_CUTTER_CALIBRATION "
@@ -1772,8 +1776,6 @@ class TestCmdAfcToolStnUnloadCalibration:
         assert func.logger.messages == [
             ("raw", "// action:prompt_begin Moving extruder"),
             ("raw", "// action:prompt_text Moving filament back tool_stn distance(72.0)"),
-            ("raw", "// action:prompt_footer_button Cancel|RESPOND TYPE=command "
-             "MSG=action:prompt_end|warning"),
             ("raw", "// action:prompt_show"),
             ("raw", "// action:prompt_end"),
             ("info", "tool_stn_unload calibration cancelled; measured movement was restored."),
@@ -1815,7 +1817,7 @@ class TestCmdAfcToolStnUnloadCalibration:
         func.cmd_AFC_TOOL_STN_UNLOAD_CALIBRATION(_make_gcmd(EXTRUDER="extruder", START=1))
 
         raw_messages = [message for level, message in func.logger.messages if level == "raw"]
-        assert any("Tool-start sensor: unavailable" in message for message in raw_messages)
+        assert any("Tool-start sensor status: unavailable" in message for message in raw_messages)
 
     def test_tool_stn_unload_describes_triggered_tool_start_sensor(self) -> None:
         func, _ = _make_calibration_func()
@@ -1823,7 +1825,7 @@ class TestCmdAfcToolStnUnloadCalibration:
         func.cmd_AFC_TOOL_STN_UNLOAD_CALIBRATION(_make_gcmd(EXTRUDER="extruder", START=1))
 
         raw_messages = [message for level, message in func.logger.messages if level == "raw"]
-        assert any("Tool-start sensor: triggered" in message for message in raw_messages)
+        assert any("Tool-start sensor status: triggered" in message for message in raw_messages)
 
     def test_tool_stn_unload_describes_clear_tool_start_sensor(self) -> None:
         func, extruder = _make_calibration_func()
@@ -1832,7 +1834,7 @@ class TestCmdAfcToolStnUnloadCalibration:
         func.cmd_AFC_TOOL_STN_UNLOAD_CALIBRATION(_make_gcmd(EXTRUDER="extruder", START=1))
 
         raw_messages = [message for level, message in func.logger.messages if level == "raw"]
-        assert any("Tool-start sensor: clear" in message for message in raw_messages)
+        assert any("Tool-start sensor status: clear" in message for message in raw_messages)
 
     def test_tool_stn_unload_buffer_sensor_rejects_zero_save(self) -> None:
         func, extruder = _make_calibration_func()
