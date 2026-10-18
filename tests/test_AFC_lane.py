@@ -399,6 +399,20 @@ class TestSetHomingEndstop:
         ppins.setup_pin.assert_called_once_with("endstop", "!PA0")
         query_endstops.register_endstop.assert_called_once_with(endstop, f"{lane.name}_hub")
 
+    def test_pulldown_pin_strips_prefix_for_allow_multi_use_pin(self):
+        lane = _make_afc_lane()
+        ppins = MagicMock()
+        endstop = MagicMock()
+        ppins.setup_pin.return_value = endstop
+        query_endstops = MagicMock()
+
+        lane._set_homing_endstop(query_endstops, ppins, "!~PA0", "hub")
+
+        ppins.allow_multi_use_pin.assert_called_once_with("PA0")
+        ppins.parse_pin.assert_called_once_with("!~PA0", True, True)
+        ppins.setup_pin.assert_called_once_with("endstop", "!~PA0")
+        query_endstops.register_endstop.assert_called_once_with(endstop, f"{lane.name}_hub")
+
 
 # ── move_advanced: stepperless unit delegation ───────────────────────────────
 # New branch: stepperless units (e.g. OpenAMS) delegate the move to the unit's

@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [10-16-2026]
 ### Added
+- Added support for Isik Techs new OWLFC MCU board for NightOwl units
 - Added installer support for the TurtleNeck 2 - Remastered edition. 
+
+### Fixed
+- `OAMS_CURRENT_PID_SET` now sends its gains to a dedicated current-loop MCU command instead of the pressure/FPS PID command, so setting the current PID no longer overwrites the pressure PID (closes #772).
+- `OAMS_CALIBRATE_PTFE_LENGTH` no longer marks the unit as calibrating before validating that `SPOOL` was provided, so a missing `SPOOL` argument no longer leaves the unit stuck (closes #789).
+- OpenAMS gcode commands (`OAMS_CALIBRATE_PTFE_LENGTH`, `OAMS_CALIBRATE_HUB_HES`, etc.) now dispatch using the resolved OAMS controller's configured `oams_idx` instead of a number parsed from the `oams` name, fixing mismatches when the two don't line up (closes #790).
+- `AFC_OAMS` MCU command handles are now always initialized (`None` by default) and validated before use, so a failed `klippy:connect` lookup raises a clear error instead of an `AttributeError` later (closes #791).
+
+## [2026-10-05]
+### Fixed
+- Sensor and endstop pins using Klipper's `~` (pulldown) prefix, e.g. `pin_tool_end: ~PA15`, no longer halt Klipper at startup with `Invalid pin description '~PA15'`.
+
+## [09-27-2026]
+### Fixed
+- `SET_BUFFER_MULTIPLIER` macro no longer overwrites the active multiplier if it would put the system in an invalid state, instead waiting until the next switch trigger for the value to be applied (closes #870).
+
+## [09-26-2026]
+### Fixed
+- The factor parameter for the SET_BUFFER_MULTIPLIER now allows setting both the High and Low factors to 1.0 instead of strictly greater than or less than respectively.
 
 ## [09-12-2026]
 ### Fixed
@@ -37,6 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Moonraker `[update_manager afc-software]` block is now written with the actual add-on path
   rather than a hardcoded `~/AFC-Klipper-Add-On`.
 - `install-afc.sh` no longer ignores the `-m` (Moonraker config path) flag.
+
+## [2026-08-24]
+### Added
+- Guided toolhead calibration macros for `tool_stn`, `tool_stn_unload`, and cutter retract length,
+  including a gear/sensor-to-nozzle `tool_stn` measurement flow, unload/reload testing, and
+  per-tool cutter variables for multi-extruder setups.
 
 ## [2026-08-23]
 ### Added:

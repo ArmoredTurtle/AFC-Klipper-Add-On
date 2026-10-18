@@ -327,19 +327,36 @@ unit_additional_menu_row_BoxTurtle_8Lane() { unit_additional_menu_row_boxturtle_
 
 # ─── NightOwl ────────────────────────────────────────────────────────────────
 
+nightowl_template_for_board() {
+  # ERB_2.0 keeps the original plain filename; other boards follow HTLF's
+  # "<template>-<board>.cfg" convention.
+  local board_type="$1"
+  if [ "$board_type" == "ERB_2.0" ]; then
+    printf 'AFC_NightOwl_1.cfg'
+  else
+    printf 'AFC_NightOwl_1-%s.cfg' "$board_type"
+  fi
+}
+
 unit_copy_files_NightOwl() {
-  safe_copy "${afc_path}/config/mcu/ERB_2.0.cfg" "${afc_config_dir}/mcu/ERB_2.0.cfg"
+  local board_type="$nightowl_board_type"
+  safe_copy "${afc_path}/config/mcu/${board_type}.cfg" "${afc_config_dir}/mcu/${board_type}.cfg"
   safe_copy "${afc_path}/templates/AFC_Hardware-NightOwl.cfg" "${afc_config_dir}/AFC_Hardware.cfg"
-  safe_copy "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_NightOwl_1.cfg"
+  safe_copy "${afc_path}/templates/$(nightowl_template_for_board "$board_type")" "${afc_config_dir}/AFC_NightOwl_1.cfg"
 }
 
 unit_install_additional_NightOwl() {
-  safe_copy "${afc_path}/templates/AFC_NightOwl_1.cfg" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
-  safe_copy "${afc_path}/config/mcu/ERB_2.0.cfg" "${afc_config_dir}/mcu/"
+  local board_type="$nightowl_board_type"
+  safe_copy "${afc_path}/templates/$(nightowl_template_for_board "$board_type")" "${afc_config_dir}/AFC_${boxturtle_name}.cfg"
+  # Per-unit mcu file so the board_pins/mcu names match the renamed unit.
+  local mcu_file="${board_type}_${boxturtle_name}.cfg"
+  safe_copy "${afc_path}/config/mcu/${board_type}.cfg" "${afc_config_dir}/mcu/${mcu_file}"
+  sed -i "s/NightOwl/$boxturtle_name/g" "${afc_config_dir}/mcu/${mcu_file}"
   sed -i \
     -e "s/AFC_NightOwl/AFC_NIGHTOWL_CLASS_PLACEHOLDER/g" \
     -e "s/NightOwl/$boxturtle_name/g" \
     -e "s/AFC_NIGHTOWL_CLASS_PLACEHOLDER/AFC_NightOwl/g" \
+    -e "s#\[include mcu/${board_type}.cfg\]#[include mcu/${mcu_file}]#" \
     "$afc_config_dir/AFC_${boxturtle_name}.cfg"
 }
 
@@ -362,11 +379,16 @@ unit_message_NightOwl() {
   """
 }
 
+unit_install_menu_options_NightOwl() {
+  printf "J. NightOwl Board Type : %s \n" "$nightowl_board_type"
+}
+
 unit_additional_menu_row_NightOwl() {
   if [ "$turtle_renamed" != "True" ]; then
     boxturtle_name="$(unit_additional_default_name "$installation_type")"
   fi
   printf "1. NightOwl Name: %s \n" "$boxturtle_name"
+  printf "J. NightOwl Board Type : %s \n" "$nightowl_board_type"
 }
 
 # ─── HTLF ────────────────────────────────────────────────────────────────────
