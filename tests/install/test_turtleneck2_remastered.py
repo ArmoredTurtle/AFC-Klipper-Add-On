@@ -10,9 +10,9 @@ neutral_point: 0.5
 max_tension: 0.1
 max_compression: 0.9
 reversed: true  #Test slide by hand and look at buffer state in mainsail/fluidd Set to true if display shows opposite of your tested state.
-led_index: Buffer_Indicator:1
+led_index: Turtle_1_Buffer_Indicator:1
 
-[AFC_led Buffer_Indicator]
+[AFC_led Turtle_1_Buffer_Indicator]
 pin: TN2:PB1
 chain_count: 1
 color_order: GRBW
@@ -39,6 +39,16 @@ class TestBuildBufferConfig:
         )
         result = run_bash(body)
         assert result.stdout == "[AFC_buffer HTLF_2]\n---\nHTLF_2"
+
+    def test_led_section_name_is_unique_per_unit(self) -> None:
+        body = (
+            'build_buffer_config TurtleNeck2Remastered "" "" HTLF_2\n'
+            'printf "%s" "$buffer_config"\n'
+        )
+        result = run_bash(body)
+        assert "led_index: HTLF_2_Buffer_Indicator:1" in result.stdout
+        assert "[AFC_led HTLF_2_Buffer_Indicator]" in result.stdout
+        assert "Turtle_1_Buffer_Indicator" not in result.stdout
 
 
 class TestAppendBufferConfig:
