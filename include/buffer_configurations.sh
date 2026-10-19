@@ -62,7 +62,7 @@ EOF
       buffer_config=$(cat <<EOF
 [AFC_buffer ${unit_name}]
 type: FPS_PSF
-adc_pin: TN2:PA0
+adc_pin: TN2R:PSF
 neutral_point: 0.5
 max_tension: 0.1
 max_compression: 0.9
@@ -70,7 +70,7 @@ reversed: true  #Test slide by hand and look at buffer state in mainsail/fluidd 
 led_index: ${unit_name}_Buffer_Indicator:1
 
 [AFC_led ${unit_name}_Buffer_Indicator]
-pin: TN2:PB1
+pin: TN2R:RGB
 chain_count: 1
 color_order: GRBW
 initial_RED: 0.0

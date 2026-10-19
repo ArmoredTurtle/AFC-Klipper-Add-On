@@ -8,7 +8,7 @@
 #   - test/dict/stm32h723.dict must exist
 #   - KLIPPER_PATH must point to a Klipper clone with chelper built
 
-DICTIONARY stm32h723.dict
+DICTIONARY stm32h723.dict TN2R=stm32h723.dict
 CONFIG afc_htlf_unit.cfg
 
 # --- Per-lane metadata commands ---

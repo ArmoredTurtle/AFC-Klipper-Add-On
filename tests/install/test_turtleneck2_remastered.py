@@ -5,7 +5,7 @@ from test_shared_buffer import run_bash
 
 EXPECTED_BLOCK = """[AFC_buffer Turtle_1]
 type: FPS_PSF
-adc_pin: TN2:PA0
+adc_pin: TN2R:PSF
 neutral_point: 0.5
 max_tension: 0.1
 max_compression: 0.9
@@ -13,7 +13,7 @@ reversed: true  #Test slide by hand and look at buffer state in mainsail/fluidd 
 led_index: Turtle_1_Buffer_Indicator:1
 
 [AFC_led Turtle_1_Buffer_Indicator]
-pin: TN2:PB1
+pin: TN2R:RGB
 chain_count: 1
 color_order: GRBW
 initial_RED: 0.0
@@ -68,8 +68,17 @@ class TestAppendBufferConfig:
             f"{EXPECTED_BLOCK}\n\n"
             "[include mcu/TN2.cfg]\n"
             "=== MCU ===\n"
-            "[mcu TN2]\n"
+            "[mcu TN2R]\n"
             "serial: /dev/serial/by-id/**YOUR SERIAL HERE**\n"
+            "\n"
+            "[board_pins TN2R]\n"
+            "mcu: TN2R\n"
+            "aliases:\n"
+            "    TRAILING = PA1,\n"
+            "    ADVANCE = PA2,\n"
+            "    PSF = PA0,\n"
+            "    RGB = PB1,\n"
+            "    ES1 = PA3, ES2 = PA4, ES3 = PA5, ES4 = PA6, ES5 = PA7\n"
         )
         assert result.stdout == expected
 
