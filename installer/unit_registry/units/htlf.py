@@ -1,4 +1,4 @@
-# Armored Turtle Automated Filament Changer
+# AFCProject Automated Filament Changer
 #
 # Copyright (C) 2026 AFCProject
 #
