@@ -32,9 +32,14 @@ TEMPLATE_DIR = Path(__file__).resolve().parent / "buffer_templates"
 _TEMPLATES = {
     "TurtleNeck": "turtleneck",
     "TurtleNeckV2": "turtleneck_v2",
+    "TurtleNeck2Remastered": "turtleneck_2_remastered",
     "FPS_PSF": "fps_psf",
 }
-_V2_INCLUDE = "[include mcu/TurtleNeckv2.cfg]"
+# Buffer types that ship an mcu file, copied next to the config and included once.
+_MCU_FILES = {
+    "TurtleNeckV2": "TurtleNeckv2.cfg",
+    "TurtleNeck2Remastered": "TN2.cfg",
+}
 _SHARE_PROMPT = "Enter the number or name of the buffer to share (blank to skip): "
 
 
@@ -48,7 +53,7 @@ def build_buffer_config(
     """
     The text of an ``[AFC_buffer <name>]`` block, without a trailing newline.
 
-    :param buffer_type: ``TurtleNeck``, ``TurtleNeckV2`` or ``FPS_PSF``
+    :param buffer_type: ``TurtleNeck``, ``TurtleNeckV2``, ``TurtleNeck2Remastered`` or ``FPS_PSF``
     :param unit_name: section name
     :param advance_pin: TurtleNeck advance pin
     :param trailing_pin: TurtleNeck trailing pin
@@ -153,12 +158,13 @@ def append_buffer_config(
     """
     Add a buffer block to a config file, replacing a block with the same header.
 
-    TurtleNeckV2 also copies its mcu file and adds the include line once.
+    TurtleNeckV2 and TurtleNeck2Remastered also copy their mcu file and add its include
+    line once.
 
     :param ctx: installer context
     :param console: where messages go
     :param prompter: used if the mcu file already exists
-    :param buffer_type: ``TurtleNeck``, ``TurtleNeckV2`` or ``FPS_PSF``
+    :param buffer_type: ``TurtleNeck``, ``TurtleNeckV2``, ``TurtleNeck2Remastered`` or ``FPS_PSF``
     :param unit_name: section name for the buffer
     :param target_file: file to write into (created if missing)
     :param advance_pin: TurtleNeck advance pin
@@ -177,16 +183,18 @@ def append_buffer_config(
         doc = ConfigDocument.load(target_file)
         doc.append_text(f"\n{config}\n")
         doc.save()
-    if buffer_type == "TurtleNeckV2":
+    mcu_file = _MCU_FILES.get(buffer_type)
+    if mcu_file is not None:
+        include = f"[include mcu/{mcu_file}]"
         mcu_dir = ctx.afc_config_dir / "mcu"
         mcu_dir.mkdir(parents=True, exist_ok=True)
-        source = ctx.afc_path / "config" / "mcu" / "TurtleNeckv2.cfg"
-        safe_copy(ctx, console, prompter, source, mcu_dir / "TurtleNeckv2.cfg")
+        source = ctx.afc_path / "config" / "mcu" / mcu_file
+        safe_copy(ctx, console, prompter, source, mcu_dir / mcu_file)
         doc = ConfigDocument.load(target_file)
-        if not any(_V2_INCLUDE in line for line in doc.lines):
+        if not any(include in line for line in doc.lines):
             ensure_trailing_newline(target_file)
             doc = ConfigDocument.load(target_file)
-            doc.append_text(f"\n{_V2_INCLUDE}\n")
+            doc.append_text(f"\n{include}\n")
             doc.save()
 
 
@@ -206,7 +214,7 @@ def apply_unit_buffer(
     ctx: Context, console: Console, prompter: Prompter, sel: UnitSelection, buffer_type: str
 ) -> None:
     """
-    Give a unit its own TurtleNeck, TurtleNeckV2 or FPS_PSF buffer.
+    Give a unit its own TurtleNeck, TurtleNeckV2, TurtleNeck2Remastered or FPS_PSF buffer.
 
     Other buffer types do nothing. A unit type without a target is skipped with a
     warning. Pin prompts default from the unit name (EMU and OpenAMS have their own

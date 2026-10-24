@@ -172,6 +172,11 @@ class AdditionalOptionsMenu:
                 "\n\nEnsure you add the correct serial information to the "
                 f"{ctx.afc_config_dir}/mcu/TurtleNeckv2.cfg file"
             )
+        if sel.additional_buffer_type == "TurtleNeck2Remastered":
+            message += (
+                "\n\nEnsure you add the correct serial information to the "
+                f"{ctx.afc_config_dir}/mcu/TN2.cfg file"
+            )
         if sel.additional_buffer_type == "FPS_PSF":
             message += (
                 "\n\nEnsure the PSF ADC pin in your buffer configuration matches where your "

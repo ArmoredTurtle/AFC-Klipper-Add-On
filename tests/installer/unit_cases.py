@@ -11,7 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures" / "unit_cases"
 
-BUFFER_TYPES = ["TurtleNeck", "TurtleNeckV2", "FPS_PSF", "None"]
+BUFFER_TYPES = ["TurtleNeck", "TurtleNeckV2", "TurtleNeck2Remastered", "FPS_PSF", "None"]
 
 UNIT_VARIANTS: dict[str, list[dict[str, str]]] = {
     "BoxTurtle (4-Lane)": [{}],

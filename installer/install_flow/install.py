@@ -84,6 +84,11 @@ def build_install_message(ctx: Context, sel: UnitSelection) -> str:
             "\n- Ensure you add the correct serial information to the "
             f"{ctx.afc_config_dir}/mcu/TurtleNeckv2.cfg file\n  "
         )
+    if sel.buffer_type == "TurtleNeck2Remastered":
+        message += (
+            "\n- Ensure you add the correct serial information to the "
+            f"{ctx.afc_config_dir}/mcu/TN2.cfg file\n  "
+        )
     if sel.buffer_type == "FPS_PSF":
         message += (
             "\n- Ensure the PSF ADC pin in your buffer configuration matches where your "

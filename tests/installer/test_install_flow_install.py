@@ -59,6 +59,15 @@ class TestBuildInstallMessage:
             "/cfg/AFC/mcu/TurtleNeckv2.cfg file\n  "
         ) in build_install_message(self.ctx(), sel)
 
+    def test_turtleneck_2_remastered_adds_the_serial_note(self) -> None:
+        sel = UnitSelection(unit_name="Bob", buffer_type="TurtleNeck2Remastered")
+        message = build_install_message(self.ctx(), sel)
+        assert (
+            "\n- Ensure you add the correct serial information to the "
+            "/cfg/AFC/mcu/TN2.cfg file\n  "
+        ) in message
+        assert "TurtleNeckv2.cfg" not in message
+
     def test_fps_psf_adds_the_adc_pin_note(self) -> None:
         sel = UnitSelection(unit_name="Bob", buffer_type="FPS_PSF")
         assert (
@@ -81,8 +90,8 @@ MESSAGE_CASES = [case for case in all_cases() if case[1] == "message"]
 
 
 class TestReplayOfTheMessageFixtures:
-    def test_all_88_message_fixtures_are_present(self) -> None:
-        assert len(MESSAGE_CASES) == 88
+    def test_all_110_message_fixtures_are_present(self) -> None:
+        assert len(MESSAGE_CASES) == 110
 
     @pytest.mark.parametrize(
         "name, mode, overrides", MESSAGE_CASES, ids=[case[0] for case in MESSAGE_CASES]

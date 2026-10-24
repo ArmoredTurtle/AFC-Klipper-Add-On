@@ -9,6 +9,9 @@ class TestBufferLabel:
     def test_psf_has_a_friendly_label(self) -> None:
         assert buffer_label("FPS_PSF") == "Proportional Sync-Feedback(PSF)"
 
+    def test_remastered_has_a_friendly_label(self) -> None:
+        assert buffer_label("TurtleNeck2Remastered") == "TurtleNeck 2 Remastered"
+
     def test_other_tokens_are_shown_as_they_are(self) -> None:
         assert buffer_label("TurtleNeck") == "TurtleNeck"
 

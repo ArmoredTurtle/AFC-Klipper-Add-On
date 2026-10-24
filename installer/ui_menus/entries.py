@@ -14,6 +14,12 @@ from installer.unit_registry.base import UnitType
 from installer.unit_registry.registry import unit_for
 
 
+_BUFFER_LABELS = {
+    "TurtleNeck2Remastered": "TurtleNeck 2 Remastered",
+    "FPS_PSF": "Proportional Sync-Feedback(PSF)",
+}
+
+
 @dataclass
 class Entry:
     """One numbered row: how to draw it and what choosing it does."""
@@ -29,7 +35,7 @@ def buffer_label(buffer_type: str) -> str:
     :param buffer_type: internal token
     :return str: user facing label
     """
-    return "Proportional Sync-Feedback(PSF)" if buffer_type == "FPS_PSF" else buffer_type
+    return _BUFFER_LABELS.get(buffer_type, buffer_type)
 
 
 def require_unit(installation_type: str) -> UnitType:

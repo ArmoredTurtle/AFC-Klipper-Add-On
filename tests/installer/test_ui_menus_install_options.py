@@ -167,13 +167,20 @@ class TestSensorRow:
 
 
 class TestBufferRow:
-    def test_a_number_cycles_the_buffer_and_names_it(self, tmp_path: Path) -> None:
-        menu, state, _, _, _ = build(tmp_path, ["11", "11", "11"])
-        seen = []
+    def test_remastered_is_named_with_its_friendly_label(self, tmp_path: Path) -> None:
+        menu, state, _, _, _ = build(tmp_path, ["11"] * 3)
         for _ in range(3):
             menu.step()
+        assert state.selection.buffer_type == "TurtleNeck2Remastered"
+        assert state.message == "Buffer Type: TurtleNeck 2 Remastered"
+
+    def test_a_number_cycles_the_buffer_and_names_it(self, tmp_path: Path) -> None:
+        menu, state, _, _, _ = build(tmp_path, ["11"] * 4)
+        seen = []
+        for _ in range(4):
+            menu.step()
             seen.append(state.selection.buffer_type)
-        assert seen == ["TurtleNeck", "TurtleNeckV2", "FPS_PSF"]
+        assert seen == ["TurtleNeck", "TurtleNeckV2", "TurtleNeck2Remastered", "FPS_PSF"]
         assert state.message == "Buffer Type: Proportional Sync-Feedback(PSF)"
 
 

@@ -277,7 +277,7 @@ class TestAdditionalBufferRulesForTheRest:
     def test_quattrobox_offers_the_full_cycle(self) -> None:
         assert additional_buffer_supported(QUATTRO) is True
         assert additional_buffer_options(QUATTRO) == (
-            "None", "TurtleNeck", "TurtleNeckV2", "FPS_PSF"
+            "None", "TurtleNeck", "TurtleNeckV2", "TurtleNeck2Remastered", "FPS_PSF"
         )
 
     def test_vivid_has_no_additional_unit_buffer(self) -> None:

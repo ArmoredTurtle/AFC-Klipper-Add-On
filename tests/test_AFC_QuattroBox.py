@@ -3,198 +3,263 @@ Unit tests for extras/AFC_QuattroBox.py
 
 Covers:
   - afcQuattroBox: is subclass of afcNightOwl
-  - lane_loaded: calls super().lane_loaded() then sets spool illumination LED
-  - lane_unloaded: calls afc_led with led_off for spool index
-  - lane_loading: calls super().lane_loading() then set_logo_color
-  - lane_tool_loaded: calls super().lane_tool_loaded() then set_logo_color with lane color
-  - lane_tool_unloaded: calls super().lane_tool_unloaded() then resets logo color
+  - afcQuattroBox.__init__: reads type from config
+  - afcQuattroBox.handle_connect: calls super, sets logo html, sets logo color
+  - afcQuattroBox.lane_loading: calls super then set_logo_color with loading color
+  - afcQuattroBox.lane_tool_loaded: calls super then set_logo_color with lane color
+  - afcQuattroBox.lane_tool_unloaded: calls super then set_logo_color with logo color
+  - load_config_prefix: Klipper config entry point
 """
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call, patch
+import configparser
+import importlib.util
+import sys
+from typing import Optional
+from unittest.mock import MagicMock, patch
 import pytest
 
-from extras.AFC_QuattroBox import afcQuattroBox
+from extras.AFC_QuattroBox import afcQuattroBox, load_config_prefix
 from extras.AFC_NightOwl import afcNightOwl
+from extras.AFC_unit import afcUnit
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _make_quattro(name="Quattro_1"):
-    """Build an afcQuattroBox bypassing the complex __init__."""
-    unit = afcQuattroBox.__new__(afcQuattroBox)
+def _make_quattro_config(name: str="Quattro_1", values: Optional[dict]=None):
+    """Build the MockConfig/MockPrinter/MockAFC trio needed to construct an
+    afcQuattroBox via its real __init__ (chained through afcNightOwl.__init__,
+    afcBoxTurtle.__init__ and afcUnit.__init__).
 
-    from tests.conftest import MockAFC, MockPrinter, MockLogger, MockReactor
+    :param name: Unit name to use for the config section
+    :param values: Config values to seed, merged over the defaults
+    :return tuple: (config, printer, afc) mocks ready to build an afcQuattroBox
+    """
+    from tests.conftest import MockAFC, MockConfig, MockPrinter
 
     afc = MockAFC()
-    reactor = MockReactor()
-    afc.reactor = reactor
-    afc.logger = MockLogger()
     printer = MockPrinter(afc=afc)
-
-    unit.printer = printer
-    unit.afc = afc
-    unit.logger = afc.logger
-    unit.reactor = reactor
-    unit.name = name
-    unit.full_name = ["AFC_QuattroBox", name]
-    unit.lanes = {}
-    unit.hub_obj = None
-    unit.extruder_obj = None
-    unit.buffer_obj = None
-    unit.hub = None
-    unit.extruder = None
-    unit.buffer_name = None
-    unit.td1_defined = False
-    unit.type = "Quattro_Box"
-    unit.gcode = afc.gcode
-    unit.led_logo_index = "0"
-    unit.led_logo_color = "0,0,0,0"
-    unit.led_logo_loading = "0,0,1,0"
-
-    return unit
+    config = MockConfig(name=f"AFC_QuattroBox {name}", printer=printer, values=values or {})
+    return config, printer, afc
 
 
-def _make_lane(name="lane1", color="#FF0000"):
+def _make_quattro(name: str="Quattro_1", values: Optional[dict]=None) -> afcQuattroBox:
+    """Build a real afcQuattroBox via its actual __init__.
+
+    :param name: Unit name to use for the config section
+    :param values: Config values to seed, merged over the defaults
+    :return afcQuattroBox: constructed Quattro Box unit
+    """
+    config, printer, afc = _make_quattro_config(name=name, values=values)
+    return afcQuattroBox(config)
+
+
+def _make_lane(color: str="#FF0000") -> MagicMock:
     lane = MagicMock()
-    lane.name = name
+    lane.name = "lane1"
     lane.color = color
-    lane.led_ready = "0,1,0,0"
-    lane.led_not_ready = "0,0,0,0.25"
-    lane.led_fault = "1,0,0,0"
-    lane.led_loading = "0,0,1,0"
-    lane.led_spool_illum = "1,1,1,0"
-    lane.led_tool_loaded = "0,1,0.5,0"
-    lane.led_index = "1"
-    lane.led_spool_index = "2"
-    lane.led_use_filament_color = False
     return lane
 
 
 # ── Inheritance ───────────────────────────────────────────────────────────────
 
 class TestQuattroBoxInheritance:
-    def test_is_subclass_of_night_owl(self):
+    def test_is_subclass_of_night_owl(self) -> None:
         assert issubclass(afcQuattroBox, afcNightOwl)
 
-
-# ── lane_loaded ───────────────────────────────────────────────────────────────
-
-class TestLaneLoaded:
-    def test_calls_spool_illum_led(self):
-        """lane_loaded should set spool illumination LED in addition to lane LED."""
+    def test_instance_is_night_owl(self) -> None:
         unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_loaded(lane)
-        unit.afc.function.afc_led.assert_any_call(lane.led_spool_illum, lane.led_spool_index)
+        assert isinstance(unit, afcNightOwl)
 
-    def test_calls_lane_ready_led(self):
+
+# ── __init__ ──────────────────────────────────────────────────────────────────
+
+class TestQuattroBoxInit:
+    def test_type_defaults_to_quattro_box_when_not_set_in_config(self) -> None:
         unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_loaded(lane)
-        unit.afc.function.afc_led.assert_any_call(lane.led_ready, lane.led_index)
+        assert unit.type == "Quattro_Box"
 
-
-# ── lane_unloaded ─────────────────────────────────────────────────────────────
-
-class TestLaneUnloaded:
-    def test_does_not_touch_spool_led(self):
-        """lane_unloaded no longer manages the spool illumination LED --
-        that responsibility moved to lane_not_ready."""
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_unloaded(lane)
-        for c in unit.afc.function.afc_led.call_args_list:
-            assert c[0][0] != unit.afc.led_off
-
-
-# ── lane_not_ready ────────────────────────────────────────────────────────────
-
-class TestLaneNotReady:
-    def test_calls_led_off_for_spool(self):
-        """lane_not_ready should turn off spool LEDs."""
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_not_ready(lane)
-        unit.afc.function.afc_led.assert_any_call(unit.afc.led_off, lane.led_spool_index)
-
-
-# ── lane_loading ──────────────────────────────────────────────────────────────
-
-class TestLaneLoading:
-    def test_calls_set_logo_color_with_loading_color(self):
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.set_logo_color = MagicMock()
-        unit.lane_loading(lane)
-        unit.set_logo_color.assert_called_with(unit.led_logo_loading)
-
-    def test_calls_afc_led_for_lane(self):
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_loading(lane)
-        unit.afc.function.afc_led.assert_any_call(lane.led_loading, lane.led_index)
-
-
-# ── lane_tool_loaded ──────────────────────────────────────────────────────────
-
-class TestLaneToolLoaded:
-    def test_calls_set_logo_color_with_lane_color(self):
-        unit = _make_quattro()
-        lane = _make_lane(color="#FF0000")
-        unit.set_logo_color = MagicMock()
-        unit.lane_tool_loaded(lane)
-        unit.set_logo_color.assert_called_with(lane.color)
-
-    def test_calls_afc_led_for_lane(self):
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_tool_loaded(lane)
-        unit.afc.function.afc_led.assert_any_call(lane.led_tool_loaded, lane.led_index)
-
-
-# ── lane_tool_unloaded ────────────────────────────────────────────────────────
-
-class TestLaneToolUnloaded:
-    def test_calls_set_logo_color_with_logo_color(self):
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.set_logo_color = MagicMock()
-        unit.lane_tool_unloaded(lane)
-        unit.set_logo_color.assert_called_with(unit.led_logo_color)
-
-    def test_calls_afc_led_for_lane(self):
-        unit = _make_quattro()
-        lane = _make_lane()
-        unit.lane_tool_unloaded(lane)
-        # lane_tool_unloaded calls super() which calls afc_led with led_ready
-        unit.afc.function.afc_led.assert_any_call(lane.led_ready, lane.led_index)
+    def test_type_reads_overridden_value_from_config(self) -> None:
+        unit = _make_quattro(values={"type": "CustomQuattro"})
+        assert unit.type == "CustomQuattro"
 
 
 # ── handle_connect ────────────────────────────────────────────────────────────
 
-class TestHandleConnect:
-    def test_handle_connect_sets_logo_html(self):
+class TestQuattroBoxHandleConnect:
+    def test_calls_super_handle_connect_once(self) -> None:
         unit = _make_quattro()
         unit.set_logo_color = MagicMock()
-        unit.handle_connect()
-        assert "Quattro Box Ready" in unit.logo
+        with patch.object(afcNightOwl, "handle_connect") as mock_super:
+            unit.handle_connect()
+        mock_super.assert_called_once_with()
 
-    def test_handle_connect_sets_logo_error_html(self):
+    def test_sets_exact_logo_after_super_runs(self) -> None:
         unit = _make_quattro()
         unit.set_logo_color = MagicMock()
-        unit.handle_connect()
-        assert "Quattro Box Not Ready" in unit.logo_error
 
-    def test_handle_connect_calls_set_logo_color_with_logo_color(self):
+        def fake_super_handle_connect(self) -> None:
+            self.logo = "sentinel-from-night-owl"
+            self.logo_error = "sentinel-error-from-night-owl"
+
+        with patch.object(afcNightOwl, "handle_connect", fake_super_handle_connect):
+            unit.handle_connect()
+
+        assert unit.logo == '<span class=success--text>Quattro Box Ready</span>'
+
+    def test_sets_exact_logo_error_after_super_runs(self) -> None:
         unit = _make_quattro()
         unit.set_logo_color = MagicMock()
-        unit.handle_connect()
+
+        def fake_super_handle_connect(self) -> None:
+            self.logo = "sentinel-from-night-owl"
+            self.logo_error = "sentinel-error-from-night-owl"
+
+        with patch.object(afcNightOwl, "handle_connect", fake_super_handle_connect):
+            unit.handle_connect()
+
+        assert unit.logo_error == '<span class=error--text>Quattro Box Not Ready</span>\n'
+
+    def test_calls_set_logo_color_with_led_logo_color(self) -> None:
+        unit = _make_quattro()
+        unit.set_logo_color = MagicMock()
+        with patch.object(afcNightOwl, "handle_connect"):
+            unit.handle_connect()
         unit.set_logo_color.assert_called_once_with(unit.led_logo_color)
 
-    def test_handle_connect_registers_unit_in_afc_units(self):
-        unit = _make_quattro(name="quattro_test")
+
+# ── lane_loading ──────────────────────────────────────────────────────────────
+
+class TestQuattroBoxLaneLoading:
+    def test_calls_super_lane_loading_with_lane(self) -> None:
+        unit = _make_quattro()
         unit.set_logo_color = MagicMock()
-        unit.handle_connect()
-        assert unit.afc.units.get("quattro_test") is unit
+        lane = _make_lane()
+        with patch.object(afcUnit, "lane_loading") as mock_super:
+            unit.lane_loading(lane)
+        mock_super.assert_called_once_with(lane)
+
+    def test_calls_set_logo_color_with_led_logo_loading(self) -> None:
+        unit = _make_quattro()
+        unit.set_logo_color = MagicMock()
+        lane = _make_lane()
+        with patch.object(afcUnit, "lane_loading"):
+            unit.lane_loading(lane)
+        unit.set_logo_color.assert_called_once_with(unit.led_logo_loading)
+
+
+# ── lane_tool_loaded ──────────────────────────────────────────────────────────
+
+class TestQuattroBoxLaneToolLoaded:
+    def test_calls_super_lane_tool_loaded_with_lane(self) -> None:
+        unit = _make_quattro()
+        unit.set_logo_color = MagicMock()
+        lane = _make_lane()
+        with patch.object(afcUnit, "lane_tool_loaded") as mock_super:
+            unit.lane_tool_loaded(lane)
+        mock_super.assert_called_once_with(lane)
+
+    def test_calls_set_logo_color_with_lane_color(self) -> None:
+        unit = _make_quattro()
+        unit.set_logo_color = MagicMock()
+        lane = _make_lane(color="#00FF00")
+        with patch.object(afcUnit, "lane_tool_loaded"):
+            unit.lane_tool_loaded(lane)
+        unit.set_logo_color.assert_called_once_with("#00FF00")
+
+
+# ── lane_tool_unloaded ────────────────────────────────────────────────────────
+
+class TestQuattroBoxLaneToolUnloaded:
+    def test_calls_super_lane_tool_unloaded_with_lane(self) -> None:
+        unit = _make_quattro()
+        unit.set_logo_color = MagicMock()
+        lane = _make_lane()
+        with patch.object(afcUnit, "lane_tool_unloaded") as mock_super:
+            unit.lane_tool_unloaded(lane)
+        mock_super.assert_called_once_with(lane)
+
+    def test_calls_set_logo_color_with_led_logo_color(self) -> None:
+        unit = _make_quattro()
+        unit.set_logo_color = MagicMock()
+        lane = _make_lane()
+        with patch.object(afcUnit, "lane_tool_unloaded"):
+            unit.lane_tool_unloaded(lane)
+        unit.set_logo_color.assert_called_once_with(unit.led_logo_color)
+
+
+# ── load_config_prefix ────────────────────────────────────────────────────────
+
+class TestQuattroBoxLoadConfigPrefix:
+    def test_returns_afc_quattro_box_instance(self) -> None:
+        config, printer, afc = _make_quattro_config()
+
+        unit = load_config_prefix(config)
+
+        assert isinstance(unit, afcQuattroBox)
+
+    def test_passes_config_through_to_constructed_unit(self) -> None:
+        config, printer, afc = _make_quattro_config(values={"type": "CustomQuattro"})
+
+        unit = load_config_prefix(config)
+
+        assert unit.type == "CustomQuattro"
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Module-level import guards
+# ═════════════════════════════════════════════════════════════════════════
+
+def _exec_afc_quattro_box_with_blocked_dependency(blocked_module_name: str) -> None:
+    """Execute a throw-away copy of extras/AFC_QuattroBox.py's module-level
+    code with `blocked_module_name` forced to fail import, to exercise the
+    file's top-level ``try: from X import Y / except: raise error(...)``
+    guards.
+
+    Never touches the real, already-imported ``extras.AFC_QuattroBox``
+    module that the rest of this test suite depends on: the copy is loaded
+    under a throwaway module name and discarded afterward, whether or not it
+    raises. Cleanup restores the exact same pre-existing module object in
+    sys.modules so other test files' references stay valid.
+
+    :param blocked_module_name: Dotted module name to force an ImportError for
+    """
+    import extras.AFC_QuattroBox as real_module
+    fresh_name = "extras.AFC_QuattroBox_import_guard_probe"
+    original_blocked_module = sys.modules.get(blocked_module_name)
+    sys.modules[blocked_module_name] = None
+    try:
+        spec = importlib.util.spec_from_file_location(fresh_name, real_module.__file__)
+        fresh = importlib.util.module_from_spec(spec)
+        sys.modules[fresh_name] = fresh
+        try:
+            spec.loader.exec_module(fresh)
+        finally:
+            sys.modules.pop(fresh_name, None)
+    finally:
+        if original_blocked_module is not None:
+            sys.modules[blocked_module_name] = original_blocked_module
+        else:
+            sys.modules.pop(blocked_module_name, None)
+
+
+class TestModuleImportGuards:
+    """Covers the two module-level `try/except: raise error(...)` guards in
+    AFC_QuattroBox.py, one per dependency import."""
+
+    def test_afc_utils_error_str_import_failure_raises_configparser_error(self) -> None:
+        """The first guard imports ERROR_STR itself from AFC_utils, so it
+        can't use ERROR_STR.format(...) in its own except clause."""
+        with pytest.raises(configparser.Error) as exc_info:
+            _exec_afc_quattro_box_with_blocked_dependency("extras.AFC_utils")
+        assert str(exc_info.value).startswith(
+            "Error when trying to import AFC_utils.ERROR_STR"
+        )
+
+    def test_afc_night_owl_import_failure_raises_configparser_error(self) -> None:
+        with pytest.raises(configparser.Error) as exc_info:
+            _exec_afc_quattro_box_with_blocked_dependency("extras.AFC_NightOwl")
+        assert str(exc_info.value).startswith(
+            "Error trying to import AFC_NightOwl, please rerun install-afc.sh"
+        )

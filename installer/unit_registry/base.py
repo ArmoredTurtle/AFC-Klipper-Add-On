@@ -15,7 +15,9 @@ from installer.platform_core.context import Context
 from installer.unit_registry.options import UnitOption
 from installer.unit_registry.selection import UnitSelection
 
-GENERIC_BUFFER_OPTIONS: Tuple[str, ...] = ("None", "TurtleNeck", "TurtleNeckV2", "FPS_PSF")
+GENERIC_BUFFER_OPTIONS: Tuple[str, ...] = (
+    "None", "TurtleNeck", "TurtleNeckV2", "TurtleNeck2Remastered", "FPS_PSF"
+)
 
 
 class BufferTarget(NamedTuple):
@@ -158,7 +160,11 @@ class UnitType(ABC):
 
         :param sel: the user's unit choices, ``buffer_type`` is updated
         """
-        order = {"TurtleNeck": "TurtleNeckV2", "TurtleNeckV2": "FPS_PSF"}
+        order = {
+            "TurtleNeck": "TurtleNeckV2",
+            "TurtleNeckV2": "TurtleNeck2Remastered",
+            "TurtleNeck2Remastered": "FPS_PSF",
+        }
         if sel.buffer_type == "FPS_PSF":
             sel.buffer_type = "TurtleNeck" if sel.toolhead_sensor == "Ramming" else "None"
         else:

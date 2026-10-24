@@ -9,7 +9,7 @@ import traceback
 
 from configparser import Error as config_error
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 try: from extras.AFC_utils import ERROR_STR
 except:
@@ -17,7 +17,7 @@ except:
     err_str = f"Error when trying to import AFC_utils.ERROR_STR\n{trace}"
     raise config_error(err_str)
 
-try: from extras.AFC_lane import MoveDirection, AFCLane, SpeedMode, AssistActive
+try: from extras.AFC_lane import MoveDirection, SpeedMode, AssistActive
 except: raise config_error(ERROR_STR.format(import_lib="AFC_lane", trace=traceback.format_exc()))
 
 try: from extras.AFC_vivid import AFC_vivid
@@ -35,11 +35,16 @@ if TYPE_CHECKING:
 class AFC_Claymore(AFC_vivid):
     CALIBRATION_DISTANCE = 5000
     LANE_OVERSHOOT = 200
-    def __init__(self, config: ConfigWrapper):
+    def __init__(self, config: ConfigWrapper) -> None:
+        """
+        Initialize the Claymore unit, reading its type from config.
+
+        :param config: Klipper config wrapper for the AFC_Claymore section
+        """
         super().__init__(config)
         self.type: str = config.get('type', 'Claymore')
 
-    def handle_connect(self):
+    def handle_connect(self) -> None:
         """
         Handle the connection event.
         This function is called when the printer connects. It looks up AFC info
@@ -53,13 +58,35 @@ class AFC_Claymore(AFC_vivid):
 
     def _move_lane(self, lane: AFCLane, delay: float=1,
             enable_movement: bool=True) -> bool:
+        """
+        Method to check if filament is loaded into lane. Claymore lanes
+        report their current load_state directly, without moving filament.
+
+        :param lane: Lane to check
+        :param delay: Unused for this method
+        :param enable_movement: Unused for this method
+        :return bool: Returns lane's current load_state
+        """
         return lane.load_state
 
-    def system_Test(self, cur_lane, delay, assignTcmd, enable_movement):
+    def system_Test(self, cur_lane: AFCLane, delay: float, assignTcmd: bool,
+                    enable_movement: bool) -> bool:
+        """
+        Runs the standard system test. Claymore units don't support movement
+        during the test, so enable_movement is always forced to False.
+        prep_state is set to the lane's current load_state before running
+        the test since Claymore lanes do not home to a separate prep sensor.
+
+        :param cur_lane: Lane to run the system test against
+        :param delay: Delay amount to wait between forward/backward movements
+        :param assignTcmd: When True assigns a tool number to cur_lane
+        :param enable_movement: Ignored, Claymore units always run with movement disabled
+        :return bool: True if the system test succeeded
+        """
         cur_lane.prep_state = cur_lane.load_state
         return super().system_Test( cur_lane, delay, assignTcmd, False)
 
-    def unselect_lane(self, move_distance: float=5):
+    def unselect_lane(self, move_distance: float=5) -> None:
         """
         Move the selector by a configurable distance to free filament in a lane, e.g. when
         ejecting filament.
@@ -68,7 +95,7 @@ class AFC_Claymore(AFC_vivid):
         """
         super().unselect_lane(move_distance=move_distance)
 
-    def eject_lane(self, lane: AFCLane):
+    def eject_lane(self, lane: AFCLane) -> None:
         """
         Method to select lane and eject spool, uses homing to move spool to prep sensor. Movement
         will stop once prep sensor is no longer triggered if movement has not already stopped.
@@ -109,8 +136,8 @@ class AFC_Claymore(AFC_vivid):
                                         speed_mode, assist_active)
 
     def calibrate_lane(
-            self, cur_lane: AFCLane, tol: Union[float|int]
-        ) -> tuple[bool, str, Union[float|int]]:
+            self, cur_lane: AFCLane, tol: float|int
+        ) -> tuple[bool, str, float|int]:
         """
         Method to calibrate lane for Claymore units. Delegates to afcBoxTurtle calibration logic.
 
@@ -123,7 +150,19 @@ class AFC_Claymore(AFC_vivid):
         return afcBoxTurtle.calibrate_lane(self, cur_lane, tol)
 
     def calibration_lane_message(self) -> str:
+        """
+        Method for returning calibration message for Claymore units.
+        Delegates to afcBoxTurtle's calibration message logic.
+
+        :return str: Calibration message
+        """
         return afcBoxTurtle.calibration_lane_message(self)
 
-def load_config_prefix(config):
+def load_config_prefix(config: ConfigWrapper) -> AFC_Claymore:
+    """
+    Klipper config entry point for AFC_Claymore <name> sections.
+
+    :param config: Klipper config wrapper for the AFC_Claymore section
+    :return AFC_Claymore: constructed Claymore unit
+    """
     return AFC_Claymore(config)

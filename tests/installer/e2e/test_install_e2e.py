@@ -97,9 +97,10 @@ class TestOptions:
         [
             (1, ["adv:1", "trail:2"], ["adv:1", "trail:2"]),
             (2, [], ["TurtleNeckv2"]),
-            (3, ["buf:PA1"], ["buf:PA1"]),
+            (3, [], ["TN2.cfg", "TN2R:PSF"]),
+            (4, ["buf:PA1"], ["buf:PA1"]),
         ],
-        ids=["turtleneck", "turtleneck-v2", "fps-psf"],
+        ids=["turtleneck", "turtleneck-v2", "turtleneck-2-remastered", "fps-psf"],
     )
     def test_ramming_with_each_buffer_type(
         self, tmp_path: Path, presses: int, answers: List[str], needles: List[str]

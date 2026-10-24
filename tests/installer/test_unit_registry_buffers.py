@@ -46,7 +46,15 @@ class TestBuildBufferConfig:
     def test_turtleneck_v2_has_fixed_pins_and_its_own_led_section(self) -> None:
         text = build_buffer_config("TurtleNeckV2", "Buf")
         assert text.startswith("[AFC_buffer Buf]\nadvance_pin: !turtleneck:ADVANCE\n")
-        assert "\nled_index: Buffer_Indicator:1\n\n[AFC_led Buffer_Indicator]\n" in text
+        assert "\nled_index: Buf_Buffer_Indicator:1\n\n[AFC_led Buf_Buffer_Indicator]\n" in text
+        assert text.endswith("initial_WHITE: 0.0")
+
+    def test_turtleneck_2_remastered_is_an_fps_psf_block_on_the_tn2r_pins(self) -> None:
+        text = build_buffer_config("TurtleNeck2Remastered", "Buf")
+        assert text.startswith("[AFC_buffer Buf]\ntype: FPS_PSF\nadc_pin: TN2R:PSF\n")
+        led = "\nled_index: Buf_Buffer_Indicator:1\n\n[AFC_led Buf_Buffer_Indicator]\n"
+        assert led + "pin: TN2R:RGB\n" in text
+        assert "reversed: true  #Test slide by hand" in text
         assert text.endswith("initial_WHITE: 0.0")
 
     def test_fps_psf_embeds_the_adc_pin(self) -> None:
@@ -194,6 +202,22 @@ class TestAppendBufferConfig:
         assert text.endswith("[include mcu/TurtleNeckv2.cfg]\n")
         assert (ctx.afc_config_dir / "mcu" / "TurtleNeckv2.cfg").read_bytes() == (
             printer_tree.afc_path / "config" / "mcu" / "TurtleNeckv2.cfg"
+        ).read_bytes()
+
+    def test_turtleneck_2_remastered_copies_tn2_and_includes_it_once(
+        self, printer_tree: PrinterTree, tmp_path: Path
+    ) -> None:
+        target = write(tmp_path / "t.cfg", "[a]\n")
+        ctx = self.append(printer_tree, target, "TurtleNeck2Remastered")
+        self.append(printer_tree, target, "TurtleNeck2Remastered")
+        text = target.read_text()
+        assert text.count("[include mcu/TN2.cfg]") == 1
+        assert text.endswith("[include mcu/TN2.cfg]\n")
+        assert "TurtleNeckv2" not in text
+        mcu = sorted(p.name for p in (ctx.afc_config_dir / "mcu").iterdir())
+        assert mcu == ["TN2.cfg"]
+        assert (ctx.afc_config_dir / "mcu" / "TN2.cfg").read_bytes() == (
+            printer_tree.afc_path / "config" / "mcu" / "TN2.cfg"
         ).read_bytes()
 
     def test_other_buffer_types_do_not_touch_the_mcu_directory(

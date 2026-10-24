@@ -289,7 +289,8 @@ class TestCycleBuffer:
         "sensor,current,expected",
         [
             ("Ramming", "TurtleNeck", "TurtleNeckV2"),
-            ("Ramming", "TurtleNeckV2", "FPS_PSF"),
+            ("Ramming", "TurtleNeckV2", "TurtleNeck2Remastered"),
+            ("Ramming", "TurtleNeck2Remastered", "FPS_PSF"),
             ("Ramming", "FPS_PSF", "TurtleNeck"),
             ("Sensor", "FPS_PSF", "None"),
             ("Sensor", "None", "TurtleNeck"),

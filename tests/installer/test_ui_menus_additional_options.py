@@ -86,6 +86,7 @@ class TestOwnBufferLabel:
     def test_a_type_is_yes_with_the_friendly_label(self) -> None:
         assert own_buffer_label("TurtleNeck") == "Yes: TurtleNeck"
         assert own_buffer_label("FPS_PSF") == "Yes: Proportional Sync-Feedback(PSF)"
+        assert own_buffer_label("TurtleNeck2Remastered") == "Yes: TurtleNeck 2 Remastered"
 
 
 class TestEntry:
@@ -163,8 +164,10 @@ class TestOptionRows:
         for _ in range(5):
             menu.step()
             seen.append(state.selection.additional_buffer_type)
-        assert seen == ["TurtleNeckV2", "FPS_PSF", "None", "TurtleNeck", "TurtleNeckV2"]
-        assert state.message == "Unit has its own buffer? Yes: TurtleNeckV2"
+        assert seen == [
+            "TurtleNeckV2", "TurtleNeck2Remastered", "FPS_PSF", "None", "TurtleNeck"
+        ]
+        assert state.message == "Unit has its own buffer? Yes: TurtleNeck"
 
     def test_a_value_outside_the_list_restarts_at_the_first_option(self, tmp_path: Path) -> None:
         menu, state, _, _, _ = build(tmp_path, ["2"], buffer="Bogus")
@@ -223,6 +226,18 @@ class TestInstallKey:
             BASE.format(name="Turtle_2")
             + "\n\nEnsure you add the correct serial information to the "
             f"{state.ctx.afc_config_dir}/mcu/TurtleNeckv2.cfg file" + RESTART
+        )
+
+    def test_turtleneck_2_remastered_adds_the_serial_note(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        Recorder().install(monkeypatch)
+        menu, state, _, _, _ = build(tmp_path, ["i"], buffer="TurtleNeck2Remastered")
+        menu.step()
+        assert state.message == (
+            BASE.format(name="Turtle_2")
+            + "\n\nEnsure you add the correct serial information to the "
+            f"{state.ctx.afc_config_dir}/mcu/TN2.cfg file" + RESTART
         )
 
     def test_fps_psf_adds_the_adc_note(
